@@ -1,0 +1,107 @@
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    /* Light Mode Premium Palette - VISION PRO LIQUID GLASS */
+    --clr-bg:        #f8fafc;  
+    --clr-surface:   linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.2) 100%); 
+    --clr-surface-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
+    --clr-hdr:       rgba(255, 255, 255, 0.5);
+    --clr-scroll:    rgba(45, 52, 64, 0.15);
+    
+    /* Branding */
+    --clr-primary:   #6c7ea1;  /* Deep Navy */
+    --clr-secondary: #8697b7;
+    --clr-accent:    #2563eb;  /* Bright Blue */
+    --clr-gold:      #d97706;
+    --clr-gold-lt:   #d4bb72;
+    
+    /* Utility colors */
+    --clr-success:   #10b981;
+    --clr-danger:    #ef4444;
+    --clr-warning:   #f59e0b;
+    --clr-info:      #0ea5e9;
+
+    /* Text */
+    --clr-text-main: #66779a;
+    --clr-text-mut:  #64748b;
+    --clr-text-lt:   #94a3b8;
+    
+    /* Borders & Shadows - Ultra Clean */
+    --bdr-soft:      rgba(45, 52, 64, 0.05);
+    --bdr-hard:      rgba(45, 52, 64, 0.1);
+    --shadow-sm:     0 4px 12px rgba(45, 52, 64, 0.03);
+    --shadow-md:     0 12px 32px rgba(45, 52, 64, 0.05);
+    --shadow-lg:     0 24px 48px rgba(45, 52, 64, 0.08);
+
+    /* Fonts */
+    --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-mono:  'JetBrains Mono', monospace;
+}
+
+[data-theme="dark"] {
+    --clr-bg:        #020617;  
+    --clr-surface:   linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.2) 100%);
+    --clr-surface-hover: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.3) 100%);
+    --clr-hdr:       rgba(15, 23, 42, 0.4);
+    --clr-scroll:    rgba(255, 255, 255, 0.15);
+    
+    --clr-primary:   #f8fafc;  
+    --clr-secondary: #e2e8f0;
+    --clr-accent:    #3b82f6;  
+    
+    --clr-text-main: #f8fafc;
+    --clr-text-mut:  #94a3b8;
+    --clr-text-lt:   #475569;
+    
+    --bdr-soft:      rgba(255, 255, 255, 0.08);
+    --bdr-hard:      rgba(255, 255, 255, 0.15);
+    --shadow-sm:     0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-md:     0 12px 32px rgba(0, 0, 0, 0.4);
+    --shadow-lg:     0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] body {
+    background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,0.04) 1.5px, transparent 0);
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    min-height: 100%;
+}
+
+body {
+    font-family: var(--font-sans);
+    color: var(--clr-text-main);
+    background-color: var(--clr-bg);
+    /* Subtle dot pattern for premium tech feel */
+    background-image: radial-gradient(circle at 1.5px 1.5px, rgba(45, 52, 64,0.04) 1.5px, transparent 0);
+    background-size: 24px 24px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism Utilities - VISION PRO EFFECT */
+.glass-panel {
+    background: var(--clr-surface);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid var(--bdr-soft);
+    box-shadow: var(--shadow-md), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.05);
+    border-radius: 20px;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s, background 0.4s;
+}
+
+.glass-panel:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+    background: var(--clr-surface-hover);
+}
+
+/* Scrollbar premium fix oscuro */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--clr-scroll); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--clr-accent); }

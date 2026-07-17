@@ -1,0 +1,314 @@
+/* css/login.css - Unified Theme Redesign with Animations */
+
+/* Entrance Animations */
+@keyframes fadeUpIn {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatElement {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(217,119,6,0.3); }
+  50% { box-shadow: 0 0 25px rgba(217,119,6,0.6); }
+}
+
+.pageWrap { 
+  min-height: 100vh; 
+  background-color: var(--clr-bg);
+  background-image: radial-gradient(circle at 1.5px 1.5px, var(--bdr-hard) 1.5px, transparent 0);
+  background-size: 24px 24px;
+  position: relative;
+  overflow: hidden;
+  color: var(--clr-text-main);
+  transition: background-color 0.4s, color 0.4s;
+}
+
+/* Background floating abstract elements for premium feel */
+.pageWrap::before, .pageWrap::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: 0;
+  opacity: 0.15;
+  animation: floatElement 15s infinite alternate ease-in-out;
+}
+.pageWrap::before {
+  width: 40vw; height: 40vw;
+  background: var(--clr-accent);
+  top: -10%; left: -10%;
+}
+.pageWrap::after {
+  width: 35vw; height: 35vw;
+  background: var(--clr-gold);
+  bottom: -10%; right: -5%;
+  animation-delay: -7s;
+}
+
+.topBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 1rem 2.5rem;
+  background: var(--clr-hdr);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--bdr-soft);
+  z-index: 10;
+}
+
+.topBarLogo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.topBarIcon {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+}
+.topBarIcon img { width: 100%; height: auto; object-fit: contain; }
+.topBarName {
+  font-family: var(--font-serif);
+  font-size: 1.4rem; font-weight: 700; color: var(--clr-text-main); letter-spacing: -0.2px;
+}
+.topBarTagline {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: 0.8rem; color: var(--clr-text-mut);
+  letter-spacing: 0.5px; white-space: nowrap; pointer-events: none;
+}
+
+.topDivider {
+  height: 2px; position: relative; z-index: 10;
+  background: linear-gradient(90deg, transparent 0%, var(--clr-accent) 20%, var(--clr-gold) 50%, var(--clr-accent) 80%, transparent 100%);
+  opacity: 0.8;
+}
+
+.loginLayout {
+  position: relative; z-index: 1;
+  min-height: calc(100vh - 65px);
+  display: grid; grid-template-columns: 1fr 1fr;
+  max-width: 1200px; margin: 0 auto;
+  padding: 3rem 2.5rem; gap: 3rem; align-items: center;
+}
+
+.brandPanel { 
+  display: flex; flex-direction: column; gap: 2rem; padding-right: 2rem; 
+  animation: fadeUpIn 0.8s ease-out backwards;
+}
+
+.brandEyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--clr-gold);
+}
+.brandEyebrowDot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--clr-gold);
+  animation: lfPulse 1.5s ease-in-out infinite;
+}
+@keyframes lfPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.brandHeadline {
+  font-family: var(--font-serif);
+  font-size: 3.5rem; font-weight: 700;
+  line-height: 1.1; color: var(--clr-primary); letter-spacing: -0.5px;
+}
+.brandHeadline em { 
+  font-style: italic; color: var(--clr-gold);
+}
+
+.brandDesc {
+  font-size: 1rem; color: var(--clr-text-mut); line-height: 1.7;
+  border-left: 3px solid var(--clr-gold); padding-left: 1rem;
+}
+
+.brandFeatures { display: flex; flex-direction: column; gap: 0.8rem; }
+.featureRow { 
+  display: flex; align-items: center; gap: 0.85rem; font-size: 0.85rem; color: var(--clr-text-mut); 
+  transition: transform 0.3s;
+}
+.featureRow:hover { transform: translateX(5px); }
+
+.featureIcon {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  background: var(--clr-surface); border: 1px solid var(--bdr-hard);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; color: var(--clr-accent);
+}
+.featureIconGold { 
+  color: var(--clr-gold);
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+.featureRow strong { color: var(--clr-text-main); font-weight: 600; }
+
+.featBadge {
+  margin-left: auto; font-size: 0.6rem; font-weight: 700;
+  font-family: var(--font-mono);
+  background: var(--clr-surface); border: 1px solid var(--bdr-hard);
+  color: var(--clr-accent); padding: 3px 7px; border-radius: 4px; white-space: nowrap;
+}
+.featBadgeGold { color: var(--clr-gold); }
+
+.brandFooter { font-size: 0.7rem; color: var(--clr-text-lt); letter-spacing: 0.05em; }
+
+.formPanel { 
+  display: flex; align-items: center; justify-content: center; 
+  animation: fadeUpIn 0.8s ease-out 0.2s backwards;
+}
+
+/* Reusing .glass-panel properties but extending for Login Card */
+.loginCard {
+  width: 100%; max-width: 440px;
+  background: var(--clr-surface);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--bdr-soft);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-lg), inset 0 1px 1px rgba(255,255,255,0.3);
+  padding: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  /* Floating animation */
+  animation: floatElement 8s ease-in-out infinite;
+}
+.loginCard::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+  background: linear-gradient(90deg, var(--clr-accent), var(--clr-info), var(--clr-gold));
+}
+
+.cardLogo { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.5rem; justify-content: center; }
+.cardLogoIcon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.cardLogoIcon img { width: 100%; height: auto; object-fit: contain; }
+.cardLogoText { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 700; color: var(--clr-text-main); }
+.cardLogoBadge {
+  font-size: 0.6rem; font-weight: 800; background: var(--clr-gold); color: #fff;
+  padding: 2px 6px; border-radius: 6px; margin-left: 0.2rem;
+}
+
+.cardTitle { font-size: 1.5rem; font-weight: 700; color: var(--clr-text-main); text-align: center; margin-bottom: 0.4rem; }
+.cardSubtitle { font-size: 0.85rem; color: var(--clr-text-mut); text-align: center; margin-bottom: 2rem; }
+
+.inputGroup { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.2rem; }
+.inputGroup label { font-size: 0.82rem; font-weight: 600; color: var(--clr-text-main); display: flex; align-items: center; gap: 0.4rem; }
+.inputField {
+  background: var(--clr-bg);
+  border: 1px solid var(--bdr-hard);
+  padding: 0.8rem 1rem; border-radius: 10px;
+  font-family: var(--font-sans); font-size: 0.9rem; color: var(--clr-text-main);
+  transition: all 0.3s ease;
+}
+.inputField:focus {
+  outline: none; 
+  border-color: var(--clr-accent); 
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+.inputField::placeholder { color: var(--clr-text-lt); }
+
+.forgotPass { font-size: 0.75rem; color: var(--clr-info); text-decoration: none; font-weight: 500; align-self: flex-end; margin-top: -0.6rem; transition: color 0.2s; }
+.forgotPass:hover { color: var(--clr-accent); }
+
+.btnSubmit {
+  width: 100%; padding: 0.9rem; border: none; border-radius: 10px;
+  background: var(--clr-primary);
+  color: #fff; font-family: var(--font-sans); font-size: 0.95rem; font-weight: 600;
+  cursor: pointer; transition: all 0.3s;
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  margin-top: 1rem;
+}
+.btnSubmit:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); background: var(--clr-secondary); }
+.btnSubmit:active { transform: translateY(0); }
+
+.loginErrorMsg {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--clr-danger);
+  padding: 0.8rem 1rem; border-radius: 8px;
+  font-size: 0.8rem; font-weight: 500;
+  display: none; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;
+}
+.loginErrorMsg.show { display: flex; animation: shake 0.4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.loginFooter {
+  text-align: center; margin-top: 2rem; font-size: 0.8rem; color: var(--clr-text-mut);
+}
+.loginFooter a { color: var(--clr-gold); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+.loginFooter a:hover { color: var(--clr-gold-lt); }
+
+/* Missing Form Components */
+.btnPrimary {
+  width: 100%; padding: 0.9rem; border: none; border-radius: 10px;
+  background: var(--clr-primary);
+  color: #fff; font-family: var(--font-sans); font-size: 0.95rem; font-weight: 600;
+  cursor: pointer; transition: all 0.3s;
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.btnPrimary:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); background: var(--clr-secondary); }
+.btnPrimary:active { transform: translateY(0); }
+
+.divider {
+  display: flex; align-items: center; justify-content: center;
+  margin: 2rem 0 1.5rem; position: relative;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--bdr-hard);
+}
+.dividerText {
+  padding: 0 1rem; font-size: 0.75rem; color: var(--clr-text-mut); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+.subscribeRow {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--clr-surface);
+  border: 1px solid var(--bdr-soft);
+  padding: 1rem 1.2rem; border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+.subscribeText { font-size: 0.85rem; font-weight: 600; color: var(--clr-text-main); display: flex; align-items: center; }
+.btnSecondary {
+  padding: 0.5rem 1rem; border: 1px solid var(--clr-gold); border-radius: 8px;
+  background: transparent; color: var(--clr-gold); font-family: var(--font-sans);
+  font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.btnSecondary:hover { background: var(--clr-gold); color: #fff; box-shadow: 0 4px 10px rgba(217,119,6,0.3); }
+
+.securityNote {
+  text-align: center; font-size: 0.7rem; color: var(--clr-text-lt);
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+}
+.securityNote i { color: var(--clr-success); }
+
+.toast {
+  position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+  background: var(--clr-surface);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--bdr-hard);
+  color: var(--clr-text-main); font-weight: 600; font-size: 0.9rem;
+  padding: 0.8rem 1.5rem; border-radius: 50px;
+  box-shadow: var(--shadow-lg);
+  display: flex; align-items: center; gap: 0.6rem;
+  transition: bottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1000;
+}
+.toast.show { bottom: 2rem; }
+
+@media (max-width: 1024px) {
+  .loginLayout { grid-template-columns: 1fr; gap: 3rem; padding: 2rem; }
+  .brandPanel { padding-right: 0; text-align: center; align-items: center; }
+  .brandDesc { border-left: none; border-bottom: 3px solid var(--clr-gold); padding-left: 0; padding-bottom: 1rem; }
+  .brandFeatures { width: 100%; max-width: 480px; }
+  .topBarTagline { display: none; }
+}
+@media (max-width: 640px) {
+  .brandHeadline { font-size: 2.8rem; }
+  .loginCard { padding: 2rem; }
+}

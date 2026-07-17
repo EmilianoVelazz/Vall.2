@@ -1,0 +1,227 @@
+
+.section-bridge {
+    background: linear-gradient(to bottom, #06111f 0%, #ccd9e3 100%);
+    height: 64px;
+    margin-top: -2px;
+}
+
+.section-header {
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 0 2rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.section-header-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #00213a;
+    white-space: nowrap;
+}
+.section-header-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(0,33,58,0.3), transparent);
+}
+.section-header-date {
+    font-size: 0.62rem;
+    color: #667788;
+    white-space: nowrap;
+}
+
+.main {
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 3 / 4;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.12);
+    transition: transform 0.3s ease, box-shadow 0.35s ease;
+}
+.card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        rgba(4,10,22,0.97)  0%,
+        rgba(4,10,22,0.55) 42%,
+        rgba(4,10,22,0.08) 100%
+    );
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1rem 1.1rem;
+}
+
+.card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    background: rgba(29,78,216,0.88);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.16rem 0.65rem;
+    border-radius: 40px;
+    width: fit-content;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.card-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.card-title {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.35;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 1px 10px rgba(0,0,0,0.4);
+}
+.card-btn {
+    display: inline-block;
+    border: 1px solid rgba(255,255,255,0.38);
+    color: #fff;
+    background: rgba(255,255,255,0.07);
+    padding: 0.24rem 0.85rem;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    width: fit-content;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+    backdrop-filter: blur(4px);
+}
+.card-btn:hover {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.7);
+}
+
+.vai-card {
+    border-radius: 10px;
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(155deg, #071525 0%, #0d1e36 55%, #071525 100%);
+    border: 1px solid rgba(251,191,36,0.15);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3), 0 0 0 1px rgba(251,191,36,0.05) inset;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.2rem;
+    gap: 0.5rem;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.35s ease;
+}
+.vai-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 20px rgba(251,191,36,0.07);
+}
+
+.vai-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 6px;
+    padding: 0.22rem 0.75rem;
+}
+.vai-brand-name { font-weight: 800; font-size: 0.78rem; color: #fff; }
+.vai-brand-ai   { font-weight: 800; font-size: 0.78rem; color: var(--clr-gold-lt); }
+
+.vai-lbl {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    color: var(--clr-muted);
+    text-transform: uppercase;
+}
+
+.vai-select {
+    display: flex;
+    align-items: center;
+    gap: 0.38rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 5px;
+    padding: 0.24rem 0.75rem;
+    font-size: 0.73rem;
+    color: #fff;
+    cursor: pointer;
+}
+
+.vai-gauge {
+    position: relative;
+    width: 86px;
+    height: 86px;
+}
+.vai-gauge svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+.g-bg  { fill: none; stroke: #152236; stroke-width: 9; }
+.g-arc {
+    fill: none;
+    stroke: var(--clr-gold-lt);
+    stroke-width: 9;
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 65.3;
+}
+.g-num {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--clr-gold-lt);
+}
+
+.vai-asset   { font-size: 0.63rem; color: var(--clr-muted); text-transform: uppercase; letter-spacing: 1px; }
+.vai-verdict { font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1; }
+.vai-warn    { font-size: 0.65rem; font-weight: 500; color: rgba(251,191,36,0.75); padding: 0 0.3rem; line-height: 1.4; }
+
+@media (max-width: 1100px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
+    .main { padding: 0 1rem 3rem; }
+    .section-header { padding: 0 1rem 1rem; }
+}

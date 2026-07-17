@@ -1,0 +1,1098 @@
+/* Tasas y bonos · experiencia React */
+#bonds-dense-wrapper {
+  --bond-primary: #6c7ea1;
+  --bond-secondary: #8697b7;
+  --bond-accent: #2563eb;
+  --bond-ink: #34425c;
+  --bond-muted: #64748b;
+  --bond-line: rgba(108, 126, 161, .16);
+  min-height: auto !important;
+  color: var(--bond-ink);
+  background:
+    radial-gradient(circle at 5% 8%, rgba(108, 126, 161, .14), transparent 28%),
+    radial-gradient(circle at 94% 32%, rgba(37, 99, 235, .08), transparent 27%),
+    linear-gradient(145deg, #f8fafc, #eef2f7) !important;
+}
+
+#bonds-dense-wrapper .aurora { opacity: .28; }
+#bonds-dense-wrapper .aurora .a1,
+#bonds-dense-wrapper .aurora .a2 { background: #b9c5da !important; }
+#bonds-dense-wrapper .aurora .a3 { background: #dce5f1 !important; }
+#bonds-dense-wrapper .aurora .a4 { background: #e8edf5 !important; }
+
+#bonds-dense-wrapper .wrap {
+  display: grid;
+  gap: 22px;
+  max-width: 1420px;
+  padding: clamp(20px, 3vw, 38px) clamp(14px, 2.5vw, 30px) 44px !important;
+}
+
+/* Los paneles se trasladan a este contenedor después de montar React; no deben
+   depender de un IntersectionObserver registrado antes del traslado. */
+#bonds-dense-wrapper .reveal {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+#bonds-dense-wrapper #slot-bonds-top,
+#bonds-dense-wrapper #slot-calendar { margin: 0 !important; }
+
+#bonds-dense-wrapper #bonds-panel,
+#bonds-dense-wrapper #calendar-panel-main {
+  position: relative;
+  overflow: hidden;
+  margin: 0 !important;
+  padding: clamp(18px, 2.4vw, 30px) !important;
+  border: 1px solid rgba(108, 126, 161, .17) !important;
+  border-radius: 28px !important;
+  background: rgba(255, 255, 255, .80) !important;
+  backdrop-filter: blur(26px) saturate(145%);
+  box-shadow: 0 24px 58px -38px rgba(45, 52, 64, .35), inset 0 1px 0 #fff !important;
+}
+
+#bonds-dense-wrapper #bonds-panel::before,
+#bonds-dense-wrapper #calendar-panel-main::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--bond-primary), var(--bond-secondary));
+}
+
+#bonds-dense-wrapper #bonds-panel > div:first-child,
+#bonds-dense-wrapper #calendar-panel-main > div:first-child {
+  min-height: 54px;
+  margin-bottom: 20px !important;
+  padding: 0 2px 16px;
+  border-bottom: 1px solid var(--bond-line);
+}
+
+#bonds-dense-wrapper .section-lbl {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: var(--bond-ink) !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-size: clamp(1.05rem, 2vw, 1.35rem) !important;
+  font-weight: 850 !important;
+  letter-spacing: -.035em !important;
+}
+
+#bonds-dense-wrapper #bonds-upd {
+  padding: 6px 10px;
+  border: 1px solid rgba(34, 197, 94, .18);
+  border-radius: 999px;
+  color: #15803d !important;
+  background: rgba(34, 197, 94, .08);
+  font-size: .62rem !important;
+  font-weight: 750;
+}
+
+#bonds-dense-wrapper #bonds-layout {
+  grid-template-columns: minmax(0, 1.22fr) minmax(330px, .78fr) !important;
+  gap: 20px !important;
+  align-items: stretch;
+}
+
+#bonds-dense-wrapper #bonds-layout > div {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(108, 126, 161, .14);
+  border-radius: 21px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(245, 247, 251, .88));
+  box-shadow: inset 0 1px 0 #fff;
+}
+
+#bonds-dense-wrapper #bonds-layout > div > div:first-child {
+  min-height: 30px;
+  color: #596a8a !important;
+  font-size: .68rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .11em !important;
+}
+
+#bonds-dense-wrapper #bonds-layout > div:nth-child(2) > div:first-child::after {
+  content: 'Escala común 0–15%';
+  float: right;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(108, 126, 161, .09);
+  color: #8190a6;
+  font-size: .49rem;
+  font-weight: 750;
+  letter-spacing: .03em;
+  text-transform: none;
+}
+
+#bonds-dense-wrapper #bonds-us {
+  gap: 9px !important;
+}
+
+#bonds-dense-wrapper .bond-pill {
+  min-height: 98px;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  padding: 15px !important;
+  border-color: rgba(108, 126, 161, .16) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, #fff, #f1f4f9) !important;
+  box-shadow: 0 10px 24px -20px rgba(45, 52, 64, .38), inset 0 1px 0 #fff !important;
+}
+
+#bonds-dense-wrapper .bond-pill::after {
+  content: 'Ver detalle  →';
+  margin-top: auto;
+  color: #9aa6b8;
+  font-size: .5rem;
+  font-weight: 750;
+  letter-spacing: .03em;
+}
+
+#bonds-dense-wrapper .bond-pill .bp-mat {
+  color: #75849d !important;
+  font-size: .59rem !important;
+  letter-spacing: .08em !important;
+}
+
+#bonds-dense-wrapper .bond-pill .bp-yld {
+  color: #415678 !important;
+  font-size: 1.22rem !important;
+  line-height: 1 !important;
+}
+
+/* En bonos, rendimiento al alza implica precio a la baja. */
+#bonds-dense-wrapper .bond-pill .bp-chg.up { color: #d84550 !important; }
+#bonds-dense-wrapper .bond-pill .bp-chg.down { color: #159367 !important; }
+#bonds-dense-wrapper .bond-pill .bp-chg::after {
+  content: ' vs. anterior';
+  color: #9aa6b8;
+  font-weight: 550;
+}
+
+#bonds-dense-wrapper .bond-pill:hover {
+  border-color: rgba(108, 126, 161, .35) !important;
+  background: #fff !important;
+  box-shadow: 0 16px 30px -20px rgba(45, 52, 64, .42), inset 0 1px 0 #fff !important;
+}
+
+#bonds-dense-wrapper .bond-pill.is-focused {
+  border-color: #6e86b0 !important;
+  background: linear-gradient(145deg, #fff, #edf3fc) !important;
+  box-shadow: 0 0 0 3px rgba(108, 134, 176, .11), 0 15px 28px -20px rgba(45, 52, 64, .45) !important;
+  transform: translateY(-2px);
+}
+
+#bonds-dense-wrapper .bonds-curve-wrap {
+  margin-top: 14px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(108, 126, 161, .15) !important;
+  border-radius: 18px !important;
+  background: #f8fafc !important;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench .chart-tools-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, auto);
+  gap: 10px !important;
+  align-items: stretch !important;
+  margin-bottom: 12px !important;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench .chart-style-picker {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  grid-template-columns: auto minmax(0, 1fr) 38px !important;
+  flex: initial !important;
+  order: initial !important;
+  width: auto !important;
+  min-height: 66px !important;
+  padding: 8px !important;
+  border-color: rgba(108, 126, 161, .15) !important;
+  background: #fff !important;
+}
+
+#bonds-dense-wrapper #bonds-curve-bar {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: block !important;
+  position: relative;
+  z-index: 2;
+  order: initial !important;
+  width: 156px !important;
+  min-width: 156px !important;
+  --clr-primary: #536589;
+  --clr-text-mut: #64748b;
+  --clr-accent: #2563eb;
+  --clr-bg: #f1f4f9;
+  --clr-surface: #ffffff;
+  --bdr-soft: rgba(108, 126, 161, .15);
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench .chart-style-option {
+  color: #64748b !important;
+}
+#bonds-dense-wrapper #bonds-chart-workbench .chart-style-option.is-active {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--bond-primary), var(--bond-secondary)) !important;
+  box-shadow: 0 7px 17px rgba(108, 126, 161, .20) !important;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench .chart-canvas-shell {
+  height: 330px !important;
+  padding: 15px 12px 9px !important;
+  border: 1px solid rgba(108, 126, 161, .15);
+  border-radius: 15px;
+  background:
+    linear-gradient(rgba(108, 126, 161, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(108, 126, 161, .045) 1px, transparent 1px),
+    #fff;
+  background-size: 28px 28px;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench::before {
+  content: 'CURVA DE RENDIMIENTOS · HOY VS. SESIÓN ANTERIOR';
+  display: block;
+  margin: 0 0 10px 2px;
+  color: #8491a6;
+  font-size: .55rem;
+  font-weight: 850;
+  letter-spacing: .1em;
+}
+
+/* Vista ampliada de la curva. El desenfoque del panel crea un bloque de
+   referencia para position: fixed; se retira únicamente mientras está abierta. */
+#bonds-dense-wrapper #bonds-panel:has(#bonds-chart-workbench.chart-focus-mode) {
+  z-index: 10019 !important;
+  overflow: visible !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+
+#bonds-dense-wrapper:has(#bonds-chart-workbench.chart-focus-mode) {
+  z-index: 10018 !important;
+}
+
+body.vn-chart-focus-open:has(#bonds-chart-workbench.chart-focus-mode) .header,
+body.vn-chart-focus-open:has(#bonds-chart-workbench.chart-focus-mode) .vn-ticker,
+body.vn-chart-focus-open:has(#bonds-chart-workbench.chart-focus-mode) #vn-cw {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode {
+  display: grid !important;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  inset: clamp(10px, 1.4vw, 20px) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: clamp(16px, 2vw, 24px) !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(108, 126, 161, .26) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(37, 99, 235, .08), transparent 28%),
+    linear-gradient(145deg, #f9fbfe, #edf2f8) !important;
+  box-shadow: 0 32px 100px rgba(24, 35, 57, .32) !important;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode::before {
+  margin: 0 190px 0 2px;
+  color: #536589;
+  font-size: clamp(.68rem, 1vw, .82rem);
+  letter-spacing: .085em;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-tools-row {
+  grid-template-columns: minmax(0, 1fr) 156px !important;
+  gap: 12px !important;
+  min-height: 64px;
+  margin: 0 !important;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-style-picker {
+  position: relative;
+  top: auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(132px, auto) !important;
+  min-height: 64px !important;
+  padding: 8px 9px !important;
+  overflow: visible;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(45, 52, 64, .07);
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-expand-btn {
+  align-self: stretch;
+  gap: 8px;
+  width: 100% !important;
+  min-width: 132px;
+  height: auto !important;
+  min-height: 44px !important;
+  padding: 0 16px;
+  border-color: rgba(83, 101, 137, .25);
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #536589, #6c7ea1);
+  box-shadow: 0 9px 22px rgba(83, 101, 137, .22);
+  font-size: .7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-expand-btn::after {
+  content: 'Cerrar análisis';
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-expand-btn:hover {
+  color: #fff;
+  border-color: rgba(83, 101, 137, .4);
+  background: linear-gradient(135deg, #465777, #61749a);
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-canvas-shell {
+  align-self: stretch;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: clamp(12px, 1.6vw, 20px) !important;
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(45, 52, 64, .09), inset 0 1px 0 #fff;
+}
+
+#bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-canvas-shell canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@media (max-width: 720px) {
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode {
+    grid-template-rows: auto auto minmax(300px, 1fr);
+    gap: 9px;
+    inset: 6px !important;
+    padding: 12px !important;
+    overflow: auto !important;
+    border-radius: 18px !important;
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode::before {
+    margin-right: 0;
+    font-size: .61rem;
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-tools-row {
+    grid-template-columns: 1fr !important;
+    min-height: 0;
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-style-picker {
+    grid-template-columns: minmax(0, 1fr) 48px !important;
+    min-height: 58px !important;
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-style-picker > i,
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-style-picker > label {
+    display: none;
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-expand-btn {
+    min-width: 48px;
+    padding: 0;
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-expand-btn::after {
+    content: '';
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode #bonds-curve-bar {
+    grid-column: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #bonds-dense-wrapper #bonds-chart-workbench.chart-focus-mode .chart-canvas-shell {
+    height: auto !important;
+    min-height: 300px !important;
+  }
+}
+
+#bonds-dense-wrapper #bonds-global {
+  gap: 8px !important;
+}
+
+#bonds-dense-wrapper .bond-row {
+  min-height: 66px;
+  padding: 11px 13px !important;
+  border: 1px solid rgba(108, 126, 161, .12) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, .72) !important;
+}
+
+#bonds-dense-wrapper .bond-row-name {
+  color: #536681 !important;
+  font-size: .72rem !important;
+  font-weight: 750 !important;
+}
+
+#bonds-dense-wrapper .bond-row-yield {
+  min-width: 58px;
+  color: #415678;
+  font-size: .88rem !important;
+  text-align: right;
+}
+
+#bonds-dense-wrapper .bond-row-chg.up { color: #d84550 !important; }
+#bonds-dense-wrapper .bond-row-chg.down { color: #159367 !important; }
+
+#bonds-dense-wrapper .bond-row:hover {
+  transform: translateX(4px) !important;
+  border-color: rgba(108, 126, 161, .28) !important;
+  background: #fff !important;
+}
+
+#bonds-dense-wrapper .bonds-global-rate-bar {
+  height: 5px !important;
+  background: rgba(108, 126, 161, .13) !important;
+}
+
+/* Guía React integrada al recuadro gubernamental. */
+#bonds-dense-wrapper #bonds-panel .section-lbl::after {
+  content: 'Curva del Tesoro de EE.UU. y comparación de tasas soberanas internacionales';
+  display: block;
+  max-width: 720px;
+  margin-top: 6px;
+  color: #7c899e;
+  font-size: .68rem;
+  font-weight: 550;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+
+#bonds-dense-wrapper #bonds-panel .section-lbl { display: block !important; }
+
+#bonds-dense-wrapper .vn-bonds-guide-slot { margin-top: 18px; }
+
+#bonds-dense-wrapper .bond-government-experience {
+  display: grid;
+  gap: 12px;
+}
+
+#bonds-dense-wrapper .bond-live-analytics {
+  padding: 16px;
+  border: 1px solid rgba(108, 126, 161, .15);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(247, 249, 253, .97), rgba(238, 243, 249, .82));
+}
+
+#bonds-dense-wrapper .bond-live-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 11px;
+}
+
+#bonds-dense-wrapper .bond-live-heading span,
+#bonds-dense-wrapper .bond-live-heading strong { display: block; }
+#bonds-dense-wrapper .bond-live-heading span { color: #927844; font-size: .52rem; font-weight: 850; letter-spacing: .1em; }
+#bonds-dense-wrapper .bond-live-heading strong { margin-top: 4px; color: #43536e; font-size: .82rem; }
+#bonds-dense-wrapper .bond-live-heading em { display: flex; align-items: center; gap: 6px; color: #278664; font-size: .5rem; font-style: normal; font-weight: 850; letter-spacing: .07em; }
+#bonds-dense-wrapper .bond-live-heading em i { width: 6px; height: 6px; border-radius: 50%; background: #24aa79; box-shadow: 0 0 0 4px rgba(36, 170, 121, .11); }
+
+#bonds-dense-wrapper .bond-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#bonds-dense-wrapper .bond-analytics-grid article {
+  padding: 12px;
+  border: 1px solid rgba(108, 126, 161, .11);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .75);
+}
+
+#bonds-dense-wrapper .bond-analytics-grid span,
+#bonds-dense-wrapper .bond-analytics-grid strong,
+#bonds-dense-wrapper .bond-analytics-grid small { display: block; }
+#bonds-dense-wrapper .bond-analytics-grid span { color: #8793a6; font-size: .52rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+#bonds-dense-wrapper .bond-analytics-grid strong { margin: 6px 0 4px; color: #455873; font: 850 .96rem/1 'JetBrains Mono', monospace; }
+#bonds-dense-wrapper .bond-analytics-grid small { color: #98a3b4; font-size: .52rem; }
+#bonds-dense-wrapper .bond-analytics-grid .regime-normal { color: #159367; }
+#bonds-dense-wrapper .bond-analytics-grid .regime-empinada { color: #a87928; }
+#bonds-dense-wrapper .bond-analytics-grid .regime-invertida { color: #d84550; }
+
+#bonds-dense-wrapper .bond-auto-reading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: rgba(108, 126, 161, .07);
+}
+
+#bonds-dense-wrapper .bond-auto-reading > i { margin-top: 2px; color: #9a7c43; }
+#bonds-dense-wrapper .bond-auto-reading strong { display: block; color: #52627c; font-size: .61rem; }
+#bonds-dense-wrapper .bond-auto-reading p { margin: 3px 0 0; color: #78869b; font-size: .59rem; line-height: 1.45; }
+
+#bonds-dense-wrapper .bond-maturity-focus {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(108, 126, 161, .12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .64);
+}
+
+#bonds-dense-wrapper .bond-focus-selector > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #8290a5;
+  font-size: .53rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+#bonds-dense-wrapper .bond-focus-selector > div {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+#bonds-dense-wrapper .bond-focus-selector button {
+  min-height: 31px;
+  padding: 5px;
+  border: 1px solid rgba(108, 126, 161, .15);
+  border-radius: 8px;
+  background: #f4f7fb;
+  color: #71809a;
+  cursor: pointer;
+  font: 750 .57rem/1 'JetBrains Mono', monospace;
+}
+
+#bonds-dense-wrapper .bond-focus-selector button:hover { border-color: rgba(108, 126, 161, .32); }
+#bonds-dense-wrapper .bond-focus-selector button.active { border-color: #637ca6; background: #637ca6; color: #fff; box-shadow: 0 5px 12px rgba(99, 124, 166, .2); }
+
+#bonds-dense-wrapper .bond-focus-detail {
+  display: grid;
+  grid-template-columns: .65fr .65fr .9fr 1.8fr;
+  gap: 8px;
+}
+
+#bonds-dense-wrapper .bond-focus-detail > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border-left: 1px solid rgba(108, 126, 161, .11);
+}
+
+#bonds-dense-wrapper .bond-focus-detail span,
+#bonds-dense-wrapper .bond-focus-detail strong { display: block; }
+#bonds-dense-wrapper .bond-focus-detail span { color: #8b97a9; font-size: .5rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+#bonds-dense-wrapper .bond-focus-detail strong { margin-top: 5px; color: #485b78; font: 800 .72rem/1.2 'JetBrains Mono', monospace; }
+#bonds-dense-wrapper .bond-focus-detail strong.positive { color: #159367; }
+#bonds-dense-wrapper .bond-focus-detail strong.negative { color: #d84550; }
+#bonds-dense-wrapper .bond-focus-detail .bond-focus-explanation span { color: #76623e; }
+#bonds-dense-wrapper .bond-focus-detail p { margin: 5px 0 0; color: #7d8a9d; font-size: .55rem; line-height: 1.4; }
+
+#bonds-dense-wrapper .bond-government-guide {
+  display: grid;
+  grid-template-columns: .75fr 1.7fr .85fr;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(108, 126, 161, .15);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(244, 247, 252, .95), rgba(255, 255, 255, .8));
+}
+
+#bonds-dense-wrapper .bond-guide-intro > span {
+  display: block;
+  color: #927844;
+  font-size: .52rem;
+  font-weight: 850;
+  letter-spacing: .1em;
+}
+
+#bonds-dense-wrapper .bond-guide-intro > strong {
+  display: block;
+  margin-top: 6px;
+  color: #43536e;
+  font-size: .82rem;
+}
+
+#bonds-dense-wrapper .bond-guide-intro > p {
+  margin: 5px 0 0;
+  color: #7b889d;
+  font-size: .61rem;
+  line-height: 1.5;
+}
+
+#bonds-dense-wrapper .bond-guide-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#bonds-dense-wrapper .bond-guide-steps article {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(108, 126, 161, .11);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .72);
+}
+
+#bonds-dense-wrapper .bond-guide-steps b {
+  color: rgba(108, 126, 161, .34);
+  font: 850 .7rem/1 'JetBrains Mono', monospace;
+}
+
+#bonds-dense-wrapper .bond-guide-steps span { color: #4d5e79; font-size: .6rem; font-weight: 800; }
+#bonds-dense-wrapper .bond-guide-steps p { margin: 4px 0 0; color: #8390a4; font-size: .55rem; line-height: 1.4; }
+
+#bonds-dense-wrapper .bond-inverse-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(183, 146, 78, .2);
+  border-radius: 13px;
+  background: rgba(183, 146, 78, .07);
+}
+
+#bonds-dense-wrapper .bond-inverse-rule > i { color: #a38347; }
+#bonds-dense-wrapper .bond-inverse-rule strong,
+#bonds-dense-wrapper .bond-inverse-rule span { display: block; }
+#bonds-dense-wrapper .bond-inverse-rule strong { color: #705a32; font-size: .63rem; }
+#bonds-dense-wrapper .bond-inverse-rule span { margin-top: 4px; color: #83765e; font-size: .55rem; line-height: 1.45; }
+
+/* Centro de control React para el calendario económico. */
+#bonds-dense-wrapper .vn-calendar-command-slot { margin: 0 0 18px; }
+
+#bonds-dense-wrapper .economic-calendar-command {
+  padding: 18px;
+  border: 1px solid rgba(108, 126, 161, .15);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(247, 249, 253, .98), rgba(238, 243, 249, .84));
+}
+
+#bonds-dense-wrapper .calendar-command-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#bonds-dense-wrapper .calendar-command-head span,
+#bonds-dense-wrapper .calendar-command-head strong { display: block; }
+#bonds-dense-wrapper .calendar-command-head > div:first-child > span { color: #927844; font-size: .54rem; font-weight: 850; letter-spacing: .1em; }
+#bonds-dense-wrapper .calendar-command-head > div:first-child > strong { margin-top: 5px; color: #42526d; font-size: 1rem; }
+#bonds-dense-wrapper .calendar-command-head p { max-width: 740px; margin: 5px 0 0; color: #7a879c; font-size: .65rem; line-height: 1.5; }
+
+#bonds-dense-wrapper .calendar-coverage {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid rgba(35, 170, 121, .17);
+  border-radius: 999px;
+  background: rgba(35, 170, 121, .07);
+  color: #24825f;
+  font-size: .5rem;
+  font-weight: 850;
+  letter-spacing: .06em;
+}
+
+#bonds-dense-wrapper .calendar-coverage i { width: 6px; height: 6px; border-radius: 50%; background: #23aa79; }
+
+#bonds-dense-wrapper .calendar-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+#bonds-dense-wrapper .calendar-stat-grid article {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid rgba(108, 126, 161, .11);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .74);
+}
+
+#bonds-dense-wrapper .calendar-stat-grid article > i { display: grid; width: 31px; height: 31px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: rgba(108, 126, 161, .1); color: #6c82a8; font-size: .7rem; }
+#bonds-dense-wrapper .calendar-stat-grid span,
+#bonds-dense-wrapper .calendar-stat-grid strong,
+#bonds-dense-wrapper .calendar-stat-grid small { display: block; }
+#bonds-dense-wrapper .calendar-stat-grid span { color: #8a96a9; font-size: .51rem; font-weight: 800; text-transform: uppercase; }
+#bonds-dense-wrapper .calendar-stat-grid strong { margin-top: 2px; color: #465873; font: 850 .94rem/1 'JetBrains Mono', monospace; }
+#bonds-dense-wrapper .calendar-stat-grid small { margin-top: 3px; color: #98a3b3; font-size: .49rem; }
+
+#bonds-dense-wrapper .calendar-next-event {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(216, 69, 80, .16);
+  border-radius: 15px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .86), rgba(255, 246, 246, .7));
+}
+
+#bonds-dense-wrapper .calendar-next-date { padding: 9px; border-radius: 10px; background: rgba(216, 69, 80, .08); text-align: center; }
+#bonds-dense-wrapper .calendar-next-date.medium { background: rgba(183, 146, 78, .1); }
+#bonds-dense-wrapper .calendar-next-date strong,
+#bonds-dense-wrapper .calendar-next-date span { display: block; }
+#bonds-dense-wrapper .calendar-next-date strong { color: #d34550; font-size: .62rem; }
+#bonds-dense-wrapper .calendar-next-date.medium strong { color: #a27b34; }
+#bonds-dense-wrapper .calendar-next-date span { margin-top: 4px; color: #7d899b; font-size: .5rem; }
+#bonds-dense-wrapper .calendar-next-event > div:nth-child(2) > span { color: #a16f76; font-size: .49rem; font-weight: 850; letter-spacing: .08em; }
+#bonds-dense-wrapper .calendar-next-event > div:nth-child(2) > strong { display: block; margin-top: 3px; color: #475873; font-size: .74rem; }
+#bonds-dense-wrapper .calendar-next-event p { margin: 3px 0 0; color: #7e8b9e; font-size: .56rem; line-height: 1.4; }
+#bonds-dense-wrapper .calendar-next-event button { padding: 8px 11px; border: 1px solid rgba(108, 126, 161, .16); border-radius: 9px; background: #fff; color: #637491; cursor: pointer; font: 750 .56rem/1 'Inter', sans-serif; }
+#bonds-dense-wrapper .calendar-next-event button:hover { border-color: #7187ad; color: #536989; }
+
+#bonds-dense-wrapper .calendar-timeline {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid rgba(108, 126, 161, .11);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .56);
+}
+
+#bonds-dense-wrapper .calendar-timeline > span { color: #8a96a9; font-size: .49rem; font-weight: 850; letter-spacing: .08em; }
+#bonds-dense-wrapper .calendar-timeline > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+#bonds-dense-wrapper .calendar-timeline button { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr) 7px; grid-template-rows: auto auto; gap: 2px 7px; align-items: center; min-width: 0; padding: 7px; border: 1px solid rgba(108, 126, 161, .1); border-radius: 9px; background: rgba(246, 248, 252, .9); cursor: pointer; text-align: left; }
+#bonds-dense-wrapper .calendar-timeline button:hover,
+#bonds-dense-wrapper .calendar-timeline button.active { border-color: rgba(108, 126, 161, .35); background: #fff; }
+#bonds-dense-wrapper .calendar-timeline button b { grid-row: 1 / 3; display: grid; width: 22px; height: 22px; place-items: center; border-radius: 7px; background: rgba(108, 126, 161, .1); color: #6e809d; font: 800 .52rem/1 'JetBrains Mono', monospace; }
+#bonds-dense-wrapper .calendar-timeline button span { overflow: hidden; color: #929dad; font-size: .46rem; text-overflow: ellipsis; white-space: nowrap; }
+#bonds-dense-wrapper .calendar-timeline button strong { overflow: hidden; color: #53627b; font-size: .55rem; text-overflow: ellipsis; white-space: nowrap; }
+#bonds-dense-wrapper .calendar-timeline button > i { grid-column: 3; grid-row: 1 / 3; width: 6px; height: 6px; border-radius: 50%; background: #c3943b; }
+#bonds-dense-wrapper .calendar-timeline button > i.impact-high { background: #df4651; }
+
+#bonds-dense-wrapper .calendar-filter-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto auto 34px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+#bonds-dense-wrapper .calendar-search { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 11px; border: 1px solid rgba(108, 126, 161, .14); border-radius: 10px; background: #fff; color: #92a0b3; }
+#bonds-dense-wrapper .calendar-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #4d5d76; font: 600 .62rem/1 'Inter', sans-serif; }
+#bonds-dense-wrapper .calendar-search input::placeholder { color: #a2acba; }
+
+#bonds-dense-wrapper .calendar-segments { display: flex; gap: 3px; padding: 3px; border: 1px solid rgba(108, 126, 161, .13); border-radius: 10px; background: rgba(232, 237, 245, .75); }
+#bonds-dense-wrapper .calendar-segments button { min-height: 28px; padding: 5px 9px; border: 0; border-radius: 7px; background: transparent; color: #75839a; cursor: pointer; font: 700 .55rem/1 'Inter', sans-serif; }
+#bonds-dense-wrapper .calendar-segments button.active { background: #fff; color: #536989; box-shadow: 0 3px 9px rgba(66, 82, 112, .1); }
+#bonds-dense-wrapper .calendar-segments.impact button.active { color: #a37031; }
+#bonds-dense-wrapper .calendar-segments.status button.active { color: #2f8668; }
+#bonds-dense-wrapper .calendar-reset { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(108, 126, 161, .14); border-radius: 9px; background: #fff; color: #75849a; cursor: pointer; }
+
+#bonds-dense-wrapper .calendar-results-line { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; color: #8a96a8; font-size: .53rem; }
+#bonds-dense-wrapper .calendar-results-line strong { color: #d34550; }
+
+#bonds-dense-wrapper .calendar-selected-detail {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(108, 126, 161, .13);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .7);
+}
+
+#bonds-dense-wrapper .calendar-detail-impact { display: flex; align-items: center; gap: 6px; color: #a47c31; font-size: .5rem; font-weight: 850; }
+#bonds-dense-wrapper .calendar-detail-impact.high { color: #d34550; }
+#bonds-dense-wrapper .calendar-detail-copy span { color: #8b97a9; font-size: .52rem; }
+#bonds-dense-wrapper .calendar-detail-copy strong { display: block; margin-top: 3px; color: #465873; font-size: .72rem; }
+#bonds-dense-wrapper .calendar-detail-copy p { margin: 4px 0 0; color: #7d899d; font-size: .56rem; line-height: 1.4; }
+#bonds-dense-wrapper .calendar-detail-meta { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+#bonds-dense-wrapper .calendar-detail-meta span { padding: 4px 7px; border-radius: 999px; background: #eef2f7; color: #718097; font-size: .49rem; font-weight: 700; }
+
+#bonds-dense-wrapper .calendar-asset-impact {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(108, 126, 161, .1);
+}
+
+#bonds-dense-wrapper .calendar-asset-impact > span { color: #8a96a9; font-size: .49rem; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+#bonds-dense-wrapper .calendar-asset-impact > div { display: flex; gap: 5px; flex-wrap: wrap; }
+#bonds-dense-wrapper .calendar-asset-impact b { padding: 4px 7px; border-radius: 7px; background: rgba(108, 126, 161, .08); color: #667690; font-size: .5rem; }
+
+#bonds-dense-wrapper .calendar-detail-actions {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#bonds-dense-wrapper .calendar-detail-actions button { padding: 7px 10px; border: 1px solid rgba(108, 126, 161, .15); border-radius: 8px; background: #fff; color: #65758e; cursor: pointer; font: 700 .53rem/1 'Inter', sans-serif; }
+#bonds-dense-wrapper .calendar-detail-actions button:hover { border-color: #7187ad; color: #526887; }
+#bonds-dense-wrapper .calendar-detail-actions > span { margin-left: auto; color: #23845f; font-size: .52rem; font-weight: 750; }
+
+#bonds-dense-wrapper .vn-calendar-filter-hidden { display: none !important; }
+#bonds-dense-wrapper #cal-event-grid .cal-card { cursor: pointer; outline: none; }
+#bonds-dense-wrapper #cal-event-grid .cal-card.is-calendar-selected { border-color: #7187ad !important; box-shadow: 0 0 0 3px rgba(113, 135, 173, .1), 0 14px 26px -20px rgba(45, 52, 64, .42) !important; }
+
+/* Calendario: vista maestra compacta y feed desplazable. */
+#bonds-dense-wrapper #calendar-panel-main > div:first-child > span {
+  color: #64748b !important;
+  font-size: .66rem !important;
+}
+
+#bonds-dense-wrapper .cal-master-detail-layout {
+  display: grid !important;
+  grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+  gap: 22px !important;
+  align-items: start !important;
+  margin-top: 0 !important;
+}
+
+#bonds-dense-wrapper .monthly-cal-wrap {
+  position: static !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 20px !important;
+  border: 1px solid rgba(108, 126, 161, .15) !important;
+  border-radius: 21px !important;
+  background: linear-gradient(145deg, #fff, #f1f4f9) !important;
+  box-shadow: inset 0 1px 0 #fff !important;
+}
+
+#bonds-dense-wrapper .monthly-cal-wrap::before { opacity: .22; }
+#bonds-dense-wrapper .monthly-cal-header { margin-bottom: 16px !important; padding: 0 !important; }
+#bonds-dense-wrapper .monthly-cal-title { color: #536589 !important; font-size: 1.1rem !important; }
+#bonds-dense-wrapper .monthly-cal-btn {
+  width: 34px;
+  height: 34px;
+  border-color: rgba(108, 126, 161, .16);
+  color: #5d6f91;
+  background: #fff;
+}
+
+#bonds-dense-wrapper .monthly-cal-days-header {
+  margin-bottom: 7px;
+  color: #71809a;
+  font-size: .62rem;
+}
+#bonds-dense-wrapper .monthly-cal-grid { gap: 5px; }
+#bonds-dense-wrapper .mc-day {
+  height: 43px;
+  border-radius: 11px;
+  color: #61708b;
+  font-size: .82rem;
+}
+#bonds-dense-wrapper .mc-day:not(.empty) {
+  border-color: rgba(108, 126, 161, .10);
+  background: rgba(255, 255, 255, .72);
+}
+#bonds-dense-wrapper .mc-day.active {
+  color: #fff !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--bond-primary), var(--bond-secondary)) !important;
+  box-shadow: 0 8px 18px rgba(108, 126, 161, .24) !important;
+  transform: translateY(-2px) !important;
+}
+#bonds-dense-wrapper .mc-dots { bottom: 4px; gap: 3px; }
+#bonds-dense-wrapper .mc-dot { width: 4px; height: 4px; box-shadow: none !important; }
+
+#bonds-dense-wrapper #cal-feed-container {
+  gap: 12px !important;
+  padding: 18px;
+  border: 1px solid rgba(108, 126, 161, .14);
+  border-radius: 21px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .92), rgba(245, 247, 251, .88));
+}
+#bonds-dense-wrapper #cal-feed-title {
+  margin: 0 !important;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--bond-line);
+  color: #536589 !important;
+  font-size: 1rem !important;
+}
+#bonds-dense-wrapper #cal-event-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 11px !important;
+  max-height: 520px;
+  padding: 2px 7px 2px 2px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+#bonds-dense-wrapper #cal-event-grid .cal-card {
+  min-height: 176px;
+  gap: 7px;
+  padding: 15px !important;
+  border-color: rgba(108, 126, 161, .13) !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: 0 10px 22px -20px rgba(45, 52, 64, .35) !important;
+}
+#bonds-dense-wrapper #cal-event-grid .cal-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(108, 126, 161, .28) !important;
+  box-shadow: 0 14px 26px -20px rgba(45, 52, 64, .42) !important;
+}
+#bonds-dense-wrapper #cal-event-grid .cal-card-date { color: #71809a !important; font-size: .65rem !important; }
+#bonds-dense-wrapper #cal-event-grid .cal-card-title { color: #3f4d66 !important; font-size: .86rem !important; }
+#bonds-dense-wrapper #cal-event-grid .cal-card-desc {
+  color: #64748b !important;
+  font-size: .72rem !important;
+  line-height: 1.45 !important;
+  -webkit-line-clamp: 2;
+}
+#bonds-dense-wrapper #cal-event-grid .cal-card-meta { margin-top: auto; padding-top: 9px; }
+#bonds-dense-wrapper #cal-event-grid .cal-card-pill,
+#bonds-dense-wrapper #cal-event-grid .cal-card-imp { padding: 4px 8px !important; font-size: .58rem !important; }
+
+@media (max-width: 980px) {
+  #bonds-dense-wrapper #bonds-layout,
+  #bonds-dense-wrapper .cal-master-detail-layout { grid-template-columns: 1fr !important; }
+  #bonds-dense-wrapper #cal-event-grid { max-height: 620px; }
+  #bonds-dense-wrapper .bond-government-guide { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper .bond-analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #bonds-dense-wrapper .bond-maturity-focus { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper .bond-focus-detail { grid-template-columns: repeat(3, 1fr); }
+  #bonds-dense-wrapper .bond-focus-explanation { grid-column: 1 / -1; }
+  #bonds-dense-wrapper .calendar-stat-grid { grid-template-columns: repeat(2, 1fr); }
+  #bonds-dense-wrapper .calendar-filter-row { grid-template-columns: 1fr 1fr 1fr 34px; }
+  #bonds-dense-wrapper .calendar-search { grid-column: 1 / -1; }
+  #bonds-dense-wrapper .calendar-timeline { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper .calendar-next-event { grid-template-columns: 100px 1fr; }
+  #bonds-dense-wrapper .calendar-next-event button { grid-column: 1 / -1; }
+  #bonds-dense-wrapper .calendar-selected-detail { grid-template-columns: 100px 1fr; }
+  #bonds-dense-wrapper .calendar-detail-meta { grid-column: 1 / -1; justify-content: flex-start; }
+  #bonds-dense-wrapper .calendar-asset-impact,
+  #bonds-dense-wrapper .calendar-detail-actions { grid-column: 1 / -1; }
+}
+
+@media (max-width: 620px) {
+  #bonds-dense-wrapper #bonds-panel,
+  #bonds-dense-wrapper #calendar-panel-main { padding: 15px !important; border-radius: 20px !important; }
+  #bonds-dense-wrapper #bonds-layout > div { padding: 13px; }
+  #bonds-dense-wrapper #bonds-us { grid-template-columns: repeat(2, 1fr) !important; }
+  #bonds-dense-wrapper #bonds-chart-workbench .chart-tools-row { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper #bonds-chart-workbench .chart-style-picker,
+  #bonds-dense-wrapper #bonds-curve-bar { grid-column: 1 !important; grid-row: auto !important; }
+  #bonds-dense-wrapper #bonds-curve-bar { width: 100% !important; min-width: 0 !important; }
+  #bonds-dense-wrapper #bonds-chart-workbench .chart-canvas-shell { height: 275px !important; }
+  #bonds-dense-wrapper .bond-guide-steps { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper .bond-live-heading { align-items: flex-start; }
+  #bonds-dense-wrapper .bond-focus-detail { grid-template-columns: 1fr 1fr; }
+  #bonds-dense-wrapper .bond-focus-detail > div { border-left: 0; border-top: 1px solid rgba(108, 126, 161, .11); }
+  #bonds-dense-wrapper .bond-focus-detail > div:nth-child(-n+2) { border-top: 0; }
+  #bonds-dense-wrapper .bond-focus-explanation { grid-column: 1 / -1; }
+  #bonds-dense-wrapper .calendar-command-head { display: block; }
+  #bonds-dense-wrapper .calendar-coverage { display: inline-flex; margin-top: 10px; }
+  #bonds-dense-wrapper .calendar-stat-grid { grid-template-columns: 1fr 1fr; }
+  #bonds-dense-wrapper .calendar-next-event { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper .calendar-timeline > div { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper .calendar-filter-row { grid-template-columns: 1fr 34px; }
+  #bonds-dense-wrapper .calendar-search,
+  #bonds-dense-wrapper .calendar-segments { grid-column: 1 / -1; }
+  #bonds-dense-wrapper .calendar-segments button { flex: 1; }
+  #bonds-dense-wrapper .calendar-reset { grid-column: 2; grid-row: 5; }
+  #bonds-dense-wrapper .calendar-selected-detail { grid-template-columns: 1fr; }
+  #bonds-dense-wrapper .calendar-detail-meta { grid-column: auto; }
+  #bonds-dense-wrapper .calendar-asset-impact { display: block; grid-column: auto; }
+  #bonds-dense-wrapper .calendar-asset-impact > div { margin-top: 6px; }
+  #bonds-dense-wrapper .calendar-detail-actions { grid-column: auto; flex-wrap: wrap; }
+  #bonds-dense-wrapper .calendar-detail-actions > span { width: 100%; margin: 3px 0 0; }
+  #bonds-dense-wrapper #cal-event-grid { grid-template-columns: 1fr !important; max-height: 560px; }
+}
+
+html[data-theme="dark"] #bonds-dense-wrapper {
+  --bond-ink: #e7edf7;
+  --bond-muted: #a7b4c7;
+  --bond-line: rgba(148, 163, 184, .17);
+  background: radial-gradient(circle at 8% 10%, rgba(108, 126, 161, .18), transparent 30%), #091321 !important;
+}
+html[data-theme="dark"] #bonds-dense-wrapper #bonds-panel,
+html[data-theme="dark"] #bonds-dense-wrapper #calendar-panel-main,
+html[data-theme="dark"] #bonds-dense-wrapper #bonds-layout > div,
+html[data-theme="dark"] #bonds-dense-wrapper #cal-feed-container,
+html[data-theme="dark"] #bonds-dense-wrapper .monthly-cal-wrap {
+  border-color: rgba(148, 163, 184, .17) !important;
+  background: linear-gradient(145deg, rgba(24, 37, 57, .96), rgba(14, 25, 42, .94)) !important;
+}
+html[data-theme="dark"] #bonds-dense-wrapper .bond-pill,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-row,
+html[data-theme="dark"] #bonds-dense-wrapper #cal-event-grid .cal-card,
+html[data-theme="dark"] #bonds-dense-wrapper .bonds-curve-wrap,
+html[data-theme="dark"] #bonds-dense-wrapper #bonds-chart-workbench .chart-style-picker {
+  color: #e7edf7 !important;
+  border-color: rgba(148, 163, 184, .17) !important;
+  background: #142238 !important;
+}
+
+html[data-theme="dark"] #bonds-dense-wrapper .bond-government-guide,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-live-analytics,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-analytics-grid article,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-guide-steps article {
+  border-color: rgba(148, 163, 184, .15);
+  background: rgba(20, 34, 56, .86);
+}
+
+html[data-theme="dark"] #bonds-dense-wrapper .bond-guide-intro > strong,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-live-heading strong,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-auto-reading strong,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-guide-steps span { color: #dbe4f1; }
+html[data-theme="dark"] #bonds-dense-wrapper .bond-guide-intro > p,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-auto-reading p,
+html[data-theme="dark"] #bonds-dense-wrapper .bond-guide-steps p { color: #9eabc0; }
+
+html[data-theme="dark"] #bonds-dense-wrapper .bond-maturity-focus {
+  border-color: rgba(148, 163, 184, .15);
+  background: rgba(20, 34, 56, .7);
+}
+html[data-theme="dark"] #bonds-dense-wrapper .bond-focus-selector button { border-color: rgba(148, 163, 184, .16); background: #1d2d45; color: #a9b6ca; }
+html[data-theme="dark"] #bonds-dense-wrapper .bond-focus-selector button.active { background: #7187ad; color: #fff; }
+html[data-theme="dark"] #bonds-dense-wrapper .bond-focus-detail strong { color: #dbe4f1; }
+
+html[data-theme="dark"] #bonds-dense-wrapper .economic-calendar-command,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-stat-grid article,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-next-event,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-selected-detail {
+  border-color: rgba(148, 163, 184, .15);
+  background: rgba(20, 34, 56, .82);
+}
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-command-head strong,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-stat-grid strong,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-next-event > div:nth-child(2) > strong,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-detail-copy strong { color: #dbe4f1; }
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-search,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-segments,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-reset { border-color: rgba(148, 163, 184, .15); background: #18283e; }
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-search input { color: #dbe4f1; }
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-segments button.active { background: #2a3a51; color: #dbe4f1; }
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-timeline,
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-timeline button { border-color: rgba(148, 163, 184, .14); background: rgba(24, 40, 62, .82); }
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-timeline button strong { color: #dbe4f1; }
+html[data-theme="dark"] #bonds-dense-wrapper .calendar-detail-actions button { border-color: rgba(148, 163, 184, .15); background: #1b2c43; color: #bdc8d8; }

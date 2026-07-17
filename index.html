@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/Logotipos/logo1.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VALLNEWS - Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/login.css" />
+</head>
+<body>
+  <div class="pageWrap">
+    <div class="topBar">
+      <a href="/" class="topBarLogo">
+        <div class="topBarIcon"><img src="/Logotipos/logo1.png" alt="VALLNEWS" /></div>
+        <span class="topBarName">VALLNews</span>
+      </a>
+      <span class="topBarTagline">
+        Datos en tiempo real &nbsp;&middot;&nbsp; Economía global &nbsp;&middot;&nbsp; Mercados
+      </span>
+    </div>
+    <div class="topDivider"></div>
+
+    <div class="loginLayout">
+      <div class="brandPanel">
+        <div class="brandEyebrow">
+          <span class="brandEyebrowDot"></span>
+          Plataforma de inteligencia
+        </div>
+        <h1 class="brandHeadline">
+          Economía<br /><em>Global</em><br />en tiempo real
+        </h1>
+        <p class="brandDesc">
+          Seguimiento de mercados, divisas, commodities y geopolítica con análisis generado por inteligencia artificial.
+        </p>
+
+        <div class="brandFeatures">
+          <div class="featureRow">
+            <div class="featureIcon"><i class="fas fa-chart-line"></i></div>
+            <span><strong>Finanzas</strong> — Tasas, inflación y política monetaria</span>
+            <span class="featBadge" id="badge-fin"></span>
+          </div>
+          <div class="featureRow">
+            <div class="featureIcon"><i class="fas fa-globe"></i></div>
+            <span><strong>Mercados</strong> — Commodities y materias primas</span>
+            <span class="featBadge" id="badge-mkt"></span>
+          </div>
+          <div class="featureRow">
+            <div class="featureIcon"><i class="fas fa-earth-americas"></i></div>
+            <span><strong>Geopolítica</strong> — Conflictos y cadenas de suministro</span>
+            <span class="featBadge" id="badge-geo"></span>
+          </div>
+          <div class="featureRow">
+            <div class="featureIcon"><i class="fas fa-peso-sign"></i></div>
+            <span><strong>México</strong> — Peso, Banxico e indicadores INEGI</span>
+            <span class="featBadge" id="badge-mx"></span>
+          </div>
+          <div class="featureRow">
+            <div class="featureIcon featureIconGold">
+              <i class="fas fa-microchip" style="color: #d97706"></i>
+            </div>
+            <span><strong>VALL AI</strong> — Predicciones con IA generativa</span>
+            <span class="featBadge featBadgeGold">ACTIVO</span>
+          </div>
+        </div>
+        <span class="brandFooter">© <script>document.write(new Date().getFullYear())</script> VALLNEWS · Inteligencia Económica Global</span>
+      </div>
+
+      <div class="formPanel">
+        <div class="loginCard">
+          <div class="cardLogo">
+            <div class="cardLogoIcon"><img src="/Logotipos/logo1.png" alt="VALLNEWS" /></div>
+            <span class="cardLogoText">VALLNews</span>
+            <span class="cardLogoBadge">PRO</span>
+          </div>
+          <h2 class="cardTitle">Iniciar sesión</h2>
+          <p class="cardSubtitle">Accede a tu plataforma de inteligencia económica</p>
+
+          <form id="loginForm" autocomplete="on">
+            <div class="inputGroup">
+              <label><i class="fas fa-envelope"></i> Correo empresarial</label>
+              <input
+                type="email"
+                id="email"
+                class="inputField"
+                placeholder="ejecutivo@empresa.com"
+                autocomplete="email"
+              />
+            </div>
+            <div class="inputGroup">
+              <label><i class="fas fa-lock"></i> Contraseña</label>
+              <input
+                type="password"
+                id="password"
+                class="inputField"
+                placeholder="••••••••"
+                autocomplete="current-password"
+              />
+            </div>
+            <button type="submit" id="submitBtn" class="btnPrimary">
+              <span id="btnContent"><i class="fas fa-arrow-right-to-bracket"></i> Iniciar sesión</span>
+            </button>
+          </form>
+
+          <div class="divider"><span class="dividerText">¿Nuevo en la plataforma?</span></div>
+          <div class="subscribeRow">
+            <span class="subscribeText">
+              <i class="fas fa-chart-line" style="font-size: 0.75rem; color: #d97706; margin-right: 0.3rem"></i>
+              ¿No tienes acceso?
+            </span>
+            <button
+              type="button"
+              id="subscribeBtn"
+              class="btnSecondary"
+            >
+              <i class="fas fa-user-plus"></i> Suscribirme
+            </button>
+          </div>
+          <div class="securityNote">
+            <i class="fas fa-shield-halved"></i>
+            Conexión segura · datos cifrados en tránsito
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+      <i id="toast-icon" class="fas fa-info-circle" style="color: #60a5fa;"></i>
+      <span id="toast-msg">Mensaje</span>
+    </div>
+  </div>
+
+  <script src="/js/api-keys.js?v=2"></script>
+  <script src="/js/data-service.js?v=15"></script>
+  <script src="/js/login.js?v=2"></script>
+</body>
+</html>

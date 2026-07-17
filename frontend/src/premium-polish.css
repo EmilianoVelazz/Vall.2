@@ -1,0 +1,83 @@
+/* ===================================================================
+   VALLNews · Pulido premium global de tarjetas, paneles y secciones.
+   Se importa al final para elevar las páginas de datos (proteínas, méxico,
+   geopolítica, configuración) y el bento del inicio de forma cohesiva.
+   =================================================================== */
+
+/* ── Tarjetas de noticias: hover premium con halo dorado ──────────── */
+.mp-card, .mx-card, .gp-card {
+  transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), box-shadow .35s ease, border-color .3s ease !important;
+}
+.mp-card:hover, .mx-card:hover, .gp-card:hover {
+  transform: translateY(-5px) !important;
+  border-color: rgba(168, 137, 76, .40) !important;
+  box-shadow:
+    0 22px 46px -18px rgba(30, 36, 46, .42),
+    0 0 0 1px rgba(168, 137, 76, .18) !important;
+}
+.mp-card-title, .mx-card-title, .gp-card-title { letter-spacing: -.2px; }
+
+/* ── Paneles: profundidad refinada + brillo interior sutil ────────── */
+.mp-panel, .mx-panel, .gp-panel, .cfg-panel {
+  box-shadow:
+    0 16px 42px -24px rgba(30, 36, 46, .30),
+    inset 0 1px 0 rgba(255, 255, 255, .25) !important;
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.mp-panel:hover, .mx-panel:hover, .gp-panel:hover, .cfg-panel:hover {
+  box-shadow:
+    0 24px 52px -22px rgba(30, 36, 46, .40),
+    inset 0 1px 0 rgba(255, 255, 255, .32) !important;
+}
+:root[data-theme="dark"] .mp-panel,
+:root[data-theme="dark"] .mx-panel,
+:root[data-theme="dark"] .gp-panel,
+:root[data-theme="dark"] .cfg-panel {
+  box-shadow:
+    0 16px 42px -20px rgba(0, 0, 0, .55),
+    inset 0 1px 0 rgba(255, 255, 255, .06) !important;
+}
+
+/* ── Etiquetas de sección: barra dorada a la izquierda ────────────── */
+.mp-section-lbl, .mx-section-lbl, .gp-section-lbl, .cfg-section-lbl {
+  padding-left: .75rem;
+  border-left: 2px solid var(--clr-gold);
+  line-height: 1.1;
+}
+
+/* ── Títulos de página: barra dorada acentuada ────────────────────── */
+.mp-title::before, .mx-title::before, .cfg-title::before {
+  content: ''; width: 4px; height: 1.4em; border-radius: 3px;
+  background: linear-gradient(var(--clr-gold), var(--clr-gold-lt));
+  box-shadow: 0 0 12px rgba(168, 137, 76, .4);
+}
+
+/* ── Bento del inicio: transición más elástica (combina con el hero) ─ */
+.bento-card { transition: transform .5s cubic-bezier(.34, 1.56, .64, 1), box-shadow .4s ease !important; }
+
+/* ── Filas de precios/indicadores: hover dorado sutil ─────────────── */
+.mp-price-row:hover, .mx-ind-row:hover, .mx-export-row:hover, .gp-region-row:hover {
+  background: rgba(168, 137, 76, .05);
+  border-radius: 8px;
+}
+
+/* ── Separación del header flotante fijo (top:24px, ~76px de alto) ────
+   Evita que la cápsula del header tape el título/contenido de las páginas
+   de datos idiomáticas. Antes solo dejaban 1–2rem arriba. ────────────── */
+.cfg-main { padding-top: 6.5rem !important; }
+.mp-container, .mx-container, .gp-container { margin-top: 6.5rem !important; }
+
+@media (max-width: 700px) {
+  .cfg-main { padding-top: 5.5rem !important; }
+  .mp-container, .mx-container, .gp-container { margin-top: 5.5rem !important; }
+}
+
+/* Header uniforme a top:24px (Finanzas lo baja a 58px por su ticker; con la
+   separación del contenido ya no hace falta y unifica todas las páginas). */
+body .header { top: 24px !important; }
+
+/* Mercados y Finanzas (hybrid): separar el ticker/paneles del header flotante. */
+.vn-mkt-clear, .vn-fin-clear { padding-top: 5.5rem; }
+@media (max-width: 700px) {
+  .vn-mkt-clear, .vn-fin-clear { padding-top: 4.5rem; }
+}

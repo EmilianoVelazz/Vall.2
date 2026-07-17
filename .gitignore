@@ -1,0 +1,75 @@
+# Dependency directories
+node_modules/
+backend/node_modules/
+api/node_modules/
+jspm_packages/
+
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables (sensitive data)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local.sample
+.env.sample
+!.env.example
+
+# Build outputs
+dist/
+tmp/
+out/
+backend/dist/
+
+# Backend caches & local databases
+backend/cache/
+backend/commodity-cache.json
+backend/gdelt_cache.json
+backend/gdelt_cache.json.bak
+backend/generated-reports/
+backend/server.log
+backend/test-run.log
+backend/temp_report_*.docx
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Scripts y dumps de un solo uso (rediseños ad-hoc, no forman parte del build)
+# backend/market-data.py y scripts/*.mjs SÍ están trackeados y no se ven afectados.
+/*.py
+/scripts/*.py
+/scripts/*.cjs
+*.backup
+*.broken
+diff.txt
+history.txt
+test.txt
+temp_deleted.html
+inicio_restored.html
+output_*.txt
+*_dump*.txt
+scripts/*dump*.txt
+scripts/dumped_css.txt
+scripts/layout_skeleton.txt
+scripts/dump_main.txt
+temp_script_*.js
+temp_utf8.html
+temp_old_finanzas.html
+.claude/

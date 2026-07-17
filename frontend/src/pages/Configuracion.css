@@ -1,0 +1,87 @@
+/* ===== Configuración · React puro (premium, theme-aware) ===== */
+.cfg-main { min-height: 60vh; padding: 1.5rem 0 3rem; }
+.cfg-container { max-width: 820px; margin: 0 auto; padding: 0 2rem; }
+
+.cfg-title {
+  display: flex; align-items: center; gap: .8rem;
+  font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700;
+  color: var(--clr-primary); margin: 1.5rem 0 2rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--bdr-soft);
+}
+.cfg-title i { color: var(--clr-gold); font-size: 1.4rem; }
+
+.cfg-section-lbl {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .18em;
+  color: var(--clr-text-mut); margin-bottom: 1.3rem; display: flex; align-items: center; gap: .6rem;
+}
+.cfg-section-lbl i { color: var(--clr-gold); }
+.cfg-section-lbl::after { content: ""; flex: 1; height: 1px; background: var(--bdr-soft); }
+
+.cfg-panel {
+  background: var(--clr-surface);
+  backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--bdr-soft); border-radius: 18px; padding: 2rem;
+  box-shadow: var(--shadow-md); margin-bottom: 1.8rem;
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.cfg-panel:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+.cfg-profile {
+  display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; padding: 1.5rem;
+  background: var(--clr-hdr); border: 1px solid var(--bdr-soft); border-radius: 14px;
+}
+.cfg-avatar {
+  width: 84px; height: 84px; border-radius: 50%; overflow: hidden;
+  border: 2px solid var(--clr-gold); box-shadow: 0 0 20px rgba(168, 137, 76,.2);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--clr-bg);
+}
+.cfg-avatar img { width: 70%; height: 70%; object-fit: contain; }
+.cfg-profile-info h2 { font-size: 1.3rem; font-weight: 700; color: var(--clr-primary); margin-bottom: .3rem; }
+.cfg-profile-info p { font-size: .9rem; color: var(--clr-text-mut); }
+
+.cfg-field { margin-bottom: 1.5rem; }
+.cfg-field label {
+  display: block; font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--clr-text-mut); margin-bottom: .5rem;
+}
+.cfg-field input {
+  width: 100%; padding: .8rem 1rem; border: 1px solid var(--bdr-hard); border-radius: 10px;
+  font-family: 'Inter', sans-serif; font-size: .92rem; color: var(--clr-text-main);
+  background: var(--clr-bg); outline: none; transition: border-color .2s, box-shadow .2s;
+}
+.cfg-field input:focus { border-color: var(--clr-gold); box-shadow: 0 0 0 3px rgba(168, 137, 76,.15); }
+.cfg-field input:disabled { opacity: .6; cursor: not-allowed; }
+.cfg-hint { font-size: .75rem; color: var(--clr-text-lt); margin-top: .4rem; }
+
+.cfg-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
+  padding: .85rem 1.6rem; border-radius: 10px; font-family: 'Inter', sans-serif;
+  font-size: .9rem; font-weight: 600; cursor: pointer; border: none; color: #fff;
+  background: linear-gradient(180deg, #8a9bbc, #66779a);
+  box-shadow: 0 8px 20px -8px rgba(30, 36, 46,.5);
+  transition: transform .15s, box-shadow .25s, background .25s;
+}
+.cfg-btn i { color: var(--clr-gold-lt); }
+.cfg-btn:hover:not(:disabled) { transform: translateY(-2px); background: linear-gradient(180deg, #9fb0cf, #8a9bbc); box-shadow: 0 12px 26px -8px rgba(30, 36, 46,.6); }
+.cfg-btn:active:not(:disabled) { transform: scale(.98); }
+.cfg-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.cfg-toast {
+  position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #66779a; color: #fff; font-size: .85rem; font-weight: 500;
+  padding: .85rem 1.6rem; border-radius: 50px; border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,.3); opacity: 0;
+  transition: opacity .3s, transform .3s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none; white-space: nowrap; z-index: 9999;
+}
+.cfg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cfg-toast.ok  { border-color: #10b981; color: #34d399; }
+.cfg-toast.err { border-color: #ef4444; color: #f87171; }
+
+@media (max-width: 640px) {
+  .cfg-container { padding: 0 1rem; }
+  .cfg-panel { padding: 1.5rem; }
+  .cfg-profile { flex-direction: column; text-align: center; }
+  .cfg-avatar { margin: 0 auto; }
+  .cfg-btn { width: 100%; }
+}

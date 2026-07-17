@@ -1,0 +1,485 @@
+/* ══════════════════════════════════════════════
+   SECTION FLOW TRANSITIONS — Premium Visual Bridges
+   Seamless connections between major page sections
+══════════════════════════════════════════════ */
+
+.section-flow {
+    position: relative;
+    z-index: 10;
+    height: clamp(180px, 22vh, 340px);
+    margin-top: -110px;
+    margin-bottom: -110px;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.section-flow--reverse {
+    height: clamp(140px, 18vh, 260px);
+    margin-top: -80px;
+    margin-bottom: -80px;
+}
+
+/* ── Animated Gradient Mesh ── */
+.flow-mesh {
+    position: absolute;
+    inset: -40% -10%;
+    background:
+        radial-gradient(ellipse 60% 50% at 25% 40%, rgba(37,99,235,0.14), transparent 70%),
+        radial-gradient(ellipse 50% 60% at 78% 50%, rgba(14,165,233,0.10), transparent 70%),
+        radial-gradient(ellipse 70% 40% at 50% 65%, rgba(139,92,246,0.08), transparent 70%);
+    animation: flowMeshDrift 14s ease-in-out infinite;
+    will-change: transform;
+}
+
+.flow-mesh--purple {
+    background:
+        radial-gradient(ellipse 60% 50% at 25% 40%, rgba(139,92,246,0.14), transparent 70%),
+        radial-gradient(ellipse 50% 60% at 78% 50%, rgba(37,99,235,0.10), transparent 70%),
+        radial-gradient(ellipse 70% 40% at 50% 65%, rgba(14,165,233,0.08), transparent 70%);
+}
+
+@keyframes flowMeshDrift {
+    0%, 100% { transform: scale(1) translate3d(0, 0, 0); }
+    33% { transform: scale(1.06) translate3d(1.5%, -1%, 0); }
+    66% { transform: scale(1.03) translate3d(-1%, 1.5%, 0); }
+}
+
+/* ── Flowing Glow Line ── */
+.flow-glow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 50%;
+    height: 2px;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(37,99,235,0.25) 15%, 
+        rgba(14,165,233,0.55) 50%, 
+        rgba(37,99,235,0.25) 85%, 
+        transparent 100%);
+    border-radius: 2px;
+    filter: blur(6px);
+    animation: flowGlowPulse 5s ease-in-out infinite;
+    will-change: transform, opacity;
+}
+
+/* Outer bloom for depth */
+.flow-glow::after {
+    content: '';
+    position: absolute;
+    inset: -6px 8%;
+    background: inherit;
+    filter: blur(18px);
+    opacity: 0.45;
+    border-radius: 6px;
+}
+
+.flow-glow--purple {
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(139,92,246,0.25) 15%,
+        rgba(167,139,250,0.55) 50%,
+        rgba(139,92,246,0.25) 85%,
+        transparent 100%);
+}
+
+@keyframes flowGlowPulse {
+    0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scaleX(0.7); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scaleX(1.2); }
+}
+
+/* ── Rising Particles ── */
+.flow-particles {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+}
+
+.flow-particles span {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(59,130,246,0.75);
+    box-shadow: 0 0 14px 3px rgba(59,130,246,0.30);
+    animation: flowParticleFloat 8s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.95s);
+    left: calc(6% + var(--i, 0) * 11%);
+    top: 55%;
+    will-change: transform, opacity;
+}
+
+.flow-particles span:nth-child(even) {
+    background: rgba(14,165,233,0.7);
+    box-shadow: 0 0 12px 3px rgba(14,165,233,0.28);
+    width: 3px;
+    height: 3px;
+}
+
+.flow-particles span:nth-child(3n) {
+    background: rgba(139,92,246,0.65);
+    box-shadow: 0 0 14px 3px rgba(139,92,246,0.28);
+    width: 5px;
+    height: 5px;
+}
+
+@keyframes flowParticleFloat {
+    0%, 100% { 
+        transform: translateY(0) scale(0); 
+        opacity: 0; 
+    }
+    12% { 
+        transform: translateY(-18px) scale(1); 
+        opacity: 0.9; 
+    }
+    45% { 
+        transform: translateY(-58px) translateX(16px) scale(0.7); 
+        opacity: 0.5; 
+    }
+    80% { 
+        transform: translateY(-38px) translateX(-10px) scale(0.3); 
+        opacity: 0.12; 
+    }
+}
+
+.section-flow--reverse .flow-particles span {
+    animation-direction: alternate-reverse;
+    top: 45%;
+}
+
+
+/* ══════════════════════════════════════════════
+   FLOATING AMBIENT ORBS — Atmospheric Depth
+══════════════════════════════════════════════ */
+.floating-orbs {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.f-orb {
+    position: absolute;
+    left: var(--x, 50%);
+    top: var(--y, 50%);
+    width: var(--s, 200px);
+    height: var(--s, 200px);
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--c, rgba(37,99,235,0.08)), transparent 70%);
+    animation: orbFloat 12s ease-in-out infinite;
+    animation-delay: var(--d, 0s);
+    filter: blur(50px);
+    will-change: transform;
+}
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(28px, -38px) scale(1.14); }
+    50% { transform: translate(-12px, 22px) scale(0.92); }
+    75% { transform: translate(18px, 12px) scale(1.07); }
+}
+
+
+/* ══════════════════════════════════════════════
+   ENHANCED BENTO — Animated Gradient Border Glow
+   Uses @property for CSS-only animated conic-gradient.
+   Falls back gracefully in Firefox (no animation, still invisible).
+══════════════════════════════════════════════ */
+
+@property --bento-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+.bento-card {
+    --bento-angle: 0deg;
+}
+
+.bento-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    border-radius: 32px;
+    padding: 1.5px;
+    background: conic-gradient(from var(--bento-angle), 
+        transparent 20%, 
+        rgba(59,130,246,0.5) 35%, 
+        rgba(14,165,233,0.65) 50%, 
+        rgba(139,92,246,0.5) 65%, 
+        transparent 80%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+    animation: bentoAngleRotate 4s linear infinite;
+}
+
+@keyframes bentoAngleRotate {
+    to { --bento-angle: 360deg; }
+}
+
+.bento-card:hover::after {
+    opacity: 1;
+}
+
+
+/* ── Enhanced Sparkline Card Hover Glow ── */
+.spark-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    padding: 1px;
+    background: linear-gradient(135deg, 
+        rgba(37,99,235,0.35), 
+        rgba(14,165,233,0.15), 
+        transparent 50%, 
+        rgba(139,92,246,0.25));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.spark-card:hover::after {
+    opacity: 1;
+}
+
+
+/* ══════════════════════════════════════════════
+   DARK MODE — Transitions & Enhancements
+══════════════════════════════════════════════ */
+[data-theme="dark"] .flow-mesh {
+    background:
+        radial-gradient(ellipse 60% 50% at 25% 40%, rgba(59,130,246,0.22), transparent 70%),
+        radial-gradient(ellipse 50% 60% at 78% 50%, rgba(56,189,248,0.16), transparent 70%),
+        radial-gradient(ellipse 70% 40% at 50% 65%, rgba(167,139,250,0.14), transparent 70%);
+}
+
+[data-theme="dark"] .flow-mesh--purple {
+    background:
+        radial-gradient(ellipse 60% 50% at 25% 40%, rgba(167,139,250,0.22), transparent 70%),
+        radial-gradient(ellipse 50% 60% at 78% 50%, rgba(59,130,246,0.16), transparent 70%),
+        radial-gradient(ellipse 70% 40% at 50% 65%, rgba(56,189,248,0.12), transparent 70%);
+}
+
+[data-theme="dark"] .flow-glow {
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(59,130,246,0.4) 15%,
+        rgba(56,189,248,0.7) 50%,
+        rgba(59,130,246,0.4) 85%,
+        transparent 100%);
+}
+
+[data-theme="dark"] .flow-glow--purple {
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(167,139,250,0.4) 15%,
+        rgba(139,92,246,0.7) 50%,
+        rgba(167,139,250,0.4) 85%,
+        transparent 100%);
+}
+
+[data-theme="dark"] .flow-particles span {
+    background: rgba(96,165,250,0.85);
+    box-shadow: 0 0 18px 4px rgba(96,165,250,0.45);
+}
+
+[data-theme="dark"] .f-orb {
+    filter: blur(65px);
+}
+
+[data-theme="dark"] .spark-card::after {
+    background: linear-gradient(135deg,
+        rgba(96,165,250,0.35),
+        rgba(56,189,248,0.15),
+        transparent 50%,
+        rgba(167,139,250,0.25));
+}
+
+
+/* ══════════════════════════════════════════════
+   ACCESSIBILITY & RESPONSIVE
+══════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+    .section-flow { display: none; }
+    .floating-orbs { display: none; }
+    .bento-card::after { animation: none; }
+    .f-orb { animation: none; }
+    .flow-mesh { animation: none; }
+    .flow-glow { animation: none; }
+    .flow-particles span { animation: none; }
+}
+
+@media (max-width: 768px) {
+    .section-flow {
+        height: clamp(120px, 16vh, 200px);
+        margin-top: -70px;
+        margin-bottom: -70px;
+    }
+    .flow-particles span:nth-child(n+6) { display: none; }
+    .f-orb { filter: blur(40px); }
+    .news-arrival,
+    .vn-bento-section {
+        transform: translateY(calc(clamp(0, 1 - var(--entrance, 0), 1) * 35px)) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-flow {
+        height: 100px;
+        margin-top: -50px;
+        margin-bottom: -50px;
+    }
+    .flow-particles { display: none; }
+    .news-arrival,
+    .vn-bento-section {
+        transform: translateY(calc(clamp(0, 1 - var(--entrance, 0), 1) * 20px)) !important;
+    }
+}
+
+
+/* ══════════════════════════════════════════════
+   WORLD EXIT DISSOLVE — Smooth Globe-to-Content Handoff
+   Uses --earth-progress (0→1) from the scroll system
+══════════════════════════════════════════════ */
+
+/* Bottom dissolve: melts the globe scene into the page background.
+   Starts fading at progress ~0.7, fully dissolved by ~1.0. */
+.world-sticky::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -5%;
+    right: -5%;
+    height: 48%;
+    z-index: 50;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(248,250,252,0.02) 20%,
+        rgba(248,250,252,0.14) 40%,
+        rgba(248,250,252,0.44) 58%,
+        rgba(248,250,252,0.76) 74%,
+        rgba(248,250,252,0.94) 88%,
+        #f8fafc 100%);
+    opacity: clamp(0, calc((var(--earth-progress, 0) - 0.75) * 4.2), 1);
+    will-change: opacity;
+}
+
+[data-theme="dark"] .world-sticky::after {
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(2,6,23,0.02) 20%,
+        rgba(2,6,23,0.14) 40%,
+        rgba(2,6,23,0.44) 58%,
+        rgba(2,6,23,0.76) 74%,
+        rgba(2,6,23,0.94) 88%,
+        #020617 100%);
+}
+
+/* Glowing stitch line at the top of each bridge — visual connector */
+.section-flow::before {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(37,99,235,0.18) 25%,
+        rgba(14,165,233,0.35) 50%,
+        rgba(37,99,235,0.18) 75%,
+        transparent);
+    filter: blur(0.5px);
+    box-shadow: 0 0 22px 5px rgba(37,99,235,0.10);
+    opacity: 0.8;
+    animation: stitchPulse 4s ease-in-out infinite;
+}
+
+@keyframes stitchPulse {
+    0%, 100% { opacity: 0.5; transform: scaleX(0.85); }
+    50% { opacity: 1; transform: scaleX(1.05); }
+}
+
+[data-theme="dark"] .section-flow::before {
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(96,165,250,0.28) 25%,
+        rgba(56,189,248,0.45) 50%,
+        rgba(96,165,250,0.28) 75%,
+        transparent);
+    box-shadow: 0 0 28px 6px rgba(59,130,246,0.18);
+}
+
+
+/* ══════════════════════════════════════════════
+   SECTION ENTRANCE — 3D Parallax & Glass Pull-up
+   --entrance is set via JS (0 = entering bottom → 1 = in viewport)
+══════════════════════════════════════════════ */
+
+/* The JS applies the translateY and rotateX directly, so we just set defaults */
+.news-arrival {
+    --entrance: 0;
+    --parallax-dist: 80px; /* Increased from 50px for more drama */
+    will-change: transform;
+    /* Add a glowing glass top edge to make it look like a physical sheet sliding up */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 -10px 40px -10px rgba(0, 0, 0, 0.2);
+    border-radius: 40px 40px 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    padding-top: 40px;
+    margin-top: -40px; /* Offset the padding */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .news-arrival {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(180deg, rgba(255,255,255,0.015) 0%, transparent 100%);
+}
+
+/* Sweep glowing border effect on entrance */
+.news-arrival::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(14,165,233,0.8), rgba(37,99,235,0.8), transparent);
+    opacity: calc(var(--entrance) * 1);
+    filter: blur(1px);
+    transform: scaleX(calc(0.5 + (var(--entrance) * 0.5)));
+}
+
+.vn-bento-section {
+    --entrance: 0;
+    --parallax-dist: 50px;
+    will-change: transform;
+    /* Also give it the 3D sheet look */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px 40px 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    padding-top: 40px;
+    margin-top: -40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .world-sticky::after { display: none; }
+    .section-flow::before { animation: none; }
+    .news-arrival,
+    .vn-bento-section {
+        transform: none !important;
+    }
+}

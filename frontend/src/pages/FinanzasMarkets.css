@@ -1,0 +1,673 @@
+/* Mercados · montaje y lectura dentro de la ruta React */
+#global-dense-wrapper .reveal.inview {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+#global-dense-wrapper #mx-summary-panel,
+#global-dense-wrapper #mx-chart-panel,
+#global-dense-wrapper #mx-news-panel {
+  visibility: visible !important;
+  transition: box-shadow .25s ease, border-color .25s ease !important;
+}
+
+#global-dense-wrapper #slot-mx-summary,
+#global-dense-wrapper #slot-mx-chart,
+#global-dense-wrapper #slot-news-unified {
+  min-width: 0;
+}
+
+#global-dense-wrapper .mx-cols {
+  align-items: start !important;
+}
+
+#global-dense-wrapper .mx-cols > div:first-child,
+#global-dense-wrapper #slot-news-unified {
+  min-width: 0;
+}
+
+/* Si el usuario prefiere movimiento reducido, los elementos internos de la
+   gráfica deben permanecer visibles aunque no se ejecute la animación legacy. */
+#global-dense-wrapper .chart-panel.inview .candle,
+#global-dense-wrapper .chart-panel.inview .lastline {
+  opacity: 1 !important;
+}
+
+/* Análisis completo de mercados: el encabezado y el buscador global no deben
+   competir con los filtros propios de la gráfica. */
+#global-dense-wrapper:has(#bvmx-panel.chart-focus-mode),
+#global-dense-wrapper #mx-chart-panel:has(#bvmx-panel.chart-focus-mode) {
+  position: relative !important;
+  z-index: 10018 !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+body.vn-chart-focus-open:has(#bvmx-panel.chart-focus-mode) .header,
+body.vn-chart-focus-open:has(#bvmx-panel.chart-focus-mode) .vn-ticker,
+body.vn-chart-focus-open:has(#bvmx-panel.chart-focus-mode) #vn-cw {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode {
+  display: block !important;
+  inset: clamp(8px, 1.3vw, 18px) !important;
+  min-height: 0 !important;
+  padding: 66px clamp(12px, 1.5vw, 20px) clamp(12px, 1.5vw, 20px) !important;
+  overflow: hidden !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(59, 130, 246, .10), transparent 30%),
+    linear-gradient(145deg, #f8fbff, #edf3fa) !important;
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode::before {
+  content: 'ANÁLISIS COMPLETO · MERCADOS DE CAPITALES';
+  position: absolute;
+  top: 24px;
+  left: clamp(18px, 2vw, 28px);
+  color: #536589;
+  font-size: clamp(.65rem, 1vw, .78rem);
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-primary-layout {
+  grid-template-columns: minmax(190px, 220px) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-analysis-rail {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-rail-expand {
+  position: absolute;
+  z-index: 8;
+  top: 14px;
+  right: clamp(16px, 2vw, 26px);
+  width: auto;
+  min-width: 176px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  border-color: rgba(83, 101, 137, .24) !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, #536589, #6c7ea1) !important;
+  box-shadow: 0 10px 24px rgba(83, 101, 137, .22);
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-primary-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode #bmv-bar {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  max-width: 100%;
+  margin: 0 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+#global-dense-wrapper #bvmx-panel.chart-focus-mode #bmv-chart {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0 !important;
+  overflow: hidden;
+}
+
+/* Mayores alzas y bajas · misma experiencia de análisis completo. */
+#global-dense-wrapper:has(#movers-panel.chart-focus-mode) {
+  position: relative !important;
+  z-index: 10018 !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+body.vn-chart-focus-open:has(#movers-panel.chart-focus-mode) .header,
+body.vn-chart-focus-open:has(#movers-panel.chart-focus-mode) .vn-ticker,
+body.vn-chart-focus-open:has(#movers-panel.chart-focus-mode) #vn-cw {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode {
+  display: grid !important;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  gap: 11px;
+  inset: clamp(8px, 1.3vw, 18px) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: clamp(14px, 1.7vw, 22px) !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(108, 126, 161, .24) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(37, 99, 235, .08), transparent 28%),
+    linear-gradient(145deg, #f8fbff, #edf2f8) !important;
+  box-shadow: 0 32px 100px rgba(24, 35, 57, .34) !important;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode::before {
+  left: 24px;
+  right: 24px;
+  background: linear-gradient(90deg, #2563eb, #22c55e 58%, transparent);
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-panel-identity {
+  min-height: 58px;
+  margin: 0 !important;
+  padding: 9px 12px;
+  border-radius: 15px;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-panel-identity strong {
+  font-size: .88rem;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-section-head {
+  display: grid;
+  grid-template-columns: minmax(230px, auto) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-section-head .section-lbl {
+  margin: 0 !important;
+  color: #3f5272 !important;
+  font-size: clamp(.8rem, 1.4vw, 1rem) !important;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-style-picker {
+  position: relative;
+  top: auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(132px, auto) !important;
+  width: 100% !important;
+  min-height: 62px !important;
+  padding: 7px 8px !important;
+  overflow: visible;
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(45, 52, 64, .07);
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-expand-btn {
+  align-self: stretch;
+  gap: 8px;
+  width: 100% !important;
+  min-width: 132px;
+  height: auto !important;
+  min-height: 44px !important;
+  padding: 0 14px;
+  border-color: rgba(83, 101, 137, .25);
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #536589, #6c7ea1);
+  box-shadow: 0 9px 22px rgba(83, 101, 137, .22);
+  font-size: .7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-expand-btn::after {
+  content: 'Cerrar análisis';
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-expand-btn:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #465777, #61749a);
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode #movers-bar {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 0;
+  margin: 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 15px;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode > div:nth-last-of-type(1) {
+  margin: 0 !important;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-canvas-shell {
+  align-self: stretch;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0;
+  padding: clamp(11px, 1.4vw, 18px) !important;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    linear-gradient(rgba(108, 126, 161, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(108, 126, 161, .045) 1px, transparent 1px),
+    #fff;
+  background-size: 30px 30px;
+  box-shadow: 0 18px 45px rgba(45, 52, 64, .09), inset 0 1px 0 #fff;
+}
+
+#global-dense-wrapper #movers-panel.chart-focus-mode .chart-canvas-shell canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html[data-theme="dark"] #global-dense-wrapper #movers-panel.chart-focus-mode {
+  color: #e7edf7 !important;
+  border-color: rgba(148, 163, 184, .18) !important;
+  background: linear-gradient(145deg, #111c2e, #0b1423) !important;
+}
+
+html[data-theme="dark"] #global-dense-wrapper #movers-panel.chart-focus-mode .chart-section-head .section-lbl {
+  color: #dbe7f5 !important;
+}
+
+/* Divisas emergentes · análisis completo sin superposiciones. */
+#global-dense-wrapper:has(#fx-emerging-panel.chart-focus-mode) {
+  position: relative !important;
+  z-index: 10018 !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+body.vn-chart-focus-open:has(#fx-emerging-panel.chart-focus-mode) .header,
+body.vn-chart-focus-open:has(#fx-emerging-panel.chart-focus-mode) .vn-ticker,
+body.vn-chart-focus-open:has(#fx-emerging-panel.chart-focus-mode) #vn-cw {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode {
+  display: grid !important;
+  grid-template-areas:
+    'identity'
+    'insights'
+    'head'
+    'filters'
+    'status'
+    'chart'
+    'explainer';
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+  gap: 9px !important;
+  inset: clamp(8px, 1.3vw, 18px) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: clamp(13px, 1.6vw, 20px) !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(108, 126, 161, .24) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(37, 99, 235, .08), transparent 28%),
+    linear-gradient(145deg, #f8fbff, #edf2f8) !important;
+  box-shadow: 0 32px 100px rgba(24, 35, 57, .34) !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode::before {
+  left: 22px;
+  right: 22px;
+  background: linear-gradient(90deg, #2563eb, #22c55e 58%, transparent);
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-panel-identity {
+  grid-area: identity;
+  grid-template-columns: 1fr !important;
+  min-height: 56px;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border-radius: 15px !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-panel-icon {
+  display: none !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-panel-identity > div {
+  grid-column: 1 !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-panel-identity strong {
+  font-size: .88rem !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .fx-insights {
+  grid-area: insights;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 0 !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .fx-insight-card {
+  min-height: 66px !important;
+  padding: 9px 12px !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-section-head {
+  grid-area: head;
+  display: grid !important;
+  grid-template-columns: minmax(210px, auto) minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-section-head .section-lbl {
+  display: block !important;
+  margin: 0 !important;
+  color: #3f5272 !important;
+  font-size: clamp(.82rem, 1.4vw, 1rem) !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-style-picker {
+  position: relative !important;
+  top: auto !important;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, auto) !important;
+  width: 100% !important;
+  min-height: 58px !important;
+  margin: 0 !important;
+  padding: 6px 8px !important;
+  overflow: visible !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 26px rgba(45, 52, 64, .07) !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-expand-btn {
+  align-self: stretch;
+  gap: 8px;
+  width: 100% !important;
+  min-width: 132px;
+  height: auto !important;
+  min-height: 42px !important;
+  padding: 0 14px;
+  border-color: rgba(83, 101, 137, .25) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, #536589, #6c7ea1) !important;
+  box-shadow: 0 9px 22px rgba(83, 101, 137, .22) !important;
+  font-size: .7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-expand-btn::after {
+  content: 'Cerrar análisis';
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode #fx-em-bar {
+  grid-area: filters;
+  position: relative;
+  z-index: 2;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 7px 9px !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 15px !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .fx-interaction-status {
+  grid-area: status;
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 7px 12px !important;
+  border-radius: 12px !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-canvas-shell {
+  grid-area: chart;
+  align-self: stretch;
+  order: initial !important;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: clamp(10px, 1.3vw, 16px) !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(rgba(108, 126, 161, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(108, 126, 161, .045) 1px, transparent 1px),
+    #fff !important;
+  background-size: 30px 30px !important;
+  box-shadow: 0 18px 45px rgba(45, 52, 64, .09), inset 0 1px 0 #fff !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-canvas-shell canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#global-dense-wrapper #fx-emerging-panel.chart-focus-mode .fx-chart-explainer {
+  grid-area: explainer;
+  order: initial !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 6px 10px !important;
+  border-radius: 10px !important;
+}
+
+html[data-theme="dark"] #global-dense-wrapper #fx-emerging-panel.chart-focus-mode {
+  color: #e7edf7 !important;
+  border-color: rgba(148, 163, 184, .18) !important;
+  background: linear-gradient(145deg, #111c2e, #0b1423) !important;
+}
+
+html[data-theme="dark"] #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-section-head .section-lbl {
+  color: #dbe7f5 !important;
+}
+
+@media (max-width: 720px) {
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode {
+    grid-template-rows: auto auto auto auto auto minmax(340px, 1fr) auto;
+    gap: 8px !important;
+    inset: 6px !important;
+    padding: 11px !important;
+    overflow: auto !important;
+    border-radius: 18px !important;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-panel-identity {
+    min-height: 50px;
+    padding: 7px 9px !important;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode #fx-em-bar {
+    min-height: 128px !important;
+    padding-bottom: 12px !important;
+    overflow-y: visible !important;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-panel-identity span:not(.chart-panel-icon) {
+    display: none;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .fx-insights {
+    grid-template-columns: repeat(3, minmax(138px, 1fr)) !important;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .fx-insight-card {
+    scroll-snap-align: start;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-section-head {
+    grid-template-columns: 1fr !important;
+    gap: 7px !important;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-section-head .section-lbl {
+    font-size: .72rem !important;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-style-picker {
+    grid-template-columns: minmax(0, 1fr) 48px !important;
+    min-height: 56px !important;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-expand-btn {
+    min-width: 48px;
+    padding: 0;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-expand-btn::after {
+    content: '';
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .fx-interaction-status {
+    font-size: .58rem !important;
+  }
+
+  #global-dense-wrapper #fx-emerging-panel.chart-focus-mode .chart-canvas-shell {
+    min-height: 340px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  #global-dense-wrapper #movers-panel.chart-focus-mode {
+    grid-template-rows: auto auto auto auto minmax(340px, 1fr);
+    gap: 9px;
+    inset: 6px !important;
+    padding: 11px !important;
+    overflow: auto !important;
+    border-radius: 18px !important;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-panel-identity {
+    min-height: 52px;
+    padding: 7px 9px;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-panel-identity span:not(.chart-panel-icon) {
+    display: none;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-section-head {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-section-head .section-lbl {
+    font-size: .72rem !important;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-style-picker {
+    grid-template-columns: minmax(0, 1fr) 48px !important;
+    min-height: 58px !important;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-style-picker > i,
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-style-picker > label {
+    display: none;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-expand-btn {
+    min-width: 48px;
+    padding: 0;
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-expand-btn::after {
+    content: '';
+  }
+
+  #global-dense-wrapper #movers-panel.chart-focus-mode .chart-canvas-shell {
+    min-height: 340px !important;
+  }
+}
+
+@media (max-width: 780px) {
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode {
+    inset: 6px !important;
+    padding: 58px 10px 10px !important;
+    overflow: auto !important;
+    border-radius: 18px !important;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode::before {
+    top: 20px;
+    left: 16px;
+    max-width: calc(100% - 76px);
+    overflow: hidden;
+    font-size: .56rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-primary-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-analysis-rail {
+    display: block;
+    height: 0;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-analysis-rail > :not(.chart-rail-expand) {
+    display: none;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-rail-expand {
+    top: 10px;
+    right: 10px;
+    min-width: 42px;
+    width: 42px;
+    min-height: 38px;
+    padding: 0;
+    overflow: hidden;
+    color: transparent !important;
+    font-size: 0;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-rail-expand i {
+    color: #fff;
+    font-size: .78rem;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-primary-stage {
+    overflow: visible;
+  }
+
+  #global-dense-wrapper #bvmx-panel.chart-focus-mode .chart-stage-heading {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 1060px) {
+  #global-dense-wrapper .mx-cols {
+    grid-template-columns: 1fr !important;
+  }
+}

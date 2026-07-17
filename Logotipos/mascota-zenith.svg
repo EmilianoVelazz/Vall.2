@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <defs>
+        <linearGradient id="g-zenith" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#475569"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+    </defs>
+    <rect width="100" height="100" rx="20" fill="#f8fafc" />
+    <path d="M30 50 C30 30, 70 70, 70 50 C70 30, 30 70, 30 50 Z" fill="none" stroke="url(#g-zenith)" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="50" cy="50" r="5" fill="#f8fafc"/>
+</svg>

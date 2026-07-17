@@ -1,0 +1,241 @@
+
+.hero {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    overflow: hidden;
+    background: #000;
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transform: scale(1.05);
+    transition: opacity 1s ease, transform 7s ease;
+}
+.slide.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+
+.slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to top,  rgba(2,6,18,0.88) 0%, rgba(2,6,18,0.3) 45%, transparent 70%),
+        linear-gradient(to right, rgba(2,6,18,0.90) 0%, rgba(2,6,18,0.45) 45%, transparent 80%);
+    pointer-events: none;
+}
+
+.slide-badge {
+    position: absolute;
+    top: 2rem;
+    left: 2.8rem;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.slide-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--clr-blue);
+    color: #fff;
+    font-size: 0.67rem;
+    font-weight: 700;
+    padding: 0.24rem 0.85rem;
+    border-radius: 40px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    box-shadow: 0 2px 14px rgba(29,78,216,0.5);
+}
+.slide-sub {
+    color: rgba(180,210,245,0.65);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+}
+
+
+.slide-body {
+    position: absolute;
+    bottom: 4rem;
+    left: 2.8rem;
+    z-index: 5;
+    max-width: 560px;
+}
+.slide-date {
+    color: rgba(160,195,235,0.55);
+    font-size: 0.7rem;
+    margin-bottom: 0.55rem;
+    letter-spacing: 0.5px;
+}
+.slide-title {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.24;
+    margin-bottom: 0.6rem;
+    text-shadow: 0 2px 24px rgba(0,0,0,0.5);
+}
+.slide-desc {
+    color: rgba(195,215,240,0.68);
+    font-size: 0.85rem;
+    line-height: 1.65;
+    margin-bottom: 1.1rem;
+}
+.slide-btn {
+    display: inline-block;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    padding: 0.45rem 1.3rem;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.25s, border-color 0.25s, transform 0.2s;
+    margin-bottom: 1.1rem;
+    width: fit-content;
+    backdrop-filter: blur(6px);
+}
+.slide-btn:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.75);
+    transform: translateY(-2px);
+}
+.slide-tags {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.tag-source {
+    background: rgba(29,78,216,0.8);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.16rem 0.7rem;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(4px);
+}
+.tag-risk {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.67rem;
+    font-weight: 600;
+    color: var(--clr-gold-lt);
+}
+.tag-risk.danger { color: var(--clr-danger); }
+
+.arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    color: rgba(255,255,255,0.75);
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(255,255,255,0.14);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    user-select: none;
+    /* ocultas por defecto */
+    opacity: 0;
+    transition: opacity 0.3s ease, background 0.25s, border-color 0.25s, transform 0.2s;
+}
+
+.hero:hover .arrow { opacity: 1; }
+.arrow:hover {
+    color: #fff;
+    background: rgba(0,0,0,0.52);
+    border-color: rgba(255,255,255,0.35);
+    transform: translateY(-50%) scale(1.08);
+}
+.arrow-prev { left: 1rem; }
+.arrow-next { right: 1rem; }
+.arrow i { font-size: 0.72rem; }
+
+.hero-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.18);
+    width: 100%;
+    z-index: 10;
+    overflow: hidden;
+}
+.hero-progress-bar {
+    height: 100%;
+    background: rgba(255,255,255,0.65);
+    width: 0%;
+    animation: progress-fill 5.5s linear infinite;
+}
+@keyframes progress-fill {
+    0%   { width: 0%; }
+    100% { width: 100%; }
+}
+
+.hero-dots {
+    position: absolute;
+    bottom: 1.6rem;
+    right: 2.8rem;
+    display: flex;
+    gap: 0.45rem;
+    z-index: 10;
+    align-items: center;
+}
+.dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.28);
+    cursor: pointer;
+    transition: background 0.3s, width 0.3s, border-radius 0.3s;
+    flex-shrink: 0;
+}
+.dot.active {
+    background: rgba(255,255,255,0.9);
+    width: 20px;
+    border-radius: 3px;
+}
+
+@media (max-width: 1024px) {
+    .hero { height: 460px; }
+    .slide-title { font-size: 1.65rem; }
+    .slide-body { max-width: 480px; }
+}
+@media (max-width: 768px) {
+    .hero { height: 400px; }
+    .slide-body { left: 1.4rem; bottom: 3rem; max-width: calc(100% - 2.8rem); }
+    .slide-badge { left: 1.4rem; }
+    .slide-title { font-size: 1.35rem; }
+    .slide-desc { display: none; }
+    .arrow { width: 30px; height: 30px; }
+    .arrow i { font-size: 0.65rem; }
+    .hero-dots { right: 1.4rem; bottom: 1rem; }
+    .hero:hover .arrow { opacity: 1; }
+    /* En móvil siempre visibles (no hay hover táctil). Se anclan arriba en vez de al
+       centro vertical porque un título de 2 líneas puede crecer hacia esa zona y
+       chocar con las flechas si se quedan centradas. */
+    .arrow { opacity: 0.6; top: 1.3rem; transform: none; }
+    .arrow:hover { transform: scale(1.08); }
+}

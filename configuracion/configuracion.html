@@ -1,0 +1,387 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VALLNEWS · Configuración</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/header.css?v=6">
+    <link rel="stylesheet" href="../css/footer.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+    <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
+    <script src="../js/page-loader.js"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            color: #e2e8f0; 
+            overflow-x: hidden; 
+            background: #0b1120;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(20, 184, 166, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.08), transparent 25%);
+        }
+        .container {
+            max-width: 820px;
+            margin: 2rem auto;
+            padding: 0 2rem;    
+        }
+        .page-title {
+            display: flex; align-items: center; gap: 0.8rem;
+            font-size: 1.8rem; font-weight: 700; color: #f8fafc;
+            margin-bottom: 2rem; padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .page-title i { color: #38bdf8; font-size: 1.5rem; }
+        .section-lbl {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; color: #94a3b8; margin-bottom: 1.2rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-lbl::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.08); }
+        .panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px; 
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 1.8rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        .profile-header {
+            display: flex; align-items: center; gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .profile-avatar {
+            width: 84px; height: 84px;
+            border-radius: 50%; overflow: hidden;
+            border: 2px solid rgba(56, 189, 248, 0.4);
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .profile-avatar img {
+            width: 70%; height: 70%; object-fit: contain;
+        }
+        .profile-info h2 {
+            font-size: 1.3rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.3rem;
+        }
+        .profile-info p {
+            font-size: 0.9rem; color: #94a3b8;
+        }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label {
+            display: block; font-size: 0.85rem; font-weight: 600;
+            color: #cbd5e1; margin-bottom: 0.5rem;
+        }
+        .form-group input {
+            width: 100%; padding: 0.8rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #f8fafc;
+            background: rgba(15, 23, 42, 0.6);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .form-group input:focus {
+            border-color: #38bdf8;
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+        .form-group input:disabled {
+            background: rgba(15, 23, 42, 0.3); color: #64748b; cursor: not-allowed;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        .form-hint {
+            font-size: 0.75rem; color: #64748b; margin-top: 0.4rem;
+        }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+            padding: 0.8rem 1.5rem; border-radius: 10px;
+            font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; border: none; transition: all 0.2s ease;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            background: linear-gradient(180deg, #123057, #0a1c33);
+            color: #fff;
+            box-shadow: 0 8px 20px -8px rgba(10, 28, 51, 0.5);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(180deg, #16406f, #123057);
+            box-shadow: 0 12px 26px -8px rgba(10, 28, 51, 0.6);
+        }
+        .btn-primary:disabled { 
+            background: #334155; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; 
+        }
+        #vn-toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: rgba(15, 23, 42, 0.9); color: #fff; font-size: 0.85rem; font-weight: 500;
+            padding: 0.8rem 1.6rem; border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3); 
+            opacity: 0; transition: opacity 0.3s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none; white-space: nowrap; z-index: 9999;
+        }
+        #vn-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #vn-toast.toast-ok  { border-color: #10b981; color: #34d399; }
+        #vn-toast.toast-err { border-color: #ef4444; color: #f87171; }
+        @media (max-width: 768px) {
+            .container  { padding: 0 1.5rem; }
+            .page-title { font-size: 1.5rem; }
+        }
+        @media (max-width: 640px) {
+            .container      { padding: 0 1rem; }
+            .panel          { padding: 1.5rem; }
+            .page-title     { font-size: 1.3rem; margin-bottom: 1.5rem; }
+            .profile-header { flex-direction: column; text-align: center; gap: 1rem; }
+            .profile-avatar { margin: 0 auto; }
+            .btn            { width: 100%; }
+        }
+        @media (max-width: 380px) {       
+            .panel { padding: 1rem 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+<header class="header">
+    <div class="hdr-top">
+        <a class="logo" href="../inicio.html">
+            <div class="logo-icon"><img src="../Logotipos/logo2.png" alt="VALLNEWS Logo"></div>
+            <span class="logo-text">VALLNews</span>
+        </a>
+        <span class="hdr-tagline">Inteligencia Global</span>
+        <button class="vn-hamburger" id="hamBtn"><span></span><span></span><span></span></button>
+    </div>
+    <nav class="hdr-nav" id="mainNav">
+        <div class="nav-center">
+            <a class="nav-link" href="../inicio.html"><i class="fas fa-house"></i> Inicio</a>
+            <a class="nav-link" href="../finanzas/finanzas.html">Finanzas</a>
+            <a class="nav-link" href="../mercados/mercados.html">Mercados</a>
+            <a class="nav-link" href="../geopolitica/geopolitica.html">Geopolítica</a>
+            <a class="nav-link" href="../mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
+            <a class="nav-link" href="../mexico/mexico.html">México</a>
+        </div>
+        <div class="nav-actions">
+            <button class="nav-btn" id="themeToggleBtn" title="Cambiar Tema">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="nav-btn" id="navMailbox" title="Buzón de Reportes">
+                <i class="fas fa-bell"></i><span class="badge-dot"></span>
+            </button>
+            <a class="nav-btn" id="navChatbot" href="../vall-ai/chat.html" title="Asistente VALL AI">
+                <i class="fas fa-robot"></i>
+            </a>
+            <a class="nav-btn nav-user active" id="navUser" title="Mi cuenta" style="cursor:pointer"><i class="fas fa-circle-user"></i></a>
+        </div>
+    </nav>
+</header>
+<main style="padding-top: 1rem;">
+<div class="container">
+    <h1 class="page-title">
+        <i class="fas fa-sliders"></i> Configuración de cuenta
+    </h1>
+    <div class="panel">
+        <div class="section-lbl"><i class="fas fa-user"></i> Perfil</div>
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <img id="avatar-preview" src="../Logotipos/mascota-atlas.svg" alt="Mascota">
+            </div>
+            <div class="profile-info">
+                <h2 id="display-name-label">Usuario</h2>
+                <p id="email-label">Cargando…</p>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="input-name">Nombre para mostrar</label>
+            <input id="input-name" type="text" maxlength="40" placeholder="Tu nombre o apodo" autocomplete="off">
+            <div class="form-hint">Solo se guarda en este dispositivo.</div>
+        </div>
+        <div class="form-group">
+            <label for="input-email">Correo electrónico</label>
+            <input id="input-email" type="email" disabled>
+        </div>
+        <button class="btn btn-primary" id="btn-save-profile">
+            <i class="fas fa-floppy-disk"></i> Guardar perfil
+        </button>
+    </div>
+
+    <div class="panel">
+        <div class="section-lbl"><i class="fas fa-lock"></i> Seguridad</div>
+        <div class="form-group">
+            <label for="input-curr-pass">Contraseña actual</label>
+            <input id="input-curr-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+            <label for="input-new-pass">Nueva contraseña</label>
+            <input id="input-new-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+            <label for="input-confirm-pass">Confirmar nueva contraseña</label>
+            <input id="input-confirm-pass" type="password" placeholder="Repite la nueva contraseña" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary" id="btn-save-pass">
+            <i class="fas fa-key"></i> Cambiar contraseña
+        </button>
+    </div>
+</div>
+</main>
+<footer class="footer">
+    <div class="footer-logo">
+        <div class="footer-icon">
+            <img src="../Logotipos/logo1.png" alt="VALLNEWS">
+        </div>
+        <span class="footer-brand">VALLNews</span>
+    </div>
+    <nav class="footer-nav">
+        <a href="../inicio.html">Inicio</a>
+        <a href="../finanzas/finanzas.html">Finanzas</a>
+        <a href="../mercados/mercados.html">Mercados</a>
+        <a href="../geopolitica/geopolitica.html">Geopolítica</a>
+    </nav>
+    <p class="footer-copy">© 2025 VALLNews · Inteligencia económica</p>
+</footer>
+<div id="vn-toast"></div>
+<script src="../js/api-keys.js?v=3"></script>
+<script src="../js/data-service.js?v=15"></script>
+<script src="../js/chat-widget.js?v=24" data-mascota="../Logotipos/mascota-atlas.svg"></script>
+<script>
+(function () {
+    var toast = document.getElementById('vn-toast');
+    var _toastTimer;
+    function showToast(msg, type) {
+        clearTimeout(_toastTimer);
+        toast.textContent = msg;
+        toast.className = 'show ' + (type === 'ok' ? 'toast-ok' : type === 'err' ? 'toast-err' : '');
+        _toastTimer = setTimeout(function () { toast.className = ''; }, 3200);
+    }
+        var savedName   = localStorage.getItem('vn_display_name') || '';
+        var email = sessionStorage.getItem('vn_user') || localStorage.getItem('vn_user') || '';
+        
+        var inputEmail = document.getElementById('input-email');
+        if(inputEmail) inputEmail.value = email;
+        
+        var emailLabel = document.getElementById('email-label');
+        if(emailLabel) emailLabel.textContent = email || 'Usuario';
+        
+        var inputName = document.getElementById('input-name');
+        if(inputName) inputName.value = savedName;
+        
+        var displayNameLabel = document.getElementById('display-name-label');
+        if(displayNameLabel) displayNameLabel.textContent = savedName || 'Usuario';
+
+        document.getElementById('btn-save-profile').addEventListener('click', function () {
+            var name = document.getElementById('input-name').value.trim();
+            localStorage.setItem('vn_display_name', name);
+            document.getElementById('display-name-label').textContent = name || 'Usuario';
+            showToast('Perfil guardado', 'ok');
+        });
+
+
+
+        document.getElementById('btn-save-pass').addEventListener('click', async function () {
+            var curr    = document.getElementById('input-curr-pass').value;
+            var next    = document.getElementById('input-new-pass').value;
+            var confirm = document.getElementById('input-confirm-pass').value;
+            if (!curr || !next || !confirm) {
+                showToast('Completa todos los campos', 'err'); return;
+            }
+            if (next.length < 8 || next.length > 128) {
+                showToast('La contraseña debe tener entre 8 y 128 caracteres', 'err'); return;
+            }
+            if (next !== confirm) {
+                showToast('Las contraseñas no coinciden', 'err'); return;
+            }
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cambiando…';
+            try {
+                var r = await fetch('/api/change-password', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword: curr, newPassword: next }),
+                });
+                var data = await r.json();
+                if (data.success) {
+                    showToast('Contraseña actualizada correctamente', 'ok');
+                    document.getElementById('input-curr-pass').value = '';
+                    document.getElementById('input-new-pass').value  = '';
+                    document.getElementById('input-confirm-pass').value = '';
+                } else {
+                    showToast(data.error || 'Error al cambiar la contraseña', 'err');
+                }
+            } catch (e) {
+                showToast('Error de conexión', 'err');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-key"></i> Cambiar contraseña';
+            }
+        });
+    } catch (err) {
+        console.error('Config init error:', err);
+    } finally {
+        if (window.VNLoader) window.VNLoader.hide();
+    }
+})();
+</script>
+
+<script src="../js/mailbox.js"></script>
+<script>
+    // Dark Mode Listener
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+        const setBtnIcon = () => {
+            if(document.documentElement.getAttribute('data-theme') === 'dark') {
+                themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        };
+        setBtnIcon();
+        themeBtn.addEventListener('click', () => {
+            if(document.documentElement.getAttribute('data-theme') === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('vn_theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('vn_theme', 'dark');
+            }
+            setBtnIcon();
+        });
+    }
+</script>
+<script>
+(function () {
+    const hamBtn = document.getElementById('hamBtn');
+    const mainNav = document.getElementById('mainNav');
+    if (!hamBtn || !mainNav || hamBtn.dataset.vnHeaderBound === '1') return;
+    hamBtn.dataset.vnHeaderBound = '1';
+    hamBtn.addEventListener('click', () => {
+        hamBtn.classList.toggle('vn-ham-open');
+        mainNav.classList.toggle('vn-nav-open');
+    });
+})();
+</script>
+</body>
+</html>
+
+
+

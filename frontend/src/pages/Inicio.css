@@ -1,0 +1,83 @@
+/* ===== Pulido premium del Inicio (aditivo, no reescribe immersive.css) ===== */
+
+/* Kicker dorado sobre el encabezado del bento (consistente con el login) */
+.bento-kicker {
+  display: inline-flex; align-items: center; gap: .55rem;
+  font-family: var(--font-sans); font-size: .72rem; font-weight: 600;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--clr-gold);
+  margin-bottom: 1.1rem;
+}
+.bento-kicker-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--clr-gold); box-shadow: 0 0 10px var(--clr-gold);
+}
+
+/* Encabezado de la sección de noticias con serif premium (igual que el bento) */
+.news-arrival .im-content > h2 {
+  font-family: var(--font-serif) !important;
+  letter-spacing: -1px; font-weight: 800;
+}
+
+/* Halo dorado sutil al pasar sobre las tarjetas del bento */
+.bento-card:hover {
+  box-shadow:
+    0 30px 60px -22px rgba(30, 36, 46, .38),
+    0 0 0 1px rgba(168, 137, 76, .20) !important;
+}
+
+/* ===== Hero premium institucional (cohesivo con el login) ===== */
+.ini-hero {
+  position: relative; overflow: hidden;
+  padding: clamp(5.5rem, 9vw, 8rem) clamp(1.5rem, 5vw, 4rem) clamp(3rem, 6vw, 5rem);
+  background:
+    radial-gradient(120% 80% at 12% 0%, rgba(168, 137, 76, .10), transparent 55%),
+    radial-gradient(90% 90% at 100% 100%, rgba(58, 50, 32, .35), transparent 62%),
+    linear-gradient(155deg, #5d6e90, #566585 72%);
+  color: #f1f3f6;
+  border-bottom: 1px solid var(--clr-gold, #a8894c);
+}
+.ini-hero-grid {
+  position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(120% 100% at 28% 18%, #000, transparent 78%);
+          mask-image: radial-gradient(120% 100% at 28% 18%, #000, transparent 78%);
+}
+.ini-hero-inner {
+  position: relative; max-width: 1300px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.1fr .9fr; gap: 3rem; align-items: center;
+}
+.ini-eyebrow {
+  display: inline-flex; align-items: center; gap: .55rem;
+  font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; color: #cbb47e; font-weight: 600; margin-bottom: 1.4rem;
+}
+.ini-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: #a8894c; box-shadow: 0 0 12px #a8894c; }
+.ini-headline {
+  font-family: 'Playfair Display', serif; font-weight: 700; line-height: 1.03;
+  font-size: clamp(2.4rem, 5vw, 4rem); letter-spacing: -.5px; margin: 0 0 1.1rem; color: #fff;
+}
+.ini-headline em { font-style: italic; color: #cbb47e; }
+.ini-sub { font-size: 1.05rem; line-height: 1.6; color: #b0b6c0; max-width: 48ch; margin: 0 0 1.8rem; }
+.ini-hero-cue { display: inline-flex; align-items: center; gap: .5rem; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: #99a0ac; font-weight: 600; }
+.ini-hero-cue i { color: #a8894c; animation: iniBounce 1.8s ease-in-out infinite; }
+@keyframes iniBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+
+.ini-metrics {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 16px; overflow: hidden;
+}
+.ini-metric {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .035), transparent);
+  padding: 1.3rem 1.4rem; display: flex; flex-direction: column; gap: .45rem; transition: background .25s;
+}
+.ini-metric:hover { background: rgba(168, 137, 76, .07); }
+.ini-metric-label { font-size: .64rem; letter-spacing: .16em; text-transform: uppercase; color: #99a0ac; font-weight: 600; }
+.ini-metric-val { font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 700; color: #fff; letter-spacing: -.5px; line-height: 1; }
+.ini-metric-val.pending { color: #99a0ac; font-size: 1.2rem; }
+
+@media (max-width: 900px) {
+  .ini-hero-inner { grid-template-columns: 1fr; gap: 2rem; }
+}

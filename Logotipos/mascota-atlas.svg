@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <defs>
+        <!-- Gradients for a sleek, premium but friendly look -->
+        <linearGradient id="bot-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#e2e8f0"/>
+        </linearGradient>
+        <linearGradient id="visor-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e293b"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+        <linearGradient id="eye-glow" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8"/>
+            <stop offset="100%" stop-color="#0284c7"/>
+        </linearGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.15"/>
+        </filter>
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <!-- Outer Background (optional, but keeps it consistent with other circular icons) -->
+    <circle cx="50" cy="50" r="48" fill="#f8fafc" />
+    
+    <!-- Robot Base / Neck -->
+    <rect x="42" y="65" width="16" height="15" rx="4" fill="#cbd5e1" />
+    <path d="M 30 75 Q 50 85 70 75 L 70 85 Q 50 95 30 85 Z" fill="#94a3b8" />
+
+    <!-- Robot Head -->
+    <rect x="20" y="25" width="60" height="46" rx="20" fill="url(#bot-bg)" filter="url(#shadow)" />
+    
+    <!-- Antennas / Ears -->
+    <rect x="14" y="40" width="8" height="16" rx="4" fill="#94a3b8" />
+    <rect x="78" y="40" width="8" height="16" rx="4" fill="#94a3b8" />
+    
+    <!-- Top Antenna -->
+    <rect x="48" y="12" width="4" height="15" rx="2" fill="#94a3b8" />
+    <circle cx="50" cy="10" r="4" fill="url(#eye-glow)" filter="url(#glow)" />
+    
+    <!-- Face / Visor -->
+    <rect x="28" y="33" width="44" height="26" rx="13" fill="url(#visor-bg)" />
+    
+    <!-- Friendly Glowing Eyes -->
+    <circle cx="40" cy="46" r="4" fill="url(#eye-glow)" filter="url(#glow)" />
+    <circle cx="60" cy="46" r="4" fill="url(#eye-glow)" filter="url(#glow)" />
+    
+    <!-- Friendly little cheek blushes (optional, adds friendliness) -->
+    <circle cx="33" cy="52" r="3" fill="#38bdf8" opacity="0.3" filter="url(#glow)" />
+    <circle cx="67" cy="52" r="3" fill="#38bdf8" opacity="0.3" filter="url(#glow)" />
+</svg>

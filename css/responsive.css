@@ -1,0 +1,123 @@
+/* ══════════════════════════════════════════════
+   RESPONSIVE — VALLNews (todas las páginas)
+══════════════════════════════════════════════ */
+
+/* ── 1100 px ─────────────────────────────────── */
+@media (max-width: 1100px) {
+    .grid     { grid-template-columns: repeat(2, 1fr); }
+    .vai-card { aspect-ratio: 3 / 4; min-height: unset; }
+}
+
+/* ── 900 px ──────────────────────────────────── */
+@media (max-width: 900px) {
+    .hdr-tagline { display: none; }
+    .hero        { height: 420px; }
+}
+
+/* ── 768 px ──────────────────────────────────── */
+@media (max-width: 768px) {
+    .hdr-top     { padding: 0.62rem 1rem; }
+    .main        { padding: 1.2rem 1rem 2rem; }
+
+    /* Hero (inicio) */
+    .hero        { height: 360px; }
+    .slide-title { font-size: 1.5rem; }
+    .slide-body  { left: 1.5rem; bottom: 2.5rem; max-width: calc(100% - 3rem); }
+    .slide-badge { top: 1.2rem; left: 1.5rem; }
+
+    /* Layout subpáginas */
+    .container        { padding: 0 1rem !important; }
+    .panel            { padding: 1rem !important; }
+    .sub-panels-grid  { grid-template-columns: 1fr !important; }
+
+    /* Finanzas: bonos gubernamentales */
+    #bonds-layout { grid-template-columns: 1fr !important; }
+    #bonds-us     { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Finanzas: pulso del mercado y sectores */
+    #mkt-pulse   { grid-template-columns: repeat(2, 1fr) !important; }
+    #sector-grid { grid-template-columns: repeat(3, 1fr) !important; }
+
+    /* Grids a columna única */
+    .bottom-grid { grid-template-columns: 1fr !important; }
+    .news-grid   { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Bolsa global */
+    #bolsa-region-btns { gap: .2rem; flex-wrap: wrap; }
+    #bolsa-range-btns  { gap: .2rem; flex-wrap: wrap; }
+    #bolsa-badges      { gap: .25rem; flex-wrap: wrap; }
+    .sr-btn            { padding: 3px 9px !important; font-size: .66rem !important; }
+
+    /* FX strip */
+    .fx-strip { gap: .4rem; }
+    .fx-card  { min-width: 85px; padding: .65rem .7rem; }
+
+    /* Otros grids de sección */
+    .riesgo-grid  { grid-template-columns: 1fr !important; }
+    .proto-grid   { grid-template-columns: 1fr !important; }
+    .racion-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ── 640 px ──────────────────────────────────── */
+@media (max-width: 640px) {
+    /* Hero (inicio) */
+    .hero        { height: 300px; }
+    .slide-title { font-size: 1.25rem; }
+    .slide-desc  { display: none; }
+
+    /* Grids */
+    .grid      { grid-template-columns: 1fr; }
+    .news-grid { grid-template-columns: 1fr !important; }
+
+    /* Container */
+    .container { padding: 0 .75rem !important; }
+    .panel     { padding: .85rem !important; }
+
+    /* Inicio: forecast markets (6 cols → 2) */
+    #fc-markets { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Finanzas: bonos 4 cols → 2 */
+    #bonds-us    { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Finanzas: sectores 4 cols → 2 en móvil pequeño */
+    #sector-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    #mkt-pulse   { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Pills de filtro */
+    .filter-bar { gap: .25rem; }
+    .fpill      { padding: 4px 9px; font-size: .67rem; }
+
+    /* Títulos de sección */
+    .page-title  { font-size: 1.15rem; }
+    .section-lbl { font-size: .6rem; }
+
+    /* Sparklines */
+    .sparkline { width: 54px; height: 22px; }
+    .mkt-name  { font-size: .8rem; }
+
+    /* Charts */
+    #ch-wrapper { height: 260px !important; }
+}
+
+/* ── 480 px ──────────────────────────────────── */
+@media (max-width: 480px) {
+    .container { padding: 0 .6rem !important; }
+    .panel     { padding: .75rem !important; }
+
+    #fc-markets { grid-template-columns: repeat(2, 1fr) !important; }
+    #bonds-us   { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* México: KPI y gráficas */
+    .mx-kpi-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+    .mx-chart-row { grid-template-columns: 1fr !important; }
+}
+
+/* ── 400 px ──────────────────────────────────── */
+@media (max-width: 400px) {
+    .slide-badge { display: none; }
+    .arrow       { width: 34px; height: 34px; font-size: .75rem; }
+    .logo-text   { font-size: 1.15rem; }
+    .logo-icon   { width: 38px; height: 38px; }
+    .container   { padding: 0 .5rem !important; }
+    .panel       { padding: .65rem !important; }
+}

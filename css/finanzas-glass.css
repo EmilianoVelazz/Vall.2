@@ -1,0 +1,206 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   finanzas-glass.css v2 — Capa "Liquid Glass" completa (alineada a inicio.html)
+   Se carga AL FINAL del <head> de finanzas.html: sobrescribe el <style> inline
+   sin tocarlo. Cobertura: paneles, tabs, hub, KPIs, filas de datos, watchlist,
+   FX, bonos, calendario y los 9 modales laterales (las "redirecciones").
+   Reversible: quitar el <link> y todo vuelve al estado anterior.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Profundidad premium (como inicio): ruido + luces volumétricas ── */
+body::before {
+    content: ""; position: fixed; inset: 0; z-index: 9998; pointer-events: none; opacity: .02;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body::after {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+        radial-gradient(circle at 12% 12%, rgba(168, 137, 76,.06) 0%, transparent 42%),
+        radial-gradient(circle at 88% 28%, rgba(16,185,129,.045) 0%, transparent 42%),
+        radial-gradient(circle at 62% 96%, rgba(139,92,246,.045) 0%, transparent 52%);
+}
+body { background-color: var(--clr-bg) !important; }
+[data-theme="dark"] body {
+    background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.045) 1.5px, transparent 0) !important;
+}
+
+/* ── 2. Toques firma de inicio (también en claro) ── */
+/* Título del hero en serif editorial (Playfair), como los mega-títulos de inicio */
+.hub-hero-title { font-family: var(--font-serif) !important; letter-spacing: -1.5px !important; }
+/* Lift sutil en paneles al hover (easing resorte de inicio) */
+.panel { transition: box-shadow .35s, transform .35s cubic-bezier(0.34,1.56,0.64,1) !important; }
+.panel:hover { transform: translateY(-3px); }
+/* Reveal al scroll (gateado por .vn-anim que pone el JS — sin JS no se oculta nada) */
+html.vn-anim .panel.vn-reveal { opacity: 0; transform: translateY(26px); }
+html.vn-anim .panel.vn-reveal.vn-in { opacity: 1; transform: none; transition: opacity .8s cubic-bezier(.2,.8,.2,1), transform .8s cubic-bezier(.2,.8,.2,1); }
+#themeToggleBtn { background: transparent; border: none; cursor: pointer; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   3. MODO OSCURO — remapeo de superficies/textos fijos a tokens --clr-*
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 3a. Superficies principales (blancas / casi blancas) → cristal oscuro */
+[data-theme="dark"] .panel,
+[data-theme="dark"] .nc-card,
+[data-theme="dark"] .rds2-card,
+[data-theme="dark"] .cal-card,
+[data-theme="dark"] .bond-pill,
+[data-theme="dark"] .fx-card,
+[data-theme="dark"] .gen-kpi-card,
+[data-theme="dark"] .hub-card,
+[data-theme="dark"] .fin-tab-card,
+[data-theme="dark"] .fin-tab-card.active {
+    background: var(--clr-surface) !important;
+    border-color: var(--bdr-soft) !important;
+}
+
+/* 3b. Sub-superficies (gris #f8fafc / #f1f5f9) → tono elevado oscuro */
+[data-theme="dark"] .bond-row,
+[data-theme="dark"] .mkt-row,
+[data-theme="dark"] .wl-item,
+[data-theme="dark"] .idx-badge,
+[data-theme="dark"] .gen-nav-btn,
+[data-theme="dark"] .hub-m,
+[data-theme="dark"] .bm-analysis-box,
+[data-theme="dark"] .bm-report-box,
+[data-theme="dark"] .bm-risk-tag,
+[data-theme="dark"] .hub-cta-arrow {
+    background: rgba(255,255,255,.05) !important;
+    border-color: var(--bdr-soft) !important;
+}
+[data-theme="dark"] .bond-row:hover,
+[data-theme="dark"] .mkt-row:hover,
+[data-theme="dark"] .wl-item:hover,
+[data-theme="dark"] .gen-nav-btn:hover { background: rgba(255,255,255,.09) !important; }
+[data-theme="dark"] .hub-card:hover .hub-cta { background: rgba(255,255,255,.04) !important; border-top-color: var(--bdr-soft) !important; }
+[data-theme="dark"] .hub-cta { border-top-color: var(--bdr-soft) !important; }
+[data-theme="dark"] .hub-bnd .hub-card-body { background: transparent !important; }
+[data-theme="dark"] .bonds-curve-wrap { border-color: var(--bdr-soft) !important; background: rgba(255,255,255,.03) !important; }
+[data-theme="dark"] .bonds-global-rate-bar, [data-theme="dark"] .rds2-bar { background: rgba(255,255,255,.1) !important; }
+[data-theme="dark"] .gdp-marker { background: #f8fafc !important; }
+
+/* 3c. Los 9 modales laterales (redirecciones) → panel de cristal oscuro */
+[data-theme="dark"] #petro-modal,
+[data-theme="dark"] #macro-modal,
+[data-theme="dark"] #cal-modal,
+[data-theme="dark"] #pulse-modal,
+[data-theme="dark"] #news-modal,
+[data-theme="dark"] #bond-modal,
+[data-theme="dark"] #mkt-modal,
+[data-theme="dark"] #fx-modal,
+[data-theme="dark"] #risk-modal {
+    background: var(--clr-bg) !important;
+    box-shadow: -12px 0 40px rgba(0,0,0,.6) !important;
+}
+[data-theme="dark"] .bm-section-title { border-bottom-color: var(--bdr-soft) !important; }
+[data-theme="dark"] .bm-metric-row { border-bottom-color: var(--bdr-soft) !important; }
+[data-theme="dark"] #cm-markets td, [data-theme="dark"] #cm-markets th { border-bottom-color: var(--bdr-soft) !important; }
+[data-theme="dark"] .bm-btn-outline { background: transparent !important; color: var(--clr-text-main) !important; border-color: var(--bdr-hard) !important; }
+[data-theme="dark"] .bm-ai-badge { background: var(--clr-accent) !important; }
+[data-theme="dark"] .macro-row:hover, [data-theme="dark"] .risk-row:hover, [data-theme="dark"] .petro-row:hover { background: rgba(255,255,255,.06) !important; }
+[data-theme="dark"] .petro-row { border-bottom-color: var(--bdr-soft) !important; }
+
+/* 3d. Chips / botones / pills */
+[data-theme="dark"] .fpill,
+[data-theme="dark"] .rds2-tab,
+[data-theme="dark"] .nc-btn,
+[data-theme="dark"] .sr-btn,
+[data-theme="dark"] .chart-int-btn {
+    background: var(--clr-surface) !important;
+    color: var(--clr-text-mut) !important;
+    border-color: var(--bdr-soft) !important;
+}
+[data-theme="dark"] .fpill.active,
+[data-theme="dark"] .rds2-tab.active,
+[data-theme="dark"] .sr-btn.active,
+[data-theme="dark"] .chart-int-btn.active,
+[data-theme="dark"] .nc-btn:hover:not([disabled]) {
+    background: var(--clr-accent) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+[data-theme="dark"] .mkt-badge.flat { background: rgba(255,255,255,.08) !important; color: var(--clr-text-mut) !important; }
+[data-theme="dark"] .nc-src, [data-theme="dark"] .tag-src { background: var(--clr-accent) !important; }
+[data-theme="dark"] .ia-insight { background: rgba(217, 182, 78,.09) !important; border-left-color: var(--clr-accent) !important; color: var(--clr-text-mut) !important; }
+
+/* 3e. Textos oscuros fijos → tokens (clases) */
+[data-theme="dark"] .nc-title,
+[data-theme="dark"] .nc-cat,
+[data-theme="dark"] .cal-card-title,
+[data-theme="dark"] .rds2-cval,
+[data-theme="dark"] .rds3-val,
+[data-theme="dark"] .petro-val,
+[data-theme="dark"] .fx-val,
+[data-theme="dark"] .wl-ticker,
+[data-theme="dark"] .wl-price,
+[data-theme="dark"] .gen-kpi-val,
+[data-theme="dark"] .gen-nav-title,
+[data-theme="dark"] .fin-tab-title,
+[data-theme="dark"] .hub-m-val,
+[data-theme="dark"] .bm-yield-big,
+[data-theme="dark"] .bm-metric-val,
+[data-theme="dark"] .mkt-val,
+[data-theme="dark"] .mkt-name,
+[data-theme="dark"] .bond-row-name,
+[data-theme="dark"] .bond-row-yield,
+[data-theme="dark"] .bond-pill .bp-yld {
+    color: var(--clr-text-main) !important;
+}
+[data-theme="dark"] .hub-mx:hover .hub-m-val,
+[data-theme="dark"] .hub-mkt:hover .hub-m-val,
+[data-theme="dark"] .hub-risk:hover .hub-m-val,
+[data-theme="dark"] .hub-bnd:hover .hub-m-val { color: var(--clr-text-main) !important; }
+[data-theme="dark"] .section-lbl { color: var(--clr-primary) !important; border-left-color: var(--clr-accent) !important; }
+[data-theme="dark"] .nc-desc,
+[data-theme="dark"] .cal-card-desc,
+[data-theme="dark"] .hub-desc,
+[data-theme="dark"] .bm-analysis-box,
+[data-theme="dark"] .bm-report-box,
+[data-theme="dark"] .bm-risk-tag,
+[data-theme="dark"] .petro-lbl { color: var(--clr-text-mut) !important; }
+[data-theme="dark"] .cal-card-pill { background: rgba(255,255,255,.08) !important; color: var(--clr-text-mut) !important; }
+
+/* 3f. Red de seguridad para ESTILOS INLINE (cubre "cada recuadro" suelto).
+   Muchos textos/fondos están como style="color:#2a3242" etc. dentro del HTML;
+   estos selectores de atributo los voltean sin editar el markup. */
+[data-theme="dark"] [style*="color:#2a3242"], [data-theme="dark"] [style*="color: #2a3242"],
+[data-theme="dark"] [style*="color:#384358"], [data-theme="dark"] [style*="color: #384358"],
+[data-theme="dark"] [style*="color:#566585"], [data-theme="dark"] [style*="color: #566585"] {
+    color: var(--clr-text-main) !important;
+}
+[data-theme="dark"] [style*="color:#334155"], [data-theme="dark"] [style*="color: #334155"],
+[data-theme="dark"] [style*="color:#44546a"], [data-theme="dark"] [style*="color: #44546a"],
+[data-theme="dark"] [style*="color:#475569"], [data-theme="dark"] [style*="color: #475569"] {
+    color: var(--clr-text-mut) !important;
+}
+[data-theme="dark"] [style*="background:#fff"], [data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background:#ffffff"], [data-theme="dark"] [style*="background:#f8fafc"],
+[data-theme="dark"] [style*="background: #f8fafc"], [data-theme="dark"] [style*="background:#f1f5f9"],
+[data-theme="dark"] [style*="background:#fafbfc"], [data-theme="dark"] [style*="background:#eef2f7"] {
+    background: var(--clr-surface) !important;
+}
+[data-theme="dark"] [style*="border:1px solid #e2e8f0"], [data-theme="dark"] [style*="border: 1px solid #e2e8f0"],
+[data-theme="dark"] [style*="border:1px solid #f1f5f9"], [data-theme="dark"] [style*="border-bottom:1px solid #f1f5f9"] {
+    border-color: var(--bdr-soft) !important;
+}
+
+/* 3g. Skeletons y divisores */
+[data-theme="dark"] .sk-line, [data-theme="dark"] .sk-block, [data-theme="dark"] .rds-sk { background: rgba(255,255,255,.08) !important; }
+[data-theme="dark"] .hdr-divider { border-color: var(--bdr-soft); }
+[data-theme="dark"] .nc-foot { border-top-color: var(--bdr-soft) !important; }
+[data-theme="dark"] .nc-img { background: linear-gradient(135deg,#384358,#2a3242) !important; }
+
+/* 3h. Hover de tarjetas: sombra profunda coherente en oscuro */
+[data-theme="dark"] .panel:hover,
+[data-theme="dark"] .nc-card:hover,
+[data-theme="dark"] .rds2-card:hover,
+[data-theme="dark"] .cal-card:hover,
+[data-theme="dark"] .hub-card:hover,
+[data-theme="dark"] .fin-tab-card:hover,
+[data-theme="dark"] .gen-kpi-card:hover,
+[data-theme="dark"] .fx-card:hover,
+[data-theme="dark"] .bond-pill:hover {
+    box-shadow: 0 18px 45px rgba(0,0,0,.5) !important;
+    border-color: var(--bdr-hard) !important;
+}
+[data-theme="dark"] .rds3-row:hover { background: rgba(255,255,255,.05) !important; }
+[data-theme="dark"] .rds2-tip { background: #384358 !important; }

@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "outputDirectory": "dist",
   "redirects": [
     { "source": "/inicio",            "destination": "/inicio.html",                              "permanent": false },
     { "source": "/finanzas",          "destination": "/finanzas/finanzas.html",                   "permanent": false },

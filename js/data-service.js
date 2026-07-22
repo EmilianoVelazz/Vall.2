@@ -308,7 +308,7 @@ const VDS = (() => {
     if (_chartJsPromise) return _chartJsPromise;
     _chartJsPromise = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js';
+      s.src = '/js/vendor/chart.umd.js?v=1';
       s.onload = () => resolve();
       s.onerror = () => reject(new Error('No se pudo cargar Chart.js'));
       document.head.appendChild(s);

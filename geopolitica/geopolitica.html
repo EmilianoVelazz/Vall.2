@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="../css/base.css">
-    <link rel="stylesheet" href="../css/header.css?v=6">
+    <link rel="stylesheet" href="../css/header.css">
     <link rel="stylesheet" href="../css/footer.css">
     <link rel="stylesheet" href="../css/responsive.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
     <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
-    <script src="../js/page-loader.js"></script>
+    <script src="../js/page-loader.js?v=3"></script>
     <script src="../js/api-keys.js?v=3"></script>
     <script src="../js/data-service.js?v=15"></script>
     <style>
@@ -186,7 +186,7 @@
             letter-spacing: 1.8px;
             text-transform: uppercase;
         }
-        .acled-title i { color: #e3c66a; margin-right: 0.45rem; }
+        .acled-title i { color: #60a5fa; margin-right: 0.45rem; }
         .acled-powered {
             font-size: 0.56rem;
             color: rgba(255,255,255,0.28);
@@ -220,7 +220,7 @@
             font-family: inherit;
         }
         .acled-fbtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .acled-fbtn.active { background: #a97e1c; border-color: #c9a227; color: #fff; }
+        .acled-fbtn.active { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
         .acled-count {
             margin-left: auto;
             font-size: 0.64rem;
@@ -356,33 +356,21 @@
 <header class="header">
     <div class="hdr-top">
         <a class="logo" href="../inicio.html">
-            <div class="logo-icon"><img src="../Logotipos/logo2.png" alt="VALLNEWS Logo"></div>
+            <div class="logo-icon"><img src="../Logotipos/logo1.png" alt="VALLNEWS Logo"></div>
             <span class="logo-text">VALLNews</span>
         </a>
-        <span class="hdr-tagline">Inteligencia Global</span>
-        <button class="vn-hamburger" id="hamBtn"><span></span><span></span><span></span></button>
+        <span class="hdr-tagline">Datos en tiempo real &nbsp;&middot;&nbsp; Economía global &nbsp;&middot;&nbsp; Mercados</span>
     </div>
-    <nav class="hdr-nav" id="mainNav">
+    <nav class="hdr-nav">
         <div class="nav-center">
-            <a class="nav-link" href="../inicio.html"><i class="fas fa-house"></i> Inicio</a>
+            <a class="nav-link" href="../inicio.html"><i class="fas fa-house"></i></a>
             <a class="nav-link" href="../finanzas/finanzas.html">Finanzas</a>
             <a class="nav-link" href="../mercados/mercados.html">Mercados</a>
             <a class="nav-link active" href="../geopolitica/geopolitica.html">Geopolítica</a>
             <a class="nav-link" href="../mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
             <a class="nav-link" href="../mexico/mexico.html">México</a>
         </div>
-        <div class="nav-actions">
-            <button class="nav-btn" id="themeToggleBtn" title="Cambiar Tema">
-                <i class="fas fa-moon"></i>
-            </button>
-            <button class="nav-btn" id="navMailbox" title="Buzón de Reportes">
-                <i class="fas fa-bell"></i><span class="badge-dot"></span>
-            </button>
-            <a class="nav-btn" id="navChatbot" href="../vall-ai/chat.html" title="Asistente VALL AI">
-                <i class="fas fa-robot"></i>
-            </a>
-            <a class="nav-btn nav-user" id="navUser" title="Mi cuenta" style="cursor:pointer"><i class="fas fa-circle-user"></i></a>
-        </div>
+        <a class="nav-user"><i class="fas fa-circle-user"></i></a>
     </nav>
 </header>
 <div class="hdr-divider"></div>
@@ -764,14 +752,14 @@ async function _loadGeoRegionalAI(noticias) {
     } catch { /* deja el contenido estático existente */ }
 }
 
+const IMGS_GEO = ['../img/mercados.webp','../img/finanzas.webp','../img/mercadoP.webp','../img/mexico.webp'];
+
 (async () => {
     await cargarGeo();
     // Auto-refresco cada 30 min. VDS sirve caché hasta las 12h;
     // al expirar, la siguiente llamada hace fetch real automáticamente.
     setInterval(cargarGeo, 30 * 60 * 1000);
 })();
-
-const IMGS_GEO = ['../img/mercados.webp','../img/finanzas.webp','../img/mercadoP.webp','../img/mexico.webp'];
 
 function renderGeo(d) {
     // -- Grid de noticias (4 cards: USA / Asia / Europa / LATAM) --
@@ -1177,7 +1165,7 @@ function renderGeo(d) {
         Seguimiento de divisas, granos y energéticos
     </p>
 </footer>
-<script src="../js/chat-widget.js?v=24" data-mascota="../Logotipos/mascota-atlas.svg"></script>
+<script src="../js/chat-widget.js?v=22" data-mascota="../Logotipos/mascota1.png"></script>
 <script src="../js/flags-widget.js"></script>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script>
@@ -1211,19 +1199,5 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateTicker, 10000);
 });
 </script>
-<script>
-(function () {
-    const hamBtn = document.getElementById('hamBtn');
-    const mainNav = document.getElementById('mainNav');
-    if (!hamBtn || !mainNav || hamBtn.dataset.vnHeaderBound === '1') return;
-    hamBtn.dataset.vnHeaderBound = '1';
-    hamBtn.addEventListener('click', () => {
-        hamBtn.classList.toggle('vn-ham-open');
-        mainNav.classList.toggle('vn-nav-open');
-    });
-})();
-</script>
 </body>
 </html>
-
-

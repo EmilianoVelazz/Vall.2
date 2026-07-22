@@ -19,7 +19,7 @@ const loginLimiter = rateLimit({
     message: { success: false, error: 'Demasiados intentos de login. Espera 15 minutos.' },
 });
 
-const { JWT_SECRET } = require('../lib/config');
+const JWT_SECRET  = process.env.JWT_SECRET || 'cambia_este_secreto_jwt_ahora';
 const JWT_EXPIRES = '8h';
 const ENV_PATH    = path.join(__dirname, '..', '.env');
 
@@ -134,10 +134,10 @@ router.post('/login', loginLimiter, async (req, res) => {
         res.cookie('vn_token', token, {
             httpOnly: true,
             secure:   process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge:   8 * 60 * 60 * 1000,
         });
-        res.json({ success: true, email: validEmail });
+        res.json({ success: true, token });
     } catch (err) {
         console.error('/api/login error:', err.message);
         res.status(500).json({ success: false, error: 'Error interno del servidor.' });
@@ -145,11 +145,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-    res.clearCookie('vn_token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-    });
+    res.clearCookie('vn_token');
     res.json({ success: true });
 });
 
@@ -159,17 +155,11 @@ router.get('/verify-token', verifyToken, (req, res) => {
 
 router.post('/change-password', verifyToken, async (req, res) => {
     try {
-        if (process.env.VERCEL) {
-            return res.status(409).json({
-                success: false,
-                error: 'En Vercel, actualiza USER_PASSWORD desde las variables del proyecto para que el cambio sea persistente.',
-            });
-        }
         const { currentPassword, newPassword } = req.body || {};
         if (!currentPassword || !newPassword)
             return res.status(400).json({ success: false, error: 'Faltan campos requeridos.' });
-        if (newPassword.length < 8 || newPassword.length > 128)
-            return res.status(400).json({ success: false, error: 'La contraseña debe tener entre 8 y 128 caracteres.' });
+        if (newPassword.length < 6)
+            return res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 6 caracteres.' });
 
         const storedPassword = process.env.USER_PASSWORD || '';
         const valid = await verifyPassword(currentPassword, storedPassword);

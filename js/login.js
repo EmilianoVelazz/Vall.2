@@ -1,10 +1,8 @@
-// Verifica si el usuario ya está logueado y previene loops de redirección
-async function checkAuth() {
-  try {
-    const res = await fetch('/api/verify-token', { credentials: 'include' });
-    if (res.ok) window.location.replace('inicio.html');
-  } catch (_) {
-    // Sin conexión: mantener el formulario disponible.
+// Verifica si el usuario ya está logueado
+function checkAuth() {
+  const token = sessionStorage.getItem('vn_auth') || localStorage.getItem('vn_auth');
+  if (token) {
+    window.location.replace('inicio.html');
   }
 }
 
@@ -81,8 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnContent.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ingresando…';
 
     try {
-      const BACKEND_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3001' : '';
-      const res = await fetch(`${BACKEND_URL}/api/login`, {
+      const res = await fetch('/api/login', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -98,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       showToast('Bienvenido. Cargando plataforma…');
+      sessionStorage.setItem('vn_auth', data.token);
       sessionStorage.setItem('vn_user', email);
       
       setTimeout(() => {

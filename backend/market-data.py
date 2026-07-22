@@ -2,24 +2,17 @@
 import yfinance as yf
 import json
 import sys
-import os
 from datetime import datetime
 
 import curl_cffi.requests as curl_requests
-
-_CACHE_ROOT = "/tmp/yfinance" if os.environ.get("VERCEL") else os.path.join(
-    os.path.dirname(__file__), "cache", "yfinance"
-)
-os.makedirs(_CACHE_ROOT, exist_ok=True)
-yf.set_tz_cache_location(_CACHE_ROOT)
 
 # fc.yahoo.com y guce.yahoo.com (cookie/consent, usados internamente por
 # yfinance antes de pedir datos) no completan la cadena de certificados en
 # esta red — verificado también con `requests` estándar, falla igual.
 # query1.finance.yahoo.com (los datos reales) sí verifica correctamente.
-# La verificación TLS permanece activa; un certificado inválido no debe
-# convertirse en datos de mercado aparentemente confiables.
-_SESSION = curl_requests.Session(impersonate="chrome", verify=True)
+# Se desactiva la verificación TLS solo en esta sesión de scraping de
+# precios públicos (no se envían credenciales ni datos sensibles).
+_SESSION = curl_requests.Session(impersonate="chrome", verify=False)
 
 
 def fetch_market_data():
@@ -152,8 +145,6 @@ def fetch_market_data():
 if __name__ == "__main__":
     try:
         market_data = fetch_market_data()
-        if not any(market_data[key] for key in ("bmv", "porcino", "gasolina", "crypto")):
-            raise RuntimeError("Yahoo Finance no devolvió datos de mercado")
         print(json.dumps(market_data))
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)

@@ -10,12 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="../css/base.css">
-    <link rel="stylesheet" href="../css/header.css?v=6">
+    <link rel="stylesheet" href="../css/header.css">
     <link rel="stylesheet" href="../css/footer.css">
     <link rel="stylesheet" href="../css/responsive.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
-    <script src="../js/page-loader.js"></script>
+    <script src="../js/page-loader.js?v=3"></script>
     <script src="../js/api-keys.js?v=3"></script>
     <script src="../js/data-service.js?v=15"></script>
     <style>
@@ -148,6 +148,8 @@
             gap: 2rem;
             align-items: center;
         }
+        .mx-charts-grid > div { min-width: 0; overflow: hidden; }
+        .mx-charts-grid canvas { display: block; width: 100% !important; max-width: 100% !important; }
         @media (max-width: 1024px) {
             .news-grid      { grid-template-columns: repeat(2,1fr); }
             .bottom-grid    { grid-template-columns: 1fr; }
@@ -156,9 +158,11 @@
         }
         @media (max-width: 640px) {
             .news-grid      { grid-template-columns: 1fr; }
-            .container      { padding: 0 1rem; }
+            .container      { width: 100%; margin: 1.2rem auto; padding: 0 .75rem; }
             .dep-grid       { grid-template-columns: repeat(3,1fr); gap: 0.7rem; }
             .mx-charts-grid { grid-template-columns: 1fr; }
+            .mx-charts-grid > div { width: 100%; }
+            .fpill { min-height: 36px; padding: 6px 11px; touch-action: manipulation; }
         }
     </style>
 </head>
@@ -167,33 +171,21 @@
 <header class="header">
     <div class="hdr-top">
         <a class="logo" href="../inicio.html">
-            <div class="logo-icon"><img src="../Logotipos/logo2.png" alt="VALLNEWS Logo"></div>
+            <div class="logo-icon"><img src="../Logotipos/logo1.png" alt="VALLNEWS Logo"></div>
             <span class="logo-text">VALLNews</span>
         </a>
-        <span class="hdr-tagline">Inteligencia Global</span>
-        <button class="vn-hamburger" id="hamBtn"><span></span><span></span><span></span></button>
+        <span class="hdr-tagline">Datos en tiempo real &nbsp;&middot;&nbsp; Economía global &nbsp;&middot;&nbsp; Mercados</span>
     </div>
-    <nav class="hdr-nav" id="mainNav">
+    <nav class="hdr-nav">
         <div class="nav-center">
-            <a class="nav-link" href="../inicio.html"><i class="fas fa-house"></i> Inicio</a>
+            <a class="nav-link" href="../inicio.html"><i class="fas fa-house"></i></a>
             <a class="nav-link" href="../finanzas/finanzas.html">Finanzas</a>
             <a class="nav-link" href="../mercados/mercados.html">Mercados</a>
             <a class="nav-link" href="../geopolitica/geopolitica.html">Geopolítica</a>
             <a class="nav-link" href="../mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
             <a class="nav-link active" href="../mexico/mexico.html">México</a>
         </div>
-        <div class="nav-actions">
-            <button class="nav-btn" id="themeToggleBtn" title="Cambiar Tema">
-                <i class="fas fa-moon"></i>
-            </button>
-            <button class="nav-btn" id="navMailbox" title="Buzón de Reportes">
-                <i class="fas fa-bell"></i><span class="badge-dot"></span>
-            </button>
-            <a class="nav-btn" id="navChatbot" href="../vall-ai/chat.html" title="Asistente VALL AI">
-                <i class="fas fa-robot"></i>
-            </a>
-            <a class="nav-btn nav-user" id="navUser" title="Mi cuenta" style="cursor:pointer"><i class="fas fa-circle-user"></i></a>
-        </div>
+        <a class="nav-user"><i class="fas fa-circle-user"></i></a>
     </nav>
 </header>
 <div class="hdr-divider"></div>
@@ -671,21 +663,7 @@ function renderMex(d) {
     });
 })();
 </script>
-<script src="../js/chat-widget.js?v=24" data-mascota="../Logotipos/mascota-atlas.svg"></script>
+<script src="../js/chat-widget.js?v=22" data-mascota="../Logotipos/mascota1.png"></script>
 <script src="../js/flags-widget.js"></script>
-<script>
-(function () {
-    const hamBtn = document.getElementById('hamBtn');
-    const mainNav = document.getElementById('mainNav');
-    if (!hamBtn || !mainNav || hamBtn.dataset.vnHeaderBound === '1') return;
-    hamBtn.dataset.vnHeaderBound = '1';
-    hamBtn.addEventListener('click', () => {
-        hamBtn.classList.toggle('vn-ham-open');
-        mainNav.classList.toggle('vn-nav-open');
-    });
-})();
-</script>
 </body>
 </html>
-
-

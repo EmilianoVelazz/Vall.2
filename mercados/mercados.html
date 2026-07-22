@@ -11,11 +11,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   <link rel="stylesheet" href="../css/base.css">
-  <link rel="stylesheet" href="../css/header.css?v=6">
+  <link rel="stylesheet" href="../css/header.css">
   <link rel="stylesheet" href="../css/footer.css">
   <link rel="stylesheet" href="../css/responsive.css">
   <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
-  <script src="../js/page-loader.js"></script>
+  <script src="../js/page-loader.js?v=3"></script>
   <script src="../js/api-keys.js?v=3"></script>
   <script src="../js/data-service.js?v=15"></script>
   <link rel="preload" href="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" as="script">
@@ -598,7 +598,6 @@
     .mkt-tab-card.active.mtc-granos::after   { background:#d97706; }
     .mkt-tab-card.active.mtc-energia::after  { background:#dc2626; }
     .mkt-tab-card.active.mtc-metales::after  { background:#7c3aed; }
-    .mkt-tab-card.active.mtc-costos::after   { background:#0284c7; }
     .mkt-tab-icon-sq { width:42px; height:42px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.05rem; transition:transform .22s; }
     .mkt-tab-card:hover .mkt-tab-icon-sq { transform:scale(1.1); }
     .mtc-general  .mkt-tab-icon-sq { background:rgba(99,102,241,.12);  color:#6366f1; }
@@ -804,40 +803,28 @@
     .nm-btn-ext:hover { border-color:#64748b;color:#1e293b; }
     @media (max-width:640px) { #nm-panel { width:100vw; } .nm-hdr { padding:1rem 1.1rem; } .nm-body { padding:.9rem 1rem; } }
   </style>
-  <link rel="stylesheet" href="../css/mercados-page.css?v=2">
+  <link rel="stylesheet" href="../css/mercados-redesign-v2.css?v=1">
 </head>
 <body>
 <header class="header">
-    <div class="hdr-top">
-        <a class="logo" href="../inicio.html">
-            <div class="logo-icon"><img src="../Logotipos/logo2.png" alt="VALLNEWS Logo"></div>
-            <span class="logo-text">VALLNews</span>
-        </a>
-        <span class="hdr-tagline">Inteligencia Global</span>
-        <button class="vn-hamburger" id="hamBtn"><span></span><span></span><span></span></button>
+  <div class="hdr-top">
+    <a class="logo" href="../inicio.html">
+      <div class="logo-icon"><img src="../Logotipos/logo1.png" alt="VALLNEWS"></div>
+      <span class="logo-text">VALLNews</span>
+    </a>
+    <span class="hdr-tagline">Datos en tiempo real &nbsp;&middot;&nbsp; Commodities &nbsp;&middot;&nbsp; Mercados Globales</span>
+  </div>
+  <nav class="hdr-nav">
+    <div class="nav-center">
+      <a class="nav-link" href="../inicio.html"><i class="fas fa-house"></i></a>
+      <a class="nav-link" href="../finanzas/finanzas.html">Finanzas</a>
+      <a class="nav-link active" href="../mercados/mercados.html">Mercados</a>
+      <a class="nav-link" href="../geopolitica/geopolitica.html">Geopolítica</a>
+      <a class="nav-link" href="../mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
+      <a class="nav-link" href="../mexico/mexico.html">México</a>
     </div>
-    <nav class="hdr-nav" id="mainNav">
-        <div class="nav-center">
-            <a class="nav-link" href="../inicio.html"><i class="fas fa-house"></i> Inicio</a>
-            <a class="nav-link" href="../finanzas/finanzas.html">Finanzas</a>
-            <a class="nav-link active" href="../mercados/mercados.html">Mercados</a>
-            <a class="nav-link" href="../geopolitica/geopolitica.html">Geopolítica</a>
-            <a class="nav-link" href="../mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
-            <a class="nav-link" href="../mexico/mexico.html">México</a>
-        </div>
-        <div class="nav-actions">
-            <button class="nav-btn" id="themeToggleBtn" title="Cambiar Tema">
-                <i class="fas fa-moon"></i>
-            </button>
-            <button class="nav-btn" id="navMailbox" title="Buzón de Reportes">
-                <i class="fas fa-bell"></i><span class="badge-dot"></span>
-            </button>
-            <a class="nav-btn" id="navChatbot" href="../vall-ai/chat.html" title="Asistente VALL AI">
-                <i class="fas fa-robot"></i>
-            </a>
-            <a class="nav-btn nav-user" id="navUser" title="Mi cuenta" style="cursor:pointer"><i class="fas fa-circle-user"></i></a>
-        </div>
-    </nav>
+    <a class="nav-user"><i class="fas fa-circle-user"></i></a>
+  </nav>
 </header>
 <div class="hdr-divider"></div>
 <div class="mkt-ticker">
@@ -869,7 +856,7 @@
     <button class="mkt-tab-card mtc-granos" data-tab="granos" onclick="mktTab('granos',this)"><div class="mkt-tab-icon-sq"><i class="fas fa-seedling"></i></div><div><div class="mkt-tab-ttl">Granos &amp; Forrajes</div><div class="mkt-tab-sub">Maiz &middot; Soja</div></div></button>
     <button class="mkt-tab-card mtc-energia" data-tab="energia" onclick="mktTab('energia',this)"><div class="mkt-tab-icon-sq"><i class="fas fa-oil-well"></i></div><div><div class="mkt-tab-ttl">Energeticos</div><div class="mkt-tab-sub">WTI &middot; Gas</div></div></button>
     <button class="mkt-tab-card mtc-metales" data-tab="metales" onclick="mktTab('metales',this)"><div class="mkt-tab-icon-sq"><i class="fas fa-layer-group"></i></div><div><div class="mkt-tab-ttl">Metales</div><div class="mkt-tab-sub">Cobre &middot; Aluminio</div></div></button>
-    <button class="mkt-tab-card mtc-costos" data-tab="costos" onclick="mktTab('costos',this)"><div class="mkt-tab-icon-sq"><i class="fas fa-truck"></i></div><div><div class="mkt-tab-ttl">Costos &amp; Log.</div><div class="mkt-tab-sub">Fletes &middot; BDI</div></div></button>
+    <button class="mkt-tab-card mtc-proteinas" data-tab="proteinas" onclick="mktTab('proteinas',this)"><div class="mkt-tab-icon-sq"><i class="fas fa-drumstick-bite"></i></div><div><div class="mkt-tab-ttl">Proteínas</div><div class="mkt-tab-sub">Cerdo &middot; Pollo &middot; Res</div></div></button>
   </div>
 
   <div id="pane-general" style="display:none">
@@ -878,12 +865,11 @@
       <div class="hub-hero-accent-mkt"></div>
       <div class="hub-hero-beam-mkt"></div>
       <div style="position:relative;z-index:1;">
-        <div class="hub-hero-eyebrow"><div class="hub-hero-dot-w"></div>VALLNews &middot; Inteligencia de costos</div>
-        <div class="hub-hero-title">Mercados de Insumos</div>
-        <p class="hub-hero-lead">Convierte precios internacionales en señales concretas para compras, presupuestos y operación en México.</p>
+        <div class="hub-hero-eyebrow"><div class="hub-hero-dot-w"></div>VALLNews &middot; Mercado de Insumos</div>
+        <div class="hub-hero-title">Monitor de Commodities</div>
         <div class="hub-hero-sub">
           <span class="live-dot"></span>
-          Granos &middot; Energéticos &middot; Metales &middot; Logística
+          Granos &middot; Energeticos &middot; Metales &middot; Logistica
           &nbsp;&middot;&nbsp;
           <span id="hub-timestamp" style="font-family:'JetBrains Mono',monospace;font-size:.6rem;">-</span>
         </div>
@@ -894,63 +880,30 @@
       </div>
     </div>
 
-    <section class="mkt-general-intro" aria-labelledby="mkt-general-title">
-      <div>
-        <span class="mkt-general-kicker">Lectura ejecutiva</span>
-        <h2 id="mkt-general-title">Cuatro mercados que explican la presión sobre tus costos</h2>
-        <p>Compara referencias, identifica el canal de impacto y entra al análisis detallado de cada categoría.</p>
-      </div>
-      <div class="mkt-general-guide" aria-label="Cómo usar este tablero">
-        <span><b>1</b> Revisa la señal</span>
-        <span><b>2</b> Ubica el impacto</span>
-        <span><b>3</b> Abre el detalle</span>
-      </div>
-    </section>
-
     <div class="mkt-hub-grid">
 
       <div class="mkt-hub-card mhc-granos" onclick="mktTab('granos', document.querySelector('[data-tab=granos]'))">
         <div class="mkt-hub-hdr"><div class="mkt-hub-shine"></div><div class="mkt-hub-icon"><i class="fas fa-seedling"></i></div><div class="mkt-hub-txt"><div class="mkt-hub-title">Granos &amp; Forrajes</div><div class="mkt-hub-sub">Maiz &middot; Soja &middot; Trigo &middot; CME</div></div><span class="mkt-hub-badge"><span class="mkt-hub-bdot"></span>CME</span><div class="mkt-hub-stat"><div class="mkt-hub-stat-lbl">Maiz</div><div class="mkt-hub-stat-val" id="mhub-hdr-maiz">-</div></div></div>
-        <div class="mkt-hub-body">
-          <p class="mkt-hub-desc">Referencias CME/CBOT para maíz, soja y trigo. Son la base del costo de alimento balanceado y de las raciones pecuarias.</p>
-          <div class="mkt-decision-box"><i class="fas fa-bowl-food"></i><div><span>Pregunta que responde</span><strong>¿Está subiendo el costo base de alimentación?</strong></div></div>
-          <div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('maiz')"><div class="mkt-hub-m-lbl">Maíz</div><div class="mkt-hub-m-val" id="mhub-maiz">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('soja')"><div class="mkt-hub-m-lbl">Soja</div><div class="mkt-hub-m-val" id="mhub-soja">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('trigo')"><div class="mkt-hub-m-lbl">Trigo</div><div class="mkt-hub-m-val" id="mhub-trigo">-</div></div></div>
-          <div class="mkt-impact-list"><div><span>Impacta</span><b>Raciones, engorda y margen pecuario</b></div><div><span>Monitorea</span><b>Cosechas, clima, inventarios y USD/MXN</b></div></div>
-        </div>
-        <div class="mkt-hub-cta"><span><small>Uso principal</small> Compras y formulación</span><span class="mkt-hub-link">Abrir granos <i class="fas fa-arrow-right"></i></span></div>
+        <div class="mkt-hub-body"><p class="mkt-hub-desc">Precios de referencia CME/CBOT para maiz, soja y trigo que determinan el costo base de alimentacion animal en Mexico.</p><div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('maiz')"><div class="mkt-hub-m-lbl">Maiz</div><div class="mkt-hub-m-val" id="mhub-maiz">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('soja')"><div class="mkt-hub-m-lbl">Soja</div><div class="mkt-hub-m-val" id="mhub-soja">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('trigo')"><div class="mkt-hub-m-lbl">Trigo</div><div class="mkt-hub-m-val" id="mhub-trigo">-</div></div></div></div>
+        <div class="mkt-hub-cta">Ver analisis de granos <span class="mkt-hub-arrow"><i class="fas fa-arrow-right"></i></span></div>
       </div>
 
       <div class="mkt-hub-card mhc-energia" onclick="mktTab('energia', document.querySelector('[data-tab=energia]'))">
         <div class="mkt-hub-hdr"><div class="mkt-hub-shine"></div><div class="mkt-hub-icon"><i class="fas fa-oil-well"></i></div><div class="mkt-hub-txt"><div class="mkt-hub-title">Energeticos</div><div class="mkt-hub-sub">WTI &middot; Gas Natural &middot; Diesel</div></div><span class="mkt-hub-badge"><span class="mkt-hub-bdot"></span>NYMEX</span><div class="mkt-hub-stat"><div class="mkt-hub-stat-lbl">WTI</div><div class="mkt-hub-stat-val" id="mhub-hdr-wti">-</div></div></div>
-        <div class="mkt-hub-body">
-          <p class="mkt-hub-desc">WTI, gas natural y diésel conectan el precio global de la energía con transporte, bombeo, refrigeración y procesos productivos.</p>
-          <div class="mkt-decision-box"><i class="fas fa-truck-fast"></i><div><span>Pregunta que responde</span><strong>¿Aumentará el costo de producir y mover?</strong></div></div>
-          <div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('wti')"><div class="mkt-hub-m-lbl">WTI</div><div class="mkt-hub-m-val" id="mhub-wti">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('gas')"><div class="mkt-hub-m-lbl">Gas Nat.</div><div class="mkt-hub-m-val" id="mhub-gas">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('diesel')"><div class="mkt-hub-m-lbl">Diésel</div><div class="mkt-hub-m-val" id="mhub-diesel">-</div></div></div>
-          <div class="mkt-impact-list"><div><span>Impacta</span><b>Fletes, electricidad y fertilizantes</b></div><div><span>Monitorea</span><b>Inventarios, OPEP+, clima y tipo de cambio</b></div></div>
-        </div>
-        <div class="mkt-hub-cta"><span><small>Uso principal</small> Operación y transporte</span><span class="mkt-hub-link">Abrir energía <i class="fas fa-arrow-right"></i></span></div>
+        <div class="mkt-hub-body"><p class="mkt-hub-desc">El WTI determina el costo de diesel, fletes y toda la logistica agropecuaria nacional e internacional.</p><div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('wti')"><div class="mkt-hub-m-lbl">WTI</div><div class="mkt-hub-m-val" id="mhub-wti">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('gas')"><div class="mkt-hub-m-lbl">Gas Nat.</div><div class="mkt-hub-m-val" id="mhub-gas">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('diesel')"><div class="mkt-hub-m-lbl">Diesel</div><div class="mkt-hub-m-val" id="mhub-diesel">-</div></div></div></div>
+        <div class="mkt-hub-cta">Ver energeticos <span class="mkt-hub-arrow"><i class="fas fa-arrow-right"></i></span></div>
       </div>
 
       <div class="mkt-hub-card mhc-metales" onclick="mktTab('metales', document.querySelector('[data-tab=metales]'))">
         <div class="mkt-hub-hdr"><div class="mkt-hub-shine"></div><div class="mkt-hub-icon"><i class="fas fa-layer-group"></i></div><div class="mkt-hub-txt"><div class="mkt-hub-title">Metales</div><div class="mkt-hub-sub">Cobre &middot; Aluminio &middot; LME/COMEX</div></div><span class="mkt-hub-badge"><span class="mkt-hub-bdot"></span>LME</span><div class="mkt-hub-stat"><div class="mkt-hub-stat-lbl">Cobre</div><div class="mkt-hub-stat-val" id="mhub-hdr-cobre">-</div></div></div>
-        <div class="mkt-hub-body">
-          <p class="mkt-hub-desc">Cobre y aluminio reflejan demanda industrial global y trasladan presión a infraestructura, maquinaria, cableado y envases.</p>
-          <div class="mkt-decision-box"><i class="fas fa-industry"></i><div><span>Pregunta que responde</span><strong>¿Qué anticipa la demanda industrial global?</strong></div></div>
-          <div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('cobre')"><div class="mkt-hub-m-lbl">Cobre</div><div class="mkt-hub-m-val" id="mhub-cobre">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('aluminio')"><div class="mkt-hub-m-lbl">Aluminio</div><div class="mkt-hub-m-val" id="mhub-aluminio">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation()"><div class="mkt-hub-m-lbl">IPI Score</div><div class="mkt-hub-m-val" id="mhub-ipi-met">-</div></div></div>
-          <div class="mkt-impact-list"><div><span>Impacta</span><b>Equipo, mantenimiento, obra y empaque</b></div><div><span>Monitorea</span><b>China, inventarios LME y actividad fabril</b></div></div>
-        </div>
-        <div class="mkt-hub-cta"><span><small>Uso principal</small> Capex y mantenimiento</span><span class="mkt-hub-link">Abrir metales <i class="fas fa-arrow-right"></i></span></div>
+        <div class="mkt-hub-body"><p class="mkt-hub-desc">Metales industriales LME/COMEX. El cobre anticipa el ciclo economico global y afecta costos de infraestructura.</p><div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('cobre')"><div class="mkt-hub-m-lbl">Cobre</div><div class="mkt-hub-m-val" id="mhub-cobre">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('aluminio')"><div class="mkt-hub-m-lbl">Aluminio</div><div class="mkt-hub-m-val" id="mhub-aluminio">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation()"><div class="mkt-hub-m-lbl">IPI Score</div><div class="mkt-hub-m-val" id="mhub-ipi-met">-</div></div></div></div>
+        <div class="mkt-hub-cta">Ver metales <span class="mkt-hub-arrow"><i class="fas fa-arrow-right"></i></span></div>
       </div>
 
-      <div class="mkt-hub-card mhc-costos" onclick="mktTab('costos', document.querySelector('[data-tab=costos]'))">
-        <div class="mkt-hub-hdr"><div class="mkt-hub-shine"></div><div class="mkt-hub-icon"><i class="fas fa-truck"></i></div><div class="mkt-hub-txt"><div class="mkt-hub-title">Costos &amp; Logistica</div><div class="mkt-hub-sub">Fletes &middot; BDI &middot; USD/MXN</div></div><span class="mkt-hub-badge"><span class="mkt-hub-bdot"></span>EST.</span><div class="mkt-hub-stat"><div class="mkt-hub-stat-lbl">USD/MXN</div><div class="mkt-hub-stat-val" id="mhub-hdr-mxn">-</div></div></div>
-        <div class="mkt-hub-body">
-          <p class="mkt-hub-desc">Integra fletes, tipo de cambio y el Índice de Presión de Insumos (IPI) para estimar el costo total puesto en México.</p>
-          <div class="mkt-decision-box"><i class="fas fa-route"></i><div><span>Pregunta que responde</span><strong>¿Cuál es la presión total sobre el presupuesto?</strong></div></div>
-          <div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation()"><div class="mkt-hub-m-lbl">IPI Score</div><div class="mkt-hub-m-val" id="mhub-ipi">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation()"><div class="mkt-hub-m-lbl">Flete MX</div><div class="mkt-hub-m-val" id="mhub-flete">-</div></div><div class="mkt-hub-m" onclick="event.stopPropagation()"><div class="mkt-hub-m-lbl">USD/MXN</div><div class="mkt-hub-m-val" id="mhub-mxn">-</div></div></div>
-          <div class="mkt-impact-list"><div><span>Impacta</span><b>Costo puesto, inventario y flujo de efectivo</b></div><div><span>Monitorea</span><b>BDI, diésel, rutas y volatilidad cambiaria</b></div></div>
-        </div>
-        <div class="mkt-hub-cta"><span><small>Uso principal</small> Presupuesto y logística</span><span class="mkt-hub-link">Abrir costos <i class="fas fa-arrow-right"></i></span></div>
+      <div class="mkt-hub-card mhc-proteinas" onclick="mktTab('proteinas', document.querySelector('[data-tab=proteinas]'))">
+        <div class="mkt-hub-hdr"><div class="mkt-hub-shine"></div><div class="mkt-hub-icon"><i class="fas fa-drumstick-bite"></i></div><div class="mkt-hub-txt"><div class="mkt-hub-title">Mercado de Proteínas</div><div class="mkt-hub-sub">Cerdo &middot; Pollo &middot; Res &middot; Márgenes</div></div><span class="mkt-hub-badge"><span class="mkt-hub-bdot"></span>GLOBAL</span><div class="mkt-hub-stat"><div class="mkt-hub-stat-lbl">Cerdo</div><div class="mkt-hub-stat-val" id="mhub-hdr-cerdo">—</div></div></div>
+        <div class="mkt-hub-body"><p class="mkt-hub-desc">Precios internacionales, costo de alimentación, competitividad y demanda de las principales proteínas animales.</p><div class="mkt-hub-metrics"><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('porcino')"><div class="mkt-hub-m-lbl">Cerdo</div><div class="mkt-hub-m-val" id="mhub-cerdo">—</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('aves')"><div class="mkt-hub-m-lbl">Pollo</div><div class="mkt-hub-m-val" id="mhub-pollo">—</div></div><div class="mkt-hub-m" onclick="event.stopPropagation();openCmModal('bovino')"><div class="mkt-hub-m-lbl">Res</div><div class="mkt-hub-m-val" id="mhub-res">—</div></div></div></div>
+        <div class="mkt-hub-cta">Abrir tablero de proteínas <span class="mkt-hub-arrow"><i class="fas fa-arrow-right"></i></span></div>
       </div>
 
     </div>
@@ -1002,289 +955,308 @@
     </div>
   </div>
   <div id="pane-granos" style="display:none">
-    <div class="mkt-layout-main">
-      <!-- RAW DATA -->
-      <div class="mkt-raw-col" id="raw-granos">
-        <div class="rd-panel">
-          <div class="rd-section">🌽 Granos CME/CBOT</div>
-          <div class="rd-row" onclick="openCmModal('maiz')"><span class="rd-label">Maíz #2</span><span class="rd-val" id="rd-maiz">–<span class="rd-pct" id="rd-maiz-p"></span></span></div>
-          <div class="rd-row" onclick="openCmModal('soja')"><span class="rd-label">Soja MT</span><span class="rd-val" id="rd-soja">–<span class="rd-pct" id="rd-soja-p"></span></span></div>
-          <div class="rd-row" onclick="openCmModal('trigo')"><span class="rd-label">Trigo CBOT</span><span class="rd-val" id="rd-trigo">–<span class="rd-pct" id="rd-trigo-p"></span></span></div>
-          <div class="rd-row" onclick="openCmModal('sorgo')"><span class="rd-label">Sorgo est.</span><span class="rd-val" id="rd-sorgo">–</span></div>
-        </div>
-        <div class="rd-panel">
-          <div class="rd-section">💱 Divisas</div>
-          <div class="rd-row"><span class="rd-label">USD/MXN</span><span class="rd-val" id="rd-mxn-g">–</span></div>
-        </div>
-        <div class="rd-panel">
-          <div class="rd-section">🧮 IPI Granos</div>
-          <div class="rd-row"><span class="rd-label">Score</span><span class="rd-val" id="rd-ipi-g">–</span></div>
-          <div class="rd-row"><span class="rd-label">Señal</span><span class="rd-val" id="rd-ipi-g-lbl" style="font-size:.6rem;white-space:normal">–</span></div>
-        </div>
+    <section class="grain-hero">
+      <div class="grain-hero-copy">
+        <div class="grain-eyebrow"><span></span> VALL Agro Intelligence · CME/CBOT</div>
+        <h1>Granos &amp; Forrajes</h1>
+        <p>Precios, presión de insumos y señales de abastecimiento para decisiones de compra, cobertura y formulación pecuaria.</p>
+        <div class="grain-hero-meta"><span><i class="fas fa-satellite-dish"></i> Mercado activo</span><span><i class="fas fa-seedling"></i> 4 cultivos monitoreados</span><span id="grain-updated"><i class="fas fa-clock"></i> Actualizando…</span></div>
       </div>
+      <div class="grain-pressure-card"><small>Presión de granos</small><strong id="rd-ipi-g">—</strong><div><i id="grain-pressure-bar"></i></div><span id="rd-ipi-g-lbl">Calculando señal…</span></div>
+    </section>
 
-      <!-- CHART + NEWS -->
-      <div>
-        <div class="chart-panel" style="margin-bottom:1rem">
-          <div class="chart-topbar">
-            <span class="chart-title" id="chart-title-granos">📊 Gráfico de Precios</span>
-            <select class="chart-sel" id="granos-mkt-sel" onchange="loadMktChart(this.value,'granos')">
-              <option value="ZC=F">🌽 Maíz (ZC=F)</option>
-              <option value="ZS=F">🫘 Soja (ZS=F)</option>
-              <option value="ZW=F">🌾 Trigo (ZW=F)</option>
-              <option value="ZM=F">🌱 Pasta Soja (ZM=F)</option>
-              <option value="ZO=F">🌾 Avena (ZO=F)</option>
-              <option value="ZR=F">🍚 Arroz (ZR=F)</option>
-            </select>
-            <div class="chart-intervals">
-              <button class="chart-int-btn" onclick="setMktInt('1mo','granos')">1M</button>
-              <button class="chart-int-btn" onclick="setMktInt('3mo','granos')">3M</button>
-              <button class="chart-int-btn" onclick="setMktInt('6mo','granos')">6M</button>
-              <button class="chart-int-btn active" onclick="setMktInt('1y','granos')">1A</button>
-              <button class="chart-int-btn" onclick="setMktInt('3y','granos')">3A</button>
-              <button class="chart-int-btn" onclick="setMktInt('5y','granos')">5A</button>
-              <button class="chart-int-btn" onclick="setMktInt('max','granos')">MAX</button>
-            </div>
-          </div>
-          <div id="mkt-chart-granos" style="height:280px;border-radius:8px;overflow:hidden;"></div>
-        </div>
-
-        <div class="news-side-panel">
-          <div class="news-side-hdr"><i class="fas fa-newspaper"></i> Noticias · Granos &amp; Forrajes</div>
-          <div class="news-filter-bar">
-            <span class="news-fpill active" onclick="filterNews('all',this,'granos')">Todos</span>
-            <span class="news-fpill" onclick="filterNews('granos',this,'granos')">🌽 Granos</span>
-            <span class="news-fpill" onclick="filterNews('macro',this,'granos')">📊 Macro</span>
-          </div>
-          <div class="news-scroll-viewport" id="news-granos-vp">
-            <div class="news-scroll-inner" id="news-granos">
-              <div class="news-item"><div class="news-cat">Cargando…</div><div class="news-title"><span class="sk-line" style="display:inline-block;width:85%;height:10px;border-radius:3px;"></span></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="grain-kpi-grid" id="raw-granos">
+      <button class="grain-kpi corn" onclick="openCmModal('maiz')"><span class="grain-kpi-icon"><i class="fas fa-seedling"></i></span><span><small>Maíz amarillo #2</small><strong id="rd-maiz">—<em id="rd-maiz-p"></em></strong><i>Energía de la ración</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi soy" onclick="openCmModal('soja')"><span class="grain-kpi-icon"><i class="fas fa-leaf"></i></span><span><small>Soja / pasta</small><strong id="rd-soja">—<em id="rd-soja-p"></em></strong><i>Proteína y aminoácidos</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi wheat" onclick="openCmModal('trigo')"><span class="grain-kpi-icon"><i class="fas fa-wheat-awn"></i></span><span><small>Trigo CBOT</small><strong id="rd-trigo">—<em id="rd-trigo-p"></em></strong><i>Alimento y sustitución</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi sorghum" onclick="openCmModal('sorgo')"><span class="grain-kpi-icon"><i class="fas fa-plant-wilt"></i></span><span><small>Sorgo estimado</small><strong id="rd-sorgo">—</strong><i>Alternativa energética</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <div class="grain-kpi fx"><span class="grain-kpi-icon"><i class="fas fa-dollar-sign"></i></span><span><small>USD/MXN</small><strong id="rd-mxn-g">—</strong><i>Traslado a costo local</i></span></div>
     </div>
 
-    <!-- Tabla Granos -->
-    <div class="mkt-panel">
-      <div class="sec-lbl"><span class="live-dot"></span> Monitor de Granos &amp; Forrajes · CME/CBOT</div>
-      <table class="cmt">
-        <thead>
-          <tr>
-            <th>Commodity</th><th>Precio</th><th>Var m/m</th><th>3 Meses</th><th>Señal</th><th>MXN/MT</th>
-          </tr>
-        </thead>
-        <tbody id="granos-tbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--muted);font-size:.72rem;padding:1.5rem">Cargando datos…</td></tr>
-        </tbody>
-      </table>
+    <div class="grain-reading"><span><i class="fas fa-wand-magic-sparkles"></i></span><div><small>Lectura ejecutiva VALL</small><p id="grain-reading-text">Procesando precios, spreads y exposición de alimento…</p></div></div>
+
+    <div class="grain-market-grid">
+      <section class="grain-chart-card">
+        <div class="grain-card-head"><div><small>Explorador histórico</small><h2 id="chart-title-granos">Curva de precios</h2></div><select class="chart-sel" id="granos-mkt-sel" onchange="setGrainAsset(this.value)"><option value="ZC=F">Maíz · ZC=F</option><option value="ZS=F">Soja · ZS=F</option><option value="ZW=F">Trigo · ZW=F</option><option value="ZM=F">Pasta de soja · ZM=F</option><option value="ZO=F">Avena · ZO=F</option><option value="ZR=F">Arroz · ZR=F</option></select></div>
+        <div class="grain-chart-snapshot"><span class="gcs-icon" id="grain-chart-icon"><i class="fas fa-seedling"></i></span><div><small id="grain-chart-market">CME · CBOT Chicago</small><strong id="grain-chart-asset">Maíz amarillo #2</strong></div><div class="gcs-price"><small>Último</small><strong id="grain-chart-price">—</strong></div><div class="gcs-change"><small>Variación mensual</small><strong id="grain-chart-change">—</strong></div><div class="gcs-status"><i></i> Mercado de referencia</div></div>
+        <div class="grain-chart-toolbar"><div class="grain-view-switch"><span>Vista</span><button class="active" data-mode="candles" onclick="setMktChartMode('candles','granos',this)"><i class="fas fa-chart-column"></i> Velas</button><button data-mode="line" onclick="setMktChartMode('line','granos',this)"><i class="fas fa-chart-line"></i> Línea</button><button data-mode="area" onclick="setMktChartMode('area','granos',this)"><i class="fas fa-chart-area"></i> Área</button></div><div class="grain-period-control"><span>Periodo</span><div class="chart-intervals"><button class="chart-int-btn" onclick="setMktInt('1mo','granos')">1M</button><button class="chart-int-btn" onclick="setMktInt('3mo','granos')">3M</button><button class="chart-int-btn" onclick="setMktInt('6mo','granos')">6M</button><button class="chart-int-btn active" onclick="setMktInt('1y','granos')">1A</button><button class="chart-int-btn" onclick="setMktInt('3y','granos')">3A</button><button class="chart-int-btn" onclick="setMktInt('5y','granos')">5A</button><button class="chart-int-btn" onclick="setMktInt('max','granos')">MAX</button></div></div></div>
+        <div id="mkt-chart-granos" class="grain-chart-canvas"></div>
+      </section>
+      <section class="news-side-panel grain-news-card">
+        <div class="news-side-hdr"><span><i class="fas fa-newspaper"></i> Noticias · Granos &amp; Forrajes</span><span class="news-refresh-badge" id="grain-news-refresh"><i class="fas fa-rotate"></i> Cada 12 h</span></div>
+        <div class="news-filter-bar"><span class="news-fpill active" onclick="filterNews('all',this,'granos')">Todos</span><span class="news-fpill" onclick="filterNews('granos',this,'granos')">Granos</span><span class="news-fpill" onclick="filterNews('macro',this,'granos')">Macro</span></div>
+        <div class="news-scroll-viewport" id="news-granos-vp"><div class="news-scroll-inner" id="news-granos"><div class="news-item"><div class="news-cat">Cargando…</div><div class="news-title"><span class="sk-line" style="display:inline-block;width:85%;height:10px;border-radius:3px;"></span></div></div></div></div>
+      </section>
+    </div>
+
+    <div class="grain-signal-grid">
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('grain_spread')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('grain_spread')}"><div class="grain-signal-icon"><i class="fas fa-scale-balanced"></i></div><small>Spread soja / maíz</small><strong id="grain-spread">—</strong><p id="grain-spread-note">Relación del componente proteico frente al energético.</p></section>
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('grain_feed')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('grain_feed')}"><div class="grain-signal-icon"><i class="fas fa-bowl-food"></i></div><small>Ración pecuaria base</small><strong id="grain-feed-basket">—</strong><p>Canasta indicativa: 60% maíz y 40% soja.</p></section>
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('grain_volatility')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('grain_volatility')}"><div class="grain-signal-icon"><i class="fas fa-wave-square"></i></div><small>Pulso de volatilidad</small><strong id="grain-volatility">—</strong><p id="grain-volatility-note">Variación media mensual del complejo.</p></section>
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('grain_season')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('grain_season')}"><div class="grain-signal-icon"><i class="fas fa-calendar-check"></i></div><small>Fase estacional</small><strong id="grain-season">—</strong><p id="grain-season-note">Calendario agrícola del hemisferio norte.</p></section>
+    </div>
+
+    <section class="grain-panel grain-impact-panel">
+      <div class="grain-panel-head"><div><small>Matriz productiva</small><h2>Cómo impacta cada cultivo</h2></div><span>Haz clic para abrir el reporte</span></div>
+      <div class="grain-impact-grid">
+        <button onclick="openCmModal('maiz')"><i class="fas fa-seedling corn"></i><span><b>Maíz</b><small>Base energética en bovino, porcino y aves.</small></span><em>Alta exposición</em></button>
+        <button onclick="openCmModal('soja')"><i class="fas fa-leaf soy"></i><span><b>Soja</b><small>Proteína, lisina y eficiencia de conversión.</small></span><em>Alta exposición</em></button>
+        <button onclick="openCmModal('trigo')"><i class="fas fa-wheat-awn wheat"></i><span><b>Trigo</b><small>Sustituto parcial y referencia alimentaria.</small></span><em>Exposición media</em></button>
+        <button onclick="openCmModal('sorgo')"><i class="fas fa-plant-wilt sorghum"></i><span><b>Sorgo</b><small>Alternativa regional ante presión del maíz.</small></span><em>Oportunidad</em></button>
+      </div>
+    </section>
+
+    <section class="grain-panel grain-monitor-panel">
+      <div class="grain-panel-head"><div><small>Mercado de referencia</small><h2>Monitor CME/CBOT y equivalencia local</h2></div><span>Precios indicativos</span></div>
+      <div class="grain-table-scroll"><table class="cmt"><thead><tr><th>Commodity</th><th>Precio</th><th>Var. mensual</th><th>3 meses</th><th>Señal</th><th>MXN/MT</th></tr></thead><tbody id="granos-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:1.5rem">Cargando datos…</td></tr></tbody></table></div>
       <div class="ia-insight" id="granos-insight"><i class="fas fa-robot"></i> <span>Calculando análisis de granos…</span></div>
-    </div>
+    </section>
   </div>
   <div id="pane-energia" style="display:none">
-    <div class="mkt-layout-main">
-      <div class="mkt-raw-col" id="raw-energia">
-        <div class="rd-panel">
-          <div class="rd-section">🛢 Energéticos NYMEX</div>
-          <div class="rd-row" onclick="openCmModal('wti')"><span class="rd-label">WTI /bbl</span><span class="rd-val" id="rd-wti">–<span class="rd-pct" id="rd-wti-p"></span></span></div>
-          <div class="rd-row" onclick="openCmModal('gas')"><span class="rd-label">Gas Nat. /MMBtu</span><span class="rd-val" id="rd-gas">–<span class="rd-pct" id="rd-gas-p"></span></span></div>
-          <div class="rd-row" onclick="openCmModal('diesel')"><span class="rd-label">Diesel /gal est.</span><span class="rd-val" id="rd-diesel">–</span></div>
-        </div>
-        <div class="rd-panel">
-          <div class="rd-section">🚛 Flete MX Est.</div>
-          <div class="rd-row"><span class="rd-label">MXN/ton·100km</span><span class="rd-val" id="rd-flete">–</span></div>
-          <div class="rd-row"><span class="rd-label">USD/MXN</span><span class="rd-val" id="rd-mxn-e">–</span></div>
-        </div>
+    <section class="energy-hero">
+      <div class="grain-hero-copy">
+        <div class="energy-eyebrow"><span></span> VALL Energy Intelligence · NYMEX/ICE</div>
+        <h1>Energéticos &amp; Logística</h1>
+        <p>Petróleo, gas y combustibles conectados con el costo real de transporte, producción y cadena fría en México.</p>
+        <div class="grain-hero-meta"><span><i class="fas fa-satellite-dish"></i> Mercado global</span><span><i class="fas fa-fire-flame-curved"></i> 5 referencias monitoreadas</span><span id="energy-updated"><i class="fas fa-clock"></i> Actualizando…</span></div>
       </div>
-      <div>
-        <div class="chart-panel" style="margin-bottom:1rem">
-          <div class="chart-topbar">
-            <span class="chart-title">🛢 Gráfico de Energéticos</span>
-            <select class="chart-sel" id="energia-mkt-sel" onchange="loadMktChart(this.value,'energia')">
-              <option value="CL=F">🛢 WTI Crude (CL=F)</option>
-              <option value="BZ=F">⛽ Brent (BZ=F)</option>
-              <option value="NG=F">🔥 Gas Natural (NG=F)</option>
-              <option value="HO=F">🚛 ULSD Diesel (HO=F)</option>
-              <option value="RB=F">⛽ Gasolina RBOB (RB=F)</option>
-            </select>
-            <div class="chart-intervals">
-              <button class="chart-int-btn" onclick="setMktInt('1mo','energia')">1M</button>
-              <button class="chart-int-btn" onclick="setMktInt('3mo','energia')">3M</button>
-              <button class="chart-int-btn" onclick="setMktInt('6mo','energia')">6M</button>
-              <button class="chart-int-btn active" onclick="setMktInt('1y','energia')">1A</button>
-              <button class="chart-int-btn" onclick="setMktInt('3y','energia')">3A</button>
-              <button class="chart-int-btn" onclick="setMktInt('5y','energia')">5A</button>
-              <button class="chart-int-btn" onclick="setMktInt('max','energia')">MAX</button>
-            </div>
-          </div>
-          <div id="mkt-chart-energia" style="height:280px;border-radius:8px;overflow:hidden;"></div>
-        </div>
-        <div class="news-side-panel">
-          <div class="news-side-hdr"><i class="fas fa-newspaper"></i> Noticias · Energéticos</div>
-          <div class="news-filter-bar">
-            <span class="news-fpill active" onclick="filterNews('all',this,'energia')">Todos</span>
-            <span class="news-fpill" onclick="filterNews('energia',this,'energia')">🛢 Energía</span>
-            <span class="news-fpill" onclick="filterNews('macro',this,'energia')">📊 Macro</span>
-            <span class="news-fpill" onclick="filterNews('divisas',this,'energia')">💱 Divisas</span>
-          </div>
-          <div class="news-scroll-viewport" id="news-energia-vp">
-            <div class="news-scroll-inner" id="news-energia">
-              <div class="news-item"><div class="news-cat">Cargando…</div><div class="news-title"><span class="sk-line" style="display:inline-block;width:85%;height:10px;border-radius:3px;"></span></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="energy-pressure-card"><small>Presión logística</small><strong id="energy-pressure">—</strong><div><i id="energy-pressure-bar"></i></div><span id="energy-pressure-label">Calculando transmisión a costos…</span></div>
+    </section>
+
+    <div class="grain-kpi-grid energy-kpi-grid" id="raw-energia">
+      <button class="grain-kpi energy-wti" onclick="openCmModal('wti')"><span class="grain-kpi-icon"><i class="fas fa-oil-well"></i></span><span><small>Petróleo WTI</small><strong id="rd-wti">—<em id="rd-wti-p"></em></strong><i>Referencia de Norteamérica</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi energy-gas" onclick="openCmModal('gas')"><span class="grain-kpi-icon"><i class="fas fa-fire-flame-curved"></i></span><span><small>Gas natural</small><strong id="rd-gas">—<em id="rd-gas-p"></em></strong><i>Henry Hub · calefacción e industria</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi energy-diesel" onclick="openCmModal('diesel')"><span class="grain-kpi-icon"><i class="fas fa-gas-pump"></i></span><span><small>Diesel ULSD estimado</small><strong id="rd-diesel">—</strong><i>Combustible agrícola y transporte</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi energy-freight" onclick="openCmModal('energy_freight')"><span class="grain-kpi-icon"><i class="fas fa-truck-fast"></i></span><span><small>Flete México</small><strong id="rd-flete">—</strong><i>Tonelada por cada 100 km</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi energy-fx" onclick="openCmModal('mxn')"><span class="grain-kpi-icon"><i class="fas fa-dollar-sign"></i></span><span><small>USD/MXN</small><strong id="rd-mxn-e">—</strong><i>Traslado del costo importado</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
     </div>
-    <div class="mkt-panel">
-      <div class="sec-lbl"><span class="live-dot"></span> Monitor de Energéticos · NYMEX</div>
-      <table class="cmt">
-        <thead><tr><th>Commodity</th><th>Precio</th><th>Var m/m</th><th>Señal</th><th>MXN equiv.</th></tr></thead>
-        <tbody id="energia-tbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--muted);font-size:.72rem;padding:1.5rem">Cargando datos…</td></tr>
-        </tbody>
-      </table>
+
+    <div class="grain-reading energy-reading"><span><i class="fas fa-bolt"></i></span><div><small>Lectura ejecutiva VALL</small><p id="energy-reading-text">Procesando petróleo, gas, combustibles y exposición logística…</p></div></div>
+
+    <div class="grain-market-grid">
+      <section class="grain-chart-card energy-chart-card">
+        <div class="grain-card-head"><div><small>Explorador histórico</small><h2 id="chart-title-energia">Curva energética global</h2></div><select class="chart-sel" id="energia-mkt-sel" onchange="setEnergyAsset(this.value)"><option value="CL=F">WTI Crude · CL=F</option><option value="BZ=F">Brent · BZ=F</option><option value="NG=F">Gas Natural · NG=F</option><option value="HO=F">ULSD Diesel · HO=F</option><option value="RB=F">Gasolina RBOB · RB=F</option></select></div>
+        <div class="grain-chart-snapshot energy-chart-snapshot"><span class="gcs-icon" id="energy-chart-icon"><i class="fas fa-oil-well"></i></span><div><small id="energy-chart-market">NYMEX · New York</small><strong id="energy-chart-asset">Petróleo WTI</strong></div><div class="gcs-price"><small>Último</small><strong id="energy-chart-price">—</strong></div><div class="gcs-change"><small>Variación mensual</small><strong id="energy-chart-change">—</strong></div><div class="gcs-status"><i></i> Mercado de referencia</div></div>
+        <div class="grain-chart-toolbar energy-chart-toolbar"><div class="grain-view-switch"><span>Vista</span><button class="active" data-mode="candles" onclick="setMktChartMode('candles','energia',this)"><i class="fas fa-chart-column"></i> Velas</button><button data-mode="line" onclick="setMktChartMode('line','energia',this)"><i class="fas fa-chart-line"></i> Línea</button><button data-mode="area" onclick="setMktChartMode('area','energia',this)"><i class="fas fa-chart-area"></i> Área</button></div><div class="grain-period-control"><span>Periodo</span><div class="chart-intervals"><button class="chart-int-btn" onclick="setMktInt('1mo','energia')">1M</button><button class="chart-int-btn" onclick="setMktInt('3mo','energia')">3M</button><button class="chart-int-btn" onclick="setMktInt('6mo','energia')">6M</button><button class="chart-int-btn active" onclick="setMktInt('1y','energia')">1A</button><button class="chart-int-btn" onclick="setMktInt('3y','energia')">3A</button><button class="chart-int-btn" onclick="setMktInt('5y','energia')">5A</button><button class="chart-int-btn" onclick="setMktInt('max','energia')">MAX</button></div></div></div>
+        <div id="mkt-chart-energia" class="grain-chart-canvas"></div>
+      </section>
+      <section class="news-side-panel grain-news-card energy-news-card">
+        <div class="news-side-hdr"><span><i class="fas fa-newspaper"></i> Noticias · Energéticos</span><span class="news-refresh-badge" id="energy-news-refresh"><i class="fas fa-rotate"></i> Cada 12 h</span></div>
+        <div class="news-filter-bar"><span class="news-fpill active" onclick="filterNews('all',this,'energia')">Todos</span><span class="news-fpill" onclick="filterNews('energia',this,'energia')">Energía</span><span class="news-fpill" onclick="filterNews('macro',this,'energia')">Macro</span><span class="news-fpill" onclick="filterNews('divisas',this,'energia')">Divisas</span></div>
+        <div class="news-scroll-viewport" id="news-energia-vp"><div class="news-scroll-inner" id="news-energia"><div class="news-item"><div class="news-cat">Cargando…</div><div class="news-title"><span class="sk-line" style="display:inline-block;width:85%;height:10px;border-radius:3px;"></span></div></div></div></div>
+      </section>
+    </div>
+
+    <div class="grain-signal-grid energy-signal-grid">
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('energy_freight')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('energy_freight')}"><div class="grain-signal-icon"><i class="fas fa-truck-fast"></i></div><small>Presión de flete</small><strong id="energy-freight-signal">—</strong><p id="energy-freight-note">Transmisión del diesel al transporte terrestre.</p></section>
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('energy_basket')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('energy_basket')}"><div class="grain-signal-icon"><i class="fas fa-industry"></i></div><small>Canasta operativa</small><strong id="energy-basket">—</strong><p>Diesel 70% y gas natural 30% para operación indicativa.</p></section>
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('energy_volatility')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('energy_volatility')}"><div class="grain-signal-icon"><i class="fas fa-wave-square"></i></div><small>Pulso de volatilidad</small><strong id="energy-volatility">—</strong><p id="energy-volatility-note">Movimiento mensual del complejo energético.</p></section>
+      <section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('energy_transmission')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCmModal('energy_transmission')}"><div class="grain-signal-icon"><i class="fas fa-route"></i></div><small>Riesgo de transmisión</small><strong id="energy-transmission">—</strong><p id="energy-transmission-note">Probabilidad de presión sobre costos productivos.</p></section>
+    </div>
+
+    <div class="energy-decision-grid">
+      <section class="energy-scenario-panel">
+        <div class="energy-decision-head"><div><small>Laboratorio interactivo</small><h2>Simulador de costo energético</h2><p>Modifica las referencias para estimar el traslado inmediato a diesel, flete y operación.</p></div><div class="energy-scenario-presets"><button class="active" onclick="setEnergyScenario('actual',this)">Actual</button><button onclick="setEnergyScenario('stress',this)">Estrés +15%</button><button onclick="setEnergyScenario('relief',this)">Alivio −10%</button></div></div>
+        <div class="energy-scenario-controls">
+          <label><span><b>WTI</b><output id="energy-sim-wti-out">$70/bbl</output></span><input id="energy-sim-wti" type="range" min="35" max="150" step="1" value="70" oninput="updateEnergyScenario()"></label>
+          <label><span><b>Gas natural</b><output id="energy-sim-gas-out">$2.50/MMBtu</output></span><input id="energy-sim-gas" type="range" min="1" max="12" step="0.1" value="2.5" oninput="updateEnergyScenario()"></label>
+          <label><span><b>USD/MXN</b><output id="energy-sim-fx-out">$18.00</output></span><input id="energy-sim-fx" type="range" min="14" max="26" step="0.1" value="18" oninput="updateEnergyScenario()"></label>
+        </div>
+        <div class="energy-scenario-results">
+          <div><span><i class="fas fa-gas-pump"></i> Diesel estimado</span><strong id="energy-sim-diesel">—</strong><small id="energy-sim-diesel-delta">Escenario base</small></div>
+          <div><span><i class="fas fa-truck-fast"></i> Flete 100 km</span><strong id="energy-sim-freight">—</strong><small id="energy-sim-freight-delta">Por tonelada</small></div>
+          <div><span><i class="fas fa-industry"></i> Operación diaria</span><strong id="energy-sim-operation">—</strong><small id="energy-sim-operation-delta">Canasta indicativa</small></div>
+        </div>
+        <div class="energy-scenario-footer"><p id="energy-scenario-summary">Ajusta los controles para comparar escenarios.</p><button onclick="openCmModal('energy_scenario')"><i class="fas fa-file-lines"></i> Generar reporte del escenario</button></div>
+      </section>
+
+      <section class="energy-exposure-panel">
+        <div class="energy-decision-head"><div><small>Transmisión sectorial</small><h2>Mapa de exposición operativa</h2><p>Intensidad estimada con base en el escenario seleccionado.</p></div><span class="energy-live-chip"><i></i> Dinámico</span></div>
+        <div class="energy-exposure-list">
+          <button onclick="openCmModal('energy_freight')"><span class="energy-exposure-icon freight"><i class="fas fa-truck"></i></span><span class="energy-exposure-copy"><b>Transporte terrestre</b><small>Diesel · tipo de cambio · distancia</small><i><em id="energy-exposure-freight"></em></i></span><strong id="energy-exposure-freight-val">—</strong></button>
+          <button onclick="openCmModal('diesel')"><span class="energy-exposure-icon machinery"><i class="fas fa-tractor"></i></span><span class="energy-exposure-copy"><b>Maquinaria agrícola</b><small>Consumo directo de combustible</small><i><em id="energy-exposure-machinery"></em></i></span><strong id="energy-exposure-machinery-val">—</strong></button>
+          <button onclick="openCmModal('energy_basket')"><span class="energy-exposure-icon cold"><i class="fas fa-snowflake"></i></span><span class="energy-exposure-copy"><b>Proceso y cadena fría</b><small>Electricidad · gas · refrigeración</small><i><em id="energy-exposure-cold"></em></i></span><strong id="energy-exposure-cold-val">—</strong></button>
+          <button onclick="openCmModal('gas')"><span class="energy-exposure-icon fertilizer"><i class="fas fa-flask"></i></span><span class="energy-exposure-copy"><b>Fertilizantes nitrogenados</b><small>Gas natural · amoniaco · urea</small><i><em id="energy-exposure-fertilizer"></em></i></span><strong id="energy-exposure-fertilizer-val">—</strong></button>
+        </div>
+        <div class="energy-decision-callout"><span><i class="fas fa-lightbulb"></i></span><div><small>Señal para decisión</small><p id="energy-decision-text">Calculando sensibilidad de costos…</p></div></div>
+      </section>
+    </div>
+
+    <section class="grain-panel energy-impact-panel">
+      <div class="grain-panel-head"><div><small>Cadena de transmisión</small><h2>Cómo impacta cada energético</h2></div><span>Haz clic para abrir el reporte</span></div>
+      <div class="grain-impact-grid energy-impact-grid"><button onclick="openCmModal('wti')"><i class="fas fa-oil-well energy-wti"></i><span><b>WTI</b><small>Base de combustibles, petroquímica y fletes.</small></span><em>Exposición alta</em></button><button onclick="openCmModal('gas')"><i class="fas fa-fire-flame-curved energy-gas"></i><span><b>Gas natural</b><small>Calefacción, electricidad, secado y fertilizantes.</small></span><em>Exposición alta</em></button><button onclick="openCmModal('diesel')"><i class="fas fa-gas-pump energy-diesel"></i><span><b>Diesel</b><small>Maquinaria, transporte y distribución refrigerada.</small></span><em>Impacto directo</em></button><button onclick="openCmModal('mxn')"><i class="fas fa-dollar-sign energy-fx"></i><span><b>USD/MXN</b><small>Multiplica el costo energético importado en México.</small></span><em>Efecto cambiario</em></button></div>
+    </section>
+
+    <section class="grain-panel energy-monitor-panel">
+      <div class="grain-panel-head"><div><small>Mercados de referencia</small><h2>Monitor NYMEX/ICE y equivalencia local</h2></div><span>Precios indicativos</span></div>
+      <div class="grain-table-scroll"><table class="cmt"><thead><tr><th>Commodity</th><th>Precio</th><th>Var. mensual</th><th>Señal</th><th>MXN equivalente</th></tr></thead><tbody id="energia-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">Cargando datos…</td></tr></tbody></table></div>
       <div class="ia-insight" id="energia-insight"><i class="fas fa-robot"></i> <span>Calculando análisis de energéticos…</span></div>
-    </div>
+    </section>
   </div>
   <div id="pane-metales" style="display:none">
-    <div class="mkt-layout-main">
-      <div class="mkt-raw-col" id="raw-metales">
-        <div class="rd-panel">
-          <div class="rd-section">🔩 Metales LME</div>
-          <div class="rd-row" onclick="openCmModal('cobre')"><span class="rd-label">Cobre /lb</span><span class="rd-val" id="rd-cobre">–<span class="rd-pct" id="rd-cobre-p"></span></span></div>
-          <div class="rd-row" onclick="openCmModal('aluminio')"><span class="rd-label">Aluminio /MT</span><span class="rd-val" id="rd-aluminio">–<span class="rd-pct" id="rd-aluminio-p"></span></span></div>
-        </div>
-        <div class="rd-panel">
-          <div class="rd-section">💱 Divisas</div>
-          <div class="rd-row"><span class="rd-label">USD/MXN</span><span class="rd-val" id="rd-mxn-m">–</span></div>
-        </div>
-      </div>
-      <div>
-        <div class="chart-panel" style="margin-bottom:1rem">
-          <div class="chart-topbar">
-            <span class="chart-title">🔩 Gráfico de Metales</span>
-            <select class="chart-sel" id="metales-mkt-sel" onchange="loadMktChart(this.value,'metales')">
-              <option value="HG=F">🔩 Cobre COMEX (HG=F)</option>
-              <option value="GC=F">🥇 Oro COMEX (GC=F)</option>
-              <option value="SI=F">🥈 Plata COMEX (SI=F)</option>
-              <option value="ALI=F">🏗 Aluminio (ALI=F)</option>
-              <option value="PL=F">⬜ Platino (PL=F)</option>
-            </select>
-            <div class="chart-intervals">
-              <button class="chart-int-btn" onclick="setMktInt('1mo','metales')">1M</button>
-              <button class="chart-int-btn" onclick="setMktInt('3mo','metales')">3M</button>
-              <button class="chart-int-btn" onclick="setMktInt('6mo','metales')">6M</button>
-              <button class="chart-int-btn active" onclick="setMktInt('1y','metales')">1A</button>
-              <button class="chart-int-btn" onclick="setMktInt('3y','metales')">3A</button>
-              <button class="chart-int-btn" onclick="setMktInt('5y','metales')">5A</button>
-              <button class="chart-int-btn" onclick="setMktInt('max','metales')">MAX</button>
-            </div>
-          </div>
-          <div id="mkt-chart-metales" style="height:280px;border-radius:8px;overflow:hidden;"></div>
-        </div>
-        <div class="news-side-panel">
-          <div class="news-side-hdr"><i class="fas fa-newspaper"></i> Noticias · Metales</div>
-          <div class="news-filter-bar">
-            <span class="news-fpill active" onclick="filterNews('all',this,'metales')">Todos</span>
-            <span class="news-fpill" onclick="filterNews('metales',this,'metales')">🔩 Metales</span>
-            <span class="news-fpill" onclick="filterNews('macro',this,'metales')">📊 Macro</span>
-            <span class="news-fpill" onclick="filterNews('logistica',this,'metales')">🚢 Logística</span>
-          </div>
-          <div class="news-scroll-viewport" id="news-metales-vp">
-            <div class="news-scroll-inner" id="news-metales">
-              <div class="news-item"><div class="news-cat">Cargando…</div><div class="news-title"><span class="sk-line" style="display:inline-block;width:85%;height:10px;border-radius:3px;"></span></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <section class="metal-hero">
+      <div class="grain-hero-copy"><div class="metal-eyebrow"><span></span> VALL Industrial Intelligence · LME/COMEX</div><h1>Metales &amp; Ciclo Industrial</h1><p>Cobre, aluminio y metales estratégicos conectados con infraestructura, manufactura, electrificación y costos de inversión.</p><div class="grain-hero-meta"><span><i class="fas fa-earth-americas"></i> Referencias globales</span><span><i class="fas fa-industry"></i> 5 metales explorables</span><span id="metal-updated"><i class="fas fa-clock"></i> Actualizando…</span></div></div>
+      <div class="metal-cycle-score"><small>Impulso industrial</small><strong id="metal-cycle-score">—</strong><div><i id="metal-cycle-bar"></i></div><span id="metal-cycle-label">Calculando amplitud del complejo…</span></div>
+    </section>
+
+    <div class="grain-kpi-grid metal-kpi-grid" id="raw-metales">
+      <button class="grain-kpi metal-copper" onclick="openCmModal('cobre')"><span class="grain-kpi-icon"><i class="fas fa-bolt"></i></span><span><small>Cobre COMEX</small><strong id="rd-cobre">—<em id="rd-cobre-p"></em></strong><i>Termómetro del ciclo global</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi metal-aluminum" onclick="openCmModal('aluminio')"><span class="grain-kpi-icon"><i class="fas fa-layer-group"></i></span><span><small>Aluminio LME</small><strong id="rd-aluminio">—<em id="rd-aluminio-p"></em></strong><i>Silos, empaque y estructuras</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi metal-fx" onclick="openCmModal('mxn')"><span class="grain-kpi-icon"><i class="fas fa-dollar-sign"></i></span><span><small>USD/MXN</small><strong id="rd-mxn-m">—</strong><i>Traslado a inversión local</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi metal-copper-mxn" onclick="openCmModal('metal_copper_mxn')"><span class="grain-kpi-icon"><i class="fas fa-coins"></i></span><span><small>Cobre equivalente</small><strong id="metal-copper-mxn">—</strong><i>Valor estimado por tonelada</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
+      <button class="grain-kpi metal-aluminum-mxn" onclick="openCmModal('metal_aluminum_mxn')"><span class="grain-kpi-icon"><i class="fas fa-building"></i></span><span><small>Aluminio equivalente</small><strong id="metal-aluminum-mxn">—</strong><i>Costo estimado por tonelada</i></span><b class="grain-open"><i class="fas fa-arrow-up-right-from-square"></i></b></button>
     </div>
-    <div class="mkt-panel">
-      <div class="sec-lbl"><span class="live-dot"></span> Monitor de Metales Industriales · LME/COMEX</div>
-      <table class="cmt">
-        <thead><tr><th>Metal</th><th>Precio</th><th>Var m/m</th><th>Señal Ciclo</th><th>MXN equiv.</th></tr></thead>
-        <tbody id="metales-tbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--muted);font-size:.72rem;padding:1.5rem">Cargando datos…</td></tr>
-        </tbody>
-      </table>
-      <div class="ia-insight" id="metales-insight"><i class="fas fa-robot"></i> <span>Calculando análisis de metales…</span></div>
+
+    <div class="grain-reading metal-reading"><span><i class="fas fa-microchip"></i></span><div><small>Lectura ejecutiva VALL</small><p id="metal-reading-text">Procesando precios, amplitud industrial y exposición de infraestructura…</p></div></div>
+
+    <div class="metal-market-grid">
+      <section class="grain-chart-card metal-chart-card"><div class="grain-card-head"><div><small>Explorador histórico</small><h2>Curva global de metales</h2></div><select class="chart-sel" id="metales-mkt-sel" onchange="setMetalAsset(this.value)"><option value="HG=F">Cobre COMEX · HG=F</option><option value="ALI=F">Aluminio · ALI=F</option><option value="GC=F">Oro COMEX · GC=F</option><option value="SI=F">Plata COMEX · SI=F</option><option value="PL=F">Platino · PL=F</option></select></div><div class="grain-chart-snapshot metal-chart-snapshot"><span class="gcs-icon" id="metal-chart-icon"><i class="fas fa-bolt"></i></span><div><small id="metal-chart-market">COMEX · New York</small><strong id="metal-chart-asset">Cobre Grado A</strong></div><div class="gcs-price"><small>Último</small><strong id="metal-chart-price">—</strong></div><div class="gcs-change"><small>Variación mensual</small><strong id="metal-chart-change">—</strong></div><div class="gcs-status"><i></i> Mercado de referencia</div></div><div class="grain-chart-toolbar metal-chart-toolbar"><div class="grain-view-switch"><span>Vista</span><button class="active" data-mode="candles" onclick="setMktChartMode('candles','metales',this)"><i class="fas fa-chart-column"></i> Velas</button><button data-mode="line" onclick="setMktChartMode('line','metales',this)"><i class="fas fa-chart-line"></i> Línea</button><button data-mode="area" onclick="setMktChartMode('area','metales',this)"><i class="fas fa-chart-area"></i> Área</button></div><div class="grain-period-control"><span>Periodo</span><div class="chart-intervals"><button class="chart-int-btn" onclick="setMktInt('1mo','metales')">1M</button><button class="chart-int-btn" onclick="setMktInt('3mo','metales')">3M</button><button class="chart-int-btn" onclick="setMktInt('6mo','metales')">6M</button><button class="chart-int-btn active" onclick="setMktInt('1y','metales')">1A</button><button class="chart-int-btn" onclick="setMktInt('3y','metales')">3A</button><button class="chart-int-btn" onclick="setMktInt('5y','metales')">5A</button><button class="chart-int-btn" onclick="setMktInt('max','metales')">MAX</button></div></div></div><div id="mkt-chart-metales" class="grain-chart-canvas"></div></section>
+
+      <section class="metal-cycle-panel"><div class="metal-panel-head"><small>Panel de ciclo</small><h2>Señales industriales</h2><p>Lecturas derivadas del movimiento de cobre y aluminio.</p></div><div class="metal-cycle-list"><button onclick="openCmModal('metal_breadth')"><span><i class="fas fa-arrows-left-right-to-line"></i></span><div><small>Amplitud del complejo</small><strong id="metal-breadth">—</strong><em id="metal-breadth-note">Calculando dirección conjunta…</em></div></button><button onclick="openCmModal('metal_ratio')"><span><i class="fas fa-scale-balanced"></i></span><div><small>Ratio cobre / aluminio</small><strong id="metal-ratio">—</strong><em>Valor equivalente por tonelada.</em></div></button><button onclick="openCmModal('metal_basket')"><span><i class="fas fa-city"></i></span><div><small>Canasta de infraestructura</small><strong id="metal-basket">—</strong><em>35% cobre · 65% aluminio.</em></div></button><button onclick="openCmModal('metal_volatility')"><span><i class="fas fa-wave-square"></i></span><div><small>Pulso de volatilidad</small><strong id="metal-volatility">—</strong><em id="metal-volatility-note">Movimiento mensual promedio.</em></div></button></div><div class="metal-cycle-callout"><i class="fas fa-lightbulb"></i><p id="metal-cycle-callout">Calculando lectura del ciclo industrial…</p></div></section>
     </div>
+
+    <div class="grain-signal-grid metal-signal-grid"><section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('metal_demand')"><div class="grain-signal-icon"><i class="fas fa-industry"></i></div><small>Demanda industrial</small><strong id="metal-demand">—</strong><p id="metal-demand-note">Señal combinada del complejo base.</p></section><section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('metal_fx')"><div class="grain-signal-icon"><i class="fas fa-money-bill-transfer"></i></div><small>Presión cambiaria</small><strong id="metal-fx-pressure">—</strong><p>Traslado de referencias USD a inversión mexicana.</p></section><section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('metal_energy')"><div class="grain-signal-icon"><i class="fas fa-bolt-lightning"></i></div><small>Sensibilidad energética</small><strong id="metal-energy-sensitivity">Alta</strong><p>El aluminio depende intensamente de electricidad.</p></section><section class="grain-signal-card" role="button" tabindex="0" onclick="openCmModal('metal_capex')"><div class="grain-signal-icon"><i class="fas fa-building-circle-check"></i></div><small>Riesgo de CAPEX</small><strong id="metal-capex-risk">—</strong><p id="metal-capex-note">Impacto probable en nuevas instalaciones.</p></section></div>
+
+    <div class="metal-decision-grid">
+      <section class="metal-budget-panel">
+        <div class="metal-decision-head"><div><small>Herramienta interactiva</small><h2>Configurador de inversión metálica</h2><p>Calcula una referencia de materiales para infraestructura y electrificación.</p></div><div class="metal-budget-presets"><button onclick="setMetalBudget('light',this)">Proyecto ligero</button><button class="active" onclick="setMetalBudget('medium',this)">Proyecto medio</button><button onclick="setMetalBudget('intensive',this)">Alta intensidad</button></div></div>
+        <div class="metal-budget-body">
+          <div class="metal-budget-controls">
+            <label><span><b>Cobre requerido</b><output id="metal-budget-copper-out">5 t</output></span><input id="metal-budget-copper" type="range" min="0" max="50" step="1" value="5" oninput="updateMetalBudget()"></label>
+            <label><span><b>Aluminio requerido</b><output id="metal-budget-aluminum-out">20 t</output></span><input id="metal-budget-aluminum" type="range" min="0" max="120" step="2" value="20" oninput="updateMetalBudget()"></label>
+            <label><span><b>Tipo de cambio</b><output id="metal-budget-fx-out">$18.00</output></span><input id="metal-budget-fx" type="range" min="14" max="26" step="0.1" value="18" oninput="updateMetalBudget()"></label>
+          </div>
+          <div class="metal-budget-visual"><div class="metal-donut" id="metal-budget-donut"><div><small>Presupuesto</small><strong id="metal-budget-total-short">—</strong><span>MXN</span></div></div><div class="metal-legend"><span><i class="copper"></i> Cobre <b id="metal-budget-copper-share">—</b></span><span><i class="aluminum"></i> Aluminio <b id="metal-budget-aluminum-share">—</b></span></div></div>
+        </div>
+        <div class="metal-budget-results"><div><small>Materiales USD</small><strong id="metal-budget-usd">—</strong><span>Sin transformación ni logística</span></div><div><small>Presupuesto MXN</small><strong id="metal-budget-mxn">—</strong><span>Referencia al tipo de cambio elegido</span></div><div><small>Estrés +10%</small><strong id="metal-budget-stress">—</strong><span>Escenario combinado de precios</span></div></div>
+        <div class="metal-budget-footer"><p id="metal-budget-summary">Ajusta los volúmenes para estimar el presupuesto.</p><button onclick="openCmModal('metal_scenario')"><i class="fas fa-file-lines"></i> Reporte de inversión</button></div>
+      </section>
+
+      <section class="metal-supply-panel">
+        <div class="metal-decision-head"><div><small>Cadena global</small><h2>Mapa de suministro estratégico</h2><p>Factores estructurales que pueden modificar disponibilidad y primas.</p></div><span class="metal-monitor-chip"><i></i> Monitoreo</span></div>
+        <div class="metal-supply-list">
+          <button onclick="openCmModal('cobre')"><span class="flag">CL/PE</span><div><b>Cobre minero</b><small>Chile y Perú · oferta concentrada</small><i><em style="width:78%"></em></i></div><strong>Alta</strong></button>
+          <button onclick="openCmModal('aluminio')"><span class="flag">CN</span><div><b>Fundición de aluminio</b><small>China · energía y capacidad</small><i><em style="width:86%"></em></i></div><strong>Muy alta</strong></button>
+          <button onclick="openCmModal('metal_energy')"><span class="flag"><i class="fas fa-bolt"></i></span><div><b>Dependencia energética</b><small>Electricidad, gas y carbón</small><i><em style="width:72%"></em></i></div><strong>Alta</strong></button>
+          <button onclick="openCmModal('metal_fx')"><span class="flag">MX</span><div><b>Traslado cambiario</b><small>USD/MXN · importación local</small><i><em id="metal-supply-fx-bar"></em></i></div><strong id="metal-supply-fx-label">—</strong></button>
+        </div>
+        <div class="metal-supply-callout"><span><i class="fas fa-shield-halved"></i></span><div><small>Lectura de abastecimiento</small><p id="metal-supply-text">Calculando exposición de la cadena…</p></div></div>
+      </section>
+    </div>
+
+    <section class="grain-panel metal-impact-panel"><div class="grain-panel-head"><div><small>Aplicaciones productivas</small><h2>Dónde se transmite el precio de los metales</h2></div><span>Haz clic para abrir el reporte</span></div><div class="grain-impact-grid metal-impact-grid"><button onclick="openCmModal('cobre')"><i class="fas fa-plug-circle-bolt copper"></i><span><b>Electrificación</b><small>Cableado, motores, transformadores y bombeo.</small></span><em>Dominio cobre</em></button><button onclick="openCmModal('aluminio')"><i class="fas fa-warehouse aluminum"></i><span><b>Silos y estructuras</b><small>Almacenamiento, cubiertas y perfiles.</small></span><em>Dominio aluminio</em></button><button onclick="openCmModal('metal_basket')"><i class="fas fa-gears machinery"></i><span><b>Maquinaria</b><small>Equipos, componentes y mantenimiento.</small></span><em>Exposición mixta</em></button><button onclick="openCmModal('metal_capex')"><i class="fas fa-solar-panel energy"></i><span><b>Transición energética</b><small>Redes, generación y almacenamiento eléctrico.</small></span><em>Demanda estructural</em></button></div></section>
+
+    <section class="grain-panel metal-monitor-panel"><div class="grain-panel-head"><div><small>Mercados de referencia</small><h2>Monitor LME/COMEX y equivalencia local</h2></div><span>Precios indicativos</span></div><div class="grain-table-scroll"><table class="cmt"><thead><tr><th>Metal</th><th>Precio</th><th>Var. mensual</th><th>Señal de ciclo</th><th>MXN equivalente</th></tr></thead><tbody id="metales-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">Cargando datos…</td></tr></tbody></table></div><div class="ia-insight" id="metales-insight"><i class="fas fa-robot"></i> <span>Calculando análisis de metales…</span></div></section>
   </div>
-  <div id="pane-costos" style="display:none">
-    <!-- Raciones -->
-    <div class="mkt-panel" style="margin-bottom:1.2rem;">
-      <div class="sec-lbl"><span class="live-dot"></span> Costos Estimados de Alimentación · VALL</div>
-      <div class="raciones-grid" id="racionGrid">
-        <div class="racion-card" onclick="openCmModal('bovino')"><div class="racion-hdr"><i class="fas fa-cow"></i>Engorda Bovino</div><div class="racion-price" id="racion-bovino-usd">—</div><div class="racion-mxn" id="racion-bovino-mxn"></div><div class="racion-sub">65% Maíz · 20% Sorgo · 15% Soja</div><div class="racion-pct neu" id="racion-bovino-pct">Calculando…</div></div>
-        <div class="racion-card" onclick="openCmModal('porcino')"><div class="racion-hdr"><i class="fas fa-piggy-bank"></i>Porcino Engorda</div><div class="racion-price" id="racion-porcino-usd">—</div><div class="racion-mxn" id="racion-porcino-mxn"></div><div class="racion-sub">55% Maíz · 30% Soja · 15% Trigo</div><div class="racion-pct neu" id="racion-porcino-pct">Calculando…</div></div>
-        <div class="racion-card" onclick="openCmModal('aves')"><div class="racion-hdr"><i class="fas fa-egg"></i>Avicultura</div><div class="racion-price" id="racion-aves-usd">—</div><div class="racion-mxn" id="racion-aves-mxn"></div><div class="racion-sub">65% Maíz · 32% Soja · 3% Sorgo</div><div class="racion-pct neu" id="racion-aves-pct">Calculando…</div></div>
-        <div class="racion-card" onclick="openCmModal('costo_energia')"><div class="racion-hdr"><i class="fas fa-bolt"></i>Costo Energético</div><div class="racion-price" id="racion-energia-usd">—</div><div class="racion-mxn" id="racion-energia-mxn"></div><div class="racion-sub">Diesel 70% · Gas Natural 30% · est./día op.</div><div class="racion-pct neu" id="racion-energia-pct">Calculando…</div></div>
+  <div id="pane-proteinas" style="display:none">
+    <section class="protein-hero">
+      <div class="protein-hero-copy">
+        <div class="protein-eyebrow"><span class="protein-live-dot"></span> VALL Protein Intelligence · Mercado global</div>
+        <h1>Radar de proteínas animales</h1>
+        <p>Una lectura integrada de precios, alimento, márgenes y comercio para cerdo, pollo y carne de res.</p>
+        <div class="protein-hero-meta"><span><i class="fas fa-satellite-dish"></i> Datos de mercado</span><span><i class="fas fa-calculator"></i> Estimaciones VALL</span><span id="protein-updated"><i class="fas fa-clock"></i> Actualizando…</span></div>
       </div>
-      <div class="ia-insight" id="costos-strategy"><i class="fas fa-robot"></i> <span id="costos-strategy-txt">Cargando análisis de costos…</span></div>
-    </div>
-    <div class="mkt-bottom-grid">
-      <!-- Logística -->
-      <div class="mkt-panel">
-        <div class="sec-lbl"><span class="live-dot"></span> Logística Global</div>
-        <div class="log-header">
-          <div class="log-lbl">Baltic Dry Index (BDI)</div>
-          <div class="log-val" id="bdi-val">–</div>
-          <div class="log-sub" id="bdi-sub">Índice de flete marítimo seco</div>
-          <div id="bdi-trend"></div>
-        </div>
-        <div class="log-row" onclick="openCmModal('diesel')" style="cursor:pointer" title="Ver reporte">
-          <span class="log-label"><i class="fas fa-truck" style="color:var(--navy);margin-right:6px"></i>Flete terrestre MX est.</span>
-          <div style="text-align:right">
-            <div class="log-value" id="flete-mx">–</div>
-            <div class="log-mxnsub" id="flete-mx-sub"></div>
-          </div>
-        </div>
-        <div class="log-row" onclick="openCmModal('diesel')" style="cursor:pointer" title="Ver reporte">
-          <span class="log-label"><i class="fas fa-gas-pump" style="color:var(--navy);margin-right:6px"></i>Diesel ULSD est.</span>
-          <div style="text-align:right">
-            <div class="log-value" id="log-diesel">–</div>
-            <div class="log-mxnsub" id="log-diesel-mxn"></div>
-          </div>
-        </div>
-        <div class="log-row" onclick="openCmModal('wti')" style="cursor:pointer" title="Ver reporte">
-          <span class="log-label"><i class="fas fa-fire-flame-curved" style="color:var(--navy);margin-right:6px"></i>WTI Crude</span>
-          <div style="text-align:right">
-            <div class="log-value" id="log-wti-val">–</div>
-            <div class="log-mxnsub" id="log-wti-mxn"></div>
-          </div>
-        </div>
-        <div class="log-row" onclick="openCmModal('aluminio')" style="cursor:pointer" title="Ver reporte">
-          <span class="log-label"><i class="fas fa-ship" style="color:var(--navy);margin-right:6px"></i>Contenedor 20ft est.</span>
-          <div style="text-align:right">
-            <div class="log-value" id="cont-usd">–</div>
-            <div class="log-mxnsub" id="cont-mxn"></div>
-          </div>
-        </div>
-        <div class="log-row" onclick="openCmModal('wti')" style="cursor:pointer" title="Ver reporte">
-          <span class="log-label"><i class="fas fa-plane" style="color:var(--navy);margin-right:6px"></i>Carga aérea est.</span>
-          <div style="text-align:right">
-            <div class="log-value" id="aereo-usd">–</div>
-            <div class="log-mxnsub" id="aereo-mxn"></div>
-          </div>
-        </div>
-        <div class="ia-insight" style="margin-top:.8rem" id="log-context">
-          <i class="fas fa-robot"></i> Monitoreo de fletes activo. BDI como indicador adelantado de demanda marítima global.
-        </div>
+      <div class="protein-hero-score">
+        <span>Presión de alimento</span>
+        <strong id="protein-feed-score">—</strong>
+        <div class="protein-score-track"><i id="protein-feed-bar"></i></div>
+        <small id="protein-feed-label">Calculando exposición</small>
       </div>
+    </section>
 
-      <!-- Próximos Reportes -->
-      <div class="mkt-panel">
-        <div class="sec-lbl">📅 Próximos Reportes de Mercado</div>
-        <div id="reportesContainer"></div>
-        <div class="ia-insight" style="margin-top:.8rem" id="reportes-context">
-          <i class="fas fa-robot"></i> <span id="reportes-ctx-txt">Cargando análisis de reportes…</span>
-        </div>
-      </div>
+    <div class="protein-kpi-grid">
+      <button class="protein-kpi pk-pork" onclick="openCmModal('porcino')"><span class="protein-kpi-icon"><i class="fas fa-piggy-bank"></i></span><span class="protein-kpi-copy"><small>Cerdo internacional</small><strong id="protein-pork-price">—</strong><em id="protein-pork-change">Referencia Lean Hogs</em></span><i class="fas fa-arrow-up-right-from-square protein-kpi-open"></i></button>
+      <button class="protein-kpi pk-chicken" onclick="openCmModal('aves')"><span class="protein-kpi-icon"><i class="fas fa-egg"></i></span><span class="protein-kpi-copy"><small>Pollo mayorista</small><strong id="protein-chicken-price">—</strong><em id="protein-chicken-change">Estimación indicativa</em></span><i class="fas fa-arrow-up-right-from-square protein-kpi-open"></i></button>
+      <button class="protein-kpi pk-beef" onclick="openCmModal('bovino')"><span class="protein-kpi-icon"><i class="fas fa-cow"></i></span><span class="protein-kpi-copy"><small>Carne de res</small><strong id="protein-beef-price">—</strong><em id="protein-beef-change">Referencia Live Cattle</em></span><i class="fas fa-arrow-up-right-from-square protein-kpi-open"></i></button>
+      <div class="protein-kpi pk-margin"><span class="protein-kpi-icon"><i class="fas fa-chart-line"></i></span><span class="protein-kpi-copy"><small>Margen porcino indicativo</small><strong id="protein-margin">—</strong><em id="protein-margin-label">Precio menos alimento y operación</em></span></div>
     </div>
 
-    <!-- Calendar events -->
-    <div class="mkt-panel">
-      <div class="sec-lbl"><span class="live-dot"></span> Calendario de Eventos Clave · Julio–Septiembre 2026</div>
-      <div id="mkt-calendar-events"></div>
+    <div class="protein-reading" id="protein-reading"><span class="protein-reading-icon"><i class="fas fa-wand-magic-sparkles"></i></span><div><small>Lectura ejecutiva VALL</small><p id="protein-reading-text">Procesando la relación entre proteínas, granos y tipo de cambio…</p></div></div>
+
+    <div class="protein-main-grid">
+      <section class="protein-panel protein-market-panel">
+        <div class="protein-panel-head"><div><span class="protein-section-kicker">Precios y competitividad</span><h2>Tablero comparativo</h2></div><span class="protein-estimate-tag">USD/kg · indicativo</span></div>
+        <div class="protein-price-board">
+          <button class="protein-price-row" onclick="setProteinSpecies('pork',this)"><span class="protein-animal pork"><i class="fas fa-piggy-bank"></i></span><span class="protein-price-name"><b>Cerdo</b><small>Lean Hogs convertido</small></span><span class="protein-price-value" id="protein-board-pork">—</span><span class="protein-index-bar"><i id="protein-bar-pork"></i></span></button>
+          <button class="protein-price-row" onclick="setProteinSpecies('chicken',this)"><span class="protein-animal chicken"><i class="fas fa-egg"></i></span><span class="protein-price-name"><b>Pollo</b><small>Modelo maíz–soja</small></span><span class="protein-price-value" id="protein-board-chicken">—</span><span class="protein-index-bar"><i id="protein-bar-chicken"></i></span></button>
+          <button class="protein-price-row" onclick="setProteinSpecies('beef',this)"><span class="protein-animal beef"><i class="fas fa-cow"></i></span><span class="protein-price-name"><b>Carne de res</b><small>Live Cattle convertido</small></span><span class="protein-price-value" id="protein-board-beef">—</span><span class="protein-index-bar"><i id="protein-bar-beef"></i></span></button>
+        </div>
+        <div class="protein-ratio-grid"><div><small>Cerdo / pollo</small><strong id="protein-ratio-pc">—</strong><span>competitividad relativa</span></div><div><small>Res / cerdo</small><strong id="protein-ratio-bp">—</strong><span>prima de proteína</span></div><div><small>USD/MXN</small><strong id="protein-ratio-fx">—</strong><span>traslado a costo local</span></div></div>
+      </section>
+
+      <section class="protein-panel protein-economics-panel">
+        <div class="protein-panel-head"><div><span class="protein-section-kicker">Economía de producción</span><h2 id="protein-econ-title">Porcino de engorda</h2></div><div class="protein-species-switch"><button class="active" data-species="pork" onclick="setProteinSpecies('pork',this)">Cerdo</button><button data-species="chicken" onclick="setProteinSpecies('chicken',this)">Pollo</button><button data-species="beef" onclick="setProteinSpecies('beef',this)">Res</button></div></div>
+        <div class="protein-cost-stack" id="protein-cost-stack"><i class="pcs-corn"></i><i class="pcs-soy"></i><i class="pcs-fixed"></i></div>
+        <div class="protein-cost-legend"><span><i class="corn"></i>Maíz <b id="protein-cost-corn">—</b></span><span><i class="soy"></i>Soja <b id="protein-cost-soy">—</b></span><span><i class="fixed"></i>Operación <b id="protein-cost-fixed">—</b></span></div>
+        <div class="protein-econ-summary"><div><small>Costo total estimado</small><strong id="protein-total-cost">—</strong></div><div><small>Margen sobre referencia</small><strong id="protein-econ-margin">—</strong></div></div>
+        <div class="protein-econ-detail-grid"><div><small>Conversión alimenticia</small><strong id="protein-econ-fcr">—</strong><span>kg alimento / kg producido</span></div><div><small>Alimento por kg</small><strong id="protein-econ-feed-cost">—</strong><span>componente variable</span></div><div><small>Referencia de venta</small><strong id="protein-econ-sale">—</strong><span>USD por kilogramo</span></div><div><small>Alimento / costo</small><strong id="protein-econ-feed-share">—</strong><span>exposición directa</span></div></div>
+        <p class="protein-econ-note" id="protein-econ-note">Selecciona una especie para analizar su exposición a insumos.</p>
+        <button class="protein-report-btn" id="protein-report-btn" onclick="openCmModal('porcino')"><i class="fas fa-file-lines"></i> Abrir reporte de porcino</button>
+      </section>
+    </div>
+
+    <div class="protein-decision-grid">
+      <section class="protein-panel protein-simulator-panel">
+        <div class="protein-panel-head"><div><span class="protein-section-kicker">Laboratorio de margen</span><h2>Simulador productivo por especie</h2><p class="protein-panel-sub">Prueba sensibilidad del alimento, energía y precio de venta.</p></div><div class="protein-sim-species"><button class="active" data-sim-species="pork" onclick="setProteinScenarioSpecies('pork',this)"><i class="fas fa-piggy-bank"></i> Cerdo</button><button data-sim-species="chicken" onclick="setProteinScenarioSpecies('chicken',this)"><i class="fas fa-egg"></i> Pollo</button><button data-sim-species="beef" onclick="setProteinScenarioSpecies('beef',this)"><i class="fas fa-cow"></i> Res</button></div></div>
+        <div class="protein-sim-presets"><button class="active" onclick="setProteinScenarioPreset('base',this)">Mercado actual</button><button onclick="setProteinScenarioPreset('feed',this)">Alimento +15%</button><button onclick="setProteinScenarioPreset('weak',this)">Venta −10%</button><button onclick="setProteinScenarioPreset('margin',this)">Margen favorable</button></div>
+        <div class="protein-sim-controls">
+          <label><span><b>Costo de alimento</b><output id="protein-sim-feed-out">0%</output></span><input id="protein-sim-feed" type="range" min="-20" max="35" step="1" value="0" oninput="updateProteinScenario()"></label>
+          <label><span><b>Costo energético</b><output id="protein-sim-energy-out">0%</output></span><input id="protein-sim-energy" type="range" min="-20" max="40" step="1" value="0" oninput="updateProteinScenario()"></label>
+          <label><span><b>Precio de venta</b><output id="protein-sim-sale-out">0%</output></span><input id="protein-sim-sale" type="range" min="-20" max="30" step="1" value="0" oninput="updateProteinScenario()"></label>
+        </div>
+        <div class="protein-sim-results"><div><span><i class="fas fa-receipt"></i> Costo proyectado</span><strong id="protein-sim-cost">—</strong><small id="protein-sim-cost-delta">vs. mercado actual</small></div><div class="primary"><span><i class="fas fa-chart-line"></i> Margen indicativo</span><strong id="protein-sim-margin">—</strong><small id="protein-sim-margin-rate">—</small></div><div><span><i class="fas fa-scale-balanced"></i> Punto de equilibrio</span><strong id="protein-sim-breakeven">—</strong><small>Precio mínimo de referencia</small></div></div>
+        <div class="protein-sim-footer"><div><span id="protein-sim-status-dot"></span><p id="protein-sim-summary">Selecciona una especie y ajusta el escenario.</p></div><button onclick="openCmModal('protein_scenario')"><i class="fas fa-file-lines"></i> Reporte del escenario</button></div>
+      </section>
+
+      <section class="protein-panel protein-benchmark-panel">
+        <div class="protein-panel-head"><div><span class="protein-section-kicker">Productividad comparada</span><h2>Benchmark técnico pecuario</h2><p class="protein-panel-sub">Referencias ilustrativas para comparar intensidad productiva.</p></div><span class="protein-estimate-tag">Rangos indicativos</span></div>
+        <div class="protein-benchmark-head"><span>Especie</span><span>Conversión</span><span>Ciclo</span><span>Alimento/costo</span></div>
+        <div class="protein-benchmark-list">
+          <button onclick="setProteinSpecies('pork');openCmModal('porcino')"><span class="protein-benchmark-animal pork"><i class="fas fa-piggy-bank"></i><b>Cerdo</b></span><strong>2.8</strong><strong>110–125 d</strong><span class="protein-benchmark-feed"><i><em id="protein-benchmark-pork-bar"></em></i><b id="protein-benchmark-pork-share">—</b></span></button>
+          <button onclick="setProteinSpecies('chicken');openCmModal('aves')"><span class="protein-benchmark-animal chicken"><i class="fas fa-egg"></i><b>Pollo</b></span><strong>1.75</strong><strong>38–45 d</strong><span class="protein-benchmark-feed"><i><em id="protein-benchmark-chicken-bar"></em></i><b id="protein-benchmark-chicken-share">—</b></span></button>
+          <button onclick="setProteinSpecies('beef');openCmModal('bovino')"><span class="protein-benchmark-animal beef"><i class="fas fa-cow"></i><b>Res</b></span><strong>5.8</strong><strong>150–220 d</strong><span class="protein-benchmark-feed"><i><em id="protein-benchmark-beef-bar"></em></i><b id="protein-benchmark-beef-share">—</b></span></button>
+        </div>
+        <div class="protein-benchmark-insight"><span><i class="fas fa-gauge-high"></i></span><div><small>Eficiencia relativa</small><p id="protein-benchmark-text">Calculando costo de alimento por kilogramo producido…</p></div></div>
+        <button class="protein-benchmark-report" onclick="openCmModal('protein_productivity')"><i class="fas fa-table-list"></i> Abrir reporte comparativo</button>
+      </section>
+    </div>
+
+    <section class="protein-panel protein-global-panel">
+      <div class="protein-panel-head"><div><span class="protein-section-kicker">Panorama internacional</span><h2>Mapa estructural del mercado de proteínas</h2><p class="protein-panel-sub">Principales funciones de cada región en oferta, demanda y comercio.</p></div><span class="protein-estimate-tag">Lectura estratégica</span></div>
+      <div class="protein-world-grid">
+        <button onclick="openCmModal('protein_usa')"><span class="protein-region-code usa">US</span><div><b>Estados Unidos</b><small>Cerdo · res · pollo</small><p>Oferta exportable, futuros pecuarios y referencia de alimento.</p></div><em>Hub de precios</em></button>
+        <button onclick="openCmModal('protein_brazil')"><span class="protein-region-code brazil">BR</span><div><b>Brasil</b><small>Pollo · res · soja</small><p>Escala exportadora, competitividad alimentaria y efecto BRL.</p></div><em>Oferta global</em></button>
+        <button onclick="openCmModal('protein_china')"><span class="protein-region-code china">CN</span><div><b>China</b><small>Cerdo · importaciones</small><p>Demanda, recuperación del hato y compras de granos/proteína.</p></div><em>Demanda clave</em></button>
+        <button onclick="openCmModal('protein_europe')"><span class="protein-region-code europe">EU</span><div><b>Unión Europea</b><small>Cerdo · regulación</small><p>Sanidad, bienestar, costos energéticos y acceso comercial.</p></div><em>Normativa alta</em></button>
+        <button onclick="openCmModal('protein_mexico')"><span class="protein-region-code mexico">MX</span><div><b>México</b><small>Consumo · producción · comercio</small><p>Dependencia de alimento importado y fortaleza exportadora selectiva.</p></div><em>Mercado integrado</em></button>
+      </div>
+      <div class="protein-global-summary"><div><span><i class="fas fa-tag"></i></span><p><small>Proteína más competitiva</small><strong id="protein-global-cheapest">—</strong></p></div><div><span><i class="fas fa-sack-dollar"></i></span><p><small>Mejor margen indicativo</small><strong id="protein-global-margin">—</strong></p></div><div><span><i class="fas fa-wheat-awn"></i></span><p><small>Presión de alimento</small><strong id="protein-global-feed">—</strong></p></div><div><span><i class="fas fa-money-bill-transfer"></i></span><p><small>Exposición cambiaria</small><strong id="protein-global-fx">—</strong></p></div></div>
+    </section>
+
+    <section class="protein-panel protein-trade-panel">
+      <div class="protein-panel-head"><div><span class="protein-section-kicker">Comercio exterior</span><h2>Destinos estratégicos de proteína mexicana</h2></div><span class="protein-estimate-tag">Participación ilustrativa</span></div>
+      <div class="protein-trade-grid">
+        <div class="protein-destination"><span class="protein-flag">JP</span><div><b>Japón</b><small>Calidad y cortes premium</small><span><i style="width:40%"></i></span></div><strong>40%</strong></div>
+        <div class="protein-destination"><span class="protein-flag">KR</span><div><b>Corea del Sur</b><small>Demanda de cerdo y res</small><span><i style="width:25%"></i></span></div><strong>25%</strong></div>
+        <div class="protein-destination"><span class="protein-flag">CN</span><div><b>China</b><small>Volumen y diversificación</small><span><i style="width:15%"></i></span></div><strong>15%</strong></div>
+        <div class="protein-destination"><span class="protein-flag">GL</span><div><b>Otros mercados</b><small>Norteamérica y Asia</small><span><i style="width:20%"></i></span></div><strong>20%</strong></div>
+      </div>
+      <div class="protein-trade-callout"><i class="fas fa-circle-info"></i><p>El valor exportador depende del estatus sanitario, la mezcla de cortes, el tipo de cambio y el acceso comercial. Las participaciones se presentan como una guía de concentración, no como una cifra aduanal en tiempo real.</p></div>
+    </section>
+
+    <section class="protein-panel protein-chain-panel">
+      <div class="protein-panel-head"><div><span class="protein-section-kicker">Cadena de valor completa</span><h2>Del alimento al mercado final</h2><p class="protein-panel-sub">Cuatro puntos donde se concentra el riesgo económico de la proteína.</p></div><button class="protein-chain-report" onclick="openCmModal('protein_chain')"><i class="fas fa-file-lines"></i> Reporte integral</button></div>
+      <div class="protein-chain-flow">
+        <button onclick="openCmModal('protein_feed_efficiency')"><span class="protein-chain-icon feed"><i class="fas fa-wheat-awn"></i></span><div><small>01 · Alimentación</small><b>Granos y conversión</b><strong id="protein-chain-feed">—</strong><p>Maíz, soja y eficiencia por especie.</p></div><i class="fas fa-chevron-right"></i></button>
+        <button onclick="openCmModal('protein_productivity')"><span class="protein-chain-icon production"><i class="fas fa-industry"></i></span><div><small>02 · Producción</small><b>Costo y margen</b><strong id="protein-chain-production">—</strong><p>Sanidad, ciclo, mortalidad y operación.</p></div><i class="fas fa-chevron-right"></i></button>
+        <button onclick="openCmModal('costo_energia')"><span class="protein-chain-icon cold"><i class="fas fa-snowflake"></i></span><div><small>03 · Cadena fría</small><b>Energía y logística</b><strong id="protein-chain-energy">—</strong><p>Proceso, refrigeración y transporte.</p></div><i class="fas fa-chevron-right"></i></button>
+        <button onclick="openCmModal('protein_trade')"><span class="protein-chain-icon trade"><i class="fas fa-ship"></i></span><div><small>04 · Mercado</small><b>Comercio y divisas</b><strong id="protein-chain-trade">—</strong><p>Acceso sanitario, mezcla de cortes y FX.</p></div></button>
+      </div>
+    </section>
+
+    <div class="protein-bottom-grid">
+      <section class="protein-panel"><div class="protein-panel-head"><div><span class="protein-section-kicker">Cadena proteína–insumo</span><h2>Drivers que mueven el margen</h2></div></div><div class="protein-driver-grid"><button onclick="openCmModal('maiz')"><i class="fas fa-seedling"></i><span><b>Maíz</b><small>Base energética de la ración</small></span><strong id="protein-driver-corn">—</strong></button><button onclick="openCmModal('soja')"><i class="fas fa-leaf"></i><span><b>Soja</b><small>Proteína y aminoácidos</small></span><strong id="protein-driver-soy">—</strong></button><button onclick="openCmModal('mxn')"><i class="fas fa-dollar-sign"></i><span><b>USD/MXN</b><small>Costo de importación</small></span><strong id="protein-driver-fx">—</strong></button><button onclick="openCmModal('costo_energia')"><i class="fas fa-bolt"></i><span><b>Energía</b><small>Frío, proceso y transporte</small></span><strong id="protein-driver-energy">—</strong></button></div></section>
+      <section class="protein-panel"><div class="protein-panel-head"><div><span class="protein-section-kicker">Radar de riesgos</span><h2>Qué debe vigilar el usuario</h2></div></div><div class="protein-risk-list"><div><span class="risk-level high">ALTO</span><p><b>Sanidad animal</b><small>Influenza aviar y fiebre porcina pueden alterar oferta y comercio.</small></p></div><div><span class="risk-level medium">MEDIO</span><p><b>Volatilidad de alimento</b><small>Maíz y soja concentran la mayor sensibilidad del costo.</small></p></div><div><span class="risk-level medium">MEDIO</span><p><b>Acceso comercial</b><small>Cuotas, aranceles y certificaciones cambian el valor exportador.</small></p></div><div><span class="risk-level watch">VIGILAR</span><p><b>Cadena de frío</b><small>Energía, diesel y flete afectan la competitividad final.</small></p></div></div></section>
     </div>
   </div>
 </div>
@@ -1367,6 +1339,46 @@ const CM_PROFILES = {
     impacts: [{a:'Operación agrícola', d:'Uso intensivo de tractores y transporte'},{a:'Calefacción granjas', d:'Esencial para cría avícola y porcina en invierno'}],
     color: '#3b82f6'
   },
+  protein_scenario: {
+    name:'Escenario Productivo de Proteína', ticker:'Alimento · Energía · Venta', exchange:'Simulador VALL', unit:'', dynamicValueId:'protein-sim-margin', synthetic:true, gradient:'linear-gradient(135deg,#371326,#7f1947 58%,#bd3267)',
+    context:'Escenario configurable por especie que estima el margen por kilogramo al modificar costo de alimento, energía y precio de venta. Es una herramienta de sensibilidad y no sustituye la estructura técnica, sanitaria o financiera de cada unidad.', watching:['Conversión alimenticia real','Costo y formulación de la ración','Energía, cadena fría y transporte','Precio efectivo de venta','Mortalidad, sanidad y duración del ciclo'], impacts:[{a:'Costo proyectado',d:'Integra alimento y sensibilidad energética'},{a:'Punto de equilibrio',d:'Precio mínimo indicativo para cubrir costos'},{a:'Margen',d:'Compara la venta seleccionada contra el costo'}], color:'#a52357'
+  },
+  protein_productivity: {
+    name:'Benchmark Técnico de Proteínas', ticker:'Cerdo · Pollo · Res', exchange:'VALL Protein Intelligence', unit:'', dynamicValueId:'protein-benchmark-text', synthetic:true, gradient:'linear-gradient(135deg,#401527,#8f1d4e 58%,#c05b37)',
+    context:'Comparativo ilustrativo de conversión alimenticia, duración del ciclo y participación del alimento en el costo de cerdo, pollo y bovino de engorda. Los resultados reales varían por genética, peso, dieta, clima, manejo y sanidad.', watching:['Conversión alimenticia por lote','Ganancia diaria de peso','Mortalidad y decomisos','Duración del ciclo','Precio de alimento y venta'], impacts:[{a:'Eficiencia',d:'Menor conversión requiere menos alimento por kilogramo'},{a:'Capital',d:'Ciclos largos inmovilizan recursos por más tiempo'},{a:'Riesgo',d:'Sanidad y mortalidad pueden dominar el margen'}], color:'#8f1d4e'
+  },
+  protein_usa: {
+    name:'Proteínas · Estados Unidos', ticker:'Producción y exportación', exchange:'Lectura estructural VALL', unit:'', dynamicValueId:'protein-pork-price', synthetic:true, gradient:'linear-gradient(135deg,#172554,#1d4ed8 60%,#60a5fa)',
+    context:'Mercado de gran escala con referencias transparentes de futuros, fuerte integración de alimento y procesamiento, y alta incidencia sobre los flujos de carne de cerdo, pollo y bovino.', watching:['Inventarios ganaderos y porcinos','Costo de maíz y pasta de soja','Capacidad de sacrificio','Demanda doméstica y exportaciones','Sanidad y restricciones comerciales'], impacts:[{a:'Precios globales',d:'Sus referencias y exportaciones transmiten señales al resto del mercado'},{a:'Márgenes',d:'La relación alimento–carne define expansión o ajuste productivo'},{a:'México',d:'Es un proveedor relevante y compite con la producción nacional'}], color:'#2563eb'
+  },
+  protein_brazil: {
+    name:'Proteínas · Brasil', ticker:'Costo y competitividad exportadora', exchange:'Lectura estructural VALL', unit:'', dynamicValueId:'protein-driver-soy', synthetic:true, gradient:'linear-gradient(135deg,#14532d,#16a34a 58%,#facc15)',
+    context:'Potencia exportadora apoyada por disponibilidad de maíz y soja, escala industrial y una cadena avícola y bovina orientada a múltiples destinos internacionales.', watching:['Segunda cosecha de maíz','Producción y crush de soja','Real brasileño','Acceso sanitario a mercados','Logística portuaria'], impacts:[{a:'Pollo',d:'La competitividad de alimento sostiene oferta exportable'},{a:'Bovino',d:'El ciclo ganadero y la demanda asiática condicionan precios'},{a:'Comercio',d:'El tipo de cambio puede acelerar o moderar embarques'}], color:'#16a34a'
+  },
+  protein_china: {
+    name:'Proteínas · China', ticker:'Demanda, inventarios y sustitución', exchange:'Lectura estructural VALL', unit:'', dynamicValueId:'protein-global-feed', synthetic:true, gradient:'linear-gradient(135deg,#7f1d1d,#dc2626 60%,#f59e0b)',
+    context:'El tamaño de su consumo y sus ciclos de inventario convierten a China en un factor decisivo para carne de cerdo, materias primas para alimento y sustitución entre proteínas.', watching:['Hato porcino y sacrificio','Márgenes de engorda','Importaciones de carne','Compras de soja y maíz','Política de reservas'], impacts:[{a:'Cerdo',d:'Cambios de inventario pueden alterar rápidamente la demanda importadora'},{a:'Granos',d:'La reconstrucción o contracción del hato mueve alimento balanceado'},{a:'Sustitución',d:'Precios relativos cambian la mezcla entre cerdo, pollo y bovino'}], color:'#dc2626'
+  },
+  protein_europe: {
+    name:'Proteínas · Unión Europea', ticker:'Regulación, costos y oferta', exchange:'Lectura estructural VALL', unit:'', dynamicValueId:'protein-global-margin', synthetic:true, gradient:'linear-gradient(135deg,#312e81,#6366f1 58%,#a5b4fc)',
+    context:'Mercado maduro donde energía, bienestar animal, regulación ambiental y sanidad tienen un peso elevado sobre el costo y la capacidad de expansión productiva.', watching:['Costo de energía y fertilizantes','Normas ambientales y bienestar','Fiebre porcina africana y aviar','Demanda intracomunitaria','Exportaciones a Asia'], impacts:[{a:'Costo operativo',d:'Regulación y energía elevan la sensibilidad del margen'},{a:'Oferta',d:'Los ajustes de capacidad pueden tardar varios ciclos'},{a:'Comercio',d:'Cambios sanitarios redirigen flujos entre regiones'}], color:'#6366f1'
+  },
+  protein_mexico: {
+    name:'Proteínas · México', ticker:'Consumo, importación y costo local', exchange:'Lectura estructural VALL', unit:'', dynamicValueId:'protein-global-fx', synthetic:true, gradient:'linear-gradient(135deg,#064e3b,#059669 58%,#ef4444)',
+    context:'Mercado de consumo dinámico con producción nacional relevante y exposición simultánea al costo de granos importados, tipo de cambio y oferta cárnica de Norteamérica.', watching:['USD/MXN','Maíz amarillo y pasta de soja','Precios al mayoreo','Importaciones desde EE.UU. y Brasil','Sanidad y movilización nacional'], impacts:[{a:'Productor',d:'El tipo de cambio modifica insumos y competencia importada'},{a:'Consumidor',d:'El ingreso y los precios relativos impulsan sustitución'},{a:'Cadena fría',d:'Energía y logística inciden desde planta hasta punto de venta'}], color:'#059669'
+  },
+  protein_chain: {
+    name:'Cadena de Valor de Proteínas', ticker:'Alimento → consumidor', exchange:'Mapa operativo VALL', unit:'', dynamicValueId:'protein-chain-production', synthetic:true, gradient:'linear-gradient(135deg,#3f1425,#8f1d4e 58%,#c05b37)',
+    context:'Visión integral del recorrido económico de la proteína: compra y formulación de alimento, eficiencia productiva, proceso y cadena fría, comercialización y demanda final.', watching:['Costo por kilogramo producido','Conversión y mortalidad','Utilización de planta','Merma y cadena fría','Precio neto y mezcla de canales'], impacts:[{a:'Alimento',d:'Suele ser el componente dominante del costo vivo'},{a:'Producción',d:'Eficiencia y sanidad determinan cuánto costo se convierte en producto'},{a:'Distribución',d:'Frío, transporte y merma separan el margen teórico del realizado'}], color:'#8f1d4e'
+  },
+  protein_feed_efficiency: {
+    name:'Eficiencia de Alimentación', ticker:'Conversión y costo de ración', exchange:'Diagnóstico técnico VALL', unit:'', dynamicValueId:'protein-econ-fcr', synthetic:true, gradient:'linear-gradient(135deg,#14532d,#15803d 58%,#84cc16)',
+    context:'La conversión alimenticia relaciona el alimento consumido con el peso producido. Debe interpretarse junto con ganancia diaria, mortalidad, uniformidad, formulación y precio efectivo de la ración.', watching:['FCR por lote y etapa','Costo por tonelada','Calidad y digestibilidad','Ganancia diaria de peso','Desperdicio de alimento'], impacts:[{a:'Costo unitario',d:'Pequeños cambios de conversión se amplifican sobre grandes volúmenes'},{a:'Ciclo',d:'Una dieta barata puede resultar costosa si ralentiza el desempeño'},{a:'Comparación',d:'Debe hacerse entre sistemas y pesos de salida equivalentes'}], color:'#15803d'
+  },
+  protein_trade: {
+    name:'Comercio Global de Proteínas', ticker:'Flujos, moneda y acceso', exchange:'Monitor estratégico VALL', unit:'', dynamicValueId:'protein-chain-trade', synthetic:true, gradient:'linear-gradient(135deg,#164e63,#0891b2 58%,#67e8f9)',
+    context:'Los flujos internacionales responden al diferencial de precios, tipo de cambio, estatus sanitario, aranceles, cuotas, disponibilidad logística y especificaciones de cada mercado.', watching:['Diferenciales de precio por origen','Tipos de cambio exportadores','Aperturas y cierres sanitarios','Fletes refrigerados','Cuotas y aranceles'], impacts:[{a:'Precio doméstico',d:'Importaciones y exportaciones modifican la disponibilidad local'},{a:'Mix de cortes',d:'Cada destino valoriza productos y subproductos de forma distinta'},{a:'Riesgo',d:'Una restricción sanitaria puede redirigir grandes volúmenes'}], color:'#0891b2'
+  },
   maiz: {
     name: 'Maíz Amarillo #2', ticker: 'ZC=F', exchange: 'CME · CBOT Chicago', unit: '$/bu',
     gradient: 'linear-gradient(135deg,#b45309,#d97706)',
@@ -1447,20 +1459,147 @@ const CM_PROFILES = {
     impacts: [{a:'Maíz importado', d:'Cada $1 MXN/USD sube ~$39 MXN por tonelada'},{a:'Soja en grano', d:'Precio en MXN sube directamente con el dólar'},{a:'Diesel importado', d:'Costo de combustible agrícola en pesos'},{a:'Fertilizantes', d:'Urea y fosfatos cotizados en USD'},{a:'Deuda en dólares', d:'Empresas con pasivos USD ven mayor carga financiera'}],
     color: '#2563eb',
   },
+  energy_freight: {
+    name: 'Presión de Flete Terrestre', ticker: 'Diesel × 8.5', exchange: 'Estimación VALL México', unit: '', dynamicValueId: 'energy-freight-signal', synthetic: true,
+    gradient: 'linear-gradient(135deg,#704019,#b96a27)',
+    context: 'Referencia indicativa del costo por tonelada cada 100 kilómetros, derivada del diesel internacional. Ayuda a visualizar la transmisión del petróleo hacia la logística nacional antes de peajes, retorno vacío y condiciones regionales.',
+    watching: ['Precio del diesel ULSD y WTI','Tipo de cambio USD/MXN','Peajes y disponibilidad de unidades','Distancia, retorno vacío y factor de carga','Seguridad y condiciones regionales de ruta'],
+    impacts: [{a:'Granos y alimento', d:'Eleva el costo puesto en planta y granja'},{a:'Cadena fría', d:'Presiona distribución de proteínas y perecederos'},{a:'Margen regional', d:'Amplía diferencias entre origen y destino'}],
+    color: '#b96a27',
+  },
+  energy_basket: {
+    name: 'Canasta Operativa de Energía', ticker: 'Diesel 70% · Gas 30%', exchange: 'Índice Sintético VALL', unit: '', dynamicValueId: 'energy-basket', synthetic: true,
+    gradient: 'linear-gradient(135deg,#153f4d,#177b8d)',
+    context: 'Canasta indicativa que combina consumo de diesel y gas natural para resumir la presión diaria de maquinaria, calefacción, secado y operación industrial.',
+    watching: ['Diesel y destilados NYMEX','Gas Natural Henry Hub','Demanda estacional de calefacción y enfriamiento','Tipo de cambio USD/MXN','Eficiencia energética de la operación'],
+    impacts: [{a:'Producción', d:'Resume la presión de combustible y energía térmica'},{a:'Cadena fría', d:'Afecta refrigeración, proceso y almacenamiento'},{a:'Presupuesto', d:'Permite comparar escenarios energéticos mensuales'}],
+    color: '#177b8d',
+  },
+  energy_volatility: {
+    name: 'Pulso de Volatilidad Energética', ticker: 'Movimiento mensual medio', exchange: 'VALL Energy Intelligence', unit: '', dynamicValueId: 'energy-volatility', synthetic: true,
+    gradient: 'linear-gradient(135deg,#193846,#267486)',
+    context: 'Indicador que resume la intensidad del movimiento mensual en WTI, gas natural y diesel. Una lectura alta implica mayor incertidumbre para compras, tarifas y presupuestos operativos.',
+    watching: ['Inventarios semanales EIA','Decisiones de producción OPEP+','Clima y demanda de gas natural','Conflictos y sanciones energéticas','Posicionamiento especulativo en futuros'],
+    impacts: [{a:'Contratación', d:'Aumenta la necesidad de escalonar volúmenes y precios'},{a:'Tarifas', d:'Reduce la vigencia práctica de cotizaciones logísticas'},{a:'Coberturas', d:'Eleva el valor de límites y protección presupuestaria'}],
+    color: '#267486',
+  },
+  energy_transmission: {
+    name: 'Riesgo de Transmisión a Costos', ticker: 'Petróleo · Diesel · Gas', exchange: 'VALL Energy Intelligence', unit: '', dynamicValueId: 'energy-transmission', synthetic: true,
+    gradient: 'linear-gradient(135deg,#6b3420,#c05c27)',
+    context: 'Señal cualitativa de la probabilidad de que los movimientos internacionales de energía se trasladen a fletes, maquinaria, cadena fría y costos productivos en México.',
+    watching: ['Persistencia del movimiento del WTI','Respuesta del diesel frente al crudo','USD/MXN y costos importados','Inventarios y márgenes de refinación','Capacidad de traslado a tarifas y precios finales'],
+    impacts: [{a:'Logística', d:'Define la presión probable sobre tarifas terrestres'},{a:'Agroindustria', d:'Afecta proceso, secado, bombeo y refrigeración'},{a:'Márgenes', d:'Se vuelve crítico cuando el precio de venta no ajusta'}],
+    color: '#c05c27',
+  },
+  energy_scenario: {
+    name: 'Escenario Energético Personalizado', ticker: 'WTI · Gas · USD/MXN', exchange: 'Simulador VALL', unit: '', dynamicValueId: 'energy-sim-operation', synthetic: true,
+    gradient: 'linear-gradient(135deg,#123746,#17798b 58%,#b84f22)',
+    context: 'Escenario interactivo construido por el usuario con referencias de WTI, gas natural y USD/MXN. Estima diesel, flete y una canasta operativa diaria para comparar sensibilidad; no sustituye una cotización comercial.',
+    watching: ['Supuestos elegidos en el simulador','Precio efectivo de diesel en la región','Tipo de cambio contratado o de liquidación','Consumo real, distancia y factor de carga','Peajes, márgenes, impuestos y costos no energéticos'],
+    impacts: [{a:'Flete estimado', d:'Cambia con el diesel derivado del escenario WTI'},{a:'Operación diaria', d:'Integra combustible, gas y efecto cambiario'},{a:'Decisión', d:'Permite comparar estrés, mercado actual y alivio'}],
+    color: '#17798b',
+  },
+  metal_copper_mxn: {
+    name:'Cobre Equivalente en México', ticker:'Cobre × 2,204.62 × USD/MXN', exchange:'Estimación VALL', unit:'', dynamicValueId:'metal-copper-mxn', synthetic:true, gradient:'linear-gradient(135deg,#713d27,#b6612e)',
+    context:'Conversión indicativa del cobre cotizado por libra a una tonelada expresada en pesos mexicanos. Permite separar el movimiento internacional del efecto cambiario.', watching:['Cobre COMEX y LME','USD/MXN','Prima física regional','Flete, seguro e impuestos','Calidad, forma y volumen contratado'], impacts:[{a:'Cableado',d:'Impacta instalaciones eléctricas y motores'},{a:'Infraestructura',d:'Afecta presupuestos de electrificación'},{a:'CAPEX',d:'Eleva el costo de nuevas instalaciones'}], color:'#b6612e'
+  },
+  metal_aluminum_mxn: {
+    name:'Aluminio Equivalente en México', ticker:'Aluminio × USD/MXN', exchange:'Estimación VALL', unit:'', dynamicValueId:'metal-aluminum-mxn', synthetic:true, gradient:'linear-gradient(135deg,#334155,#64748b)',
+    context:'Conversión indicativa del aluminio primario por tonelada a pesos mexicanos, antes de primas regionales, transformación, logística e impuestos.', watching:['Aluminio LME','Costo eléctrico en China','USD/MXN','Primas físicas y disponibilidad','Flete y transformación local'], impacts:[{a:'Silos',d:'Afecta chapa, perfiles y almacenamiento'},{a:'Empaque',d:'Presiona envases y materiales ligeros'},{a:'Estructuras',d:'Modifica presupuestos de construcción'}], color:'#64748b'
+  },
+  metal_breadth: {
+    name:'Amplitud del Complejo Metálico', ticker:'Cobre + Aluminio', exchange:'VALL Industrial Intelligence', unit:'', dynamicValueId:'metal-breadth', synthetic:true, gradient:'linear-gradient(135deg,#3d3565,#78529b)',
+    context:'Señal que compara la dirección mensual de cobre y aluminio. Una amplitud expansiva confirma movimiento conjunto; una lectura mixta advierte divergencia entre industrias y regiones.', watching:['Dirección mensual de cobre y aluminio','Inventarios LME/COMEX','PMI manufacturero global','Demanda de China','Oferta minera y capacidad de fundición'], impacts:[{a:'Ciclo',d:'Confirma o debilita la señal de actividad industrial'},{a:'Compras',d:'Ayuda a definir escalonamiento de materiales'},{a:'Inventario',d:'Reduce decisiones basadas en un solo metal'}], color:'#78529b'
+  },
+  metal_ratio: {
+    name:'Ratio Cobre / Aluminio', ticker:'Valor por tonelada', exchange:'VALL Industrial Intelligence', unit:'', dynamicValueId:'metal-ratio', synthetic:true, gradient:'linear-gradient(135deg,#68402d,#9b6b46)',
+    context:'Relación entre el valor equivalente por tonelada de cobre y aluminio. Una prima elevada del cobre puede incentivar sustitución técnica donde las especificaciones lo permitan.', watching:['Cobre por libra convertido a tonelada','Aluminio por tonelada','Sustitución en conductores eléctricos','Demanda de redes y vehículos eléctricos','Disponibilidad y primas físicas'], impacts:[{a:'Ingeniería',d:'Influye en decisiones de sustitución de materiales'},{a:'Electricidad',d:'Compara costos de conductores'},{a:'Presupuesto',d:'Mide la prima relativa del cobre'}], color:'#9b6b46'
+  },
+  metal_basket: {
+    name:'Canasta de Infraestructura', ticker:'35% Cobre · 65% Aluminio', exchange:'Índice Sintético VALL', unit:'', dynamicValueId:'metal-basket', synthetic:true, gradient:'linear-gradient(135deg,#424267,#87614a)',
+    context:'Canasta indicativa de metales para visualizar el costo combinado de infraestructura, electrificación, silos y equipos antes de transformación y logística.', watching:['Cobre y aluminio internacionales','USD/MXN','Costo de energía y fundición','Primas físicas regionales','Calendario de inversión y construcción'], impacts:[{a:'CAPEX',d:'Resume presión conjunta en inversión física'},{a:'Silos',d:'Combina estructura y componentes eléctricos'},{a:'Equipamiento',d:'Orienta escenarios de reposición'}], color:'#70517f'
+  },
+  metal_volatility: {
+    name:'Pulso de Volatilidad Metálica', ticker:'Movimiento mensual medio', exchange:'VALL Industrial Intelligence', unit:'', dynamicValueId:'metal-volatility', synthetic:true, gradient:'linear-gradient(135deg,#313b63,#6e5692)',
+    context:'Intensidad promedio del movimiento mensual de cobre y aluminio. Una lectura alta implica mayor incertidumbre para presupuestos, cotizaciones y compras de material.', watching:['Variación mensual de cobre y aluminio','Inventarios registrados','Noticias mineras y fundiciones','Dólar global DXY','Liquidez y posicionamiento en futuros'], impacts:[{a:'Cotizaciones',d:'Reduce su vigencia práctica'},{a:'Compras',d:'Favorece órdenes escalonadas'},{a:'Presupuesto',d:'Amplía el rango probable de CAPEX'}], color:'#6e5692'
+  },
+  metal_demand: {
+    name:'Demanda Industrial Implícita', ticker:'Impulso Cobre + Aluminio', exchange:'VALL Industrial Intelligence', unit:'', dynamicValueId:'metal-demand', synthetic:true, gradient:'linear-gradient(135deg,#2f3b60,#6f4e8e)',
+    context:'Lectura cualitativa derivada del impulso conjunto de los principales metales base monitoreados. Sirve como termómetro de actividad, no como medición directa de consumo físico.', watching:['China y PMI manufacturero','Construcción e infraestructura','Automotriz y transición energética','Inventarios LME','Producción minera y fundición'], impacts:[{a:'Actividad',d:'Anticipa presión en insumos industriales'},{a:'Disponibilidad',d:'Puede reducir inventarios físicos'},{a:'CAPEX',d:'Cambia el costo y oportunidad de inversión'}], color:'#6f4e8e'
+  },
+  metal_fx: {
+    name:'Presión Cambiaria en Metales', ticker:'USD/MXN', exchange:'VALL Industrial Intelligence', unit:'', dynamicValueId:'metal-fx-pressure', synthetic:true, gradient:'linear-gradient(135deg,#263c70,#536db2)',
+    context:'Señal del efecto que tiene el peso mexicano sobre materiales cotizados internacionalmente en dólares. Puede amplificar o amortiguar el movimiento del metal.', watching:['USD/MXN','DXY','Tasas Banxico y Fed','Condiciones de importación','Coberturas cambiarias'], impacts:[{a:'Importación',d:'Multiplica directamente el costo en pesos'},{a:'Inventarios',d:'Afecta el momento de reposición'},{a:'Contratos',d:'Incrementa la relevancia de coberturas FX'}], color:'#536db2'
+  },
+  metal_energy: {
+    name:'Sensibilidad Energética del Aluminio', ticker:'Electricidad · Fundición', exchange:'Cadena Industrial', unit:'', dynamicValueId:'metal-energy-sensitivity', synthetic:true, gradient:'linear-gradient(135deg,#1e5359,#4f7f83)',
+    context:'La producción de aluminio primario es intensiva en electricidad. Cambios en energía, restricciones de red o cierres de fundiciones pueden alterar oferta y primas regionales.', watching:['Electricidad industrial en China y Europa','Capacidad de fundición','Carbón, gas y energías renovables','Restricciones ambientales','Inventarios LME'], impacts:[{a:'Aluminio',d:'La energía constituye una parte crítica del costo'},{a:'Oferta',d:'Precios altos pueden cerrar capacidad marginal'},{a:'Primas',d:'La escasez regional amplía diferenciales'}], color:'#4f7f83'
+  },
+  metal_capex: {
+    name:'Riesgo de CAPEX Metálico', ticker:'Metales + USD/MXN', exchange:'VALL Industrial Intelligence', unit:'', dynamicValueId:'metal-capex-risk', synthetic:true, gradient:'linear-gradient(135deg,#57405f,#95643c)',
+    context:'Señal cualitativa del riesgo de presión sobre nuevas inversiones en instalaciones, silos, cableado, maquinaria y transición energética.', watching:['Canasta de cobre y aluminio','USD/MXN','Costos de transformación','Plazos de entrega','Calendario de obra e inversión'], impacts:[{a:'Infraestructura',d:'Puede elevar el presupuesto total de obra'},{a:'Calendario',d:'Incentiva compras y contratación escalonadas'},{a:'Retorno',d:'Modifica el periodo de recuperación del proyecto'}], color:'#95643c'
+  },
+  metal_scenario: {
+    name:'Presupuesto Metálico Personalizado', ticker:'Cobre · Aluminio · USD/MXN', exchange:'Configurador VALL', unit:'', dynamicValueId:'metal-budget-mxn', synthetic:true, gradient:'linear-gradient(135deg,#292b49,#684a80 58%,#a85c31)',
+    context:'Escenario configurado por el usuario con toneladas de cobre, aluminio y tipo de cambio. Estima únicamente el valor internacional del material; transformación, prima física, logística, impuestos e instalación deben agregarse por separado.', watching:['Volúmenes seleccionados','Cobre COMEX convertido a tonelada','Aluminio internacional por tonelada','USD/MXN elegido','Primas, fabricación y logística local'], impacts:[{a:'Presupuesto base',d:'Referencia internacional del material en pesos'},{a:'Composición',d:'Muestra la participación de cobre y aluminio'},{a:'Estrés',d:'Incluye una comparación con precios 10% superiores'}], color:'#765090'
+  },
+  grain_spread: {
+    name: 'Spread Soja / Maíz', ticker: 'Ratio proteína–energía', exchange: 'VALL Agro Intelligence', unit: '', dynamicValueId: 'grain-spread', synthetic: true,
+    gradient: 'linear-gradient(135deg,#31552f,#72923c)',
+    context: 'Relación entre el valor de la soja por tonelada y el equivalente del maíz por tonelada. Permite detectar si el componente proteico de la ración se está encareciendo frente a la base energética.',
+    watching: ['Precio internacional de soja y pasta de soja','Conversión del maíz CME de bushel a tonelada','Demanda asiática de proteína vegetal','Margen de trituración de soja','Sustitución y reformulación de raciones'],
+    impacts: [{a:'Porcino y aves', d:'Una relación elevada presiona las dietas intensivas en proteína'},{a:'Formulación', d:'Ayuda a evaluar sustitutos y ajustes de inclusión'},{a:'Compras', d:'Señala cuál componente conviene cubrir primero'}],
+    color: '#72923c',
+  },
+  grain_feed: {
+    name: 'Canasta de Ración Pecuaria', ticker: '60% Maíz · 40% Soja', exchange: 'Índice Sintético VALL', unit: '', dynamicValueId: 'grain-feed-basket', synthetic: true,
+    gradient: 'linear-gradient(135deg,#8b5e16,#c39331)',
+    context: 'Canasta indicativa construida con 60% de maíz y 40% de soja. Resume el costo combinado de energía y proteína antes de tipo de cambio, logística, molienda y aditivos.',
+    watching: ['Precio CME del maíz amarillo','Precio internacional de soja','Tipo de cambio USD/MXN','Flete de importación y transporte nacional','Costo de molienda y almacenamiento'],
+    impacts: [{a:'Costo de alimento', d:'Anticipa presión conjunta en la ración base'},{a:'Margen pecuario', d:'Un incremento reduce margen si el precio de venta no acompaña'},{a:'Presupuesto', d:'Sirve como referencia para compras y coberturas escalonadas'}],
+    color: '#c39331',
+  },
+  grain_volatility: {
+    name: 'Pulso de Volatilidad de Granos', ticker: 'Movimiento mensual medio', exchange: 'VALL Agro Intelligence', unit: '', dynamicValueId: 'grain-volatility', synthetic: true,
+    gradient: 'linear-gradient(135deg,#234963,#3c7b8e)',
+    context: 'Indicador que sintetiza el movimiento absoluto mensual de maíz, soja y trigo. Mide la intensidad del mercado sin confundir volatilidad con dirección alcista o bajista.',
+    watching: ['Variación mensual de maíz, soja y trigo','Pronósticos climáticos en regiones productoras','Informes WASDE y Crop Progress','Posicionamiento de fondos en futuros','Liquidez y amplitud de movimientos diarios'],
+    impacts: [{a:'Coberturas', d:'Mayor volatilidad exige límites, ventanas y escalonamiento'},{a:'Presupuesto', d:'Amplía el rango probable del costo de reposición'},{a:'Compras', d:'Reduce la conveniencia de concentrar una orden en una sola fecha'}],
+    color: '#3c7b8e',
+  },
+  grain_season: {
+    name: 'Fase Estacional Agrícola', ticker: 'Calendario productivo', exchange: 'Hemisferio Norte', unit: '', dynamicValueId: 'grain-season', synthetic: true,
+    gradient: 'linear-gradient(135deg,#4f6b2e,#91a947)',
+    context: 'Lectura del momento del ciclo agrícola del hemisferio norte. Cambia el conjunto de variables críticas según el mercado esté en siembra, desarrollo, cosecha o etapa de demanda e inventarios.',
+    watching: ['Avance de siembra y superficie plantada','Temperatura, humedad y condición del cultivo','Rendimientos y ritmo de cosecha','Inventarios y exportaciones USDA','Siembra y cosecha en Sudamérica'],
+    impacts: [{a:'Riesgo climático', d:'Su sensibilidad aumenta durante siembra y desarrollo'},{a:'Disponibilidad', d:'La cosecha redefine oferta física y bases regionales'},{a:'Planeación', d:'Orienta el calendario de seguimiento, compra y cobertura'}],
+    color: '#91a947',
+  },
 };
 let _mktPrecios   = {};
 let _mktMxnRate   = null;
 let _mktCharts    = {};
 let _mktIntervals = { granos: '1y', energia: '1y', metales: '1y' };
 let _mktTickers   = { granos: 'ZC=F', energia: 'CL=F', metales: 'HG=F' };
+let _mktChartModes = { granos: 'candles', energia: 'candles', metales: 'candles' };
+let _proteinMarketData = {};
+let _energyScenarioBase = { wti:70, gas:2.5, fx:18 };
 let _newsAll      = [];
+let _grainBriefs  = [];
+let _grainNewsDefault = [];
+let _grainNewsPool = [];
+let _energyNewsDefault = [];
+const _brokenNewsImages = new Set();
 let _newsAutoScrollTimers = {};
+const NEWS_REFRESH_MS = 12 * 60 * 60 * 1000;
+let _newsLastRefresh = (() => { try { return parseInt(localStorage.getItem('mkt_news_refresh_at') || '0', 10) || 0; } catch { return 0; } })();
+let _newsRefreshTimer = null;
 const MKT_CK = 'mkt_v22';
      function mktTab(name, btnEl) {
   document.querySelectorAll('.mkt-tab-card').forEach(b => b.classList.remove('active'));
   const activeBtn = btnEl || document.querySelector(`[data-tab="${name}"]`);
   if (activeBtn) activeBtn.classList.add('active');
-  ['pane-general','pane-granos','pane-energia','pane-metales','pane-costos'].forEach(id => {
+  ['pane-general','pane-granos','pane-energia','pane-metales','pane-proteinas'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -1469,6 +1608,7 @@ const MKT_CK = 'mkt_v22';
   if (name === 'granos'  && !_mktCharts.granos)  setTimeout(() => loadMktChart(_mktTickers.granos,  'granos'),  100);
   if (name === 'energia' && !_mktCharts.energia)  setTimeout(() => loadMktChart(_mktTickers.energia, 'energia'), 100);
   if (name === 'metales' && !_mktCharts.metales)   setTimeout(() => loadMktChart(_mktTickers.metales, 'metales'),  100);
+  if (name === 'proteinas' && Object.keys(_mktPrecios).length) renderProteinMarket(_mktPrecios, _mktMxnRate);
   try { localStorage.setItem('mkt_active_tab', name); } catch(e){}
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }function setMktInt(interval, pane) {
@@ -1480,8 +1620,100 @@ const MKT_CK = 'mkt_v22';
   loadMktChart(_mktTickers[pane], pane);
 }
 
+const GRAIN_CHART_META = {
+  'ZC=F': { name:'Maíz amarillo #2', market:'CME · CBOT Chicago', key:'maiz', unit:'/bu', icon:'fa-seedling' },
+  'ZS=F': { name:'Soja en grano', market:'CME · CBOT Chicago', key:'soja', unit:'/MT', icon:'fa-leaf' },
+  'ZW=F': { name:'Trigo SRW', market:'CME · CBOT Chicago', key:'trigo', unit:'/bu', icon:'fa-wheat-awn' },
+  'ZM=F': { name:'Pasta de soja', market:'CME · CBOT Chicago', key:null, unit:'', icon:'fa-leaf' },
+  'ZO=F': { name:'Avena', market:'CME · CBOT Chicago', key:null, unit:'', icon:'fa-seedling' },
+  'ZR=F': { name:'Arroz rough', market:'CME · CBOT Chicago', key:null, unit:'', icon:'fa-bowl-rice' },
+};
+const ENERGY_CHART_META = {
+  'CL=F': { name:'Petróleo WTI', market:'NYMEX · New York', key:'wti', unit:'/bbl', icon:'fa-oil-well' },
+  'BZ=F': { name:'Petróleo Brent', market:'ICE Futures Europe', key:null, unit:'/bbl', icon:'fa-droplet' },
+  'NG=F': { name:'Gas Natural Henry Hub', market:'NYMEX · New York', key:'gasnat', unit:'/MMBtu', icon:'fa-fire-flame-curved' },
+  'HO=F': { name:'Diesel ULSD', market:'NYMEX · New York', key:'diesel', unit:'/gal', icon:'fa-gas-pump' },
+  'RB=F': { name:'Gasolina RBOB', market:'NYMEX · New York', key:null, unit:'/gal', icon:'fa-gauge-high' },
+};
+const METAL_CHART_META = {
+  'HG=F': { name:'Cobre Grado A', market:'COMEX · New York', key:'cobre', unit:'/lb', icon:'fa-bolt' },
+  'ALI=F': { name:'Aluminio primario', market:'LME / COMEX', key:'aluminio', unit:'/MT', icon:'fa-layer-group' },
+  'GC=F': { name:'Oro', market:'COMEX · New York', key:null, unit:'/oz', icon:'fa-coins' },
+  'SI=F': { name:'Plata', market:'COMEX · New York', key:null, unit:'/oz', icon:'fa-circle' },
+  'PL=F': { name:'Platino', market:'NYMEX · New York', key:null, unit:'/oz', icon:'fa-gem' },
+};
+function updateGrainChartHeader(ticker) {
+  const meta = GRAIN_CHART_META[ticker] || GRAIN_CHART_META['ZC=F'];
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  set('grain-chart-market', meta.market);
+  set('grain-chart-asset', meta.name);
+  const icon = document.getElementById('grain-chart-icon');
+  if (icon) icon.innerHTML = `<i class="fas ${meta.icon}"></i>`;
+  const price = meta.key ? parseFloat(_mktPrecios[meta.key]) : null;
+  const pct = meta.key ? parseFloat(_mktPrecios[meta.key + '_pct']) : null;
+  set('grain-chart-price', Number.isFinite(price) ? '$' + price.toFixed(2) + meta.unit : 'Histórico');
+  const change = document.getElementById('grain-chart-change');
+  if (change) {
+    change.textContent = Number.isFinite(pct) ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : 'Consulta gráfica';
+    change.className = Number.isFinite(pct) ? (pct >= 0 ? 'up' : 'down') : '';
+  }
+}
+function setGrainAsset(ticker) {
+  updateGrainChartHeader(ticker);
+  loadMktChart(ticker, 'granos');
+}
+function updateEnergyChartHeader(ticker) {
+  const meta = ENERGY_CHART_META[ticker] || ENERGY_CHART_META['CL=F'];
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  set('energy-chart-market', meta.market);
+  set('energy-chart-asset', meta.name);
+  const icon = document.getElementById('energy-chart-icon');
+  if (icon) icon.innerHTML = `<i class="fas ${meta.icon}"></i>`;
+  const price = meta.key ? parseFloat(_mktPrecios[meta.key]) : null;
+  const pct = meta.key ? parseFloat(_mktPrecios[meta.key + '_pct']) : null;
+  set('energy-chart-price', Number.isFinite(price) ? '$' + price.toFixed(meta.key === 'gasnat' ? 3 : 2) + meta.unit : 'Histórico');
+  const change = document.getElementById('energy-chart-change');
+  if (change) {
+    change.textContent = Number.isFinite(pct) ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : 'Consulta gráfica';
+    change.className = Number.isFinite(pct) ? (pct >= 0 ? 'up' : 'down') : '';
+  }
+}
+function setEnergyAsset(ticker) {
+  updateEnergyChartHeader(ticker);
+  loadMktChart(ticker, 'energia');
+}
+function updateMetalChartHeader(ticker) {
+  const meta = METAL_CHART_META[ticker] || METAL_CHART_META['HG=F'];
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  set('metal-chart-market', meta.market);
+  set('metal-chart-asset', meta.name);
+  const icon = document.getElementById('metal-chart-icon');
+  if (icon) icon.innerHTML = `<i class="fas ${meta.icon}"></i>`;
+  const price = meta.key ? parseFloat(_mktPrecios[meta.key]) : null;
+  const pct = meta.key ? parseFloat(_mktPrecios[meta.key + '_pct']) : null;
+  set('metal-chart-price', Number.isFinite(price) ? '$' + price.toFixed(meta.key === 'aluminio' ? 0 : 2) + meta.unit : 'Histórico');
+  const change = document.getElementById('metal-chart-change');
+  if (change) {
+    change.textContent = Number.isFinite(pct) ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : 'Consulta gráfica';
+    change.className = Number.isFinite(pct) ? (pct >= 0 ? 'up' : 'down') : '';
+  }
+}
+function setMetalAsset(ticker) {
+  updateMetalChartHeader(ticker);
+  loadMktChart(ticker, 'metales');
+}
+function setMktChartMode(mode, pane, button) {
+  _mktChartModes[pane] = mode;
+  const wrap = button?.closest('.grain-view-switch');
+  if (wrap) wrap.querySelectorAll('button').forEach(btn => btn.classList.toggle('active', btn === button));
+  loadMktChart(_mktTickers[pane], pane);
+}
+
 async function loadMktChart(ticker, pane) {
   _mktTickers[pane] = ticker;
+  if (pane === 'granos') updateGrainChartHeader(ticker);
+  if (pane === 'energia') updateEnergyChartHeader(ticker);
+  if (pane === 'metales') updateMetalChartHeader(ticker);
   const containerId = `mkt-chart-${pane}`;
   const container   = document.getElementById(containerId);
   if (!container) return;
@@ -1522,15 +1754,23 @@ async function loadMktChart(ticker, pane) {
 
     const quotes = (d.candles || []).filter(q => q.open != null && q.close != null);
     if (quotes.length > 0) {
-      const candleSeries = chart.addCandlestickSeries({
-        upColor: '#16a34a', downColor: '#dc2626',
-        borderUpColor: '#16a34a', borderDownColor: '#dc2626',
-        wickUpColor: '#16a34a', wickDownColor: '#dc2626',
-      });
-      candleSeries.setData(quotes.map(q => ({
-        time: q.time,
-        open: q.open, high: q.high, low: q.low, close: q.close,
-      })));
+      const mode = _mktChartModes[pane] || 'candles';
+      const chartAccent = pane === 'energia' ? '#17788a' : pane === 'metales' ? '#a85d29' : '#2f7d32';
+      const chartArea = pane === 'energia' ? 'rgba(23,120,138,.40)' : pane === 'metales' ? 'rgba(168,93,41,.38)' : 'rgba(94,139,44,.42)';
+      if (mode === 'line') {
+        const lineSeries = chart.addLineSeries({ color:chartAccent, lineWidth:3, crosshairMarkerRadius:5, priceLineColor:chartAccent });
+        lineSeries.setData(quotes.map(q => ({ time:q.time, value:q.close })));
+      } else if (mode === 'area') {
+        const areaSeries = chart.addAreaSeries({ lineColor:chartAccent, topColor:chartArea, bottomColor:'rgba(23,120,138,.03)', lineWidth:3, priceLineColor:chartAccent });
+        areaSeries.setData(quotes.map(q => ({ time:q.time, value:q.close })));
+      } else {
+        const candleSeries = chart.addCandlestickSeries({
+          upColor: '#16a34a', downColor: '#dc2626',
+          borderUpColor: '#16a34a', borderDownColor: '#dc2626',
+          wickUpColor: '#16a34a', wickDownColor: '#dc2626',
+        });
+        candleSeries.setData(quotes.map(q => ({ time:q.time, open:q.open, high:q.high, low:q.low, close:q.close })));
+      }
       chart.timeScale().fitContent();
     } else {
       container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:.72rem;">Sin datos para este período</div>';
@@ -1758,6 +1998,293 @@ function renderGranosTable(p, mxn) {
   }).join('');
 }
 
+function renderGrainIntelligence(p, mxn) {
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  const num = (value, fallback = 0) => Number.isFinite(parseFloat(value)) ? parseFloat(value) : fallback;
+  const corn = num(p.maiz, 4.82);
+  const soy = num(p.soja, 342.5);
+  const wheat = num(p.trigo, 5.3);
+  const cornMT = corn * 39.368;
+  const soyCorn = soy / Math.max(cornMT, 1);
+  const feedBasket = cornMT*.60 + soy*.40;
+  const changes = [num(p.maiz_pct), num(p.soja_pct), num(p.trigo_pct)];
+  const avgAbs = changes.reduce((sum, value) => sum + Math.abs(value), 0) / changes.length;
+  const pressure = Math.max(0, Math.min(100, Math.round(50 + (changes[0]*.45 + changes[1]*.35 + changes[2]*.20)*4.5)));
+  const pressureLabel = pressure >= 70 ? 'Presión alta · revisar coberturas' : pressure >= 50 ? 'Presión moderada · monitoreo activo' : pressure >= 30 ? 'Presión baja · compras escalonadas' : 'Presión muy baja · ventana favorable';
+  set('rd-ipi-g', pressure + '/100');
+  set('rd-ipi-g-lbl', pressureLabel);
+  const pressureBar = document.getElementById('grain-pressure-bar');
+  if (pressureBar) pressureBar.style.width = pressure + '%';
+  set('grain-spread', soyCorn.toFixed(2) + '×');
+  set('grain-spread-note', soyCorn > 2.0 ? 'La proteína conserva una prima elevada frente a la energía.' : soyCorn > 1.55 ? 'La relación proteína–energía permanece equilibrada.' : 'La soja ofrece una prima contenida frente al maíz.');
+  set('grain-feed-basket', '$' + feedBasket.toFixed(0) + '/MT');
+  set('grain-volatility', avgAbs >= 5 ? 'Alta' : avgAbs >= 2.2 ? 'Media' : 'Baja');
+  set('grain-volatility-note', `Movimiento medio absoluto de ${avgAbs.toFixed(1)}% mensual en maíz, soja y trigo.`);
+
+  const month = new Date().getMonth() + 1;
+  let season = 'Transición';
+  let seasonNote = 'Cambio entre ciclos de siembra y cosecha.';
+  if (month >= 3 && month <= 5) { season = 'Siembra norte'; seasonNote = 'Clima, avance de siembra y superficie sembrada.'; }
+  else if (month >= 6 && month <= 8) { season = 'Desarrollo crítico'; seasonNote = 'Temperatura, humedad y potencial de rendimiento.'; }
+  else if (month >= 9 && month <= 11) { season = 'Cosecha norte'; seasonNote = 'Rendimientos, ritmo de cosecha y oferta disponible.'; }
+  else { season = 'Demanda y stocks'; seasonNote = 'Exportaciones, inventarios y siembra sudamericana.'; }
+  set('grain-season', season);
+  set('grain-season-note', seasonNote);
+  set('grain-updated', 'Actualizado ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
+
+  const ranked = [
+    {name:'maíz', pct:changes[0]}, {name:'soja', pct:changes[1]}, {name:'trigo', pct:changes[2]},
+  ].sort((a,b) => Math.abs(b.pct)-Math.abs(a.pct));
+  const lead = ranked[0];
+  const direction = lead.pct > .25 ? `sube ${lead.pct.toFixed(1)}%` : lead.pct < -.25 ? `corrige ${Math.abs(lead.pct).toFixed(1)}%` : 'permanece estable';
+  const fxText = mxn ? ` Con USD/MXN en $${num(mxn).toFixed(2)}, la canasta base equivale aproximadamente a $${(feedBasket*num(mxn)).toFixed(0)} MXN/MT.` : '';
+  set('grain-reading-text', `El ${lead.name} concentra el mayor movimiento del complejo y ${direction} mensual. La presión conjunta se ubica en ${pressure}/100. Durante la fase de ${season.toLowerCase()}, el mercado mantiene el foco en ${seasonNote.toLowerCase()}${fxText}`);
+  updateGrainChartHeader(_mktTickers.granos || 'ZC=F');
+}
+
+function renderEnergyIntelligence(p, mxn) {
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  const num = (value, fallback = 0) => Number.isFinite(parseFloat(value)) ? parseFloat(value) : fallback;
+  const wti = num(p.wti, 70);
+  const gas = num(p.gasnat, 2.5);
+  const diesel = num(p.diesel, (wti / 42) * 1.30 + .50);
+  const wtiPct = num(p.wti_pct);
+  const gasPct = num(p.gasnat_pct);
+  const dieselPct = num(p.diesel_pct, wtiPct);
+  const weightedMove = wtiPct*.45 + dieselPct*.35 + gasPct*.20;
+  const pressure = Math.max(0, Math.min(100, Math.round(50 + weightedMove*4.2)));
+  const pressureLabel = pressure >= 70 ? 'Presión alta · revisar combustibles y fletes' : pressure >= 50 ? 'Presión moderada · monitoreo activo' : pressure >= 30 ? 'Presión baja · contratación escalonada' : 'Presión muy baja · ventana logística favorable';
+  const freight = diesel * 8.5;
+  const basket = diesel*50 + gas*5;
+  const avgAbs = (Math.abs(wtiPct) + Math.abs(gasPct) + Math.abs(dieselPct)) / 3;
+  const volatility = avgAbs >= 7 ? 'Alta' : avgAbs >= 3 ? 'Media' : 'Baja';
+  const transmission = pressure >= 70 ? 'Alta' : pressure >= 45 ? 'Media' : 'Baja';
+
+  set('energy-pressure', pressure + '/100');
+  set('energy-pressure-label', pressureLabel);
+  const bar = document.getElementById('energy-pressure-bar');
+  if (bar) bar.style.width = pressure + '%';
+  set('energy-freight-signal', '~$' + freight.toFixed(0) + ' MXN');
+  set('rd-flete', '~' + freight.toFixed(0) + ' MXN/ton·100km');
+  set('energy-freight-note', `Referencia por tonelada cada 100 km con diesel en $${diesel.toFixed(2)}/gal.`);
+  set('energy-basket', '$' + basket.toFixed(0) + '/día');
+  set('energy-volatility', volatility);
+  set('energy-volatility-note', `Movimiento medio absoluto de ${avgAbs.toFixed(1)}% mensual en WTI, gas y diesel.`);
+  set('energy-transmission', transmission);
+  set('energy-transmission-note', pressure >= 70 ? 'Alta probabilidad de traslado a transporte, frío y operación.' : pressure >= 45 ? 'Traslado parcial; vigilar contratos y tipo de cambio.' : 'Presión contenida sobre costos productivos inmediatos.');
+  set('energy-updated', 'Actualizado ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
+
+  const lead = [
+    {name:'WTI', pct:wtiPct}, {name:'gas natural', pct:gasPct}, {name:'diesel', pct:dieselPct},
+  ].sort((a,b) => Math.abs(b.pct)-Math.abs(a.pct))[0];
+  const direction = lead.pct > .25 ? `sube ${lead.pct.toFixed(1)}%` : lead.pct < -.25 ? `corrige ${Math.abs(lead.pct).toFixed(1)}%` : 'permanece estable';
+  const fxText = mxn ? ` Con USD/MXN en $${num(mxn).toFixed(2)}, la canasta operativa equivale a $${(basket*num(mxn)).toFixed(0)} MXN por día indicativo.` : '';
+  set('energy-reading-text', `El ${lead.name} concentra el mayor movimiento y ${direction} mensual. La presión logística se ubica en ${pressure}/100; el flete de referencia ronda $${freight.toFixed(0)} MXN por tonelada cada 100 km.${fxText}`);
+  updateEnergyChartHeader(_mktTickers.energia || 'CL=F');
+  _energyScenarioBase = { wti, gas, fx:num(mxn,18) };
+  setEnergyScenario('actual');
+}
+
+function setEnergyScenario(mode, button) {
+  document.querySelectorAll('.energy-scenario-presets button').forEach(btn => btn.classList.toggle('active', btn === button || (!button && mode === 'actual' && btn.textContent.trim() === 'Actual')));
+  const factor = mode === 'stress' ? {wti:1.15,gas:1.15,fx:1.06} : mode === 'relief' ? {wti:.90,gas:.90,fx:.97} : {wti:1,gas:1,fx:1};
+  const values = {
+    wti:Math.max(35,Math.min(150,_energyScenarioBase.wti*factor.wti)),
+    gas:Math.max(1,Math.min(12,_energyScenarioBase.gas*factor.gas)),
+    fx:Math.max(14,Math.min(26,_energyScenarioBase.fx*factor.fx)),
+  };
+  const wtiInput = document.getElementById('energy-sim-wti');
+  const gasInput = document.getElementById('energy-sim-gas');
+  const fxInput = document.getElementById('energy-sim-fx');
+  if (wtiInput) wtiInput.value = values.wti.toFixed(0);
+  if (gasInput) gasInput.value = values.gas.toFixed(1);
+  if (fxInput) fxInput.value = values.fx.toFixed(1);
+  updateEnergyScenario(true);
+}
+
+function updateEnergyScenario(fromPreset = false) {
+  if (!fromPreset) document.querySelectorAll('.energy-scenario-presets button').forEach(btn => btn.classList.remove('active'));
+  const get = (id, fallback) => parseFloat(document.getElementById(id)?.value) || fallback;
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  const wti = get('energy-sim-wti', _energyScenarioBase.wti);
+  const gas = get('energy-sim-gas', _energyScenarioBase.gas);
+  const fx = get('energy-sim-fx', _energyScenarioBase.fx);
+  const diesel = (wti/42)*1.30 + .50;
+  const freight = diesel*8.5;
+  const operationUsd = diesel*50 + gas*5;
+  const operationMxn = operationUsd*fx;
+  const baseDiesel = (_energyScenarioBase.wti/42)*1.30 + .50;
+  const baseFreight = baseDiesel*8.5;
+  const baseOperation = (baseDiesel*50 + _energyScenarioBase.gas*5)*_energyScenarioBase.fx;
+  const delta = (value, base) => base ? (value/base-1)*100 : 0;
+  const deltaLabel = (value, base) => { const d=delta(value,base); return `${d>=0?'+':''}${d.toFixed(1)}% vs mercado actual`; };
+
+  set('energy-sim-wti-out', '$'+wti.toFixed(0)+'/bbl');
+  set('energy-sim-gas-out', '$'+gas.toFixed(2)+'/MMBtu');
+  set('energy-sim-fx-out', '$'+fx.toFixed(2));
+  set('energy-sim-diesel', '$'+diesel.toFixed(2)+'/gal');
+  set('energy-sim-freight', '~$'+freight.toFixed(0)+' MXN');
+  set('energy-sim-operation', '$'+operationMxn.toFixed(0)+' MXN/día');
+  set('energy-sim-diesel-delta', deltaLabel(diesel,baseDiesel));
+  set('energy-sim-freight-delta', deltaLabel(freight,baseFreight));
+  set('energy-sim-operation-delta', deltaLabel(operationMxn,baseOperation));
+  ['energy-sim-diesel-delta','energy-sim-freight-delta','energy-sim-operation-delta'].forEach((id,index) => {
+    const el=document.getElementById(id); if (!el) return;
+    const values=[delta(diesel,baseDiesel),delta(freight,baseFreight),delta(operationMxn,baseOperation)];
+    el.className=values[index]>.1?'up':values[index]<-.1?'down':'';
+  });
+
+  const stress = delta(operationMxn,baseOperation);
+  const scores = {
+    freight:Math.max(12,Math.min(96,50+stress*2.2)),
+    machinery:Math.max(12,Math.min(96,48+delta(diesel,baseDiesel)*2.1)),
+    cold:Math.max(12,Math.min(96,43+(delta(gas,_energyScenarioBase.gas)*.9+stress*.8))),
+    fertilizer:Math.max(12,Math.min(96,40+delta(gas,_energyScenarioBase.gas)*2.0)),
+  };
+  const level = score => score>=70?'Alta':score>=45?'Media':'Baja';
+  Object.entries(scores).forEach(([key,score]) => {
+    const bar=document.getElementById('energy-exposure-'+key); if(bar) bar.style.width=score.toFixed(0)+'%';
+    set('energy-exposure-'+key+'-val',level(score));
+  });
+  const decision = stress >= 12 ? 'Escenario de presión alta: priorizar coberturas de combustible, revisar tarifas y acortar la vigencia de cotizaciones.' : stress >= 3 ? 'Presión moderada: contratar volúmenes por etapas y vigilar diesel, gas y tipo de cambio.' : stress <= -5 ? 'Escenario favorable: evaluar contratos escalonados de flete y asegurar parte del consumo energético.' : 'Condiciones cercanas al mercado actual: mantener monitoreo y límites presupuestarios.';
+  set('energy-decision-text', decision);
+  set('energy-scenario-summary', `WTI $${wti.toFixed(0)} · Gas $${gas.toFixed(2)} · USD/MXN $${fx.toFixed(2)} → impacto operativo ${stress>=0?'+':''}${stress.toFixed(1)}%.`);
+}
+
+function renderMetalIntelligence(p, mxn) {
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  const num = (value, fallback = 0) => Number.isFinite(parseFloat(value)) ? parseFloat(value) : fallback;
+  const copper = num(p.cobre,4.18);
+  const aluminum = num(p.aluminio,2400);
+  const fx = num(mxn,18);
+  const copperPct = num(p.cobre_pct);
+  const aluminumPct = num(p.aluminio_pct);
+  const copperMT = copper*2204.62;
+  const ratio = copperMT/Math.max(aluminum,1);
+  const basketUsd = copperMT*.35 + aluminum*.65;
+  const basketMxn = basketUsd*fx;
+  const weightedMove = copperPct*.60 + aluminumPct*.40;
+  const score = Math.max(0,Math.min(100,Math.round(50+weightedMove*4.5)));
+  const breadth = copperPct>.25 && aluminumPct>.25 ? 'Expansiva' : copperPct<-.25 && aluminumPct<-.25 ? 'Contractiva' : 'Mixta';
+  const volatilityValue = (Math.abs(copperPct)+Math.abs(aluminumPct))/2;
+  const volatility = volatilityValue>=6 ? 'Alta' : volatilityValue>=2.5 ? 'Media' : 'Baja';
+  const demand = score>=65 ? 'Fuerte' : score>=45 ? 'Neutral' : 'Débil';
+  const fxPressure = fx>=20 ? 'Alta' : fx>=17.5 ? 'Media' : 'Baja';
+  const capexScore = Math.max(0,Math.min(100,Math.round(50+weightedMove*3+(fx-18)*5)));
+  const capexRisk = capexScore>=67 ? 'Alto' : capexScore>=44 ? 'Medio' : 'Bajo';
+  const cycleLabel = score>=70 ? 'Impulso fuerte · demanda industrial activa' : score>=50 ? 'Expansión moderada · monitoreo de inventarios' : score>=30 ? 'Ciclo débil · amplitud limitada' : 'Contracción marcada · cautela en CAPEX';
+
+  set('metal-cycle-score',score+'/100');
+  set('metal-cycle-label',cycleLabel);
+  const bar=document.getElementById('metal-cycle-bar'); if(bar) bar.style.width=score+'%';
+  set('metal-copper-mxn','$'+(copperMT*fx).toLocaleString('es-MX',{maximumFractionDigits:0})+'/MT');
+  set('metal-aluminum-mxn','$'+(aluminum*fx).toLocaleString('es-MX',{maximumFractionDigits:0})+'/MT');
+  set('metal-breadth',breadth);
+  set('metal-breadth-note',breadth==='Expansiva'?'Ambos metales avanzan en el mes.':breadth==='Contractiva'?'Ambos metales retroceden en el mes.':'Los metales muestran direcciones divergentes.');
+  set('metal-ratio',ratio.toFixed(2)+'×');
+  set('metal-basket','$'+basketMxn.toLocaleString('es-MX',{maximumFractionDigits:0})+' MXN/MT');
+  set('metal-volatility',volatility);
+  set('metal-volatility-note',`Movimiento medio absoluto de ${volatilityValue.toFixed(1)}% mensual.`);
+  set('metal-demand',demand);
+  set('metal-demand-note',`Impulso combinado de ${score}/100 en cobre y aluminio.`);
+  set('metal-fx-pressure',fxPressure);
+  set('metal-capex-risk',capexRisk);
+  set('metal-capex-note',`Presión estimada de ${capexScore}/100 para nuevas inversiones.`);
+  set('metal-updated','Actualizado '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
+  const lead=Math.abs(copperPct)>=Math.abs(aluminumPct)?{name:'cobre',pct:copperPct}:{name:'aluminio',pct:aluminumPct};
+  const direction=lead.pct>.25?`avanza ${lead.pct.toFixed(1)}%`:lead.pct<-.25?`corrige ${Math.abs(lead.pct).toFixed(1)}%`:'permanece estable';
+  set('metal-reading-text',`El ${lead.name} concentra el mayor movimiento y ${direction} mensual. La amplitud del complejo es ${breadth.toLowerCase()} y el impulso industrial se ubica en ${score}/100. La canasta de infraestructura equivale a $${basketMxn.toLocaleString('es-MX',{maximumFractionDigits:0})} MXN/MT.`);
+  set('metal-cycle-callout',score>=65?'El complejo favorece una lectura de demanda activa; revisar inventarios, China y disponibilidad minera antes de contratar CAPEX.':score<40?'La señal apunta a menor impulso industrial; escalonar compras y evitar sobreinventario de materiales.':'El ciclo permanece equilibrado; separar el efecto del metal del traslado cambiario en pesos.');
+  updateMetalChartHeader(_mktTickers.metales||'HG=F');
+  setMetalBudget('medium');
+}
+
+function setMetalBudget(mode, button) {
+  document.querySelectorAll('.metal-budget-presets button').forEach(btn => btn.classList.toggle('active',btn===button||(!button&&mode==='medium'&&btn.textContent.includes('medio'))));
+  const preset = mode==='light'?{copper:2,aluminum:8}:mode==='intensive'?{copper:12,aluminum:40}:{copper:5,aluminum:20};
+  const copper=document.getElementById('metal-budget-copper');
+  const aluminum=document.getElementById('metal-budget-aluminum');
+  const fx=document.getElementById('metal-budget-fx');
+  if(copper) copper.value=preset.copper;
+  if(aluminum) aluminum.value=preset.aluminum;
+  if(fx) fx.value=(parseFloat(_mktMxnRate)||18).toFixed(1);
+  updateMetalBudget(true);
+}
+
+function updateMetalBudget(fromPreset=false) {
+  if(!fromPreset) document.querySelectorAll('.metal-budget-presets button').forEach(btn=>btn.classList.remove('active'));
+  const get=(id,fallback)=>{const value=parseFloat(document.getElementById(id)?.value);return Number.isFinite(value)?value:fallback;};
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+  const copperT=get('metal-budget-copper',5);
+  const aluminumT=get('metal-budget-aluminum',20);
+  const fx=get('metal-budget-fx',parseFloat(_mktMxnRate)||18);
+  const copperPrice=(parseFloat(_mktPrecios.cobre)||4.18)*2204.62;
+  const aluminumPrice=parseFloat(_mktPrecios.aluminio)||2400;
+  const copperCost=copperT*copperPrice;
+  const aluminumCost=aluminumT*aluminumPrice;
+  const usd=copperCost+aluminumCost;
+  const mxn=usd*fx;
+  const copperShare=usd?copperCost/usd*100:0;
+  const aluminumShare=100-copperShare;
+  const short=value=>value>=1e6?'$'+(value/1e6).toFixed(2)+' M':value>=1e3?'$'+(value/1e3).toFixed(0)+' mil':'$'+value.toFixed(0);
+  set('metal-budget-copper-out',copperT.toFixed(0)+' t');
+  set('metal-budget-aluminum-out',aluminumT.toFixed(0)+' t');
+  set('metal-budget-fx-out','$'+fx.toFixed(2));
+  set('metal-budget-total-short',short(mxn).replace('$',''));
+  set('metal-budget-copper-share',copperShare.toFixed(0)+'%');
+  set('metal-budget-aluminum-share',aluminumShare.toFixed(0)+'%');
+  set('metal-budget-usd','$'+usd.toLocaleString('es-MX',{maximumFractionDigits:0}));
+  set('metal-budget-mxn','$'+mxn.toLocaleString('es-MX',{maximumFractionDigits:0}));
+  set('metal-budget-stress','$'+(mxn*1.10).toLocaleString('es-MX',{maximumFractionDigits:0}));
+  const donut=document.getElementById('metal-budget-donut');
+  if(donut) donut.style.background=`conic-gradient(#b66230 0 ${copperShare.toFixed(1)}%,#788696 ${copperShare.toFixed(1)}% 100%)`;
+  set('metal-budget-summary',`${copperT.toFixed(0)} t de cobre + ${aluminumT.toFixed(0)} t de aluminio · referencia ${short(mxn)} MXN antes de transformación y logística.`);
+  const fxRisk=Math.max(15,Math.min(95,35+(fx-17)*12));
+  const fxBar=document.getElementById('metal-supply-fx-bar'); if(fxBar)fxBar.style.width=fxRisk.toFixed(0)+'%';
+  set('metal-supply-fx-label',fxRisk>=70?'Alta':fxRisk>=45?'Media':'Baja');
+  set('metal-supply-text',copperShare>=60?'El cobre concentra la mayor parte del presupuesto; priorizar especificaciones, disponibilidad y cobertura cambiaria.':aluminumShare>=70?'El aluminio domina el volumen; vigilar energía en China, primas físicas y plazos de fundición.':'La exposición está diversificada entre cobre y aluminio; conviene escalonar ambos materiales y separar el riesgo FX.');
+}
+
+function buildGrainMarketBriefs(p, mxn, hora) {
+  const num = value => parseFloat(value) || 0;
+  const move = (name, price, pct, unit) => ({
+    title: `${name} ${num(pct) >= 0 ? 'avanza' : 'corrige'} ${Math.abs(num(pct)).toFixed(1)}%: referencia en $${num(price).toFixed(2)}${unit}`,
+    desc: `${name} registra una variación mensual de ${(num(pct) >= 0 ? '+' : '')}${num(pct).toFixed(2)}%. La señal se incorpora al costo de alimento y a las decisiones de cobertura del complejo pecuario.`,
+    src:'VALL Mercado', fecha:hora, url:'', image:'', brief:true,
+  });
+  const cornMT = num(p.maiz) * 39.368;
+  const basket = cornMT*.60 + num(p.soja)*.40;
+  return [
+    move('Maíz CME', p.maiz, p.maiz_pct, '/bu'),
+    move('Soja CME', p.soja, p.soja_pct, '/MT'),
+    move('Trigo CBOT', p.trigo, p.trigo_pct, '/bu'),
+    move('Sorgo forrajero', p.sorgo, p.sorgo_pct, '/bu'),
+    { title:`Canasta pecuaria indicativa en $${basket.toFixed(0)}/MT`, desc:`La mezcla de 60% maíz y 40% soja equivale a ${mxn ? '$' + (basket*num(mxn)).toFixed(0) + ' MXN/MT' : 'una referencia internacional de $' + basket.toFixed(0) + '/MT'}. Es una guía comparativa, no una cotización física.`, src:'VALL Intelligence', fecha:hora, url:'', image:'', brief:true },
+    { title:`USD/MXN en $${mxn ? num(mxn).toFixed(4) : '—'} define el traslado del costo agrícola`, desc:'El tipo de cambio multiplica el costo local de granos importados, fletes y coberturas. Su seguimiento permite separar el movimiento del commodity del efecto cambiario.', src:'VALL Mercado', fecha:hora, url:'', image:'', brief:true },
+  ];
+}
+
+function buildEnergyMarketBriefs(p, mxn, hora) {
+  const num = value => parseFloat(value) || 0;
+  const diesel = num(p.diesel);
+  const gas = num(p.gasnat);
+  const freight = diesel*8.5;
+  const basket = diesel*50 + gas*5;
+  const move = (name, price, pct, unit, effect) => ({
+    title: `${name} ${num(pct) >= 0 ? 'avanza' : 'corrige'} ${Math.abs(num(pct)).toFixed(1)}%: referencia en $${num(price).toFixed(price === p.gasnat ? 3 : 2)}${unit}`,
+    desc: `${name} registra una variación mensual de ${(num(pct) >= 0 ? '+' : '')}${num(pct).toFixed(2)}%. ${effect}`,
+    src:'VALL Mercado', fecha:hora, url:'', image:'', brief:true,
+  });
+  return [
+    move('Petróleo WTI', p.wti, p.wti_pct, '/bbl', 'Su movimiento se transmite a combustibles, petroquímica y tarifas logísticas.'),
+    move('Gas Natural Henry Hub', p.gasnat, p.gasnat_pct, '/MMBtu', 'Es clave para calefacción, secado, electricidad y producción de fertilizantes.'),
+    move('Diesel ULSD estimado', p.diesel, p.diesel_pct, '/gal', 'Determina el costo directo de maquinaria, transporte y cadena fría.'),
+    { title:`Flete terrestre de referencia en ~$${freight.toFixed(0)} MXN por tonelada cada 100 km`, desc:'Estimación basada en el precio del diesel. Peajes, retorno vacío, seguridad, disponibilidad y condiciones regionales pueden modificar la tarifa final.', src:'VALL Logística', fecha:hora, url:'', image:'', brief:true },
+    { title:`Canasta operativa energética en $${basket.toFixed(0)}/día indicativo`, desc:`La combinación de diesel y gas equivale a ${mxn ? '$' + (basket*num(mxn)).toFixed(0) + ' MXN/día' : 'una referencia internacional de $' + basket.toFixed(0) + '/día'}.`, src:'VALL Intelligence', fecha:hora, url:'', image:'', brief:true },
+    { title:`USD/MXN en $${mxn ? num(mxn).toFixed(4) : '—'} amplifica o amortigua el costo energético`, desc:'El tipo de cambio determina cuánto del movimiento internacional de petróleo, gas y combustibles llega a los costos operativos expresados en pesos.', src:'VALL Mercado', fecha:hora, url:'', image:'', brief:true },
+  ];
+}
+
 function renderEnergiaTable(p, mxn) {
   const tb = document.getElementById('energia-tbody');
   if (!tb) return;
@@ -1815,6 +2342,187 @@ function buildSpark(hist) {
     return `<div class="spark-b" style="height:${h}px;background:${col};flex-shrink:0;width:3px;border-radius:1px 1px 0 0;"></div>`;
   }).join('');
   return `<div class="cmt-spark">${bars}</div>`;
+}
+
+/* ── MERCADO DE PROTEÍNAS ───────────────────────── */
+function buildProteinMarketData(p, mxn, hogsD, cattleD) {
+  const n = (value, fallback) => Number.isFinite(parseFloat(value)) ? parseFloat(value) : fallback;
+  const clamp = (min, max, value) => Math.max(min, Math.min(max, value));
+  const hogs = n(hogsD?.price, 98);
+  const cattle = n(cattleD?.price, 186);
+  const corn = n(p.maiz, 4.82);
+  const soy = n(p.soja, 342.5);
+  const wheat = n(p.trigo, 5.30);
+  const sorghum = n(p.sorgo, corn * .92);
+  const cornMT = corn * 39.368;
+  const soyMT = soy;
+  const wheatMT = wheat * 36.744;
+  const sorghumMT = sorghum * 39.368;
+  const rations = {
+    beef: cornMT*.65 + sorghumMT*.20 + soyMT*.15,
+    pork: cornMT*.55 + soyMT*.30 + wheatMT*.15,
+    chicken: cornMT*.65 + soyMT*.32 + sorghumMT*.03,
+  };
+  const prices = {
+    pork: clamp(1.75, 3.75, hogs * .0220462),
+    beef: clamp(3.10, 6.25, cattle * .0220462),
+    chicken: clamp(2.35, 3.75, 2.88 + (corn - 4.82)*.08 + (soy - 342.5)*.00035),
+  };
+  const pct = {
+    pork: n(hogsD?.pct, 0),
+    beef: n(cattleD?.pct, 0),
+    chicken: n(p.maiz_pct, 0)*.65 + n(p.soja_pct, 0)*.35,
+  };
+  const economics = {
+    pork: { title:'Porcino de engorda', profile:'porcino', ration:rations.pork, fcr:2.8, fixed:.42, corn:55, soy:30, other:15, price:prices.pork, note:'El alimento suele concentrar la mayor sensibilidad del costo porcino; soja y sanidad definen el riesgo marginal.' },
+    chicken: { title:'Avicultura de engorda', profile:'aves', ration:rations.chicken, fcr:1.75, fixed:.48, corn:65, soy:32, other:3, price:prices.chicken, note:'La conversión alimenticia amortigua parte del costo, pero maíz, soja, energía y sanidad pueden mover el margen con rapidez.' },
+    beef: { title:'Bovino de engorda', profile:'bovino', ration:rations.beef, fcr:5.8, fixed:1.55, corn:65, soy:15, other:20, price:prices.beef, note:'La engorda bovina combina una conversión más larga con exposición a grano, forraje y precio de reposición.' },
+  };
+  Object.values(economics).forEach(e => {
+    e.feedCost = e.ration / 1000 * e.fcr;
+    e.totalCost = e.feedCost + e.fixed;
+    e.margin = e.price - e.totalCost;
+  });
+  return { prices, pct, rations, economics, hogs, cattle, mxn:n(mxn,17.5) };
+}
+
+function renderProteinMarket(p, mxn) {
+  const d = _proteinMarketData;
+  if (!d.prices) return;
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  const usdkg = value => '$' + value.toFixed(2) + '/kg';
+  const pctText = value => `${value >= 0 ? '+' : ''}${value.toFixed(2)}% m/m`;
+  const pctClass = value => value > .25 ? '#b4235a' : value < -.25 ? '#087664' : '#6d7d8e';
+  const keys = [['pork','pork'],['chicken','chicken'],['beef','beef']];
+  keys.forEach(([key,id]) => {
+    set(`protein-${id}-price`, usdkg(d.prices[key]));
+    set(`protein-board-${id}`, usdkg(d.prices[key]));
+    const change = document.getElementById(`protein-${id}-change`);
+    if (change) { change.textContent = pctText(d.pct[key]); change.style.color = pctClass(d.pct[key]); }
+  });
+  const maxPrice = Math.max(...Object.values(d.prices));
+  keys.forEach(([key,id]) => {
+    const bar = document.getElementById(`protein-bar-${id}`);
+    if (bar) bar.style.width = Math.max(18,(d.prices[key]/maxPrice)*100) + '%';
+  });
+  set('protein-ratio-pc', (d.prices.pork/d.prices.chicken).toFixed(2) + '×');
+  set('protein-ratio-bp', (d.prices.beef/d.prices.pork).toFixed(2) + '×');
+  set('protein-ratio-fx', '$' + d.mxn.toFixed(4));
+  set('protein-driver-corn', '$' + parseFloat(p.maiz).toFixed(2) + '/bu');
+  set('protein-driver-soy', '$' + parseFloat(p.soja).toFixed(2));
+  set('protein-driver-fx', '$' + d.mxn.toFixed(4));
+  set('protein-driver-energy', '$' + parseFloat(p.diesel).toFixed(2) + '/gal');
+  set('mhub-hdr-cerdo', '$' + d.prices.pork.toFixed(2));
+  set('mhub-cerdo', '$' + d.prices.pork.toFixed(2) + '/kg');
+  set('mhub-pollo', '$' + d.prices.chicken.toFixed(2) + '/kg');
+  set('mhub-res', '$' + d.prices.beef.toFixed(2) + '/kg');
+
+  const feedScore = calcIPI(p).score;
+  set('protein-feed-score', feedScore + '/100');
+  const feedBar = document.getElementById('protein-feed-bar');
+  if (feedBar) feedBar.style.width = feedScore + '%';
+  const feedLabel = feedScore >= 65 ? 'Presión alta: revisar coberturas' : feedScore >= 45 ? 'Presión moderada: monitoreo activo' : 'Presión contenida: entorno favorable';
+  set('protein-feed-label', feedLabel);
+  set('protein-updated', 'Actualizado ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
+
+  const porkEcon = d.economics.pork;
+  set('protein-margin', (porkEcon.margin >= 0 ? '+' : '') + '$' + porkEcon.margin.toFixed(2) + '/kg');
+  const marginEl = document.getElementById('protein-margin');
+  if (marginEl) marginEl.style.color = porkEcon.margin >= 0 ? '#087664' : '#b4235a';
+  const cheapest = Object.entries(d.prices).sort((a,b) => a[1]-b[1])[0][0];
+  const cheapestLabel = {pork:'cerdo',chicken:'pollo',beef:'res'}[cheapest];
+  const bestMarginEntry=Object.entries(d.economics).sort((a,b)=>b[1].margin-a[1].margin)[0];
+  const speciesLabel={pork:'Cerdo',chicken:'Pollo',beef:'Res'};
+  const inputTrend = feedScore >= 60 ? 'una presión elevada' : feedScore >= 45 ? 'una presión moderada' : 'una presión contenida';
+  set('protein-reading-text', `El ${cheapestLabel} conserva la referencia más competitiva del tablero. Maíz y soja reflejan ${inputTrend}; el USD/MXN en $${d.mxn.toFixed(2)} seguirá definiendo el traslado del costo internacional a productores mexicanos.`);
+  set('protein-global-cheapest',speciesLabel[cheapest]+' · $'+d.prices[cheapest].toFixed(2)+'/kg');
+  set('protein-global-margin',speciesLabel[bestMarginEntry[0]]+' · '+(bestMarginEntry[1].margin>=0?'+':'')+'$'+bestMarginEntry[1].margin.toFixed(2)+'/kg');
+  set('protein-global-feed',feedScore+'/100 · '+(feedScore>=65?'Alta':feedScore>=45?'Media':'Baja'));
+  set('protein-global-fx','$'+d.mxn.toFixed(2)+' · '+(d.mxn>=20?'Alta':d.mxn>=17.5?'Media':'Baja'));
+  set('protein-chain-energy','$'+parseFloat(p.diesel).toFixed(2)+'/gal');
+  set('protein-chain-trade','USD/MXN $'+d.mxn.toFixed(2));
+  ['pork','chicken','beef'].forEach(species => {
+    const e=d.economics[species];
+    const share=e.totalCost>0?Math.min(100,e.feedCost/e.totalCost*100):0;
+    set(`protein-benchmark-${species}-share`,share.toFixed(0)+'%');
+    const bar=document.getElementById(`protein-benchmark-${species}-bar`); if(bar)bar.style.width=share+'%';
+  });
+  const mostEfficient=Object.entries(d.economics).sort((a,b)=>a[1].fcr-b[1].fcr)[0][0];
+  const efficiencyLabel={pork:'cerdo',chicken:'pollo',beef:'res'}[mostEfficient];
+  set('protein-benchmark-text',`El ${efficiencyLabel} presenta la menor conversión alimenticia del comparativo. La rentabilidad final depende también de precio de venta, mortalidad, energía, sanidad y duración del ciclo.`);
+  setProteinSpecies(window._activeProteinSpecies || 'pork');
+}
+
+function setProteinSpecies(species, sourceButton) {
+  if (!_proteinMarketData.economics?.[species]) return;
+  window._activeProteinSpecies = species;
+  document.querySelectorAll('.protein-species-switch [data-species]').forEach(btn => btn.classList.toggle('active', btn.dataset.species === species));
+  const e = _proteinMarketData.economics[species];
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+  set('protein-econ-title', e.title);
+  set('protein-cost-corn', e.corn + '%');
+  set('protein-cost-soy', e.soy + '%');
+  set('protein-cost-fixed', e.other + '%');
+  set('protein-total-cost', '$' + e.totalCost.toFixed(2) + '/kg');
+  set('protein-econ-margin', (e.margin >= 0 ? '+' : '') + '$' + e.margin.toFixed(2) + '/kg');
+  set('protein-econ-note', e.note + ' Modelo indicativo, no sustituye la estructura de costos de cada operación.');
+  set('protein-econ-fcr',e.fcr.toFixed(2));
+  set('protein-econ-feed-cost','$'+e.feedCost.toFixed(2)+'/kg');
+  set('protein-econ-sale','$'+e.price.toFixed(2)+'/kg');
+  set('protein-econ-feed-share',(e.totalCost>0?e.feedCost/e.totalCost*100:0).toFixed(0)+'%');
+  set('protein-chain-feed','$'+e.ration.toFixed(0)+'/MT');
+  set('protein-chain-production',(e.margin>=0?'+':'')+'$'+e.margin.toFixed(2)+'/kg');
+  const margin = document.getElementById('protein-econ-margin');
+  if (margin) margin.style.color = e.margin >= 0 ? '#087664' : '#b4235a';
+  const stack = document.getElementById('protein-cost-stack');
+  if (stack) {
+    const bars = stack.querySelectorAll('i');
+    if (bars[0]) bars[0].style.width = e.corn + '%';
+    if (bars[1]) bars[1].style.width = e.soy + '%';
+    if (bars[2]) bars[2].style.width = e.other + '%';
+  }
+  const reportBtn = document.getElementById('protein-report-btn');
+  if (reportBtn) { reportBtn.setAttribute('onclick', `openCmModal('${e.profile}')`); reportBtn.innerHTML = `<i class="fas fa-file-lines"></i> Abrir reporte de ${species === 'pork' ? 'porcino' : species === 'chicken' ? 'avicultura' : 'bovino'}`; }
+  setProteinScenarioSpecies(species);
+}
+
+function setProteinScenarioSpecies(species, button) {
+  if(!_proteinMarketData.economics?.[species])return;
+  window._activeProteinScenarioSpecies=species;
+  document.querySelectorAll('[data-sim-species]').forEach(btn=>btn.classList.toggle('active',btn.dataset.simSpecies===species));
+  setProteinScenarioPreset('base');
+}
+
+function setProteinScenarioPreset(mode, button) {
+  document.querySelectorAll('.protein-sim-presets button').forEach(btn=>btn.classList.toggle('active',btn===button||(!button&&mode==='base'&&btn.textContent.includes('actual'))));
+  const values=mode==='feed'?{feed:15,energy:8,sale:0}:mode==='weak'?{feed:0,energy:0,sale:-10}:mode==='margin'?{feed:-8,energy:-5,sale:8}:{feed:0,energy:0,sale:0};
+  const feed=document.getElementById('protein-sim-feed');const energy=document.getElementById('protein-sim-energy');const sale=document.getElementById('protein-sim-sale');
+  if(feed)feed.value=values.feed;if(energy)energy.value=values.energy;if(sale)sale.value=values.sale;
+  updateProteinScenario(true);
+}
+
+function updateProteinScenario(fromPreset=false) {
+  if(!fromPreset)document.querySelectorAll('.protein-sim-presets button').forEach(btn=>btn.classList.remove('active'));
+  const species=window._activeProteinScenarioSpecies||window._activeProteinSpecies||'pork';
+  const e=_proteinMarketData.economics?.[species];if(!e)return;
+  const get=id=>parseFloat(document.getElementById(id)?.value)||0;
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+  const feedShift=get('protein-sim-feed');const energyShift=get('protein-sim-energy');const saleShift=get('protein-sim-sale');
+  const feedCost=e.feedCost*(1+feedShift/100);
+  const fixedCost=e.fixed*(1+energyShift*.25/100);
+  const cost=feedCost+fixedCost;
+  const sale=e.price*(1+saleShift/100);
+  const margin=sale-cost;
+  const marginRate=sale?margin/sale*100:0;
+  const costDelta=e.totalCost?(cost/e.totalCost-1)*100:0;
+  const signed=value=>(value>=0?'+':'')+value.toFixed(0)+'%';
+  set('protein-sim-feed-out',signed(feedShift));set('protein-sim-energy-out',signed(energyShift));set('protein-sim-sale-out',signed(saleShift));
+  set('protein-sim-cost','$'+cost.toFixed(2)+'/kg');set('protein-sim-cost-delta',(costDelta>=0?'+':'')+costDelta.toFixed(1)+'% vs. actual');
+  set('protein-sim-margin',(margin>=0?'+':'')+'$'+margin.toFixed(2)+'/kg');set('protein-sim-margin-rate',(marginRate>=0?'+':'')+marginRate.toFixed(1)+'% sobre venta');set('protein-sim-breakeven','$'+cost.toFixed(2)+'/kg');
+  const label={pork:'cerdo',chicken:'pollo',beef:'res'}[species];
+  const summary=marginRate>=20?`Escenario favorable para ${label}: margen amplio; evaluar cobertura de insumos y disciplina comercial.`:marginRate>=8?`Escenario operativo para ${label}: margen positivo, sensible a alimento, energía y sanidad.`:marginRate>=0?`Margen estrecho en ${label}: vigilar conversión, mortalidad y precio de venta.`:`Escenario negativo para ${label}: el costo proyectado supera la referencia de venta.`;
+  set('protein-sim-summary',summary);
+  const dot=document.getElementById('protein-sim-status-dot');if(dot){dot.style.background=marginRate>=20?'#5fe0aa':marginRate>=8?'#f0c15a':marginRate>=0?'#f08a4b':'#ef5e72';dot.style.boxShadow=`0 0 0 4px ${marginRate>=20?'rgba(95,224,170,.12)':marginRate>=0?'rgba(240,193,90,.12)':'rgba(239,94,114,.12)'}`;}
 }
 
 /* ── RACIONES ─────────────────────────────────────── */
@@ -2020,13 +2728,20 @@ function renderNews(articles, containerId) {
     const isMed  = /rise|fall|increase|decrease|sube|baja|alza|caída|report|dato|cpi|fed|opec|inventario/.test(lower);
     const impactColor = isHigh ? '#dc2626' : isMed ? '#d97706' : '#2563eb';
     const impactLabel = isHigh ? '▲ ALTO' : isMed ? '◆ MEDIO' : '● MONITOREO';
+    const fallbackImage = containerId === 'news-granos' ? '../img/news-grains-fallback.svg' : containerId === 'news-energia' ? '../img/news-energy-fallback.svg' : '';
+    const imageSrc = a.displayImage || (safeImgUrl(a.image) ? a.image : fallbackImage);
+    const hasImage = Boolean(imageSrc);
+    const isFeatured = (containerId === 'news-granos' || containerId === 'news-energia') && i === 0;
+    const thumb = hasImage ? `<img class="news-thumb" src="${imageSrc}" alt="Imagen de ${catLabel}" loading="lazy" referrerpolicy="no-referrer" onerror="handleNewsImageError('${containerId}',${i},this)">` : '';
     
-    return `<div class="news-item" onclick="openMktNewsDetail('${containerId}',${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openMktNewsDetail('${containerId}',${i})">
+    return `<div class="news-item${a.brief ? ' news-brief' : ''}${hasImage ? ' has-image' : ''}${isFeatured ? ' news-featured' : ''}" onclick="openMktNewsDetail('${containerId}',${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openMktNewsDetail('${containerId}',${i})">
+      ${thumb}
       <div class="news-meta-row">
         <span class="news-cat">${catLabel}</span>
         <span class="news-impact-tag" style="background:${impactColor}">${impactLabel}</span>
       </div>
       <div class="news-title">${(a.title || '').slice(0, 110)}</div>
+      ${a.brief ? `<div class="news-brief-desc">${(a.desc || '').slice(0, 145)}</div>` : ''}
       <div class="news-src">
         <span>${a.src || 'API'}</span>
         <span>${a.fecha || ''} ${hasDesc ? ' <i class="fas fa-file-alt" style="color:var(--navy);margin-left:4px;" title="Reporte Completo"></i>' : ''}</span>
@@ -2041,6 +2756,29 @@ function renderNews(articles, containerId) {
   }
 }
 
+function handleNewsImageError(containerId, index, imageEl) {
+  const failedArticle = (_renderedNews[containerId] || [])[index];
+  if (failedArticle?.image) _brokenNewsImages.add(failedArticle.image);
+  if (containerId === 'news-granos') {
+    const visibleTitles = new Set(_grainNewsDefault.map(a => (a.title || '').toLowerCase()));
+    const replacement = _grainNewsPool.find(a => safeImgUrl(a.image) && !_brokenNewsImages.has(a.image) && !visibleTitles.has((a.title || '').toLowerCase()));
+    if (replacement) {
+      _grainNewsDefault[index] = replacement;
+      renderNews(_grainNewsDefault, 'news-granos');
+      return;
+    }
+  }
+  if ((containerId === 'news-granos' || containerId === 'news-energia') && imageEl) {
+    const fallback = containerId === 'news-granos' ? '../img/news-grains-fallback.svg' : '../img/news-energy-fallback.svg';
+    if (failedArticle) failedArticle.displayImage = fallback;
+    imageEl.onerror = null;
+    imageEl.src = fallback;
+    return;
+  }
+  imageEl?.closest('.news-item')?.classList.remove('has-image');
+  imageEl?.remove();
+}
+
 function startNewsAutoScroll(vp, inner) {
   // Desactivado temporalmente por preferencia de UI (Scroll manual)
 }
@@ -2049,8 +2787,32 @@ function filterNews(cat, btn, pane) {
   const bar = btn.closest('.news-filter-bar');
   if (bar) bar.querySelectorAll('.news-fpill').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
-  const filtered = cat === 'all' ? _newsAll : _newsAll.filter(a => (classifyMkt(a.title) || classifyMkt(a.desc)) === cat);
-  renderNews(filtered.length ? filtered : _newsAll, `news-${pane}`);
+  const source = pane === 'granos' ? _grainNewsDefault : pane === 'energia' ? _energyNewsDefault : _newsAll;
+  const filtered = cat === 'all' ? source : source.filter(a => (classifyMkt(a.title) || classifyMkt(a.desc)) === cat);
+  renderNews(filtered.length ? filtered : source, `news-${pane}`);
+}
+
+function updateNewsRefreshBadge() {
+  const badges = ['grain-news-refresh','energy-news-refresh'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!badges.length) return;
+  if (!_newsLastRefresh) { badges.forEach(badge => { badge.innerHTML = '<i class="fas fa-rotate"></i> Cada 12 h'; }); return; }
+  const next = new Date(_newsLastRefresh + NEWS_REFRESH_MS);
+  badges.forEach(badge => {
+    badge.innerHTML = `<i class="fas fa-rotate"></i> Próxima ${next.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
+    badge.title = `Titulares, textos e imágenes se actualizan juntos cada 12 horas. Última actualización: ${new Date(_newsLastRefresh).toLocaleString('es-MX')}`;
+  });
+}
+
+function scheduleNewsRefresh() {
+  if (_newsRefreshTimer) clearTimeout(_newsRefreshTimer);
+  const dueIn = _newsLastRefresh ? (_newsLastRefresh + NEWS_REFRESH_MS - Date.now()) : 0;
+  _newsRefreshTimer = setTimeout(async () => {
+    _newsLastRefresh = 0;
+    try { localStorage.removeItem('mkt_news_refresh_at'); } catch {}
+    await cargarMercados();
+    scheduleNewsRefresh();
+  }, Math.max(1000, dueIn));
+  updateNewsRefreshBadge();
 }
 
 /* ── Modal de noticia de mercado ────────────────────────── */
@@ -2081,8 +2843,10 @@ function openMktNewsDetail(containerId, idx) {
 
   const imgEl = document.getElementById('nm-img');
   if (imgEl) {
-    if (a.image) {
-      imgEl.src = a.image;
+    const modalFallback = containerId === 'news-granos' ? '../img/news-grains-fallback.svg' : containerId === 'news-energia' ? '../img/news-energy-fallback.svg' : '';
+    const modalImage = a.displayImage || (safeImgUrl(a.image) ? a.image : modalFallback);
+    if (modalImage) {
+      imgEl.src = modalImage;
       imgEl.style.display = 'block';
     } else {
       imgEl.style.display = 'none';
@@ -2277,11 +3041,13 @@ function openCmModal(key) {
   document.getElementById('cm-name').textContent     = prof.name;
 
   // Price & change
-  const priceMap  = { maiz: p.maiz, soja: p.soja, trigo: p.trigo, sorgo: p.sorgo, wti: p.wti, gas: p.gasnat, diesel: p.diesel, cobre: p.cobre, aluminio: p.aluminio, mxn: mxn };
-  const pctMap    = { maiz: p.maiz_pct, soja: p.soja_pct, trigo: p.trigo_pct, sorgo: p.sorgo_pct, wti: p.wti_pct, gas: p.gasnat_pct, diesel: p.diesel_pct, cobre: p.cobre_pct, aluminio: p.aluminio_pct, mxn: null };
+  const priceMap  = { maiz: p.maiz, soja: p.soja, trigo: p.trigo, sorgo: p.sorgo, wti: p.wti, gas: p.gasnat, diesel: p.diesel, cobre: p.cobre, aluminio: p.aluminio, mxn: mxn, bovino: _proteinMarketData.rations?.beef, porcino: _proteinMarketData.rations?.pork, aves: _proteinMarketData.rations?.chicken, costo_energia: (parseFloat(p.diesel)||2.5)*50 + (parseFloat(p.gasnat)||2.5)*5 };
+  const pctMap    = { maiz: p.maiz_pct, soja: p.soja_pct, trigo: p.trigo_pct, sorgo: p.sorgo_pct, wti: p.wti_pct, gas: p.gasnat_pct, diesel: p.diesel_pct, cobre: p.cobre_pct, aluminio: p.aluminio_pct, mxn: null, bovino: (parseFloat(p.maiz_pct)||0)*.65 + (parseFloat(p.sorgo_pct)||0)*.20 + (parseFloat(p.soja_pct)||0)*.15, porcino: (parseFloat(p.maiz_pct)||0)*.55 + (parseFloat(p.soja_pct)||0)*.30 + (parseFloat(p.trigo_pct)||0)*.15, aves: (parseFloat(p.maiz_pct)||0)*.65 + (parseFloat(p.soja_pct)||0)*.32 + (parseFloat(p.sorgo_pct)||0)*.03, costo_energia: (parseFloat(p.wti_pct)||0)*.70 + (parseFloat(p.gasnat_pct)||0)*.30 };
   const price     = priceMap[key];
   const pct       = pctMap[key];
-  const priceStr  = price != null ? '$' + parseFloat(price).toFixed(key === 'gas' ? 3 : key === 'mxn' ? 4 : 2) + ' ' + prof.unit : '—';
+  const unitLabel = (prof.unit || '').replace(/^\$\//, '/');
+  const dynamicValue = prof.dynamicValueId ? document.getElementById(prof.dynamicValueId)?.textContent?.trim() : '';
+  const priceStr  = dynamicValue || (price != null ? '$' + parseFloat(price).toFixed(key === 'gas' ? 3 : key === 'mxn' ? 4 : 2) + unitLabel : '—');
   const pctStr    = pct   != null ? (parseFloat(pct) >= 0 ? '+' : '') + parseFloat(pct).toFixed(2) + '%' : '—';
   const isUp      = parseFloat(pct) >= 0;
 
@@ -2291,12 +3057,12 @@ function openCmModal(key) {
   chgEl.style.background = pct != null ? (isUp ? 'rgba(22,163,74,.3)' : 'rgba(220,38,38,.3)') : 'rgba(255,255,255,.15)';
 
   // Metrics
-  const mxnVal = key === 'mxn' ? '—' : (price && mxn) ? '$' + (parseFloat(price) * parseFloat(mxn) * (prof.unit === '/MT' ? 1 : prof.unit === '/bu' ? 39.368 : prof.unit === '/lb' ? 2204.62 : 1)).toFixed(0) + ' MXN/MT est.' : '—';
+  const mxnVal = key === 'mxn' || prof.synthetic ? '—' : (price && mxn) ? '$' + (parseFloat(price) * parseFloat(mxn) * (prof.unit === '/MT' ? 1 : prof.unit === '/bu' ? 39.368 : prof.unit === '/lb' ? 2204.62 : 1)).toFixed(0) + ' MXN/MT est.' : '—';
   document.getElementById('cm-metrics').innerHTML = [
     ['Precio actual',   priceStr],
     ['Var. mensual m/m', pctStr],
     ['Mercado / Bolsa', prof.exchange],
-    ['Unidad',          prof.unit],
+    ['Unidad',          unitLabel],
     ['Equiv. MXN',      mxnVal],
   ].map(([l,v]) => `<div class="cm-metric-row"><span class="cm-metric-lbl">${l}</span><span class="cm-metric-val">${v}</span></div>`).join('');
 
@@ -2322,12 +3088,39 @@ function buildCmReport(prof, key, priceStr, pctStr) {
   const sep  = '─'.repeat(44);
   const sep2 = '═'.repeat(44);
   const now  = new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
+  const reportType = prof.synthetic ? 'REPORTE DE INDICADOR' : 'REPORTE DE COMMODITY';
+  let scenarioLines = key === 'energy_scenario' ? [
+    'WTI       : ' + (document.getElementById('energy-sim-wti-out')?.textContent || '—'),
+    'GAS NAT.  : ' + (document.getElementById('energy-sim-gas-out')?.textContent || '—'),
+    'USD/MXN   : ' + (document.getElementById('energy-sim-fx-out')?.textContent || '—'),
+    'DIESEL    : ' + (document.getElementById('energy-sim-diesel')?.textContent || '—'),
+    'FLETE     : ' + (document.getElementById('energy-sim-freight')?.textContent || '—'),
+  ].join('\n') : '';
+  if (key === 'metal_scenario') scenarioLines = [
+    'COBRE     : ' + (document.getElementById('metal-budget-copper-out')?.textContent || '—'),
+    'ALUMINIO  : ' + (document.getElementById('metal-budget-aluminum-out')?.textContent || '—'),
+    'USD/MXN   : ' + (document.getElementById('metal-budget-fx-out')?.textContent || '—'),
+    'TOTAL USD : ' + (document.getElementById('metal-budget-usd')?.textContent || '—'),
+    'ESTRÉS 10%: ' + (document.getElementById('metal-budget-stress')?.textContent || '—'),
+  ].join('\n');
+  if (key === 'protein_scenario') {
+    const species={pork:'Cerdo',chicken:'Pollo',beef:'Res'}[window._activeProteinScenarioSpecies||'pork'];
+    scenarioLines=[
+      'ESPECIE   : '+species,
+      'ALIMENTO  : '+(document.getElementById('protein-sim-feed-out')?.textContent||'—'),
+      'ENERGÍA   : '+(document.getElementById('protein-sim-energy-out')?.textContent||'—'),
+      'VENTA     : '+(document.getElementById('protein-sim-sale-out')?.textContent||'—'),
+      'COSTO     : '+(document.getElementById('protein-sim-cost')?.textContent||'—'),
+      'EQUILIBRIO: '+(document.getElementById('protein-sim-breakeven')?.textContent||'—'),
+    ].join('\n');
+  }
   return [
-    sep2, 'REPORTE DE COMMODITY — ' + prof.name.toUpperCase(),
+    sep2, reportType + ' — ' + prof.name.toUpperCase(),
     'VALLNews Intelligence · ' + now, sep2, '',
     'TICKER    : ' + prof.ticker,
     'MERCADO   : ' + prof.exchange,
     'PRECIO    : ' + priceStr + '   VAR: ' + pctStr,
+    scenarioLines,
     sep, '', 'CONTEXTO', prof.context, '',
     sep, 'QUÉ MONITOREAR',
     prof.watching.map(w => '  • ' + w).join('\n'), '',
@@ -2428,13 +3221,33 @@ function safeImgUrl(u) {
   try { const url = new URL(u); return ['http:','https:'].includes(url.protocol); } catch { return false; }
 }
 
+async function translateGrainSourceTitle(title, topic, source) {
+  if (!title) return title;
+  const from = /[\u4e00-\u9fff]/.test(title) ? 'zh-CN'
+    : /[\u0600-\u06ff]/.test(title) ? 'ar'
+    : /[ăâđêôơưĂÂĐÊÔƠƯ]/.test(title) ? 'vi'
+    : 'en';
+  try {
+    const translated = await Promise.race([
+      VDS.translate(title, from, 'es'),
+      new Promise(resolve => setTimeout(() => resolve(title), 3200)),
+    ]);
+    if (translated === title && /[\u4e00-\u9fff\u0600-\u06ff]/.test(title)) {
+      if (topic === 'trigo') return `Mercado internacional de trigo: actualización de oferta y precios · ${source}`;
+      if (topic === 'maíz') return `Mercado internacional de maíz: actualización de cosecha y precios · ${source}`;
+      return `Mercado internacional de soja: actualización de compras y producción · ${source}`;
+    }
+    return translated;
+  } catch { return title; }
+}
+
 async function cargarMercados() {
   const now      = new Date();
   const hora     = now.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
   const fechaFmt = now.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
 
   // --- Fetch commodities
-  const [maizR, sojaR, wtiR, cobreR, trigoR, gasnatR, aluminioR, mxnR] =
+  const [maizR, sojaR, wtiR, cobreR, trigoR, gasnatR, aluminioR, mxnR, hogsR, cattleR] =
     await Promise.allSettled([
       VDS.commodityWithPct('CORN'),
       VDS.commodityWithPct('SOYBEANS'),
@@ -2444,6 +3257,8 @@ async function cargarMercados() {
       VDS.commodityWithPct('NATURAL_GAS'),
       VDS.commodityWithPct('ALUMINUM'),
       VDS.usdmxn(),
+      VDS.commodityWithPct('LEAN_HOGS'),
+      VDS.commodityWithPct('LIVE_CATTLE'),
     ]);
 
   const v = r => r.status === 'fulfilled' && r.value != null ? r.value : null;
@@ -2455,6 +3270,8 @@ async function cargarMercados() {
   const gasnatD   = v(gasnatR);
   const aluminioD = v(aluminioR);
   const mxnRate   = v(mxnR);
+  const hogsD     = v(hogsR);
+  const cattleD   = v(cattleR);
 
   const wtiPrice  = wtiD?.price ?? 70.00;
   const dieselEst = +((wtiPrice / 42) * 1.30 + 0.50).toFixed(2);
@@ -2473,6 +3290,7 @@ async function cargarMercados() {
 
   _mktPrecios  = precios;
   _mktMxnRate  = mxnRate;
+  _proteinMarketData = buildProteinMarketData(precios, mxnRate, hogsD, cattleD);
 
   // Update all UI
   updateMktTicker(precios, mxnRate);
@@ -2482,10 +3300,12 @@ async function cargarMercados() {
   renderHeatMap(precios, mxnRate);
   renderForecast(precios, mxnRate);
   renderGranosTable(precios, mxnRate);
+  renderGrainIntelligence(precios, mxnRate);
   renderEnergiaTable(precios, mxnRate);
+  renderEnergyIntelligence(precios, mxnRate);
   renderMetalesTable(precios, mxnRate);
-  renderRaciones(precios, mxnRate);
-  renderLogistica(precios, mxnRate);
+  renderMetalIntelligence(precios, mxnRate);
+  renderProteinMarket(precios, mxnRate);
 
   // Strategy
   const ipi = calcIPI(precios);
@@ -2511,20 +3331,24 @@ async function cargarMercados() {
   const mi = document.getElementById('metales-insight');
   if (mi) mi.innerHTML = `<i class="fas fa-robot"></i> <span>Cobre $${precios.cobre}/lb ${parseFloat(precios.cobre) > 4.5 ? '— nivel elevado refleja fuerte demanda industrial en Asia.' : '— en rango de equilibrio histórico.'}${mxnRate ? ` USD/MXN $${parseFloat(mxnRate).toFixed(4)} — costo de importación en pesos.` : ''}</span>`;
 
-  // Costos insight
-  const ci = document.getElementById('costos-strategy-txt');
-  if (ci) { const maizMT = parseFloat(precios.maiz)*39.368, sojaMT = parseFloat(precios.soja)||0; const bovino = maizMT*0.65 + (parseFloat(precios.sorgo)*39.368)*0.20 + sojaMT*0.15; ci.textContent = bovino > 0 ? `Ración bovino estimada $${bovino.toFixed(2)}/MT${mxnRate ? ' · $' + (bovino*parseFloat(mxnRate)).toFixed(0) + ' MXN/MT' : ''}. IPI: ${ipi.score}/100. ${ipi.label.split('—')[1]?.trim() || ''}` : 'Calculando costos de raciones…'; }
-
   // Load news
-  try {
-    const [avCommR, fhR] = await Promise.allSettled([
+  const newsCycleDue = !_newsLastRefresh || (Date.now() - _newsLastRefresh >= NEWS_REFRESH_MS);
+  const shouldRefreshNews = !_newsAll.length || newsCycleDue;
+  if (shouldRefreshNews) try {
+    const [avCommR, fhR, gdSoyR, gdWheatR] = await Promise.allSettled([
       VDS.newsAlphaVantage('commodities', 8),
       VDS.finnhubNews('general'),
+      VDS.gdeltNews('soybean', 10),
+      VDS.gdeltNews('wheat', 10),
     ]);
     const avComm = (avCommR.status === 'fulfilled' ? avCommR.value : null) || [];
     const fh     = (fhR.status === 'fulfilled' ? fhR.value : null) || [];
+    const gdSoy  = (gdSoyR.status === 'fulfilled' ? gdSoyR.value : null) || [];
+    const gdWheat = (gdWheatR.status === 'fulfilled' ? gdWheatR.value : null) || [];
     const all = [
       ...avComm.map(a => ({ title: a.title, desc: a.description || '', src: a.source || 'Alpha Vantage', url: a.url || '', fecha: hora, image: a.banner_image || a.image || '' })),
+      ...gdSoy.map(a => ({ title:a.title, desc:a.description || '', src:a.source || 'GDELT', url:a.url || '', fecha:hora, image:a.image || '' })),
+      ...gdWheat.map(a => ({ title:a.title, desc:a.description || '', src:a.source || 'GDELT', url:a.url || '', fecha:hora, image:a.image || '' })),
       ...fh.map(a => ({ title: a.title, desc: a.description || a.summary || '', src: a.source || 'Finnhub', url: a.url || '', fecha: hora, image: a.image || '' })),
     ];
     const seen = new Set();
@@ -2547,27 +3371,46 @@ async function cargarMercados() {
 
     const granos  = _newsAll.filter(a => (classifyMkt(a.title) || classifyMkt(a.desc)) === 'granos');
     const energia  = _newsAll.filter(a => (classifyMkt(a.title) || classifyMkt(a.desc)) === 'energia');
-    const metales  = _newsAll.filter(a => (classifyMkt(a.title) || classifyMkt(a.desc)) === 'metales');
-    renderNews(granos.length  ? granos  : _newsAll, 'news-granos');
-    renderNews(energia.length ? energia : _newsAll, 'news-energia');
-    renderNews(metales.length ? metales : _newsAll, 'news-metales');
+    _grainBriefs = buildGrainMarketBriefs(precios, mxnRate, hora);
+    const gdGrainRaw = [
+      ...gdSoy.map(a => ({...a, topic:'soja'})),
+      ...gdWheat.map(a => ({...a, topic:'trigo'})),
+    ]
+      .map(a => ({ title:a.title, desc:a.description || '', src:a.source || 'GDELT', url:a.url || '', fecha:hora, image:a.image || '', topic:a.topic }))
+      .filter(a => safeImgUrl(a.image) && !/(health\.setn|danviet|dailyaaj|akhbarelyom|hebei\.ifeng)/i.test(a.src));
+    // Conservamos una reserva amplia: algunos portales publican una URL válida,
+    // pero después bloquean la miniatura al cargarla fuera de su sitio.
+    const sourcedGrainImages = await Promise.all(gdGrainRaw.slice(0, 16).map(async a => ({ ...a, title:await translateGrainSourceTitle(a.title,a.topic,a.src) })));
+    const grainWithImages = granos.filter(a => safeImgUrl(a.image));
+    const grainWithoutImages = granos.filter(a => !safeImgUrl(a.image));
+    _grainNewsPool = [...sourcedGrainImages, ...grainWithImages, ...grainWithoutImages, ..._grainBriefs]
+      .filter((a, index, arr) => arr.findIndex(b => (b.title || '').toLowerCase() === (a.title || '').toLowerCase()) === index);
+    _grainNewsDefault = _grainNewsPool.filter(a => !a.image || !_brokenNewsImages.has(a.image)).slice(0, 6);
+    _energyNewsDefault = [...energia, ...buildEnergyMarketBriefs(precios, mxnRate, hora)]
+      .filter((a, index, arr) => arr.findIndex(b => (b.title || '').toLowerCase() === (a.title || '').toLowerCase()) === index)
+      .slice(0, 6);
+    renderNews(_grainNewsDefault, 'news-granos');
+    renderNews(_energyNewsDefault, 'news-energia');
+    if (newsCycleDue) {
+      _newsLastRefresh = Date.now();
+      try { localStorage.setItem('mkt_news_refresh_at', String(_newsLastRefresh)); } catch {}
+    }
   } catch(e) { console.warn('news error', e); }
+  updateNewsRefreshBadge();
 
   window.VNLoader?.hide();
 }
 
 /* ── INIT ────────────────────────────────────────── */
 (async () => {
-  renderCalendario();
-  renderReportes();
-
   // Restore last tab
   const savedTab = (() => { try { return localStorage.getItem('mkt_active_tab'); } catch { return null; } })();
-  const validTabs = ['general','granos','energia','metales','costos'];
+  const validTabs = ['general','granos','energia','metales','proteinas'];
   mktTab(validTabs.includes(savedTab) ? savedTab : 'general', document.querySelector(`[data-tab="${validTabs.includes(savedTab) ? savedTab : 'general'}"]`));
 
   // Load data
   await cargarMercados();
+  scheduleNewsRefresh();
 
   // Auto-refresh every 20 minutes
   setInterval(cargarMercados, 20 * 60 * 1000);
@@ -2594,7 +3437,7 @@ async function cargarMercados() {
   </p>
 </footer>
 
-    <script src="../js/chat-widget.js?v=24" data-mascota="../Logotipos/mascota-atlas.svg"></script>
+    <script src="../js/chat-widget.js?v=22" data-mascota="../Logotipos/mascota1.png"></script>
 <script src="../js/flags-widget.js"></script>
 
 <!-- ══ MODAL: NOTICIA DE MERCADO ══════════════════════════════════ -->
@@ -2609,7 +3452,7 @@ async function cargarMercados() {
       <div id="nm-title" class="nm-title-big"></div>
       <div id="nm-source" class="nm-source-lbl"></div>
     </div>
-    <img id="nm-img" class="nm-cover-img" src="" alt="Noticia" style="display:none;">
+    <img id="nm-img" class="nm-cover-img" src="" alt="Noticia" style="display:none;" onerror="this.style.display='none';this.removeAttribute('src')">
     <div class="nm-body">
       <div class="nm-section">
         <div class="nm-section-hdr">Contenido de la Noticia</div>
@@ -2636,19 +3479,5 @@ async function cargarMercados() {
     </div>
   </div>
 </div>
-<script>
-(function () {
-    const hamBtn = document.getElementById('hamBtn');
-    const mainNav = document.getElementById('mainNav');
-    if (!hamBtn || !mainNav || hamBtn.dataset.vnHeaderBound === '1') return;
-    hamBtn.dataset.vnHeaderBound = '1';
-    hamBtn.addEventListener('click', () => {
-        hamBtn.classList.toggle('vn-ham-open');
-        mainNav.classList.toggle('vn-nav-open');
-    });
-})();
-</script>
 </body>
 </html>
-
-

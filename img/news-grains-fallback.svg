@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-labelledby="title desc">
+  <title id="title">Mercado internacional de granos</title>
+  <desc id="desc">Ilustración editorial de espigas y campos agrícolas para noticias de granos.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d3b52"/>
+      <stop offset="1" stop-color="#2e7380"/>
+    </linearGradient>
+    <linearGradient id="field" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d7a62a"/>
+      <stop offset="1" stop-color="#7b8f2a"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#082532" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <rect width="800" height="450" fill="url(#sky)"/>
+  <circle cx="650" cy="92" r="52" fill="#f5ca52" opacity=".95"/>
+  <path d="M0 250 Q150 190 315 250 T800 226 V450 H0Z" fill="#b78c28"/>
+  <path d="M0 292 Q180 230 365 288 T800 266 V450 H0Z" fill="url(#field)"/>
+  <g fill="none" stroke="#f7df8b" stroke-width="8" stroke-linecap="round" filter="url(#shadow)">
+    <path d="M170 390 Q177 280 158 167"/>
+    <path d="M285 414 Q292 290 276 138"/>
+    <path d="M400 415 Q412 308 402 205"/>
+  </g>
+  <g fill="#f6d56c" stroke="#8f6817" stroke-width="2">
+    <ellipse cx="143" cy="196" rx="17" ry="34" transform="rotate(-42 143 196)"/>
+    <ellipse cx="174" cy="217" rx="17" ry="34" transform="rotate(38 174 217)"/>
+    <ellipse cx="142" cy="240" rx="17" ry="34" transform="rotate(-42 142 240)"/>
+    <ellipse cx="184" cy="262" rx="17" ry="34" transform="rotate(40 184 262)"/>
+    <ellipse cx="255" cy="174" rx="17" ry="34" transform="rotate(-42 255 174)"/>
+    <ellipse cx="290" cy="196" rx="17" ry="34" transform="rotate(38 290 196)"/>
+    <ellipse cx="252" cy="220" rx="17" ry="34" transform="rotate(-42 252 220)"/>
+    <ellipse cx="300" cy="245" rx="17" ry="34" transform="rotate(40 300 245)"/>
+    <ellipse cx="382" cy="235" rx="16" ry="31" transform="rotate(-42 382 235)"/>
+    <ellipse cx="415" cy="258" rx="16" ry="31" transform="rotate(38 415 258)"/>
+    <ellipse cx="378" cy="280" rx="16" ry="31" transform="rotate(-42 378 280)"/>
+  </g>
+  <g transform="translate(510 292)" filter="url(#shadow)">
+    <rect width="235" height="96" rx="18" fill="#082f3e" fill-opacity=".9"/>
+    <text x="24" y="41" fill="#f8d76d" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">VALLNEWS</text>
+    <text x="24" y="70" fill="#fff" font-family="Arial, sans-serif" font-size="24" font-weight="700">GRANOS</text>
+  </g>
+</svg>

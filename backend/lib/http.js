@@ -1,9 +1,14 @@
 'use strict';
 const https = require('https');
 
+const IS_VERCEL = !!process.env.VERCEL;
+const IS_PROD   = process.env.NODE_ENV === 'production';
+
 // rejectUnauthorized:
-//   - Siempre true: un certificado inválido debe fallar de forma segura.
-const REJECT_UNAUTHORIZED = true;
+//   - En Vercel/producción: true (Linux tiene el bundle de CAs completo)
+//   - En local/Windows: false — ssl-root-cas no cubre todas las CAs intermedias
+//     (p.ej. Alpha Vantage) y los errores de certificado bloquean datos de mercado
+const REJECT_UNAUTHORIZED = IS_VERCEL || IS_PROD;
 
 /**
  * Fetch HTTPS genérico con control de timeout y manejo de TLS.

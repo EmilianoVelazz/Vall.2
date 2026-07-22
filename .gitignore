@@ -51,11 +51,9 @@ ehthumbs.db
 Desktop.ini
 .DS_Store
 
-# Scripts y dumps de un solo uso (rediseños ad-hoc, no forman parte del build)
-# backend/market-data.py y scripts/*.mjs SÍ están trackeados y no se ven afectados.
+# Scripts y archivos auxiliares de un solo uso
 /*.py
 /scripts/*.py
-/scripts/*.cjs
 *.backup
 *.broken
 diff.txt

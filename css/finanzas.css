@@ -4,8 +4,8 @@
   --primary-s: 60%;
   --primary-l: 12%;
   --bg-light: #f8fafc;
-  --bg-dark: #2a3242;
-  --text-light: #2a3242;
+  --bg-dark: #0f172a;
+  --text-light: #0f172a;
   --text-dark: #e2e8f0;
   --accent: hsl(var(--primary-h), var(--primary-s), 55%);
   --card-bg: rgba(255,255,255,0.12);
@@ -45,7 +45,7 @@ body {
   padding: 1.2rem 1.5rem;
   background: linear-gradient(130deg, hsl(var(--primary-h), var(--primary-s), 15%) 0%, hsl(var(--primary-h), var(--primary-s), 30%) 52%, hsl(var(--primary-h), var(--primary-s), 20%) 100%);
   border-radius: 1rem;
-  box-shadow: 0 6px 28px rgba(45, 52, 64,.28), inset 0 1px 0 rgba(255,255,255,.06);
+  box-shadow: 0 6px 28px rgba(0,33,58,.28), inset 0 1px 0 rgba(255,255,255,.06);
   color: #fff;
 }
 .page-title i {

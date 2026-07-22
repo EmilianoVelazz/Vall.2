@@ -3,12 +3,8 @@ const express = require('express');
 const fs      = require('fs');
 const path    = require('path');
 
-const { externalGet, gdeltFetch }   = require('../lib/http');
-const { genAI, MODEL_FLASH }        = require('../lib/gemini');
-const { CACHE_DIR }                 = require('../lib/config');
-const { fetchYahooYield }           = require('../core/sources/yahoo');
-const { fetchBanxicoYield }         = require('../core/sources/banxico');
-const { countryForBondKey }         = require('../core/shape');
+const { externalGet, gdeltFetch, yahooFetch, YF_UA } = require('../lib/http');
+const { CACHE_DIR }                                   = require('../lib/config');
 
 const router = express.Router();
 
@@ -32,7 +28,7 @@ router.get('/banxico/:serie', async (req, res) => {
     // Circuit breaker abierto: no reintentar hasta que pase el tiempo
     if (_bnxCircuitOpen && Date.now() < _bnxCircuitUntil) {
         if (hit) return res.json(hit.data);
-        return res.status(502).json({ error: 'Datos de Banxico temporalmente no disponibles.' });
+        return res.status(502).json({ error: 'Token de Banxico inválido. Actualiza BANXICO_TOKEN en backend/.env' });
     }
 
     const url = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/oportuno`;
@@ -49,7 +45,7 @@ router.get('/banxico/:serie', async (req, res) => {
                 console.error(`[Banxico] ${errMsg} — Genera un nuevo token en https://www.banxico.org.mx/SieAPIRest/service/v1/token y actualiza BANXICO_TOKEN en backend/.env. Reintentos bloqueados por 1h.`);
             }
             if (hit) return res.json(hit.data);
-            return res.status(502).json({ error: 'Datos de Banxico temporalmente no disponibles.' });
+            return res.status(502).json({ error: errMsg });
         }
 
         // Banxico responde 200 incluso con token inválido; validar que haya un dato real
@@ -67,28 +63,9 @@ router.get('/banxico/:serie', async (req, res) => {
     }
 });
 
-// ── Finnhub news proxy: caché en memoria + disco ──────────────────────────────
-// La caché en disco sobrevive reinicios del servidor (y cold starts tibios en
-// Vercel vía /tmp), para que el ciclo de renovación de 12 h se respete de verdad.
-const _fhCache      = new Map();
-const FH_TTL        = 12 * 60 * 60 * 1000; // 12 horas
-const FH_CACHE_FILE = path.join(CACHE_DIR, 'finnhub_cache.json');
-
-if (fs.existsSync(FH_CACHE_FILE)) {
-    try {
-        const saved = JSON.parse(fs.readFileSync(FH_CACHE_FILE, 'utf8'));
-        Object.entries(saved).forEach(([k, v]) => _fhCache.set(k, v));
-        console.log(`  Finnhub cache: ${_fhCache.size} entradas cargadas desde disco`);
-    } catch { /* archivo corrupto, ignorar */ }
-}
-
-function _saveFhCacheToDisk() {
-    try {
-        const obj = {};
-        _fhCache.forEach((v, k) => { obj[k] = v; });
-        fs.writeFileSync(FH_CACHE_FILE, JSON.stringify(obj));
-    } catch { /* no crítico */ }
-}
+// ── Finnhub news proxy ────────────────────────────────────────────────────────
+const _fhCache = new Map();
+const FH_TTL   = 3 * 60 * 60 * 1000;
 
 router.get('/finnhub-news', async (req, res) => {
     const category = ['forex', 'general', 'crypto', 'merger'].includes(req.query.category)
@@ -100,45 +77,7 @@ router.get('/finnhub-news', async (req, res) => {
         const r  = await externalGet(`https://finnhub.io/api/v1/news?${qs}`, {}, 7000);
         if (!r.ok) throw new Error(`Finnhub HTTP ${r.status}`);
         const j  = await r.json();
-
-        // Traducción automática de noticias a Español usando Gemini
-        if (genAI && j && j.length > 0) {
-            try {
-                const topNews = j.slice(0, 15);
-                const textToTranslate = JSON.stringify(topNews.map(n => ({ id: n.id, headline: n.headline, summary: n.summary })));
-
-                const model = genAI.getGenerativeModel({
-                    model: MODEL_FLASH,
-                    generationConfig: { responseMimeType: "application/json" }
-                });
-                const prompt = `Translate the 'headline' and 'summary' of this JSON array of news to Spanish. Keep the exact same JSON array format. JSON: ${textToTranslate}`;
-
-                const result = await model.generateContent(prompt);
-                const translatedText = result.response.text();
-
-                try {
-                    const translatedNews = JSON.parse(translatedText);
-                    const newsArray = Array.isArray(translatedNews) ? translatedNews : [translatedNews]; // por si devuelve un solo objeto
-
-                    newsArray.forEach(tn => {
-                        const original = topNews.find(n => n.id === tn.id);
-                        if (original && tn.headline) {
-                            original.headline = tn.headline;
-                            original.summary = tn.summary || '';
-                        }
-                    });
-                    j.splice(0, topNews.length, ...topNews);
-                } catch (parseError) {
-                    console.error('JSON Parse error on Gemini output:', parseError.message);
-                    console.error('Raw Gemini output:', translatedText.substring(0, 150));
-                }
-            } catch (e) {
-                console.error('Translation error:', e.message);
-            }
-        }
-
         _fhCache.set(category, { ts: Date.now(), data: j });
-        _saveFhCacheToDisk();
         res.json(j);
     } catch (err) {
         console.error('/api/finnhub-news:', err.message);
@@ -176,7 +115,7 @@ router.get('/alphavantage-news', async (req, res) => {
         _avCache.set(cacheKey, { ts: Date.now(), data: j });
         res.json(j);
     } catch (err) {
-        console.error('/api/alphavantage-news: upstream temporalmente no disponible');
+        console.error('/api/alphavantage-news:', err.message);
         const stale = _avCache.get(cacheKey);
         if (stale) return res.json(stale.data);
         res.status(502).json({ error: 'No se pudieron cargar noticias de Alpha Vantage.' });
@@ -281,15 +220,13 @@ function _queueGdeltFetch(url) {
 
 router.get('/gdelt', async (req, res) => {
     const { query, mode, maxrecords = '5' } = req.query;
-    const safeQuery = String(query || '').trim();
-    const safeMaxRecords = Math.min(Math.max(parseInt(maxrecords, 10) || 5, 1), 50);
-    if (!safeQuery || safeQuery.length > 200 || !['ArtList', 'imagecollageinfo'].includes(mode))
+    if (!query || !['ArtList', 'imagecollageinfo'].includes(mode))
         return res.status(400).json({ error: 'Parámetros inválidos' });
-    const cacheKey = `${mode}:${safeQuery}:${safeMaxRecords}`;
+    const cacheKey = `${mode}:${query}:${maxrecords}`;
     const hit = _gdeltCache.get(cacheKey);
     if (hit && Date.now() - hit.ts < GDELT_TTL) return res.json(hit.data);
 
-    const qs = new URLSearchParams({ query: safeQuery, mode, format: 'json', maxrecords: safeMaxRecords });
+    const qs = new URLSearchParams({ query, mode, format: 'json', maxrecords });
     try {
         const j = await _queueGdeltFetch(`https://api.gdeltproject.org/api/v2/doc/doc?${qs}`);
         _gdeltCache.set(cacheKey, { ts: Date.now(), data: j });
@@ -315,9 +252,38 @@ const _BOND_FALLBACK_RATES = {
     mx:    { yield: 8.50, prev: 9.00 },
 };
 
-// fetchYahooYield y fetchBanxicoYield ahora viven en core/sources/ (fuente única
-// de verdad, compartida con /stock-history y otras rutas). fetchECBYield sigue
-// aquí porque es la única ruta que consume la API del BCE.
+async function fetchYahooYield(ticker) {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;
+    const r = await yahooFetch(url, {
+        headers: { 'User-Agent': YF_UA, Accept: 'application/json' },
+        signal: AbortSignal.timeout(7000),
+    });
+    if (!r.ok) throw new Error(`Yahoo ${r.status}`);
+    const json   = await r.json();
+    const result = json?.chart?.result?.[0];
+    const meta   = result?.meta;
+    if (!meta?.regularMarketPrice) throw new Error('sin precio');
+    const closes = result?.indicators?.quote?.[0]?.close?.filter(v => v != null) || [];
+    const prev   = closes.length >= 2 ? closes[closes.length - 2] : null;
+    return { yield: meta.regularMarketPrice, prev };
+}
+
+async function fetchBanxicoYield(serie) {
+    const end   = new Date();
+    const start = new Date(end.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const fmt   = d => d.toISOString().slice(0, 10);
+    const url   = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/${fmt(start)}/${fmt(end)}`;
+    const r = await externalGet(url, { 'Bmx-Token': BANXICO_TOKEN }, 7000);
+    if (!r.ok) throw new Error(`Banxico ${r.status}`);
+    const json  = await r.json();
+    const datos = json?.bmx?.series?.[0]?.datos || [];
+    const vals  = datos.map(d => parseFloat(d.dato)).filter(v => !isNaN(v));
+    if (!vals.length) throw new Error('sin dato');
+    const curr = vals[vals.length - 1];
+    const prev = vals.length >= 2 ? vals[vals.length - 2] : null;
+    return { yield: curr, prev };
+}
+
 async function fetchECBYield(seriesKey) {
     const url = `https://data-api.ecb.europa.eu/service/data/${seriesKey}?format=jsondata&lastNObservations=5`;
     const r = await fetch(url, {
@@ -377,9 +343,6 @@ router.get('/bond-yields', async (req, res) => {
             { key: 'ca', country: 'Canadá',      flag: '🇨🇦', source: 'Bank of Canada (tasa objetivo)',  bonds: [{ label: 'Tasa objetivo', maturity: 'OVN', yield: 4.25, prev: 4.50 }] },
         ];
 
-        // Dimensión país/región (aditivo — prep. para el futuro apartado "México")
-        data.forEach(b => { b.countryCode = countryForBondKey(b.key); });
-
         _bondsCache.ts   = Date.now();
         _bondsCache.data = data;
         res.json(data);
@@ -429,8 +392,7 @@ router.get('/mx-rates', async (req, res) => {
     ];
 
     const hasLive = [t28, t91, t182, c28, c91, c182, c364].some(r => r.status === 'fulfilled');
-    // countryCode 'MX' aditivo: /mx-rates es por definición México (prep. apartado "México")
-    const data    = { tiie, cetes, udibonos, source: hasLive ? 'banxico' : 'reference', date: new Date().toISOString().slice(0, 10), countryCode: 'MX' };
+    const data    = { tiie, cetes, udibonos, source: hasLive ? 'banxico' : 'reference', date: new Date().toISOString().slice(0, 10) };
 
     if (hasLive) { _mxRatesCache.ts = Date.now(); _mxRatesCache.data = data; }
     res.json(data);

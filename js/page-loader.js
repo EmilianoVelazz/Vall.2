@@ -1,9 +1,127 @@
-// Loader removed but VNLoader object kept to prevent JS crashes
-window.VNLoader = { hide: function() {}, setText: function() {} };
+(function () {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const base  = parts.length > 1 ? '../' : '';
 
-// Limpiar el flag de prevención de loop de redirección ya que la página cargó exitosamente
-sessionStorage.removeItem('vn_redirect_loop');
+    // Ocultar el chat widget mientras el loader esté activo
+    // El contenido debe mostrarse inmediatamente. Los datos se actualizan en
+    // segundo plano sin bloquear ni hacer parpadear la página completa.
+    document.documentElement.classList.remove('vn-loading');
 
+    const style = document.createElement('style');
+    style.textContent = `
+        html.vn-loading #vn-cw { display: none !important; }
+
+        #vn-loader {
+            display: none !important;
+            position: fixed; inset: 0; z-index: 99999;
+            background: #06111f;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 1.2rem;
+            transition: opacity .5s ease;
+        }
+        #vn-loader.vn-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .vnl-logo {
+            width: 64px; height: 64px;
+            border-radius: 14px; object-fit: contain;
+        }
+        .vnl-brand {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.5rem; font-weight: 700;
+            color: #e2ebf6; letter-spacing: .03em;
+        }
+        .vnl-bar-outer {
+            width: 220px; height: 3px;
+            background: rgba(255,255,255,.08);
+            border-radius: 2px; overflow: hidden;
+        }
+        .vnl-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d97706, #fbbf24);
+            border-radius: 2px;
+            animation: vnl-prog 15s ease forwards;
+        }
+        @keyframes vnl-prog {
+            0%   { width: 0%  }
+            20%  { width: 35% }
+            50%  { width: 65% }
+            80%  { width: 85% }
+            100% { width: 92% }
+        }
+        .vnl-text {
+            font-family: 'Inter', sans-serif;
+            font-size: .75rem; color: #6b7f9a;
+            letter-spacing: .08em; text-transform: uppercase;
+        }
+        .vnl-dots span {
+            display: inline-block;
+            animation: vnl-dot 1.3s ease-in-out infinite;
+        }
+        .vnl-dots span:nth-child(2) { animation-delay: .2s; }
+        .vnl-dots span:nth-child(3) { animation-delay: .4s; }
+        @keyframes vnl-dot {
+            0%, 80%, 100% { opacity: .2; }
+            40%            { opacity: 1;  }
+        }
+    `;
+    document.head.appendChild(style);
+
+    const el = document.createElement('div');
+    el.id = 'vn-loader';
+    el.innerHTML = `
+        <img class="vnl-logo" src="${base}Logotipos/logo1.png" alt="VALLNews"
+             onerror="this.style.display='none'">
+        <div class="vnl-brand">VALLNews</div>
+        <div class="vnl-bar-outer"><div class="vnl-bar-fill"></div></div>
+        <div class="vnl-text" id="vnlText">
+            Cargando datos<span class="vnl-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </span>
+        </div>
+    `;
+
+    // Inyectar inmediatamente en <html> para cubrir la pantalla antes del <body>
+    document.documentElement.appendChild(el);
+    el.style.display = 'none';
+
+    // Fallback: ocultar si después de 45 s algo falla y nunca se llama hide()
+    // 45 s da margen para: cold-start del backend (~15 s) + loadNews (~20 s) = ~35 s.
+    const fallback = setTimeout(() => hide(true), 4500);
+    let hidden = false;
+
+    function hide(force) {
+        if (hidden) return;
+        clearTimeout(fallback);
+        function doHide() {
+            if (hidden) return;
+            hidden = true;
+            el.classList.add('vn-hidden');
+            setTimeout(function () {
+                el.style.display = 'none';
+                document.documentElement.classList.remove('vn-loading');
+            }, 520);
+        }
+        if (!force && window._vnAuthPending) {
+            var p = window._vnAuthPending;
+            window._vnAuthPending = null;
+            Promise.resolve(p).then(doHide, doHide);
+        } else {
+            doHide();
+        }
+    }
+
+    window.VNLoader = {
+        hide,
+        setText(msg) {
+            const t = document.getElementById('vnlText');
+            if (t) t.innerHTML = msg + `<span class="vnl-dots">
+                <span>.</span><span>.</span><span>.</span></span>`;
+        },
+    };
+})();
 
 // ── Hamburger / mobile nav ────────────────────────────────────
 (function () {

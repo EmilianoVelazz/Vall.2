@@ -1,54 +1,27 @@
-// Genera dist/ para Vercel: la app React (frontend/) como sitio principal +
-// los assets estáticos legacy (css, js, img, Logotipos) + las páginas legacy
-// que LegacyPage aún monta en runtime (finanzas, mercados, geopolitica, mexico,
-// mercado_proteinas). api/ y backend/ NO se copian: Vercel las detecta como
-// función serverless desde la raíz. El "Output Directory" del proyecto sigue
-// siendo "dist".
-import { existsSync, rmSync, cpSync, copyFileSync, mkdirSync } from 'fs';
-import { execSync } from 'child_process';
+// Genera dist/ copiando los archivos estáticos del sitio (no hay bundler: es HTML/CSS/JS
+// plano). El proyecto en Vercel tiene "Output Directory" fijado a "dist" desde la época de
+// Vite; en vez de depender de que se cambie ese ajuste en el dashboard, generamos ese
+// directorio nosotros mismos en cada build. api/ y backend/ NO se copian aquí: Vercel las
+// detecta como función serverless desde la raíz del repo, independiente de este directorio.
+import { existsSync, rmSync, cpSync, copyFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
-const FRONTEND = path.join(ROOT, 'frontend');
-const FRONTEND_DIST = path.join(FRONTEND, 'dist');
 
-// ── 1. Construir la app React (Vite) ────────────────────────────────────────
-console.log('[build-dist] Instalando dependencias del frontend…');
-// --include=dev es CLAVE: en Vercel NODE_ENV=production haría que npm omitiera
-// las devDependencies (vite, @vitejs/plugin-react) y el build fallaría.
-execSync('npm install --include=dev', { cwd: FRONTEND, stdio: 'inherit' });
-console.log('[build-dist] Compilando frontend (vite build)…');
-execSync('npm run build', { cwd: FRONTEND, stdio: 'inherit' });
+const DIRS = ['css', 'js', 'img', 'Logotipos', 'configuracion', 'finanzas', 'geopolitica', 'mercados', 'mercado_proteinas', 'mexico'];
+const FILES = ['index.html', 'inicio.html', 'periodico.png'];
 
-// ── 2. Reiniciar dist/ ──────────────────────────────────────────────────────
 if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
-mkdirSync(DIST, { recursive: true });
 
-// ── 3. App React como raíz del sitio (index.html + assets/) ─────────────────
-cpSync(FRONTEND_DIST, DIST, { recursive: true });
-
-// ── 4. Assets estáticos legacy que la app React referencia en runtime ───────
-const ASSET_DIRS = ['css', 'js', 'img', 'Logotipos'];
-for (const dir of ASSET_DIRS) {
-  const src = path.join(ROOT, dir);
-  if (existsSync(src)) cpSync(src, path.join(DIST, dir), { recursive: true });
+for (const dir of DIRS) {
+    const src = path.join(ROOT, dir);
+    if (existsSync(src)) cpSync(src, path.join(DIST, dir), { recursive: true });
+}
+for (const file of FILES) {
+    const src = path.join(ROOT, file);
+    if (existsSync(src)) copyFileSync(src, path.join(DIST, file));
 }
 
-// ── 5. Páginas legacy que LegacyPage trae por fetch ─────────────────────────
-// Ya no quedan: TODAS las páginas se migraron a rutas React. Si en el futuro
-// alguna vuelve a montarse con LegacyPage, añadir su carpeta aquí.
-const LEGACY_PAGE_DIRS = [];
-for (const dir of LEGACY_PAGE_DIRS) {
-  const src = path.join(ROOT, dir);
-  if (existsSync(src)) cpSync(src, path.join(DIST, dir), { recursive: true });
-}
-
-// ── 6. Archivos sueltos referenciados ───────────────────────────────────────
-for (const file of ['periodico.png']) {
-  const src = path.join(ROOT, file);
-  if (existsSync(src)) copyFileSync(src, path.join(DIST, file));
-}
-
-console.log('[build-dist] dist/ generado: React (SPA) + assets legacy + páginas LegacyPage.');
+console.log(`[build-dist] dist/ generado con ${DIRS.length} carpetas y ${FILES.length} archivos.`);

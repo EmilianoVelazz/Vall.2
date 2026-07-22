@@ -309,13 +309,18 @@
 
     /* ── Image sources ──────────────────────────────── */
     const script       = document.querySelector('script[src*="chat-widget"]');
-    // SVG NORMAL: Node con pulse animado
-    const _defaultPeek = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Cdefs%3E%3Cstyle%3E@keyframes nodePulse{0%25{r:26}50%25{r:28}100%25{r:26}}.n{fill:%232563eb}.g{fill:none;stroke:%231e40af;stroke-width:1.5}.pulse{animation:nodePulse 2s ease-in-out infinite}%3C/style%3E%3C/defs%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2226%22 class=%22n pulse%22/%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2242%22 class=%22g%22 opacity=%220.25%22/%3E%3Ccircle cx=%2230%22 cy=%2235%22 r=%225%22 class=%22n%22 opacity=%220.5%22/%3E%3Ccircle cx=%2270%22 cy=%2235%22 r=%225%22 class=%22n%22 opacity=%220.5%22/%3E%3Ccircle cx=%2225%22 cy=%2265%22 r=%225%22 class=%22n%22 opacity=%220.5%22/%3E%3Ccircle cx=%2275%22 cy=%2265%22 r=%225%22 class=%22n%22 opacity=%220.5%22/%3E%3Cline x1=%2250%22 y1=%2250%22 x2=%2230%22 y2=%2235%22 class=%22g%22 opacity=%220.4%22/%3E%3Cline x1=%2250%22 y1=%2250%22 x2=%2270%22 y2=%2235%22 class=%22g%22 opacity=%220.4%22/%3E%3Cline x1=%2250%22 y1=%2250%22 x2=%2225%22 y2=%2265%22 class=%22g%22 opacity=%220.4%22/%3E%3Cline x1=%2250%22 y1=%2250%22 x2=%2275%22 y2=%2265%22 class=%22g%22 opacity=%220.4%22/%3E%3C/svg%3E';
-    // SVG HOVER: Chat bubble con mensaje activo
-    const _defaultFull = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 200%22%3E%3Cdefs%3E%3Cstyle%3E@keyframes chatBubble{0%25{opacity:0.7}50%25{opacity:1}100%25{opacity:0.7}}@keyframes lineFlow{0%25{stroke-dashoffset:0}100%25{stroke-dashoffset:-20}}.btn{fill:%232563eb}.btnacc{fill:%2364c8ff}.glow{fill:none;stroke:%231e40af;stroke-width:2.5;stroke-dasharray:20,20}.chat-icon{animation:chatBubble 1.5s ease-in-out infinite}.pulse-line{animation:lineFlow 1.5s linear infinite}%3C/style%3E%3C/defs%3E%3Cg class=%22chat-icon%22%3E%3Crect x=%2250%22 y=%2260%22 width=%22100%22 height=%2270%22 rx=%228%22 class=%22btn%22/%3E%3Cpolygon points=%22145,130 160,130 150,145%22 class=%22btn%22/%3E%3Crect x=%2258%22 y=%2275%22 width=%2284%22 height=%225%22 rx=%222.5%22 class=%22btnacc%22/%3E%3Crect x=%2258%22 y=%2288%22 width=%2260%22 height=%225%22 rx=%222.5%22 class=%22btnacc%22 opacity=%220.7%22/%3E%3Crect x=%2258%22 y=%22101%22 width=%2270%22 height=%225%22 rx=%222.5%22 class=%22btnacc%22 opacity=%220.5%22/%3E%3C/g%3E%3Ccircle cx=%22100%22 cy=%2240%22 r=%2218%22 class=%22btn%22/%3E%3Ctext x=%22100%22 y=%2245%22 text-anchor=%22middle%22 font-size=%2222%22 font-weight=%22bold%22 fill=%22white%22%3EAI%3C/text%3E%3Ccircle cx=%22100%22 cy=%2230%22 r=%228%22 fill=%22%2364c8ff%22/%3E%3C/svg%3E';
+    const _defaultFull = script?.dataset.mascota || '../Logotipos/mascota1.png';
+    const _defaultPeek = _defaultFull.replace('mascota1', 'mascota');
 
-    const mascotaFull = script ? (script.getAttribute('data-mascota') || _defaultFull) : _defaultFull;
-    const mascotaPeek = script ? (script.getAttribute('data-mascota') || _defaultPeek) : _defaultPeek;
+    function _safeSrc(key, fallback) {
+        try {
+            const v = localStorage.getItem(key);
+            if (v && /^[^:]*$/.test(v) && !/[<>"']/.test(v)) return v;
+        } catch(e) {}
+        return fallback;
+    }
+    const mascotaFull = _safeSrc('vn_mascot_hover_src',  _defaultFull);
+    const mascotaPeek = _safeSrc('vn_mascot_widget_src', _defaultPeek);
 
     /* ── System Prompt ─────────────────────────────── */
     const SYSTEM_PROMPT = `Eres VALL-AI, un analista financiero institucional de élite integrado en la plataforma VALLNews — Inteligencia Económica.
@@ -574,14 +579,7 @@ REGLAS:
         const tid  = setTimeout(() => ctrl.abort(), 45000);
         let usedTier = tier;
         try {
-            let API_BASE = '';
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                if (window.location.port !== '3001') API_BASE = 'http://localhost:3001';
-            } else if (window.location.protocol === 'file:') {
-                API_BASE = 'http://localhost:3001';
-            }
-            
-            const res = await fetch(API_BASE + '/api/ai-insight-stream', {
+            const res = await fetch('/api/ai-insight-stream', {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -589,7 +587,6 @@ REGLAS:
                 signal: ctrl.signal,
             });
             if (!res.ok || !res.body) {
-                if (res.status === 401) throw new Error("401_UNAUTHORIZED");
                 const errBody = await res.json().catch(() => null);
                 throw new Error(errBody?.error ? `${res.status}: ${errBody.error}` : `Gemini HTTP ${res.status}`);
             }
@@ -693,14 +690,13 @@ REGLAS:
 
 /* ── Mascot button ── */
 #vn-cw-btn {
-    width: 68px; height: 68px; cursor: pointer;
-    transform: translateX(18px);
-    transition: transform .35s cubic-bezier(.34,1.56,.64,1);
-    filter: drop-shadow(0 6px 14px rgba(0,33,58,.28));
+    width: 112px; height: 136px; cursor: pointer;
+    transform: translateX(36px);
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+    filter: drop-shadow(-5px 3px 10px rgba(0,0,0,.28));
     position: relative; background: none; border: none; padding: 0;
-    margin: 0 10px 10px 0;
 }
-#vn-cw-btn:hover, #vn-cw-btn.open { transform: translateX(0) scale(1.06); }
+#vn-cw-btn:hover, #vn-cw-btn.open { transform: translateX(0); }
 #vn-cw-btn img {
     width: 100%; height: 100%; object-fit: contain; display: block;
     position: absolute; top: 0; left: 0; transition: opacity .25s ease; pointer-events: none;
@@ -712,11 +708,10 @@ REGLAS:
 
 /* Indicador de mensajes guardados */
 #vn-cw-badge {
-    position: absolute; top: -3px; right: -3px;
-    background: #2563eb; color: #fff; font-size: .5rem; font-weight: 800;
+    position: absolute; top: 6px; left: 6px;
+    background: #00213a; color: #fff; font-size: .5rem; font-weight: 800;
     padding: 2px 6px; border-radius: 10px; letter-spacing: .5px;
     font-family: 'Inter', sans-serif; white-space: nowrap;
-    box-shadow: 0 0 0 2px #fff;
     opacity: 0; transform: scale(.8); transition: all .2s;
     pointer-events: none;
 }
@@ -724,7 +719,7 @@ REGLAS:
 
 /* ── Chat panel ── */
 #vn-cw-box {
-    position: fixed; right: 86px; bottom: 18px; top: 18px; width: 440px;
+    position: fixed; right: 118px; bottom: 18px; top: 18px; width: 440px;
     border-radius: 18px; background: #f0f4f8; overflow: hidden;
     box-shadow: 0 12px 48px rgba(0,0,0,.22); border: 1px solid rgba(0,33,58,.07);
     display: flex; flex-direction: column;
@@ -927,12 +922,31 @@ REGLAS:
 /* ── Mobile ── */
 @media (max-width:768px) {
     #vn-cw { bottom:8px; right:0; }
-    #vn-cw-btn { width:52px; height:52px; transform:translateX(12px); }
-    #vn-cw-btn:hover, #vn-cw-btn.open { transform:translateX(0) scale(1.06); }
+    #vn-cw-btn { width:86px; height:104px; transform:translateX(0); }
+    #vn-cw-btn:hover, #vn-cw-btn.open { transform:translateX(0); }
     #vn-cw-box { left:8px; right:8px; width:auto; top:58px; bottom:112px; max-height:none; border-radius:14px; }
 }
 `;
         document.head.appendChild(style);
+
+        /* ── Custom translateX override ── */
+        const _CSS_VAL = /^-?\d+(\.\d+)?(px|%)$/;
+        try {
+            const _tx  = localStorage.getItem('vn_mascot_translate');
+            const _txM = localStorage.getItem('vn_mascot_translate_m');
+            if (_tx && _CSS_VAL.test(_tx.trim())) {
+                const txS  = _tx.trim();
+                const txMS = (_txM && _CSS_VAL.test(_txM.trim())) ? _txM.trim() : txS;
+                const st = document.createElement('style');
+                st.id = 'vn-mascot-tx';
+                st.textContent =
+                    `#vn-cw-btn{transform:translateX(${txS}) !important;}` +
+                    `#vn-cw-btn:hover,#vn-cw-btn.open{transform:translateX(0) !important;}` +
+                    `@media(max-width:768px){#vn-cw-btn{transform:translateX(${txMS}) !important;}` +
+                    `#vn-cw-btn:hover,#vn-cw-btn.open{transform:translateX(0) !important;}}`;
+                document.head.appendChild(st);
+            }
+        } catch(e) {}
 
         /* ── HTML ── */
         const curPage = detectPage();

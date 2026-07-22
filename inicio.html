@@ -1,382 +1,341 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VALLNEWS · Premium Intelligence</title>
-    <!-- Script de Modo Oscuro Global (Anti-flash) -->
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('vn_theme');
-            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }
-        })();
-    </script>
-    <script src="js/page-loader.js"></script>
+    <title>VALLNEWS · Inteligencia Económica Global</title>
+    <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
+    <script src="js/page-loader.js?v=3"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="css/base.css?v=3">
-    <link rel="stylesheet" href="css/header.css?v=4">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/hero.css">
+    <link rel="stylesheet" href="css/grid.css">
     <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="css/immersive.css?v=85">
-    <link rel="stylesheet" href="css/hero.css?v=1">
-    <style>
-        .mb-overlay { position: fixed; inset: 0; background: rgba(0,33,58,0.2); backdrop-filter: blur(4px); z-index: 2999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .mb-overlay.open { opacity: 1; pointer-events: auto; }
-        .mb-panel { position: fixed; top: 0; right: -400px; width: 400px; height: 100vh; background: var(--clr-bg); box-shadow: -10px 0 30px rgba(0,0,0,0.5); z-index: 3000; transition: right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; border-left: 1px solid var(--bdr-soft); }
-        .mb-panel.open { right: 0; }
-        .mb-hdr { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid var(--bdr-soft); }
-        .mb-hdr h3 { font-size: 1.2rem; color: var(--clr-primary); margin:0; }
-        .mb-close { background: none; border: none; font-size: 1.2rem; color: var(--clr-text-mut); cursor: pointer; }
-        .mb-body { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-        .mb-msg { padding: 1rem; border-radius: 12px; border: 1px solid var(--bdr-soft); cursor: pointer; display: flex; gap: 1rem; transition: all 0.2s; background: var(--clr-bg); }
-        .mb-msg:hover { box-shadow: var(--shadow-sm); transform: translateX(-2px); }
-        .mb-msg.unread { border-left: 3px solid var(--clr-accent); background: var(--clr-surface); }
-        .mb-msg-icon { color: var(--clr-accent); font-size: 1.4rem; padding-top: 0.2rem; }
-        .mb-msg-content h4 { font-size: 0.9rem; color: var(--clr-primary); margin: 0 0 0.3rem 0; }
-        .mb-msg-content p { font-size: 0.8rem; color: var(--clr-text-mut); line-height: 1.4; margin: 0 0 0.5rem 0; }
-        .mb-date { font-size: 0.7rem; color: var(--clr-text-lt); font-weight: 600; }    
-        .report-generator { padding: 0.5rem 0; }
-        .rg-section { margin-bottom: 1.2rem; }
-        .rg-label { display: block; font-weight: 600; color: var(--clr-primary); margin-bottom: 0.5rem; font-size: 0.9rem; }
-        .rg-input, .rg-select { width: 100%; padding: 0.75rem; border: 1px solid var(--bdr-soft); border-radius: 8px; background: var(--clr-bg); color: var(--clr-text); font-family: inherit; font-size: 0.9rem; transition: border-color 0.2s; }
-        .rg-input:focus, .rg-select:focus { outline: none; border-color: var(--clr-accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
-        .rg-btn { width: 100%; padding: 0.9rem 1rem; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
-        .rg-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3); }
-        .rg-btn:active { transform: translateY(0); }
-        .rg-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .rg-status { padding: 1rem; border-radius: 8px; font-size: 0.85rem; margin-top: 1rem; }
-        .rg-status.success { background: #dcfce7; color: #166534; border-left: 3px solid #22c55e; }
-        .rg-status.error { background: #fee2e2; color: #991b1b; border-left: 3px solid #ef4444; }
-        .rg-status.loading { background: #dbeafe; color: #1e40af; border-left: 3px solid #3b82f6; display: flex; align-items: center; gap: 0.6rem; }
-        .rg-status .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid transparent; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+    <link rel="stylesheet" href="css/responsive.css">
+<style>
+.lf-dot{display:inline-block;width:7px;height:7px;background:#ef4444;border-radius:50%;margin-right:4px;vertical-align:middle;animation:lf-pulse 1.4s ease-in-out infinite}
+@keyframes lf-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}
+.live-ticker{display:flex;align-items:center;gap:.9rem;padding:.55rem 1.8rem;background:#06111f;border-top:1px solid rgba(110,140,200,.13);border-bottom:1px solid rgba(110,140,200,.13);overflow:hidden}
+.tk-badge{flex-shrink:0;display:flex;align-items:center;gap:.35rem;font-size:.65rem;font-weight:800;letter-spacing:.1em;color:#fbbf24;white-space:nowrap}
+.tk-wrap{flex:1;overflow:hidden;min-width:0}
+.tk-track{display:inline-flex;align-items:center;white-space:nowrap;will-change:transform}
+@keyframes vn-ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tk-item{display:inline-flex;align-items:center;gap:.42rem;padding:0 .85rem}
+.tk-lbl{font-size:.68rem;color:#6b7f9a;letter-spacing:.04em;text-transform:uppercase}
+.tk-val{font-size:.78rem;font-weight:700;color:#e2ebf6}
+.tk-val.tk-up{color:#4ade80}
+.tk-val.tk-dn{color:#f87171}
+.tk-sep{color:#fbbf24;font-size:.5rem;opacity:.45;padding:0 .1rem}
+.tk-time{flex-shrink:0;font-size:.64rem;color:#6b7f9a;letter-spacing:.06em;white-space:nowrap}
+.tk-loading{padding:0 1.2rem;font-size:.7rem;color:#6b7f9a;animation:lf-pulse 1.6s ease-in-out infinite}
+.sh-upd{font-size:.62rem;color:#667788;white-space:nowrap}
+.sh-badge{font-size:.58rem;font-weight:700;letter-spacing:.08em;padding:.12rem .5rem;border-radius:3px;background:rgba(29,78,216,.15);color:#6b7f9a;white-space:nowrap}
+.sh-badge.badge-ok{background:rgba(5,150,105,.2);color:#34d399}
+.refresh-btn{flex-shrink:0;background:none;border:1px solid rgba(0,33,58,.2);color:#667788;border-radius:4px;width:1.65rem;height:1.65rem;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.68rem;padding:0;transition:color .2s,border-color .2s}
+.refresh-btn:hover{color:#d97706;border-color:#d97706}
+.refresh-btn:disabled{opacity:.45;cursor:not-allowed}
+.refresh-btn.spinning i{animation:vn-spin .75s linear infinite}
+@keyframes vn-spin{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-
 <header class="header">
     <div class="hdr-top">
         <a class="logo" href="inicio.html">
-            <div class="logo-icon"><img src="Logotipos/logo2.png" alt="VALLNEWS Logo"></div>
+            <div class="logo-icon">
+                <img src="Logotipos/logo1.png" alt="VALLNEWS Logo">
+            </div>
             <span class="logo-text">VALLNews</span>
         </a>
-        <span class="hdr-tagline">Inteligencia Global</span>
-        <button class="vn-hamburger" id="hamBtn"><span></span><span></span><span></span></button>
+        <span class="hdr-tagline">
+            Datos en tiempo real &nbsp;&middot;&nbsp; Economía global &nbsp;&middot;&nbsp; Mercados
+        </span>
     </div>
-    <nav class="hdr-nav" id="mainNav">
+    <nav class="hdr-nav">
         <div class="nav-center">
-            <a class="nav-link active" href="inicio.html"><i class="fas fa-house"></i> Inicio</a>
+            <a class="nav-link active" href="inicio.html"><i class="fas fa-house"></i></a>
             <a class="nav-link" href="finanzas/finanzas.html">Finanzas</a>
             <a class="nav-link" href="mercados/mercados.html">Mercados</a>
             <a class="nav-link" href="geopolitica/geopolitica.html">Geopolítica</a>
+            <a class="nav-link" href="mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
             <a class="nav-link" href="mexico/mexico.html">México</a>
         </div>
-        <div class="nav-actions">
-            <!-- Botón de Tema -->
-            <button class="nav-btn" id="themeToggleBtn" title="Cambiar Tema">
-                <i class="fas fa-moon"></i>
-            </button>
-            <button class="nav-btn" id="navMailbox" title="Buzón de Reportes">
-                <i class="fas fa-bell"></i><span class="badge-dot"></span>
-            </button>
-            <a class="nav-btn" id="navUser" title="Mi cuenta" style="cursor:pointer"><i class="fas fa-circle-user"></i></a>
-        </div>
+        <a class="nav-user" id="navUser" title="Mi cuenta" style="cursor:pointer">
+            <i class="fas fa-circle-user"></i>
+        </a>
     </nav>
 </header>
 <div class="hdr-divider"></div>
-<section class="world-descent" id="worldDescent">
-    <div class="world-sticky" aria-hidden="true">
-        <div class="world-map-layer">
-            <svg class="world-map-svg" viewBox="0 0 1200 620" role="img" aria-label="Mapa del mundo">
-                <path d="M170 214c43-36 101-51 154-35 38 12 65 36 98 55 42 24 89 28 134 11 35-13 65-39 103-45 50-8 97 22 135 54 31 27 62 58 104 66 44 8 88-11 129-28 52-21 112-34 163-7" />
-                <path d="M128 360c54-28 115-34 173-17 50 15 92 49 143 62 74 18 148-22 219-50 76-30 166-43 237-2 32 19 58 48 94 60 48 17 101-2 149-18" />
-                <path d="M210 454c60 12 119 27 179 37 91 16 186 17 275-8 58-16 112-43 172-49 95-9 185 35 278 46" />
-                <path d="M260 126c58 16 113 44 174 46 65 2 123-26 184-42 98-26 205-9 289 48" />
-                <path d="M242 170c-58 32-93 88-81 132 10 36 55 41 90 67 49 36 40 96 86 127 28 19 65 15 92-5 29-22 41-59 31-92-13-43-61-64-85-100-27-41-12-95-46-128-22-22-57-26-87-1z" />
-                <path d="M538 177c-38 5-72 32-85 68-17 48 16 90 36 132 19 39 24 88 62 111 39 24 91 2 112-38 18-34 10-76 31-108 18-27 54-37 72-65 23-36 4-88-33-108-30-16-66-8-98 4-32 12-64-1-97 4z" />
-                <path d="M799 169c-40 14-72 48-83 89-12 47 9 98 48 126 36 26 84 23 126 39 54 20 88 74 143 91 40 13 89-3 107-42 19-41-4-89-38-118-33-28-77-40-107-72-34-37-43-94-86-121-31-19-73-5-110 8z" />
-            </svg>
-            <div class="world-grid-lines"></div>
+<section class="hero" id="heroSlider">
+    <div class="slide active" id="slide-finanzas" style="background-image:url('img/finanzas.webp')">
+        <div class="slide-badge">
+            <span class="slide-pill"><i class="fas fa-building-columns"></i>&nbsp;Macro MX</span>
+            <span class="slide-sub">BANXICO</span>
         </div>
-
-        <div class="earth-wrap" id="earthWrap">
-            <div class="earth-glow"></div>
-            <canvas class="earth-canvas" id="earthCanvas" aria-hidden="true"></canvas>
-            <div class="earth-core">
-                <div class="earth-clouds"></div>
-                <div class="earth-continent c-americas"></div>
-                <div class="earth-continent c-eurasia"></div>
-                <div class="earth-continent c-africa"></div>
-                <div class="earth-continent c-australia"></div>
+        <div class="slide-body">
+            <p class="slide-date" id="sd-0"></p>
+            <h1 class="slide-title" id="st-finanzas">Banxico: Expectativas de inflación para el cierre de Q2</h1>
+            <p class="slide-desc" id="sd-fin-desc">El consenso de analistas proyecta movimientos en tasas y mercados globales.</p>
+            <a class="slide-btn" href="finanzas/finanzas.html">VER MÁS</a>
+            <div class="slide-tags">
+                <span class="tag-source">BANXICO</span>
+                <span class="tag-risk danger">
+                    <i class="fas fa-triangle-exclamation" style="font-size:.58rem"></i> ALTO IMPACTO
+                </span>
             </div>
-        </div>
-
-        <div class="world-copy">
-            <span class="world-kicker reveal-up active">VALLNEWS GLOBAL INTELLIGENCE</span>
-            <h1 class="im-title-mega world-title reveal-up active">Del mapa al pulso del planeta.</h1>
-            <p class="im-subtitle world-subtitle reveal-up active" id="aiGlobalSummary">
-                <i class="fas fa-circle-notch fa-spin"></i> VALL AI está procesando el sentimiento del mercado global...
-            </p>
-        </div>
-
-        <div class="world-market-dock reveal-up active">
-            <div class="spark-grid" id="sparkGrid">
-                <!-- Se inyecta vía JS -->
-            </div>
-        </div>
-
-        <div class="world-scroll-cue">
-            <span>Desciende al planeta</span>
-            <i class="fas fa-arrow-down"></i>
         </div>
     </div>
+    <div class="slide" id="slide-mercados" style="background-image:url('img/mercados.webp')">
+        <div class="slide-badge">
+            <span class="slide-pill" style="background:var(--clr-accent)">
+                <i class="fas fa-chart-bar"></i>&nbsp;Mercados
+            </span>
+            <span class="slide-sub">NASDAQ · BOLSA</span>
+        </div>
+        <div class="slide-body">
+            <p class="slide-date" id="sd-1"></p>
+            <h1 class="slide-title" id="st-mercados">Mercados globales: volatilidad ante datos macro de EE.UU.</h1>
+            <p class="slide-desc" id="sd-mkt-desc">Los índices reaccionan a los datos de empleo y expectativas de política monetaria de la Fed.</p>
+            <a class="slide-btn" href="mercados/mercados.html">VER MÁS</a>
+            <div class="slide-tags">
+                <span class="tag-source">BLOOMBERG</span>
+                <span class="tag-risk danger">
+                    <i class="fas fa-triangle-exclamation" style="font-size:.58rem"></i> ALTO IMPACTO
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="slide" id="slide-geo" style="background-image:url('img/geo.webp')">
+        <div class="slide-badge">
+            <span class="slide-pill" style="background:var(--clr-violet)">
+                <i class="fas fa-earth-americas"></i>&nbsp;Geopolítica
+            </span>
+            <span class="slide-sub">ANÁLISIS GLOBAL</span>
+        </div>
+        <div class="slide-body">
+            <p class="slide-date" id="sd-2"></p>
+            <h1 class="slide-title" id="st-geo">Tensiones globales incrementan el riesgo en cadenas de suministro</h1>
+            <p class="slide-desc" id="sd-geo-desc">Las tensiones en regiones clave afectan directamente las cadenas de suministro globales.</p>
+            <a class="slide-btn" href="geopolitica/geopolitica.html">VER MÁS</a>
+            <div class="slide-tags">
+                <span class="tag-source">REUTERS</span>
+                <span class="tag-risk">
+                    <i class="fas fa-diamond" style="font-size:.58rem"></i> RIESGO MEDIO
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="slide" id="slide-proteinas" style="background-image:url('img/mercadoP.webp')">
+        <div class="slide-badge">
+            <span class="slide-pill"><i class="fas fa-seedling"></i>&nbsp;Proteínas</span>
+            <span class="slide-sub">CME · CHICAGO</span>
+        </div>
+        <div class="slide-body">
+            <p class="slide-date" id="sd-3"></p>
+            <h1 class="slide-title" id="st-proteinas">Maíz CME: Contratos futuros ante clima en el cinturón solar</h1>
+            <p class="slide-desc" id="sd-prot-desc">Incertidumbre en la cosecha de EE.UU. eleva la volatilidad en la compra anticipada de grano.</p>
+            <a class="slide-btn" href="mercado_proteinas/mercadoproteinas.html">VER MÁS</a>
+            <div class="slide-tags">
+                <span class="tag-source">CME GROUP</span>
+                <span class="tag-risk">
+                    <i class="fas fa-diamond" style="font-size:.58rem"></i> RIESGO MEDIO
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="slide" id="slide-mexico" style="background-image:url('img/mexico2.webp')">
+        <div class="slide-badge">
+            <span class="slide-pill" style="background:var(--clr-green)">
+                <i class="fas fa-peso-sign"></i>&nbsp;México
+            </span>
+            <span class="slide-sub">FOREX · ECONOMÍA</span>
+        </div>
+        <div class="slide-body">
+            <p class="slide-date" id="sd-4"></p>
+            <h1 class="slide-title" id="st-mexico">Tipo de cambio: El peso frente al dólar en tiempo real</h1>
+            <p class="slide-desc" id="sd-mex-desc">El mercado cambiario refleja el pulso de la economía mexicana.</p>
+            <a class="slide-btn" href="mexico/mexico.html">VER MÁS</a>
+            <div class="slide-tags">
+                <span class="tag-source">BANXICO</span>
+                <span class="tag-risk danger">
+                    <i class="fas fa-triangle-exclamation" style="font-size:.58rem"></i> ALTO IMPACTO
+                </span>
+            </div>
+        </div>
+    </div>
+    <button class="arrow arrow-prev" onclick="changeSlide(-1)" aria-label="Anterior">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button class="arrow arrow-next" onclick="changeSlide(1)" aria-label="Siguiente">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    <div class="hero-dots">
+        <div class="dot active" onclick="goTo(0)"></div>
+        <div class="dot"        onclick="goTo(1)"></div>
+        <div class="dot"        onclick="goTo(2)"></div>
+        <div class="dot"        onclick="goTo(3)"></div>
+        <div class="dot"        onclick="goTo(4)"></div>
+    </div>
+    <div class="hero-progress"><div class="hero-progress-bar" id="heroBar"></div></div>
 </section>
-<section class="im-section news-arrival" style="background: var(--clr-surface); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border-top: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 -30px 60px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
-    <style>
-        .im-section:nth-of-type(2)::before {
-            content: '';
-            position: absolute;
-            top: -50%; left: -20%;
-            width: 800px; height: 800px;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
-            animation: imSectionPulse 6s ease-in-out infinite;
-        }
-        
-        @keyframes imSectionPulse {
-            0%, 100% { transform: scale(1) translateY(0); opacity: 0.5; }
-            50% { transform: scale(1.2) translateY(30px); opacity: 0.8; }
-        }
-    </style>
+<div class="section-bridge"></div>
+<div class="section-header">
+    <span class="section-header-label"><span class="lf-dot"></span>&nbsp;Últimas noticias</span>
+    <span class="section-header-line"></span>
+    <span class="section-header-date" id="sectionDate"></span>
+    <span class="sh-upd">Act.&nbsp;<span id="lastUpdated">—</span></span>
+    <span class="sh-badge" id="backendBadge">VALL AI</span>
+    <button class="refresh-btn" id="refreshBtn" title="Actualizar datos"><i class="fas fa-rotate-right"></i></button>
+</div>
+<main class="main">
+    <div class="grid">
 
-    <div class="im-content" style="max-width: 1400px; position: relative; z-index: 2;">
-        <h2 class="reveal-up" style="font-size:2.5rem; color:var(--clr-primary); margin-bottom:1rem; font-weight:800; letter-spacing:-1px;">Historias que Mueven al Mundo</h2>
-        <p class="reveal-up" style="color:var(--clr-text-mut); margin-bottom:2rem; font-size:1.1rem; max-width:600px;">Desliza para explorar el feed en tiempo real de mercados y geopolítica.</p>
-
-        <div class="im-carousel-container reveal-up" style="transition-delay:0.3s;">
-            <div class="im-carousel cine-slider-wrap" id="liveNewsCarousel">
-                <div class="im-c-item active" style="justify-content:center; align-items:center; opacity:1;">
-                    <i class="fas fa-circle-notch fa-spin" style="font-size:2rem; color:var(--clr-accent);"></i>
-                    <p style="margin-top:1rem; font-weight:600; color:var(--clr-text-mut);">Obteniendo noticias globales...</p>
+        <a class="card" id="card-finanzas"
+             href="finanzas/finanzas.html"
+             style="background-image:url('img/finanzas.webp')">
+            <div class="card-overlay">
+                <span class="card-badge"><i class="fas fa-chart-line"></i> Finanzas</span>
+                <div class="card-bottom">
+                    <p class="card-title" id="ct-finanzas">Banxico: Expectativas de inflación para el cierre de Q2</p>
+                    <span class="card-btn">VER MÁS</span>
                 </div>
             </div>
+        </a>
+        <a class="card" id="card-mercados"
+             href="mercados/mercados.html"
+             style="background-image:url('img/mercados.webp')">
+            <div class="card-overlay">
+                <span class="card-badge"><i class="fas fa-globe"></i> Mercados</span>
+                <div class="card-bottom">
+                    <p class="card-title" id="ct-mercados">Cierre de Refinería en la Costa del Golfo</p>
+                    <span class="card-btn">VER MÁS</span>
+                </div>
+            </div>
+        </a>
+        <a class="card" id="card-geo"
+             href="geopolitica/geopolitica.html"
+             style="background-image:url('img/geo.webp')">
+            <div class="card-overlay">
+                <span class="card-badge" style="background:rgba(124,58,237,.9)">
+                    <i class="fas fa-earth-americas"></i> Geopolítica
+                </span>
+                <div class="card-bottom">
+                    <p class="card-title" id="ct-geopolitica">El cierre de rutas en Medio Oriente incrementa el costo de contenedores en un 22%</p>
+                    <span class="card-btn">VER MÁS</span>
+                </div>
+            </div>
+        </a>
+        <a class="card" id="card-proteinas"
+             href="mercado_proteinas/mercadoproteinas.html"
+             style="background-image:url('img/mercadoP.webp')">
+            <div class="card-overlay">
+                <span class="card-badge" style="background:rgba(5,150,105,.9)">
+                    <i class="fas fa-seedling"></i> Mercados Proteína
+                </span>
+                <div class="card-bottom">
+                    <p class="card-title" id="ct-proteinas">Maíz CME: Contratos futuros ante clima en el cinturón solar</p>
+                    <span class="card-btn">VER MÁS</span>
+                </div>
+            </div>
+        </a>
+        <a class="card" id="card-mexico"
+             href="mexico/mexico.html"
+             style="background-image:url('img/mexico2.webp')">
+            <div class="card-overlay">
+                <span class="card-badge" style="background:rgba(21,128,61,.9)">
+                    <i class="fas fa-peso-sign"></i> México
+                </span>
+                <div class="card-bottom">
+                    <p class="card-title" id="ct-mexico">Dólar a $17.20 · Tipo de cambio al día</p>
+                    <span class="card-btn">VER MÁS</span>
+                </div>
+            </div>
+        </a>
+        <div class="vai-card">
+            <div class="vai-brand">
+                <span class="vai-brand-name">VALL</span>
+                <span style="color:var(--clr-gold-lt);font-weight:800;font-size:.8rem">&middot;</span>
+                <span class="vai-brand-ai">AI</span>
+            </div>
+            <span class="vai-lbl">PREDICTION</span>
+            <div class="vai-select" id="vaiSelect" style="cursor:pointer" title="Clic para alternar entre vista México y vista Global">
+                <i class="fas fa-chart-line" id="vaiSelectIcon" style="font-size:.7rem;color:var(--clr-muted)"></i>
+                <span id="vaiSelectLbl">Finanzas</span>
+                <i class="fas fa-chevron-down" style="font-size:.6rem;color:var(--clr-muted);margin-left:.35rem"></i>
+            </div>
+            <div class="vai-gauge">
+                <svg viewBox="0 0 100 100">
+                    <circle class="g-bg"  cx="50" cy="50" r="40"/>
+                    <circle id="idx-vai-arc" class="g-arc" cx="50" cy="50" r="40"/>
+                </svg>
+                <div class="g-num" id="idx-vai-num">74%</div>
+            </div>
+            <span class="vai-asset" id="idx-vai-asset">MERCADO MX</span>
+            <span class="vai-verdict" id="idx-vai-verdict">Bajista</span>
+            <span class="vai-warn" id="idx-vai-warn">Cargando datos en vivo…</span>
         </div>
-        
-    </div>
-</section>
-<section class="vn-bento-section">
-    <div class="bento-header reveal-up">
-        <h2>4 Ejes, 1 Visión.</h2>
-        <p>Mientras navegas, sumérgete en el análisis macroeconómico. Selecciona tu ruta estratégica en nuestra arquitectura de datos de grado institucional.</p>
-    </div>
-    
-    <div class="bento-grid reveal-up" style="transition-delay: 0.2s;">
-        <a href="mercados/mercados.html" class="bento-card bento-hero">
-            <div class="bento-bg" style="background-image: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=80');"></div>
-            <div class="bento-glass">
-                <h3>Mercados Globales</h3>
-                <p>Renta variable en tiempo real. Análisis profundo de índices y emisoras cotizadas en bolsa a través de nuestras terminales avanzadas.</p>
-            </div>
-        </a>
-        
-        <a href="geopolitica/geopolitica.html" class="bento-card bento-geo">
-            <div class="bento-bg" style="background-image: url('https://images.unsplash.com/photo-1529400971008-f566de0e6dfc?w=1200&q=80');"></div>
-            <div class="bento-glass">
-                <h3>Geopolítica</h3>
-                <p>Monitoreo algorítmico del crudo, materias primas y conflictos internacionales.</p>
-            </div>
-        </a>
-        
-        <a href="finanzas/finanzas.html" class="bento-card bento-fin">
-            <div class="bento-bg" style="background-image: url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80');"></div>
-            <div class="bento-glass">
-                <h3>Finanzas</h3>
-                <p>Métricas de deuda soberana, tasas de interés mundiales y crédito corporativo.</p>
-            </div>
-        </a>
-        
-        <a href="mexico/mexico.html" class="bento-card bento-mex">
-            <div class="bento-bg" style="background-image: url('https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=1200&q=80');"></div>
-            <div class="bento-glass">
-                <h3>Perspectiva México</h3>
-                <p>La resiliencia del peso, política monetaria (Banxico) y proyecciones macro frente al nearshoring.</p>
-            </div>
-        </a>
-    </div>
-</section>
 
-<!-- Buzón (Mejorado con Generador de Reportes) -->
-<div class="mb-overlay" id="mailboxOverlay"></div>
-<div class="mb-panel" id="mailboxPanel">
-    <div class="mb-hdr">
-        <h3><i class="fas fa-inbox"></i> Generador de Reportes</h3>
-        <button class="mb-close" id="closeMailbox"><i class="fas fa-times"></i></button>
     </div>
-    
-    <!-- Formulario de Generación de Reportes (SEPARADO) -->
-    <div class="report-generator" style="padding: 1rem; border-bottom: 1px solid var(--bdr-soft); flex: 0 0 auto;">
-        <div class="rg-section">
-            <label for="userEmail" class="rg-label">📧 Tu Correo Electrónico</label>
-            <input type="email" id="userEmail" class="rg-input" placeholder="tu@email.com" required>
-            <small style="color: #999; font-size: 0.75rem;">Los reportes se enviarán a este correo</small>
-        </div>
-
-        <div class="rg-section">
-            <label for="reportType" class="rg-label">📊 Tipo de Reporte</label>
-            <select id="reportType" class="rg-select">
-                <option value="market">📈 Análisis de Mercados Globales</option>
-                <option value="geopolitical">🌍 Análisis Geopolítico</option>
-                <option value="mexico">🇲🇽 Perspectiva México</option>
-            </select>
-            <small style="color: #999; font-size: 0.75rem;">Elige el tipo de análisis que deseas</small>
-        </div>
-
-        <button id="generateReportBtn" class="rg-btn">
-            <i class="fas fa-file-word"></i> Generar y Enviar Reporte
-        </button>
-
-        <div id="reportStatus" class="rg-status" style="display: none;"></div>
-    </div>
-    
-    <!-- Sección de Reportes Recibidos -->
-    <div style="padding: 1rem 0; border-bottom: 1px solid var(--bdr-soft);">
-        <h4 style="color: var(--clr-primary); font-size: 0.95rem; margin: 0 1rem 0.8rem 1rem;">📬 Reportes Recibidos</h4>
-    </div>
-    
-    <!-- Lista de reportes -->
-    <div class="mb-body" id="mailboxList"></div>
-</div>
-
+</main>
 <footer class="footer">
+    <div class="footer-logo">
+        <div class="footer-icon">
+            <img src="Logotipos/logo2.png" alt="VALLNEWS">
+        </div>
+        <span class="footer-brand">VALLNews</span>
+    </div>
+    <nav class="footer-nav">
+        <a href="inicio.html">Inicio</a>
+        <a href="finanzas/finanzas.html">Finanzas</a>
+        <a href="mercados/mercados.html">Mercados</a>
+        <a href="geopolitica/geopolitica.html">Geopolítica</a>
+        <a href="mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
+        <a href="mexico/mexico.html">México</a>
+    </nav>
     <p class="footer-copy">
-        &copy; 2026 VALLNews Intelligence. Todos los derechos reservados.
+        Datos en tiempo real &nbsp;&middot;&nbsp;
+        Indicadores económicos &nbsp;&middot;&nbsp;
+        Seguimiento de divisas, granos y energéticos
     </p>
 </footer>
-
-
 <script>
-    const hamBtn = document.getElementById('hamBtn');
-    const mainNav = document.getElementById('mainNav');
-    hamBtn.addEventListener('click', () => {
-        hamBtn.classList.toggle('vn-ham-open');
-        mainNav.classList.toggle('vn-nav-open');
-    });
+    let cur = 0;
+    const slides = document.querySelectorAll('.slide');
+    const dots   = document.querySelectorAll('.dot');
+    let timer;
+
+    function resetBar() {
+        const bar = document.getElementById('heroBar');
+        if (!bar) return;
+        bar.style.animation = 'none';
+        bar.offsetHeight;
+        bar.style.animation = '';
+    }
+
+    function show(i) {
+        slides[cur].classList.remove('active');
+        dots[cur].classList.remove('active');
+        cur = (i + slides.length) % slides.length;
+        slides[cur].classList.add('active');
+        dots[cur].classList.add('active');
+        resetBar();
+    }
+
+    function changeSlide(d) { show(cur + d); reset(); }
+    function goTo(i)         { show(i);       reset(); }
+
+    function reset() {
+        clearInterval(timer);
+        timer = setInterval(() => show(cur + 1), 5500);
+    }
+
+    timer = setInterval(() => show(cur + 1), 5500);
 </script>
-<script src="js/mailbox.js"></script>
-<script src="js/reports.js"></script>
-<script src="js/immersive.js?v=30"></script>
-<script>
-    const orbWrap = document.querySelector('.im-ai-orb-wrap');
-    if (orbWrap) {
-        document.addEventListener('mousemove', (e) => {
-            const rect = orbWrap.getBoundingClientRect();
-            const x = e.clientX - rect.left - rect.width / 2;
-            const y = e.clientY - rect.top - rect.height / 2;
-            
-            const distance = Math.sqrt(x * x + y * y);
-            const angle = Math.atan2(y, x);
-            
-            if (distance < 400) {
-                const pull = (1 - distance / 400) * 15;
-                orbWrap.style.transform = `translate(${Math.cos(angle) * pull}px, ${Math.sin(angle) * pull}px)`;
-            } else {
-                orbWrap.style.transform = 'translate(0, 0)';
-            }
-        });
-        
-        orbWrap.addEventListener('mouseleave', () => {
-            orbWrap.style.transform = 'translate(0, 0)';
-        });
-    }
-    
-    // 2. Scroll parallax mejorado para sparklines
-    const sparkGrid = document.getElementById('sparkGrid');
-    if (sparkGrid) {
-        window.addEventListener('scroll', () => {
-            const scrolled = window.scrollY;
-            sparkGrid.style.transform = `translateY(${scrolled * 0.15}px)`;
-            sparkGrid.style.opacity = Math.max(0.3, 1 - scrolled / 2000);
-        });
-    }
-    
-    // 3. Animación de entrada mejorada para secciones
-    const sections = document.querySelectorAll('.im-section');
-    const sectionObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('section-visible');
-            }
-        });
-    }, { threshold: 0.1 });
-    
-    sections.forEach(section => {
-        sectionObserver.observe(section);
-        section.style.opacity = '0.7';
-    });
-    
-    // Estilos dinámicos para la visualización de secciones
-    const style = document.createElement('style');
-    style.textContent = `
-        .im-section {
-            transition: opacity 0.8s ease;
-        }
-        .im-section.section-visible {
-            opacity: 1 !important;
-        }
-        
-        /* Efecto de brillo en el título */
-        @media (prefers-reduced-motion: no-preference) {
-            .im-title-mega {
-                animation: imTextShimmer 4s ease-in-out infinite;
-            }
-        }
-        
-        /* Hover effects en sparklines mejorados */
-        .spark-path {
-            stroke-dasharray: 300;
-            stroke-dashoffset: 300;
-            animation: strokeAnimation 2s ease forwards;
-        }
-        
-        @keyframes strokeAnimation {
-            from { stroke-dashoffset: 300; }
-            to { stroke-dashoffset: 0; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // Lógica interactiva del Modo Oscuro
-    const themeBtn = document.getElementById('themeToggleBtn');
-    if (themeBtn) {
-        const themeIcon = themeBtn.querySelector('i');
-        if (document.documentElement.getAttribute('data-theme') === 'dark') {
-            themeIcon.classList.replace('fa-moon', 'fa-sun');
-        }
-        themeBtn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            if (currentTheme === 'dark') {
-                document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('vn_theme', 'light');
-                themeIcon.classList.replace('fa-sun', 'fa-moon');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('vn_theme', 'dark');
-                themeIcon.classList.replace('fa-moon', 'fa-sun');
-            }
-        });
-    }
-</script>
-
-<!-- VALL-AI Chat Widget -->
-<script src="js/chat-widget.js?v=24" data-mascota="Logotipos/mascota-atlas.svg"></script>
-
-
 <script>
     (function () {
         var today = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -392,6 +351,7 @@
 <script src="js/api-keys.js?v=4"></script>
 <script src="js/data-service.js?v=15"></script>
 <script src="js/live-engine.js?v=24"></script>
+<script src="js/chat-widget.js?v=22" data-mascota="Logotipos/mascota1.png"></script>
+<script src="js/flags-widget.js?v=2"></script>
 </body>
 </html>
-

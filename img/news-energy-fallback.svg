@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-labelledby="title desc">
+  <title id="title">Mercado global de energía</title>
+  <desc id="desc">Ilustración editorial de infraestructura energética, petróleo y logística.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#102d3a"/><stop offset=".62" stop-color="#176174"/><stop offset="1" stop-color="#b65320"/></linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#274653"/><stop offset="1" stop-color="#101d24"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#071a22" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="800" height="450" fill="url(#sky)"/>
+  <circle cx="650" cy="86" r="54" fill="#ffbd64" opacity=".92"/>
+  <path d="M0 310 Q165 265 335 306 T800 280 V450 H0Z" fill="url(#ground)"/>
+  <g fill="none" stroke="#d9ebed" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)">
+    <path d="M100 327V180h94v147M118 180l29-58 29 58M147 122V78M108 232h78"/>
+    <path d="M270 340V201h74v139M270 235h74M292 201v-47h30v47"/>
+    <path d="M420 339h148l-20-70h-89l-39 70Z"/>
+    <circle cx="458" cy="343" r="22" fill="#153746"/><circle cx="540" cy="343" r="22" fill="#153746"/>
+  </g>
+  <path d="M195 158h84M235 158v-45h94" fill="none" stroke="#ffb35b" stroke-width="8" stroke-linecap="round"/>
+  <g transform="translate(514 284)" filter="url(#shadow)">
+    <rect width="235" height="98" rx="18" fill="#0b2a36" fill-opacity=".92"/>
+    <text x="24" y="41" fill="#62ded3" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">VALLNEWS</text>
+    <text x="24" y="71" fill="#fff" font-family="Arial, sans-serif" font-size="23" font-weight="700">ENERGÍA</text>
+  </g>
+</svg>

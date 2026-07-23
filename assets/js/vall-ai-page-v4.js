@@ -1169,13 +1169,21 @@
                     els.input.value = finalTranscript + interimTranscript;
                 };
 
+                recognition.onerror = (event) => {
+                    console.error('SpeechRecognition error:', event.error);
+                };
+
                 recognition.onend = () => {
                     if (continuousVoiceMode) {
                         if (els.input.value.trim()) {
                             stopRecording(); // Cleanup UI and VAD before submitting
                             els.form.requestSubmit();
                         } else {
-                            // If they said nothing, just restart listening
+                            // If they said nothing (e.g. background noise triggered VAD), just restart listening
+                            if (els.voiceOverlay) {
+                                els.voiceOverlay.className = 'vai-voice-overlay state-listening';
+                                if (els.voiceStatus) els.voiceStatus.textContent = 'Escuchando...';
+                            }
                             try { recognition.start(); } catch(e) {}
                         }
                     }

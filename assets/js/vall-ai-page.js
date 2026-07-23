@@ -18,6 +18,7 @@
         reportFormat: $('vaiReportFormat'), reportZoom: $('vaiReportZoom'), reportEditor: $('vaiReportEditor'), reportSource: $('vaiReportSource'), reportPreview: $('vaiReportPreview'),
         reportRefresh: $('vaiReportRefresh'), reportExport: $('vaiReportExport'), reportWords: $('vaiReportWords'), reportStatus: $('vaiReportStatus'),
         reportSave: $('vaiReportSave'), reportBody: document.querySelector('.vai-report-body'),
+        voiceOverlay: $('vaiVoiceOverlay'), voiceOrb: $('vaiVoiceOrb'), voiceStatus: $('vaiVoiceStatus'), voiceHangup: $('vaiVoiceHangup')
     };
 
     let conversations = loadConversations();
@@ -712,11 +713,26 @@
             else pending.bubble.innerHTML = `<div class="vai-error"><strong>No pude completar la respuesta.</strong><br>${escapeHtml(error.message)}</div>`;
         } finally {
             controller = null; setBusy(false); els.input.focus(); els.messages.scrollTop = els.messages.scrollHeight;
-            if (continuousVoiceMode && window.speechSynthesis && !pending.bubble.querySelector('.vai-error')) {
-                const speakBtn = pending.bubble.querySelector('[data-speak]');
-                if (speakBtn) {
-                    const originalOnEnd = speakBtn._customOnEnd;
-                    speakBtn.click();
+            if (continuousVoiceMode) {
+                if (window.speechSynthesis && !pending.bubble.querySelector('.vai-error')) {
+                    if (els.voiceOverlay) {
+                        els.voiceOverlay.className = 'vai-voice-overlay state-speaking';
+                        if (els.voiceStatus) els.voiceStatus.textContent = 'Vall AI Hablando...';
+                    }
+                    const speakBtn = pending.bubble.querySelector('[data-speak]');
+                    if (speakBtn) {
+                        const originalOnEnd = speakBtn._customOnEnd;
+                        speakBtn.click();
+                    }
+                } else {
+                    if (els.voiceOverlay) {
+                        els.voiceOverlay.className = 'vai-voice-overlay state-error';
+                        if (els.voiceStatus) els.voiceStatus.textContent = 'Error';
+                        setTimeout(() => { 
+                            if (els.voiceOverlay) els.voiceOverlay.hidden = true; 
+                            continuousVoiceMode = false; 
+                        }, 2000);
+                    }
                 }
             }
         }
@@ -1109,6 +1125,11 @@
             isSpeaking = false;
             micBtn.classList.remove('listening');
             micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            if (els.voiceOrb) els.voiceOrb.style.transform = 'scale(1)';
+            if (els.voiceOverlay && continuousVoiceMode) {
+                els.voiceOverlay.className = 'vai-voice-overlay state-thinking';
+                if (els.voiceStatus) els.voiceStatus.textContent = 'Pensando...';
+            }
         };
 
         const startRecording = async () => {
@@ -1133,8 +1154,14 @@
                 mediaRecorder.start();
                 micBtn.classList.add('listening');
                 micBtn.innerHTML = '<i class="fas fa-phone"></i>'; // Icono de llamada
+                
+                if (els.voiceOverlay) {
+                    els.voiceOverlay.hidden = false;
+                    els.voiceOverlay.className = 'vai-voice-overlay state-listening';
+                    if (els.voiceStatus) els.voiceStatus.textContent = 'Escuchando...';
+                }
 
-                // Voice Activity Detection (VAD)
+                // Voice Activity Detection (VAD) & Audio Reactivity
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (AudioCtx) {
                     audioContext = new AudioCtx();
@@ -1149,6 +1176,12 @@
                         analyser.getByteFrequencyData(dataArray);
                         const average = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
                         
+                        // Audio Reactivity (Orb Scale)
+                        if (els.voiceOrb && els.voiceOverlay.classList.contains('state-listening')) {
+                            const scale = 1 + (average / 255) * 1.5;
+                            els.voiceOrb.style.transform = `scale(${scale})`;
+                        }
+
                         if (average > 10) {
                             if (!isSpeaking) isSpeaking = true;
                             clearTimeout(vadTimer);
@@ -1167,6 +1200,7 @@
                 window.alert('No se pudo acceder al micrófono para hablar con VALL AI.');
                 continuousVoiceMode = false;
                 stopRecording();
+                if (els.voiceOverlay) els.voiceOverlay.hidden = true;
             }
         };
 
@@ -1176,10 +1210,20 @@
             }
         };
 
+        if (els.voiceHangup) {
+            els.voiceHangup.addEventListener('click', () => {
+                continuousVoiceMode = false;
+                stopRecording();
+                if (els.voiceOverlay) els.voiceOverlay.hidden = true;
+                if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+            });
+        }
+
         micBtn.addEventListener('click', () => {
             if (continuousVoiceMode) {
                 continuousVoiceMode = false;
                 stopRecording();
+                if (els.voiceOverlay) els.voiceOverlay.hidden = true;
                 if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
             } else {
                 continuousVoiceMode = true;

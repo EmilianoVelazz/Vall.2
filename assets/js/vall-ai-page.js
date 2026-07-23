@@ -968,7 +968,10 @@
     async function waitForRenderedCharts(container) {
         const cards = Array.from(container?.querySelectorAll('.vai-chart-card') || []);
         await Promise.all(cards.map(card => Promise.resolve(card._vaiChartReady).catch(() => null)));
-        if (cards.length) await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        if (cards.length) {
+            // Esperamos a que terminen las animaciones de Chart.js (650ms + margen)
+            await new Promise(resolve => setTimeout(resolve, 850));
+        }
     }
 
     async function requestServerExport(title, content, format, container) {

@@ -1155,9 +1155,9 @@
                             vadTimer = setTimeout(() => {
                                 if (isSpeaking) {
                                     isSpeaking = false;
-                                    stopRecording(); // Automáticamente envía
+                                    stopRecording(); // Automáticamente envía rápido
                                 }
-                            }, 2500); // 2.5 segundos de silencio antes de cortar
+                            }, 1200); // 1.2 segundos de silencio antes de cortar
                         }
                         animationFrame = requestAnimationFrame(checkAudio);
                     };

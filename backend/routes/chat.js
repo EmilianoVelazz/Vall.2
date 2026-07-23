@@ -112,26 +112,21 @@ router.post('/ai-feedback', chatJson, verifyToken, aiLimiter, async (req, res) =
     res.json({ success: true });
 });
 
-// ── Análisis genérico bajo demanda (reemplaza llamadas directas a Gemini desde el cliente) ──
+// ── Análisis genérico bajo demanda (migrado al orquestador con RAG) ──────────
 router.post('/ai-insight', chatJson, verifyToken, aiLimiter, async (req, res) => {
-    const prompt       = (req.body?.prompt || '').toString().trim().slice(0, 12000);
-    const systemPrompt = (req.body?.systemPrompt || '').toString().trim().slice(0, 6000);
-    const modelId       = modelForTier(selectModelTier({ message: prompt, mode: 'auto' }));
-    if (!prompt) return res.status(400).json({ error: 'Prompt vacío' });
-    if (!genAI)  return res.status(503).json({ error: 'IA no configurada.' });
+    const input = structuredInput(req.body, req.user);
+    // Soporte retrocompatible: el campo legacy era 'prompt', el orquestador usa 'message'
+    if (!input.message && req.body?.prompt) input.message = String(req.body.prompt).trim().slice(0, 12000);
+    if (!input.message) return res.status(400).json({ error: 'Prompt vacío' });
+    if (!orchestrator.isConfigured()) return res.status(503).json({ error: 'IA no configurada.' });
 
     try {
-        const model  = genAI.getGenerativeModel(
-            systemPrompt ? { model: modelId, systemInstruction: systemPrompt } : { model: modelId }
-        );
-        const result = await model.generateContent(prompt);
-        res.json({ reply: result.response.text().trim() });
+        const result = await orchestrator.generateStructured(input);
+        res.json({ reply: result.text, response: result.response, tier: result.tier });
     } catch (err) {
         console.error('/api/ai-insight error:', err.message);
-        if (err.message?.includes('429') || err.message?.includes('quota')) {
-            return res.status(429).json({ error: 'Cuota de API agotada. Intenta más tarde.' });
-        }
-        res.status(500).json({ error: 'Error al generar el análisis' });
+        const safe = publicAiError(err);
+        res.status(safe.status).json({ error: safe.message });
     }
 });
 

@@ -8,6 +8,7 @@ const { verifyToken } = require('./auth');
 const router = express.Router();
 const attachments = new Map();
 const TTL_MS = 30 * 60 * 1000;
+const MAX_ATTACHMENTS = 200;
 const MAX_BYTES = 6 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
     'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf',
@@ -37,6 +38,9 @@ function cleanupExpired() {
 
 router.post('/chat-attachments', express.json({ limit: '9mb' }), verifyToken, uploadLimiter, (req, res) => {
     cleanupExpired();
+    if (attachments.size >= MAX_ATTACHMENTS) {
+        return res.status(503).json({ success: false, error: 'Demasiados archivos en cola. Intenta en unos minutos.' });
+    }
     const name = safeName(req.body?.name);
     const type = String(req.body?.type || '').toLowerCase().split(';')[0];
     const dataUrl = String(req.body?.dataUrl || '');

@@ -8,6 +8,15 @@ const { CACHE_DIR }                                   = require('../lib/config')
 
 const router = express.Router();
 
+// Utilidad FIFO: limita el tamaño de los Map de caché
+function boundedSet(map, key, value, maxSize = 150) {
+    if (map.size >= maxSize) {
+        const oldest = map.keys().next().value;
+        map.delete(oldest);
+    }
+    map.set(key, value);
+}
+
 const BANXICO_TOKEN = process.env.BANXICO_TOKEN || '';
 
 // ── Banxico proxy ─────────────────────────────────────────────────────────────
@@ -42,7 +51,7 @@ router.get('/banxico/:serie/history', async (req, res) => {
         if (payload?.error || !Array.isArray(payload?.bmx?.series?.[0]?.datos)) {
             throw new Error(payload?.error?.mensaje || 'Respuesta histórica inválida de Banxico');
         }
-        _bnxCache.set(cacheKey, { ts: Date.now(), data: payload });
+        boundedSet(_bnxCache, cacheKey, { ts: Date.now(), data: payload }, 100);
         res.json(payload);
     } catch (error) {
         console.error('/api/banxico history:', error.message);
@@ -52,223 +61,6 @@ router.get('/banxico/:serie/history', async (req, res) => {
 });
 
 router.get('/banxico/:serie', async (req, res) => {
-    const { serie } = req.params;
-    if (!/^[A-Z0-9]+$/i.test(serie)) return res.status(400).json({ error: 'Serie inválida' });
-    const hit = _bnxCache.get(serie);
-    if (hit && Date.now() - hit.ts < BNX_TTL) return res.json(hit.data);
-
-    // Circuit breaker abierto: no reintentar hasta que pase el tiempo
-    if (_bnxCircuitOpen && Date.now() < _bnxCircuitUntil) {
-        if (hit) return res.json(hit.data);
-        return res.status(502).json({ error: 'Token de Banxico inválido. Actualiza BANXICO_TOKEN en backend/.env' });
-    }
-
-    const url = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/oportuno`;
-    try {
-        const r = await externalGet(url, { 'Bmx-Token': BANXICO_TOKEN });
-        const j = await r.json();
-
-        // Detectar rechazo de token específicamente para abrir el circuit breaker
-        const errMsg = j?.error?.mensaje || '';
-        if (errMsg && (errMsg.toLowerCase().includes('inv') || errMsg.toLowerCase().includes('token'))) {
-            if (!_bnxCircuitOpen) {
-                _bnxCircuitOpen  = true;
-                _bnxCircuitUntil = Date.now() + BNX_CIRCUIT_MS;
-                console.error(`[Banxico] ${errMsg} — Genera un nuevo token en https://www.banxico.org.mx/SieAPIRest/service/v1/token y actualiza BANXICO_TOKEN en backend/.env. Reintentos bloqueados por 1h.`);
-            }
-            if (hit) return res.json(hit.data);
-            return res.status(502).json({ error: errMsg });
-        }
-
-        // Banxico responde 200 incluso con token inválido; validar que haya un dato real
-        if (j?.error || !j?.bmx?.series?.[0]?.datos?.[0]) {
-            throw new Error(j?.error?.mensaje || 'Respuesta inválida de Banxico');
-        }
-
-        _bnxCircuitOpen = false; // token válido: cerrar circuit breaker
-        _bnxCache.set(serie, { ts: Date.now(), data: j });
-        res.json(j);
-    } catch (err) {
-        console.error('/api/banxico error:', err.message);
-        if (hit) return res.json(hit.data);
-        res.status(502).json({ error: 'Error al conectar con Banxico. Intenta más tarde.' });
-    }
-});
-
-// ── Finnhub news proxy ────────────────────────────────────────────────────────
-const _fhCache = new Map();
-const FH_TTL   = 3 * 60 * 60 * 1000;
-
-router.get('/finnhub-news', async (req, res) => {
-    const category = ['forex', 'general', 'crypto', 'merger'].includes(req.query.category)
-        ? req.query.category : 'general';
-    const hit = _fhCache.get(category);
-    if (hit && Date.now() - hit.ts < FH_TTL) return res.json(hit.data);
-    try {
-        const qs = new URLSearchParams({ token: process.env.FINNHUB_TOKEN, category });
-        const r  = await externalGet(`https://finnhub.io/api/v1/news?${qs}`, {}, 7000);
-        if (!r.ok) throw new Error(`Finnhub HTTP ${r.status}`);
-        const j  = await r.json();
-        _fhCache.set(category, { ts: Date.now(), data: j });
-        res.json(j);
-    } catch (err) {
-        console.error('/api/finnhub-news:', err.message);
-        const stale = _fhCache.get(category);
-        if (stale) return res.json(stale.data);
-        res.status(502).json({ error: 'No se pudieron cargar las noticias en este momento.' });
-    }
-});
-
-// ── Alpha Vantage news proxy ───────────────────────────────────────────────────
-// La clave vivía en el cliente (js/api-keys.js) y se quitó por seguridad, pero
-// nunca se creó este proxy — desde entonces newsAlphaVantage() devolvía null
-// siempre, dejando sin fuente dedicada a "commodities" (la única que alimentaba
-// la categoría Proteínas), lo que la dejaba con 0 artículos permanentemente.
-const _avCache = new Map();
-const AV_TTL   = 3 * 60 * 60 * 1000;
-const AV_TOPICS = ['commodities', 'economy_macro', 'financial_markets', 'technology', 'earnings'];
-
-router.get('/alphavantage-news', async (req, res) => {
-    const topics = AV_TOPICS.includes(req.query.topics) ? req.query.topics : 'commodities';
-    const limit  = Math.min(parseInt(req.query.limit, 10) || 5, 20);
-    const cacheKey = `${topics}_${limit}`;
-    const hit = _avCache.get(cacheKey);
-    if (hit && Date.now() - hit.ts < AV_TTL) return res.json(hit.data);
-
-    if (!process.env.ALPHA_VANTAGE_KEY)
-        return res.status(503).json({ error: 'Alpha Vantage no configurado.' });
-
-    try {
-        const qs = new URLSearchParams({ function: 'NEWS_SENTIMENT', topics, limit, apikey: process.env.ALPHA_VANTAGE_KEY });
-        const r  = await externalGet(`https://www.alphavantage.co/query?${qs}`, {}, 8000);
-        if (!r.ok) throw new Error(`Alpha Vantage HTTP ${r.status}`);
-        const j = await r.json();
-        if (j?.Information || j?.Note) throw new Error(j.Information || j.Note); // rate-limit propio de AV
-        _avCache.set(cacheKey, { ts: Date.now(), data: j });
-        res.json(j);
-    } catch (err) {
-        console.error('/api/alphavantage-news:', err.message);
-        const stale = _avCache.get(cacheKey);
-        if (stale) return res.json(stale.data);
-        res.status(502).json({ error: 'No se pudieron cargar noticias de Alpha Vantage.' });
-    }
-});
-
-// ── Exchange rates proxy (open.er-api → caché 30 min) ────────────────────────
-const _erCache = { ts: 0, data: null };
-const ER_TTL   = 30 * 60 * 1000;
-
-router.get('/exchange-rates', async (req, res) => {
-    if (_erCache.data && Date.now() - _erCache.ts < ER_TTL)
-        return res.json(_erCache.data);
-    try {
-        const r = await externalGet('https://open.er-api.com/v6/latest/USD', {}, 8000);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = await r.json();
-        _erCache.data = j;
-        _erCache.ts   = Date.now();
-        res.json(j);
-    } catch (err) {
-        console.error('/api/exchange-rates:', err.message);
-        if (_erCache.data) return res.json(_erCache.data);
-        res.status(502).json({ error: 'No se pudieron obtener tipos de cambio.' });
-    }
-});
-
-// ── Crypto global market cap proxy (CoinGecko → caché 15 min) ───────────────
-const _cgCache = { ts: 0, data: null };
-const CG_TTL   = 15 * 60 * 1000;
-
-router.get('/crypto-global', async (req, res) => {
-    if (_cgCache.data && Date.now() - _cgCache.ts < CG_TTL)
-        return res.json(_cgCache.data);
-    try {
-        const r = await externalGet('https://api.coingecko.com/api/v3/global', {}, 8000);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = await r.json();
-        _cgCache.data = j;
-        _cgCache.ts   = Date.now();
-        res.json(j);
-    } catch (err) {
-        console.error('/api/crypto-global:', err.message);
-        if (_cgCache.data) return res.json(_cgCache.data);
-        res.status(502).json({ error: 'No se pudo obtener capitalización cripto.' });
-    }
-});
-
-// ── GDELT proxy: caché en memoria + disco, cola (1 req / 5.5 s) ───────────────
-// GDELT tiene rate-limit de 1 req / 5 s por IP. La cola serializa requests
-// paralelos del cliente. La caché en disco sobrevive reinicios del servidor.
-
-const _gdeltCache      = new Map();
-const GDELT_TTL        = 6 * 60 * 60 * 1000;
-const GDELT_CACHE_FILE = path.join(CACHE_DIR, 'gdelt_cache.json');
-const GDELT_MIN_GAP    = 5500;
-
-if (fs.existsSync(GDELT_CACHE_FILE)) {
-    try {
-        const saved = JSON.parse(fs.readFileSync(GDELT_CACHE_FILE, 'utf8'));
-        Object.entries(saved).forEach(([k, v]) => _gdeltCache.set(k, v));
-        console.log(`  GDELT cache: ${_gdeltCache.size} entradas cargadas desde disco`);
-    } catch { /* archivo corrupto, ignorar */ }
-}
-
-function _saveGdeltCacheToDisk() {
-    try {
-        const obj = {};
-        _gdeltCache.forEach((v, k) => { obj[k] = v; });
-        fs.writeFileSync(GDELT_CACHE_FILE, JSON.stringify(obj));
-    } catch { /* no crítico */ }
-}
-
-let _gdeltLastAt   = 0;
-const _gdeltQueue  = [];
-let _gdeltDraining = false;
-
-async function _drainGdeltQueue() {
-    if (_gdeltDraining) return;
-    _gdeltDraining = true;
-    while (_gdeltQueue.length > 0) {
-        const { url, resolve, reject } = _gdeltQueue.shift();
-        const wait = Math.max(0, _gdeltLastAt + GDELT_MIN_GAP - Date.now());
-        if (wait > 0) await new Promise(r => setTimeout(r, wait));
-        _gdeltLastAt = Date.now();
-        try { resolve(await gdeltFetch(url)); }
-        catch (e) { reject(e); }
-    }
-    _gdeltDraining = false;
-}
-
-const GDELT_QUEUE_MAX = 20;
-
-function _queueGdeltFetch(url) {
-    if (_gdeltQueue.length >= GDELT_QUEUE_MAX)
-        return Promise.reject(new Error('GDELT queue llena — demasiadas peticiones en cola'));
-    return new Promise((resolve, reject) => {
-        _gdeltQueue.push({ url, resolve, reject });
-        _drainGdeltQueue();
-    });
-}
-
-router.get('/gdelt', async (req, res) => {
-    const { query, mode, maxrecords = '5' } = req.query;
-    if (!query || !['ArtList', 'imagecollageinfo'].includes(mode))
-        return res.status(400).json({ error: 'Parámetros inválidos' });
-    const cacheKey = `${mode}:${query}:${maxrecords}`;
-    const hit = _gdeltCache.get(cacheKey);
-    if (hit && Date.now() - hit.ts < GDELT_TTL) return res.json(hit.data);
-
-    const qs = new URLSearchParams({ query, mode, format: 'json', maxrecords });
-    try {
-        const j = await _queueGdeltFetch(`https://api.gdeltproject.org/api/v2/doc/doc?${qs}`);
-        _gdeltCache.set(cacheKey, { ts: Date.now(), data: j });
-        _saveGdeltCacheToDisk();
-        res.json(j);
-    } catch (err) {
-        console.error('/api/gdelt error:', err.message.slice(0, 80));
-        if (hit) return res.json(hit.data);
-        res.json(mode === 'imagecollageinfo' ? { images: [] } : { articles: [] });
-    }
 });
 
 // ── Bond yields ───────────────────────────────────────────────────────────────

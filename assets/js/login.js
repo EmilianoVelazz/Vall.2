@@ -1,9 +1,9 @@
-// Verifica si el usuario ya está logueado
-function checkAuth() {
-  const token = sessionStorage.getItem('vn_auth') || localStorage.getItem('vn_auth');
-  if (token) {
-    window.location.replace('inicio.html');
-  }
+// Verifica si el usuario ya está logueado (la sesión se mantiene en cookie httpOnly)
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (res.ok) window.location.replace('inicio.html');
+  } catch {}
 }
 
 // Inicializar Toast
@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       showToast('Bienvenido. Cargando plataforma…');
-      sessionStorage.setItem('vn_auth', data.token);
-      sessionStorage.setItem('vn_user', email);
+      // El token se gestiona vía cookie httpOnly enviada por el backend.
+      // No se almacena en sessionStorage para evitar exposición a XSS.
       
       setTimeout(() => {
         window.location.replace('inicio.html');

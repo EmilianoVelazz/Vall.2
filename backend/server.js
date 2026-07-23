@@ -124,7 +124,11 @@ app.use((req, res, next) => {
 // Solo aplica en Express local (desarrollo). En Vercel los estáticos van por CDN.
 // Protege GET de archivos .html específicos sin tocar ninguna ruta /api/*.
 
-const _JWT_SECRET_STATIC = process.env.JWT_SECRET || 'cambia_este_secreto_jwt_ahora';
+const _JWT_SECRET_STATIC = process.env.JWT_SECRET;
+if (!_JWT_SECRET_STATIC) {
+    console.error('  [FATAL] JWT_SECRET no está configurado en backend/.env — el servidor no puede arrancar de forma segura.');
+    if (require.main === module) process.exit(1);
+}
 
 // Nombres exactos de páginas protegidas
 const PROTECTED_PAGES = new Set([
@@ -168,12 +172,17 @@ app.use(express.static(path.join(__dirname, '..')));
 // Una sola carga de finanzas.html dispara ~40-50 peticiones; inicio.html ~17
 const apiLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 1200,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: 'Demasiadas peticiones. Intenta en un momento.' },
 });
 app.use('/api', apiLimiter);
+
+// ── Health check ──────────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: Math.floor(process.uptime()) });
+});
 
 // ── Routers ───────────────────────────────────────────────────────────────────
 app.use('/api', authRouter);

@@ -49,8 +49,8 @@ function databaseConfig() {
         charset: 'utf8mb4',
         decimalNumbers: true,
         waitForConnections: true,
-        connectionLimit: 4,
-        queueLimit: 20,
+        connectionLimit: 12,
+        queueLimit: 40,
         enableKeepAlive: true,
     };
 }

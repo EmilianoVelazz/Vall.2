@@ -10,6 +10,14 @@ const { verifyToken } = require('./auth');
 const router = express.Router();
 const files = new Map();
 const TTL = 10 * 60 * 1000;
+const MAX_FILES = 80;
+
+// Limpieza periódica de archivos expirados (evita acumulación en memoria)
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, file] of files) if (file.expires < now) files.delete(key);
+}, 60_000);
+
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 
 function clean(value, max = 120000) { return String(value == null ? '' : value).replace(/\0/g, '').trim().slice(0, max); }
@@ -100,6 +108,15 @@ router.post('/report-export', express.json({ limit: '7mb' }), verifyToken, limit
         else if (format === 'markdown') { buffer = Buffer.from(content, 'utf8'); mime = 'text/markdown; charset=utf-8'; extension = 'md'; }
         else if (format === 'txt') { buffer = Buffer.from(plain(content), 'utf8'); mime = 'text/plain; charset=utf-8'; extension = 'txt'; }
         else { buffer = Buffer.from(JSON.stringify({ title, generatedAt: new Date().toISOString(), content }, null, 2), 'utf8'); mime = 'application/json; charset=utf-8'; extension = 'json'; }
+        if (files.size >= MAX_FILES) {
+            // Limpiar expirados primero
+            const now = Date.now();
+            for (const [key, file] of files) if (file.expires < now) files.delete(key);
+            // Si sigue lleno, rechazar
+            if (files.size >= MAX_FILES) {
+                return res.status(503).json({ success: false, error: 'Demasiados reportes pendientes. Descarga los anteriores o espera unos minutos.' });
+            }
+        }
         const token = crypto.randomBytes(24).toString('hex');
         files.set(token, { buffer, mime, name: `${filename(title)}.${extension}`, owner: req.user?.email || '', expires: Date.now() + TTL });
         for (const [key, file] of files) if (file.expires < Date.now()) files.delete(key);

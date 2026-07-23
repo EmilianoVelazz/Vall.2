@@ -1,4 +1,8 @@
 'use strict';
+// ⚠️ DEPRECATED: Este módulo usa @google/generative-ai (SDK antiguo).
+// Las rutas nuevas usan @google/genai vía backend/ai/providers/gemini-provider.js.
+// Este archivo se mantiene temporalmente para compatibilidad con el streaming
+// legacy de /api/ai-insight-stream (rama no-structured). Planificar eliminación.
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const MODEL_FLASH = 'gemini-2.5-flash';

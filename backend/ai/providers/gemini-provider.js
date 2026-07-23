@@ -51,6 +51,7 @@ class GeminiProvider {
                     topP: 0.86,
                     maxOutputTokens: tier === 'pro' ? 12288 : 8192,
                     ...(json ? { responseMimeType: 'application/json' } : {}),
+                    httpOptions: { timeout: 50_000 },
                 },
             });
             return { text: String(response.text || '').trim(), model };
@@ -69,6 +70,7 @@ class GeminiProvider {
                     temperature: 0.3,
                     topP: 0.86,
                     maxOutputTokens: tier === 'pro' ? 12288 : 8192,
+                    httpOptions: { timeout: 50_000 },
                 },
             });
             let text = '';

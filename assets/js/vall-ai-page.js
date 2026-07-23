@@ -1116,16 +1116,18 @@
         micBtn.title = "Hablar con VALL AI (Voz a Gemini)";
         els.send.parentNode.insertBefore(micBtn, els.send);
         
-        let mediaRecorder = null;
-        let audioChunks = [];
+        let recognition = null;
         let audioContext = null;
         let vadTimer = null;
         let isSpeaking = false;
         let localStream = null;
         let animationFrame = null;
+        let finalTranscript = '';
 
         const stopRecording = () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
             if (audioContext) { audioContext.close().catch(()=>{}); audioContext = null; }
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             clearTimeout(vadTimer);
@@ -1140,71 +1142,51 @@
             }
         };
 
-        async function convertToWav(blob) {
-            const arrayBuffer = await blob.arrayBuffer();
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-            const numOfChan = audioBuffer.numberOfChannels;
-            const length = audioBuffer.length * numOfChan * 2;
-            const buffer = new ArrayBuffer(44 + length);
-            const view = new DataView(buffer);
-            const channels = [];
-            let offset = 0;
-            let pos = 0;
-
-            const setUint16 = (data) => { view.setUint16(pos, data, true); pos += 2; };
-            const setUint32 = (data) => { view.setUint32(pos, data, true); pos += 4; };
-            const writeString = (str) => { for (let i = 0; i < str.length; i++) { view.setUint8(pos, str.charCodeAt(i)); pos++; } };
-
-            writeString('RIFF'); setUint32(36 + length); writeString('WAVE');
-            writeString('fmt '); setUint32(16); setUint16(1); setUint16(numOfChan);
-            setUint32(audioBuffer.sampleRate); setUint32(audioBuffer.sampleRate * 2 * numOfChan);
-            setUint16(numOfChan * 2); setUint16(16);
-            writeString('data'); setUint32(length);
-
-            for (let i = 0; i < audioBuffer.numberOfChannels; i++) channels.push(audioBuffer.getChannelData(i));
-            while (pos < buffer.byteLength) {
-                for (let i = 0; i < numOfChan; i++) {
-                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-                    view.setInt16(pos, sample, true);
-                    pos += 2;
-                }
-                offset++;
-            }
-            return new Blob([buffer], { type: 'audio/wav' });
-        }
-
         const startRecording = async () => {
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(localStream);
-                audioChunks = [];
+                const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRec) {
+                    window.alert('Tu navegador no soporta el reconocimiento de voz en vivo. Usa Google Chrome o Edge.');
+                    continuousVoiceMode = false;
+                    return;
+                }
 
-                mediaRecorder.addEventListener('dataavailable', event => {
-                    if (event.data.size > 0) audioChunks.push(event.data);
-                });
+                recognition = new SpeechRec();
+                recognition.lang = 'es-MX';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                finalTranscript = '';
 
-                mediaRecorder.addEventListener('stop', async () => {
-                    if (audioChunks.length > 0) {
-                        try {
-                            const rawBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-                            // Convert to WAV because Gemini 1.5 doesn't natively support WebM audio via REST inlineData
-                            const wavBlob = await convertToWav(rawBlob);
-                            const audioFile = new File([wavBlob], `Audio_${new Date().getTime()}.wav`, { type: 'audio/wav' });
-                            addFiles([audioFile]);
-                            if (!els.input.value.trim() && continuousVoiceMode) els.form.requestSubmit();
-                        } catch (err) {
-                            console.error('Error convirtiendo audio a WAV:', err);
-                            if (els.voiceOverlay) els.voiceOverlay.hidden = true;
-                            continuousVoiceMode = false;
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
                         }
                     }
-                });
+                    els.input.value = finalTranscript + interimTranscript;
+                };
 
-                mediaRecorder.start();
+                recognition.onend = () => {
+                    if (continuousVoiceMode) {
+                        if (els.input.value.trim()) {
+                            stopRecording(); // Cleanup UI and VAD before submitting
+                            els.form.requestSubmit();
+                        } else {
+                            // If they said nothing, just restart listening
+                            try { recognition.start(); } catch(e) {}
+                        }
+                    }
+                };
+
+                recognition.start();
+
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
                 micBtn.classList.add('listening');
-                micBtn.innerHTML = '<i class="fas fa-phone"></i>'; // Icono de llamada
+                micBtn.innerHTML = '<i class="fas fa-phone"></i>';
                 
                 if (els.voiceOverlay) {
                     els.voiceOverlay.hidden = false;
@@ -1212,7 +1194,6 @@
                     if (els.voiceStatus) els.voiceStatus.textContent = 'Escuchando...';
                 }
 
-                // Voice Activity Detection (VAD) & Audio Reactivity
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (AudioCtx) {
                     audioContext = new AudioCtx();
@@ -1223,11 +1204,10 @@
 
                     const dataArray = new Uint8Array(analyser.frequencyBinCount);
                     const checkAudio = () => {
-                        if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+                        if (!localStream) return;
                         analyser.getByteFrequencyData(dataArray);
                         const maxVol = Math.max(...dataArray);
                         
-                        // Audio Reactivity (Orb Scale)
                         if (els.voiceOrb && els.voiceOverlay.classList.contains('state-listening')) {
                             const scale = 1 + (maxVol / 255) * 1.5;
                             els.voiceOrb.style.transform = `scale(${scale})`;
@@ -1256,7 +1236,7 @@
         };
 
         autoListenCallback = () => {
-            if (continuousVoiceMode && (!mediaRecorder || mediaRecorder.state !== 'recording')) {
+            if (continuousVoiceMode && !localStream) {
                 startRecording();
             }
         };

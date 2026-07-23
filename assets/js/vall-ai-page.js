@@ -1182,15 +1182,15 @@
                     const checkAudio = () => {
                         if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
                         analyser.getByteFrequencyData(dataArray);
-                        const average = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
+                        const maxVol = Math.max(...dataArray);
                         
                         // Audio Reactivity (Orb Scale)
                         if (els.voiceOrb && els.voiceOverlay.classList.contains('state-listening')) {
-                            const scale = 1 + (average / 255) * 1.5;
+                            const scale = 1 + (maxVol / 255) * 1.5;
                             els.voiceOrb.style.transform = `scale(${scale})`;
                         }
 
-                        if (average > 10) {
+                        if (maxVol > 30) {
                             if (!isSpeaking) isSpeaking = true;
                             clearTimeout(vadTimer);
                             vadTimer = setTimeout(() => {

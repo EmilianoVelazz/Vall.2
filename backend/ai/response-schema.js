@@ -38,14 +38,17 @@ function validateMermaid(value) {
 function normalizeChartSpec(value) {
     const spec = value && typeof value === 'object' ? value : {};
     const type = CHART_TYPES.has(spec.type) ? spec.type : 'bar';
-    const labels = Array.isArray(spec.labels) ? spec.labels.slice(0, 24).map(v => cleanString(v, 80)) : [];
-    const datasets = Array.isArray(spec.datasets) ? spec.datasets.slice(0, 6).map((set, index) => ({
+    const sourceLabels = Array.isArray(spec.labels) ? spec.labels : (spec.data && Array.isArray(spec.data.labels) ? spec.data.labels : []);
+    const sourceDatasets = Array.isArray(spec.datasets) ? spec.datasets : (spec.data && Array.isArray(spec.data.datasets) ? spec.data.datasets : []);
+    
+    const labels = sourceLabels.slice(0, 24).map(v => cleanString(v, 80));
+    const datasets = sourceDatasets.slice(0, 6).map((set, index) => ({
         label: cleanString(set?.label || `Serie ${index + 1}`, 80),
         type: CHART_TYPES.has(set?.type) ? set.type : undefined,
         data: Array.isArray(set?.data)
             ? set.data.slice(0, labels.length || 24).map(v => Number.isFinite(Number(v)) ? Number(v) : null)
             : [],
-    })).filter(set => set.data.length) : [];
+    })).filter(set => set.data.length);
     if (!labels.length || !datasets.length) return null;
     return {
         type,
@@ -308,21 +311,38 @@ function parseMarkdownSegment(segment) {
 function markdownToRichResponse(markdown, defaults = {}) {
     const source = cleanString(markdown, 50000);
     const blocks = [];
-    let last = 0;
-    const fence = /```([\w+-]*)\s*\n([\s\S]*?)```/g;
-    let match;
-    while ((match = fence.exec(source))) {
-        blocks.push(...parseMarkdownSegment(source.slice(last, match.index)));
-        const language = cleanString(match[1] || 'text', 40).toLowerCase();
-        const content = cleanString(match[2], 30000);
-        if (language === 'mermaid') blocks.push({ type: 'diagram', format: 'mermaid', content });
-        else if (language === 'chart') {
-            try { blocks.push({ type: 'chart', spec: JSON.parse(content) }); }
-            catch { blocks.push({ type: 'code', language: 'json', content }); }
-        } else blocks.push({ type: 'code', language, content });
-        last = fence.lastIndex;
+    
+    // Rescue raw JSON chart generated without rich_response wrapper
+    if (source.startsWith('{') && source.endsWith('}')) {
+        try {
+            const rawJson = JSON.parse(source);
+            if (rawJson.chart || rawJson.spec || rawJson.datasets || rawJson.type === 'bar' || rawJson.type === 'line' || rawJson.type === 'pie') {
+                const specSource = rawJson.chart?.spec || rawJson.chart || rawJson.spec || rawJson;
+                blocks.push({ type: 'chart', spec: specSource });
+            }
+        } catch (e) {
+            // Not a valid JSON or failed to parse, continue as markdown
+        }
     }
-    blocks.push(...parseMarkdownSegment(source.slice(last)));
+
+    if (blocks.length === 0) {
+        let last = 0;
+        const fence = /```([\w+-]*)\s*\n([\s\S]*?)```/g;
+        let match;
+        while ((match = fence.exec(source))) {
+            blocks.push(...parseMarkdownSegment(source.slice(last, match.index)));
+            const language = cleanString(match[1] || 'text', 40).toLowerCase();
+            const content = cleanString(match[2], 30000);
+            if (language === 'mermaid') blocks.push({ type: 'diagram', format: 'mermaid', content });
+            else if (language === 'chart') {
+                try { blocks.push({ type: 'chart', spec: JSON.parse(content) }); }
+                catch { blocks.push({ type: 'code', language: 'json', content }); }
+            } else blocks.push({ type: 'code', language, content });
+            last = fence.lastIndex;
+        }
+        blocks.push(...parseMarkdownSegment(source.slice(last)));
+    }
+
     const titleBlock = blocks.find(block => block.type === 'heading');
     return validateRichResponse({
         title: defaults.title || titleBlock?.content || 'Respuesta VALL-AI',

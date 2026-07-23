@@ -629,7 +629,7 @@
     }
 
     function addFiles(fileList) {
-        const allowed = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf', 'text/plain', 'text/csv', 'text/markdown', 'application/json']);
+        const allowed = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf', 'text/plain', 'text/csv', 'text/markdown', 'application/json', 'audio/webm', 'audio/mp4', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg', 'audio/aac', 'audio/webm;codecs=opus']);
         const incoming = Array.from(fileList || []);
         for (const file of incoming) {
             const type = normalizedFileType(file);

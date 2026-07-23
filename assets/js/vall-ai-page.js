@@ -24,6 +24,8 @@
     let activeId = localStorage.getItem(ACTIVE_KEY) || '';
     let busy = false;
     let controller = null;
+    let continuousVoiceMode = false;
+    let autoListenCallback = null;
     let mermaidReady = null;
     let reportRenderTimer = null;
     let activeReportContext = { key: 'latest', title: 'Reporte VALL AI', content: '', label: 'Última respuesta seleccionada' };
@@ -463,7 +465,10 @@
                 } else {
                     const utterance = new SpeechSynthesisUtterance(message.text.replace(/[#*`_]/g, ''));
                     utterance.lang = 'es-MX';
-                    utterance.onend = () => speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    utterance.onend = () => {
+                        speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                        if (continuousVoiceMode && autoListenCallback) setTimeout(autoListenCallback, 200);
+                    };
                     speakBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
                     window.speechSynthesis.speak(utterance);
                 }
@@ -707,6 +712,13 @@
             else pending.bubble.innerHTML = `<div class="vai-error"><strong>No pude completar la respuesta.</strong><br>${escapeHtml(error.message)}</div>`;
         } finally {
             controller = null; setBusy(false); els.input.focus(); els.messages.scrollTop = els.messages.scrollHeight;
+            if (continuousVoiceMode && window.speechSynthesis && !pending.bubble.querySelector('.vai-error')) {
+                const speakBtn = pending.bubble.querySelector('[data-speak]');
+                if (speakBtn) {
+                    const originalOnEnd = speakBtn._customOnEnd;
+                    speakBtn.click();
+                }
+            }
         }
     }
 
@@ -1082,36 +1094,96 @@
         
         let mediaRecorder = null;
         let audioChunks = [];
+        let audioContext = null;
+        let vadTimer = null;
+        let isSpeaking = false;
+        let localStream = null;
+        let animationFrame = null;
 
-        micBtn.addEventListener('click', async () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                micBtn.classList.remove('listening');
-                micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-            } else {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
+        const stopRecording = () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+            if (audioContext) { audioContext.close().catch(()=>{}); audioContext = null; }
+            if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+            clearTimeout(vadTimer);
+            cancelAnimationFrame(animationFrame);
+            isSpeaking = false;
+            micBtn.classList.remove('listening');
+            micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        };
 
-                    mediaRecorder.addEventListener('dataavailable', event => {
-                        if (event.data.size > 0) audioChunks.push(event.data);
-                    });
+        const startRecording = async () => {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(localStream);
+                audioChunks = [];
 
-                    mediaRecorder.addEventListener('stop', () => {
-                        stream.getTracks().forEach(track => track.stop());
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    if (event.data.size > 0) audioChunks.push(event.data);
+                });
+
+                mediaRecorder.addEventListener('stop', () => {
+                    if (audioChunks.length > 0) {
                         const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
                         const audioFile = new File([audioBlob], `Audio_${new Date().getTime()}.webm`, { type: audioBlob.type });
                         addFiles([audioFile]);
-                        if (!els.input.value.trim()) els.form.requestSubmit();
-                    });
+                        if (!els.input.value.trim() && continuousVoiceMode) els.form.requestSubmit();
+                    }
+                });
 
-                    mediaRecorder.start();
-                    micBtn.classList.add('listening');
-                    micBtn.innerHTML = '<i class="fas fa-stop"></i>';
-                } catch (error) {
-                    window.alert('No se pudo acceder al micrófono para hablar con VALL AI.');
+                mediaRecorder.start();
+                micBtn.classList.add('listening');
+                micBtn.innerHTML = '<i class="fas fa-phone"></i>'; // Icono de llamada
+
+                // Voice Activity Detection (VAD)
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    audioContext = new AudioCtx();
+                    const analyser = audioContext.createAnalyser();
+                    analyser.minDecibels = -50;
+                    const microphone = audioContext.createMediaStreamSource(localStream);
+                    microphone.connect(analyser);
+
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    const checkAudio = () => {
+                        if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+                        analyser.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
+                        
+                        if (average > 10) {
+                            if (!isSpeaking) isSpeaking = true;
+                            clearTimeout(vadTimer);
+                            vadTimer = setTimeout(() => {
+                                if (isSpeaking) {
+                                    isSpeaking = false;
+                                    stopRecording(); // Automáticamente envía
+                                }
+                            }, 2500); // 2.5 segundos de silencio antes de cortar
+                        }
+                        animationFrame = requestAnimationFrame(checkAudio);
+                    };
+                    checkAudio();
                 }
+            } catch (error) {
+                window.alert('No se pudo acceder al micrófono para hablar con VALL AI.');
+                continuousVoiceMode = false;
+                stopRecording();
+            }
+        };
+
+        autoListenCallback = () => {
+            if (continuousVoiceMode && (!mediaRecorder || mediaRecorder.state !== 'recording')) {
+                startRecording();
+            }
+        };
+
+        micBtn.addEventListener('click', () => {
+            if (continuousVoiceMode) {
+                continuousVoiceMode = false;
+                stopRecording();
+                if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+            } else {
+                continuousVoiceMode = true;
+                startRecording();
             }
         });
     }

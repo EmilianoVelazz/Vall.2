@@ -597,7 +597,7 @@
     }
 
     function normalizedFileType(file) {
-        if (file.type) return file.type.toLowerCase();
+        if (file.type) return file.type.toLowerCase().split(';')[0].trim();
         const extension = String(file.name).split('.').pop().toLowerCase();
         return ({ txt: 'text/plain', csv: 'text/csv', md: 'text/markdown', json: 'application/json', pdf: 'application/pdf' })[extension] || '';
     }
@@ -674,7 +674,15 @@
         setBusy(true);
         let uploaded = [];
         try { uploaded = await uploadFiles(fileSnapshot); }
-        catch (error) { setBusy(false); window.alert(error.message); return; }
+        catch (error) { 
+            setBusy(false); 
+            window.alert(error.message); 
+            if (continuousVoiceMode && els.voiceOverlay) {
+                els.voiceOverlay.hidden = true;
+                continuousVoiceMode = false;
+            }
+            return; 
+        }
         fileSnapshot.forEach(item => URL.revokeObjectURL(item.url)); pendingFiles = []; renderPendingFiles();
         
         els.welcome.hidden = true; if (els.welcome.parentNode === els.messages) els.welcome.remove();

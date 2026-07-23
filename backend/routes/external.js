@@ -19,6 +19,38 @@ let _bnxCircuitOpen  = false;
 let _bnxCircuitUntil = 0;
 const BNX_CIRCUIT_MS = 6 * 60 * 60 * 1000; // 6 horas — un log por turno de caché
 
+router.get('/banxico/:serie/history', async (req, res) => {
+    const { serie } = req.params;
+    const start = String(req.query.start || '');
+    const end = String(req.query.end || '');
+    if (!/^[A-Z0-9]+$/i.test(serie)) return res.status(400).json({ error: 'Serie inválida' });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+        return res.status(400).json({ error: 'Fechas inválidas. Usa YYYY-MM-DD.' });
+    }
+    const startDate = new Date(`${start}T00:00:00Z`);
+    const endDate = new Date(`${end}T00:00:00Z`);
+    if (startDate > endDate || endDate - startDate > 20 * 366 * 86400000) {
+        return res.status(400).json({ error: 'El periodo debe ser válido y no superar 20 años.' });
+    }
+    const cacheKey = `${serie}:${start}:${end}`;
+    const hit = _bnxCache.get(cacheKey);
+    if (hit && Date.now() - hit.ts < BNX_TTL) return res.json(hit.data);
+    try {
+        const url = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/${start}/${end}`;
+        const response = await externalGet(url, { 'Bmx-Token': BANXICO_TOKEN }, 20000);
+        const payload = await response.json();
+        if (payload?.error || !Array.isArray(payload?.bmx?.series?.[0]?.datos)) {
+            throw new Error(payload?.error?.mensaje || 'Respuesta histórica inválida de Banxico');
+        }
+        _bnxCache.set(cacheKey, { ts: Date.now(), data: payload });
+        res.json(payload);
+    } catch (error) {
+        console.error('/api/banxico history:', error.message);
+        if (hit) return res.json(hit.data);
+        res.status(502).json({ error: 'No se pudo obtener el histórico de Banxico.' });
+    }
+});
+
 router.get('/banxico/:serie', async (req, res) => {
     const { serie } = req.params;
     if (!/^[A-Z0-9]+$/i.test(serie)) return res.status(400).json({ error: 'Serie inválida' });

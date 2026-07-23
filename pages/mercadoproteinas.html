@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/assets/img/logo1.png" />
+    <meta name="description" content="Mercado de proteínas: precios de maíz, soya, trigo, cerdo CME y análisis del sector agropecuario." />
+    <title>VALLNEWS · Mercado Proteínas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/header.css">
+    <link rel="stylesheet" href="/assets/css/footer.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
+    <script src="/assets/js/page-loader.js?v=4"></script>
+    <script src="/assets/js/api-keys.js?v=5"></script>
+    <script src="/assets/js/data-service.js?v=22"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; color: #1a1a2e; overflow-x: hidden; }
+
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+
+        .page-title {
+            display: flex; align-items: center; gap: 0.6rem;
+            font-size: 1.5rem; font-weight: 700; color: #1a1a2e;
+            margin-bottom: 1rem; padding-bottom: 0.8rem;
+            border-bottom: 2px solid rgba(0,33,58,0.15);
+        }
+        .page-title i { color: #00213a; font-size: 1.2rem; }
+
+            .filter-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+        .fpill {
+            background: #fff; border: 1px solid rgba(0,33,58,0.18);
+            color: #44546a; padding: 5px 14px; border-radius: 20px;
+            font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .fpill:hover { border-color: #00213a; color: #00213a; }
+        .fpill.active { background: #00213a; color: #fff; border-color: #00213a; }
+
+
+        .section-lbl {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; color: #00213a; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .section-lbl::after { content: ""; flex: 1; height: 1px; background: rgba(0,0,0,0.1); }
+
+
+        .news-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.2rem; margin-bottom: 1.8rem; }
+        .news-card {
+            background: #fff; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06);
+            cursor: pointer; transition: transform .25s, box-shadow .25s;
+        }
+        .news-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.13); }
+        .news-card.hidden { display: none; }
+        .nc-img  { width: 100%; height: 150px; object-fit: cover; display: block; }
+        .nc-body { padding: 1rem 1.1rem 1.1rem; }
+        .nc-cat  { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #00213a; margin-bottom: 0.25rem; display: block; }
+        .nc-date { font-size: 0.62rem; color: #888; margin-bottom: 0.45rem; display: block; }
+        .nc-title { font-family: 'Playfair Display', serif; font-size: 0.98rem; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 0.5rem; }
+        .nc-desc  { font-size: 0.77rem; color: #555; line-height: 1.55; margin-bottom: 0.85rem;
+                    display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+        .nc-foot  { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.8rem; }
+        .tag-src  { font-size: 0.6rem; font-weight: 700; background: #00213a; color: #fff; padding: 2px 8px; border-radius: 3px; }
+        .tag-high { font-size: 0.6rem; font-weight: 700; background: rgba(239,68,68,0.12); color: #dc2626; padding: 2px 8px; border-radius: 3px; }
+        .tag-med  { font-size: 0.6rem; font-weight: 700; background: rgba(245,158,11,0.12); color: #d97706; padding: 2px 8px; border-radius: 3px; }
+        .tag-low  { font-size: 0.6rem; font-weight: 700; background: rgba(22,163,74,0.12);  color: #16a34a; padding: 2px 8px; border-radius: 3px; }
+
+
+       
+        .news-card-wide {
+            background: #fff; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06);
+            display: grid; grid-template-columns: 200px 1fr;
+            margin-bottom: 1.8rem;
+        }
+        .news-card-wide .nc-img { height: 100%; }
+        .news-card-wide .nc-body { padding: 1.2rem 1.4rem; }
+
+        
+        .bottom-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.2rem; }
+        .right-col    { display: flex; flex-direction: column; gap: 1.2rem; }
+        .panel {
+            background: #fff; border-radius: 10px; padding: 1.4rem 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .price-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.9rem 0.5rem; border-bottom: 1px solid rgba(0,0,0,0.07);
+        }
+        .price-row:last-child { border-bottom: none; }
+        .price-name  { font-size: 0.88rem; font-weight: 600; color: #334155; }
+        .price-val   { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; color: #0f172a; }
+        .up   { color: #16a34a; font-size: 0.78rem; font-weight: 700; margin-left: 6px; }
+        .down { color: #dc2626; font-size: 0.78rem; font-weight: 700; margin-left: 6px; }
+
+        .ratio-note {
+            background: rgba(0,33,58,0.05); border-radius: 6px;
+            padding: 0.8rem 1rem; margin-top: 1rem;
+            font-size: 0.75rem; color: #334155; line-height: 1.5;
+        }
+        .ratio-note b { color: #00213a; }
+
+      
+        .dest-bar { margin-bottom: 0.85rem; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 0.76rem; color: #334155; margin-bottom: 5px; font-weight: 500; }
+        .bar-label b { color: #00213a; font-family: 'JetBrains Mono', monospace; }
+        .bar-bg   { background: rgba(0,33,58,0.08); height: 7px; border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; background: #00213a; }
+        .bar-fill.accent { background: linear-gradient(90deg, #d97706, #f59e0b); }
+
+        .export-insight {
+            background: rgba(0,33,58,0.05); border-left: 3px solid #00213a;
+            padding: 8px 10px; font-size: 0.72rem; color: #334155;
+            line-height: 1.45; border-radius: 0 4px 4px 0; margin-top: 1rem;
+        }
+
+       
+        .margin-card {
+            background: linear-gradient(135deg, #00213a 0%, #003d6b 100%);
+            border-radius: 10px; padding: 1.4rem 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18); text-align: center;
+        }
+        .margin-lbl  { font-size: 0.6rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.55); text-transform: uppercase; margin-bottom: 0.35rem; }
+        .margin-val  { font-family: 'JetBrains Mono', monospace; font-size: 2.4rem; font-weight: 700; color: #f87171; line-height: 1; margin-bottom: 0.3rem; }
+        .margin-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.7); line-height: 1.5; margin-top: 0.5rem; }
+        .margin-sub b { color: #fbbf24; }
+
+       
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; }
+        .stat-box {
+            background: rgba(0,33,58,0.04); border-radius: 8px; padding: 0.9rem 1rem;
+            border: 1px solid rgba(0,33,58,0.1);
+        }
+        .stat-lbl  { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 0.3rem; }
+        .stat-val  { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; color: #00213a; line-height: 1; }
+        .stat-chg  { font-size: 0.62rem; font-weight: 700; color: #16a34a; margin-top: 3px; }
+        .stat-note { font-size: 0.62rem; color: #888; margin-top: 3px; }
+
+        @media (max-width: 1024px) {
+            .news-grid        { grid-template-columns: repeat(2,1fr); }
+            .bottom-grid      { grid-template-columns: 1fr; }
+            .news-card-wide   { grid-template-columns: 150px 1fr; }
+        }
+        @media (max-width: 640px) {
+            .news-grid        { grid-template-columns: 1fr; }
+            .container        { padding: 0 1rem; }
+            .news-card-wide   { grid-template-columns: 1fr; }
+            .news-card-wide .nc-img { height: 150px; }
+            .stat-grid        { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="hdr-top">
+        <a class="logo" href="/inicio.html">
+            <div class="logo-icon"><img src="/assets/img/logo1.png" alt="VALLNEWS Logo"></div>
+            <span class="logo-text">VALLNews</span>
+        </a>
+        <span class="hdr-tagline">Datos en tiempo real &nbsp;&middot;&nbsp; Economía global &nbsp;&middot;&nbsp; Mercados</span>
+    </div>
+    <nav class="hdr-nav">
+        <div class="nav-center">
+            <a class="nav-link" href="/inicio.html"><i class="fas fa-house"></i></a>
+            <a class="nav-link" href="/pages/finanzas.html">Finanzas</a>
+            <a class="nav-link" href="/pages/mercados.html">Mercados</a>
+            <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
+            <a class="nav-link active" href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
+            <a class="nav-link" href="/pages/mexico.html">México</a>
+        </div>
+        <a class="nav-user"><i class="fas fa-circle-user"></i></a>
+    </nav>
+</header>
+<div class="hdr-divider"></div>
+
+<div class="container">
+
+    <div class="page-title">
+        <i class="fas fa-drumstick-bite"></i> Mercado Proteínas
+    </div>
+
+    <div class="filter-bar">
+        <button class="fpill active" onclick="filterCat('all',this)">TODOS</button>
+        <button class="fpill" onclick="filterCat('cerdo',this)">?? CERDO</button>
+        <button class="fpill" onclick="filterCat('pollo',this)">?? POLLO</button>
+        <button class="fpill" onclick="filterCat('res',this)">?? RES</button>
+    </div>
+   
+    <div class="news-grid" id="newsGrid"></div>
+
+   
+    <div class="bottom-grid">
+
+        <div style="display:flex; flex-direction:column; gap:1.2rem;">
+
+            <div class="panel">
+                <div class="section-lbl">Precios Internacionales (USD / KG)</div>
+                <div class="price-row" data-cat="cerdo">
+                    <span class="price-name">?? Cerdo (Pierna / Lomo)</span>
+                    <span><span class="price-val" id="cerdo-price">$2.45</span><span class="up" id="cerdo-pct">+5.0%</span></span>
+                </div>
+                <div class="price-row" data-cat="pollo">
+                    <span class="price-name">?? Pollo (Pechuga)</span>
+                    <span><span class="price-val" id="pollo-price">$2.90</span><span class="down" id="pollo-pct">-1.0%</span></span>
+                </div>
+                <div class="price-row" data-cat="res">
+                    <span class="price-name">?? Res (Cortes Selectos)</span>
+                    <span><span class="price-val" id="res-price">$4.80</span><span class="up" id="res-pct">+1.0%</span></span>
+                </div>
+                <div class="ratio-note" id="ratio-note">
+                    <i class="fas fa-robot" style="color:#00213a"></i>
+                    &nbsp;<b>Ratio Cerdo/Pollo: 0.84</b> — El cerdo gana competitividad al estrecharse la brecha de precio frente al pollo.
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="section-lbl" id="export-title">Exportaciones México · Cargando…</div>
+                <div class="dest-bar">
+                    <div class="bar-label"><span>???? Japón (40%)</span><b id="exp-japon">$—</b></div>
+                    <div class="bar-bg"><div class="bar-fill" style="width:40%"></div></div>
+                </div>
+                <div class="dest-bar">
+                    <div class="bar-label"><span>???? Corea del Sur (25%)</span><b id="exp-corea">$—</b></div>
+                    <div class="bar-bg"><div class="bar-fill" style="width:25%"></div></div>
+                </div>
+                <div class="dest-bar">
+                    <div class="bar-label"><span>???? China (15%)</span><b id="exp-china">$—</b></div>
+                    <div class="bar-bg"><div class="bar-fill accent" style="width:15%"></div></div>
+                </div>
+                <div class="dest-bar">
+                    <div class="bar-label"><span>?? Otros (20%)</span><b id="exp-otros">$—</b></div>
+                    <div class="bar-bg"><div class="bar-fill" style="width:20%; opacity:.6"></div></div>
+                </div>
+                <div class="export-insight" id="export-insight">Cargando análisis de mercado…</div>
+            </div>
+
+        </div>
+
+        <div class="right-col">
+
+            <div class="margin-card">
+                <div class="margin-lbl">Alerta de Margen · VALL-AI</div>
+                <div class="margin-val" id="margin-val">+$0.12<small style="font-size:1rem; color:rgba(255,255,255,0.6)"> /kg</small></div>
+                <div class="margin-sub" id="margin-sub">
+                    Alza en costo de producción por <b>Maíz $4.80/bu</b>.<br>
+                    Riesgo de caída <b>-2%</b> en margen bruto si el precio de venta no se ajusta en las próximas 4 semanas.
+                </div>
+            </div>
+            <div class="panel">
+                <div class="section-lbl">Tendencias de Consumo</div>
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="stat-lbl">Ratio Cerdo/Res</div>
+                    g    <div class="stat-val" id="stat-ratio">—</div>
+                        <div class="stat-chg" id="stat-ratio-chg">calculando</div>
+                        <div class="stat-note">precio relativo actual</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-lbl">Feed Cost Est.</div>
+                        <div class="stat-val" id="stat-feed">—</div>
+                        <div class="stat-chg" id="stat-feed-chg">maíz + soya</div>
+                        <div class="stat-note" id="stat-feed-note">USD / kg cerdo</div>
+                    </div>
+                </div>
+                <p id="consume-para" style="font-size:0.75rem; color:#555; line-height:1.55;">
+                    El cerdo desplaza a la res en USA por factor precio (+5% sustitución). La expansión de plantas en el Bajío asegura capacidad para demanda de embutidos en 2026-2027.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+function filterCat(cat, el) {
+    document.querySelectorAll('.fpill').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('#newsGrid .news-card').forEach(c => {
+        c.classList.toggle('hidden', cat !== 'all' && c.dataset.cat !== cat);
+    });
+    const wide = document.querySelector('.news-card-wide');
+    if (wide) wide.style.display = (cat === 'all' || wide.dataset.cat === cat) ? '' : 'none';
+    document.querySelectorAll('.price-row[data-cat]').forEach(r => {
+        r.style.display = (cat === 'all' || r.dataset.cat === cat) ? '' : 'none';
+    });
+}
+</script>
+
+<script>
+
+const PROT_CK = 'prot_v11';
+
+async function cargarProteinas() {
+    const now      = new Date();
+    const hora     = now.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    const fechaFmt = now.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+
+    const CATS_P = { cerdo:'Cerdo · Mercado', pollo:'Pollo · Tendencias', res:'Res · Comercio' };
+    const IMPS_P = { cerdo:'alto',            pollo:'medio',              res:'bajo'           };
+    const DCS_P  = ['cerdo', 'pollo', 'res'];
+
+    const stored  = VDS.load(PROT_CK, true);
+    const expired = VDS.isExpired(PROT_CK);
+    if (stored?.noticias?.length) {
+        renderProt(stored); window.VNLoader?.hide();
+        if (!expired) return;
+        VDS.clear(PROT_CK);
+    }
+
+    const [gdProtR, gdFeedR, fhR] = await Promise.allSettled([
+        VDS.gdeltNews('pork poultry beef cattle hog livestock chicken meat protein', 6),
+        VDS.gdeltNews('corn soybean feed cost USDA livestock grain animal', 5),
+        VDS.finnhubNews('general'),
+    ]);
+
+    const pick = r => (r.status === 'fulfilled' && Array.isArray(r.value) && r.value.length) ? r.value : [];
+    const gdProt = pick(gdProtR);
+    const gdFeed = pick(gdFeedR);
+    const fhRaw  = pick(fhR);
+
+    
+    const allNews = [...gdProt, ...gdFeed, ...fhRaw];
+    const seen = new Set();
+    const unique = allNews.filter(a => {
+        const k = (a.title || '').trim().toLowerCase().slice(0, 60);
+        if (!k || k.length < 8 || seen.has(k)) return false;
+        seen.add(k); return true;
+    });
+
+
+    const pools = { cerdo: [], pollo: [], res: [] };
+    unique.forEach(a => {
+        const t = (a.title || '').toLowerCase();
+        if (t.match(/pork|hog|cerdo|swine|bacon|jamón/)) {
+            if (pools.cerdo.length < 2) pools.cerdo.push(a);
+        } else if (t.match(/poult|chicken|broiler|pollo|aviar|turkey/)) {
+            if (pools.pollo.length < 2) pools.pollo.push(a);
+        } else if (t.match(/beef|cattle|bovine|res|ganado|angus|feedlot/)) {
+            if (pools.res.length < 2) pools.res.push(a);
+        }
+    });
+    
+    let fillIdx = 0;
+    DCS_P.forEach(cat => {
+        while (pools[cat].length === 0 && fillIdx < unique.length) {
+            pools[cat].push(unique[fillIdx++]);
+        }
+    });
+
+    const [hogsR, cattleR, cornR, soyR] = await Promise.allSettled([
+        VDS.commodityWithPct('LEAN_HOGS'),
+        VDS.commodityWithPct('LIVE_CATTLE'),
+        VDS.commodityWithPct('CORN'),
+        VDS.commodityWithPct('SOYBEANS'),
+    ]);
+
+    const vp = r => (r.status === 'fulfilled' && r.value?.price) ? r.value : null;
+    const hogsD   = vp(hogsR);
+    const cattleD = vp(cattleR);
+    const cornD   = vp(cornR);
+    const soyD    = vp(soyR);
+
+    const cornP  = cornD?.price  ?? 4.82;
+    const soyP   = soyD?.price   ?? 342.0;
+    const cerdoP = hogsD   ? +(hogsD.price   * 0.022).toFixed(2) : 2.45;
+    const resP   = cattleD ? +(cattleD.price  * 0.022).toFixed(2) : 4.80;
+    const polloP = +(Math.max(2.50, Math.min(3.50, 2.90 + (cornP - 4.82) * 0.08))).toFixed(2);
+
+    const cerdoPct = hogsD?.pct   ?? 0;
+    const resPct   = cattleD?.pct  ?? 0;
+    const polloPct = +((cornD?.pct ?? 0) * 0.65).toFixed(2);
+
+    const precios = { cerdo: cerdoP, cerdo_pct: cerdoPct, pollo: polloP, pollo_pct: polloPct, res: resP, res_pct: resPct };
+
+    const feedMaiz   = cornP / 25.4 * 2.8;
+    const feedSoya   = soyP  / 1000 * 0.8;
+    const costoFijo  = 2.00;
+    const costoTotal = +(feedMaiz + feedSoya + costoFijo).toFixed(2);
+    const margenVal  = +(cerdoP - costoTotal).toFixed(2);
+    const margenSign = margenVal >= 0 ? '+' : '';
+    const margenStr  = `${margenSign}$${margenVal}`;
+    const feedTotal  = +(feedMaiz + feedSoya).toFixed(2);
+    const feedChg    = cornD?.pct ? VDS.fmtPct(cornD.pct) + ' maíz' : '—';
+
+    const margen = {
+        valor:   margenStr,
+        analisis: `Maíz <b>$${cornP.toFixed(2)}/bu</b>${cornD ? '' : ' <i>(ref.)</i>'} · Soya <b>$${(soyP/100).toFixed(2)}/cwt</b>${soyD ? '' : ' <i>(ref.)</i>'}.<br>`
+                + `Feed cost: <b>$${(feedMaiz+feedSoya).toFixed(2)}/kg</b> + fijos $${costoFijo}/kg = $${costoTotal}/kg total.<br>`
+                + (margenVal >= 0
+                    ? `Margen operativo estimado: <b style="color:#4ade80">${margenStr}/kg</b>.`
+                    : `<b style="color:#f87171">Margen negativo ${margenStr}/kg</b> — ajustar precio de venta.`),
+    };
+
+    const noticias = DCS_P.map((cat, idx) => {
+        const a = pools[cat][0];
+        if (a?.title) {
+            return {
+                cat: CATS_P[cat], dc: cat, imp: IMPS_P[cat],
+                titulo: (a.title || '').slice(0, 120),
+                desc:   (a.description || a.desc || a.summary || '').slice(0, 380),
+                fuente: (a.source || a.domain || (idx < gdProt.length ? 'GDELT' : 'FINNHUB')).toUpperCase(),
+                fecha:  `${fechaFmt} · ${hora}`,
+            };
+        }
+        const synth = [
+            { titulo:`Lean Hogs CME $${cerdoP}/kg${hogsD?'':' (ref.)'}`, desc:`Futuros de cerdo: $${cerdoP}/kg. Feed cost est. $${feedTotal}/kg (maíz $${cornP.toFixed(2)}/bu). Margen: ${margenStr}/kg.` },
+            { titulo:`Pollo broiler ~$${polloP}/kg (derivado maíz $${cornP.toFixed(2)}/bu)`, desc:`Estimado por correlación maíz?avícola. Maíz ${VDS.fmtPct(cornD?.pct??0)} hoy. Soya $${(soyP/100).toFixed(2)}/cwt.` },
+            { titulo:`Live Cattle CME $${resP}/kg${cattleD?'':' (ref.)'}`, desc:`Ganado en pie: $${resP}/kg. Diferencial res/cerdo $${(parseFloat(resP)-parseFloat(cerdoP)).toFixed(2)}/kg. Ratio cerdo/pollo ${(parseFloat(cerdoP)/parseFloat(polloP)).toFixed(2)}.` },
+        ];
+        return {
+            cat: CATS_P[cat], dc: cat, imp: IMPS_P[cat],
+            titulo: synth[idx].titulo,
+            desc:   synth[idx].desc,
+            fuente: hogsD ? 'ALPHA VANTAGE' : 'CME REF.',
+            fecha:  `${fechaFmt} · ${hora}`,
+        };
+    });
+
+    const ratio      = (parseFloat(cerdoP) / parseFloat(polloP)).toFixed(2);
+    const tendCerdo  = cerdoPct > 0.5 ? 'al alza' : cerdoPct < -0.5 ? 'a la baja' : 'estable';
+    const exportTitle = `Exportaciones México · Porcino FOB ${fechaFmt}`;
+    const expJapon = `$${(parseFloat(cerdoP)+0.35).toFixed(2)}/kg`;
+    const expCorea = `$${(parseFloat(cerdoP)+0.25).toFixed(2)}/kg`;
+    const expChina = `$${(parseFloat(cerdoP)+0.45).toFixed(2)}/kg`;
+    const expOtros = `$${(parseFloat(cerdoP)+0.15).toFixed(2)}/kg`;
+
+    const exportInsight = `<b>MERCADO ${fechaFmt}:</b> Cerdo ${tendCerdo} — $${cerdoP}/kg${hogsD?' (AV)':' (ref.)'}. `
+        + (cornP > 5.20 ? 'Feed cost elevado: exportaciones bajo presión. ' : 'Feed cost en rango: exportaciones competitivas. ')
+        + `<b>Filipinas y Vietnam</b> ofrecen oportunidad +10% sobre destinos actuales.`;
+
+    const consumePara = `Ratio cerdo/pollo: ${ratio} (${parseFloat(ratio)<0.90?'ventaja competitiva':parseFloat(ratio)<1.0?'diferencial moderado':'cerdo = pollo'}). `
+        + `Feed cost $${feedTotal}/kg (maíz $${cornP.toFixed(2)}/bu${cornD?'':', ref.'}, soya $${(soyP/100).toFixed(2)}/cwt${soyD?'':', ref.'}). `
+        + `Expansión de plantas en Bajío proyecta capacidad adicional 2026-2027.`;
+
+    const data = { precios, margen, ratio, noticias, exportTitle, exportInsight, consumePara,
+                   expJapon, expCorea, expChina, expOtros, feedTotal, feedChg, fechaFmt, hora };
+    VDS.save(PROT_CK, data);
+    renderProt(data);
+    _loadProtAI(data).catch(() => {});
+    window.VNLoader?.hide();
+}
+
+// -- Análisis de margen con VALL-AI real (Gemini) ---------------------
+// Reemplaza el texto estático de #margin-sub con un análisis generado a
+// partir de los precios reales. Si Gemini falla, queda el texto estático.
+async function _loadProtAI(d) {
+    const el = document.getElementById('margin-sub');
+    if (!el || !d.precios || !d.margen) return;
+    const p = d.precios;
+    const prompt = `Eres VALL-AI, analista de márgenes para la industria pecuaria mexicana. Con estos datos actuales, redacta un análisis breve (2-3 oraciones) del margen de producción porcina y su tendencia:\n\nPrecio cerdo: $${p.cerdo}/kg (${p.cerdo_pct}%)\nMargen estimado: ${d.margen.valor}/kg\nPrecio pollo: $${p.pollo}/kg\nPrecio res: $${p.res}/kg\n\nSé directo y práctico para productores mexicanos, sin frases de apertura genéricas.`;
+    const SYS = 'Eres un analista financiero institucional de VALL News especializado en agroindustria y ganadería. Responde en español, de forma concisa y profesional. Máximo 100 palabras.';
+    try {
+        const text = await VDS.geminiChat(prompt, SYS);
+        if (text) el.innerHTML = text;
+    } catch { /* deja el texto estático existente */ }
+}
+
+(async () => {
+    await cargarProteinas();
+    setInterval(cargarProteinas, 30 * 60 * 1000);
+})();
+
+const IMGS_PROT = ['/assets/img/mercadoP.webp','/assets/img/mercados.webp','/assets/img/finanzas.webp'];
+
+function renderProt(d) {
+    const grid = document.getElementById('newsGrid');
+    if (d.noticias?.length && grid) {
+        grid.innerHTML = d.noticias.map((n, i) => {
+            const tag = n.imp === 'alto'
+                ? '<span class="tag-high">CRÍTICO</span>'
+                : n.imp === 'medio'
+                ? '<span class="tag-med">MEDIA</span>'
+                : '<span class="tag-low">BAJA</span>';
+            return `<div class="news-card" data-cat="${n.dc}">
+                <img class="nc-img" src="${IMGS_PROT[i % IMGS_PROT.length]}" alt="${n.cat}" onerror="this.style.display='none'">
+                <div class="nc-body">
+                    <span class="nc-cat">${n.cat}</span>
+                    <span class="nc-date">${n.fecha || ''}</span>
+                    <h3 class="nc-title">${n.titulo}</h3>
+                    <p class="nc-desc">${n.desc}</p>
+                    <div class="nc-foot"><span class="tag-src">${n.fuente}</span>${tag}</div>
+                </div></div>`;
+        }).join('');
+    }
+
+    const p = d.precios;
+    if (p) {
+        const tx = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+        const pc = (id, pct) => {
+            const e = document.getElementById(id);
+            if (!e) return;
+            const n = parseFloat(pct);
+            e.className   = n >= 0 ? 'up' : 'down';
+            e.textContent = (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+        };
+        tx('cerdo-price', `$${parseFloat(p.cerdo).toFixed(2)}`);
+        pc('cerdo-pct', p.cerdo_pct);
+        tx('pollo-price', `$${parseFloat(p.pollo).toFixed(2)}`);
+        pc('pollo-pct', p.pollo_pct);
+        tx('res-price',   `$${parseFloat(p.res).toFixed(2)}`);
+        pc('res-pct',   p.res_pct);
+    }
+
+    if (d.margen) {
+        const mv = document.getElementById('margin-val');
+        const ms = document.getElementById('margin-sub');
+        const margenN = parseFloat((d.margen.valor || '0').replace(/[+$]/g,''));
+        if (mv) mv.innerHTML = `${d.margen.valor}<small style="font-size:1rem;color:rgba(255,255,255,0.6)"> /kg</small>`;
+        if (ms) ms.innerHTML  = d.margen.analisis;
+        // Color del valor según positivo/negativo
+        if (mv) mv.style.color = margenN >= 0 ? '#4ade80' : '#f87171';
+    }
+
+    if (d.ratio) {
+        const rn = document.getElementById('ratio-note');
+        if (rn) {
+            const r = parseFloat(d.ratio);
+            const msg = r < 0.85 ? 'El cerdo gana competitividad — brecha con pollo se estrecha.'
+                      : r < 1.0  ? 'Diferencial moderado — ambas proteínas compiten en precio.'
+                      : 'El cerdo supera en precio al pollo — presión en demanda.';
+            rn.innerHTML = `<i class="fas fa-robot" style="color:#00213a"></i>&nbsp;<b>Ratio Cerdo/Pollo: ${d.ratio}</b> — ${msg}`;
+        }
+    }
+
+    const tx = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    if (d.exportTitle)   tx('export-title', d.exportTitle);
+    if (d.expJapon)      tx('exp-japon',    d.expJapon);
+    if (d.expCorea)      tx('exp-corea',    d.expCorea);
+    if (d.expChina)      tx('exp-china',    d.expChina);
+    if (d.expOtros)      tx('exp-otros',    d.expOtros);
+    if (d.exportInsight) { const ei = document.getElementById('export-insight'); if (ei) ei.innerHTML = d.exportInsight; }
+
+    if (d.ratio)     { tx('stat-ratio', d.ratio); tx('stat-ratio-chg', parseFloat(d.ratio) < 1 ? '? cerdo < res' : '? cerdo = res'); }
+    if (d.feedTotal !== undefined) { tx('stat-feed', `$${d.feedTotal}`); tx('stat-feed-chg', d.feedChg || '—'); }
+
+    if (d.consumePara) { const cp = document.getElementById('consume-para'); if (cp) cp.textContent = d.consumePara; }
+}
+</script>
+
+<footer class="footer">
+    <div class="footer-logo">
+        <div class="footer-icon">
+            <img src="/assets/img/logo2.png" alt="VALLNEWS">
+        </div>
+        <span class="footer-brand">VALLNews</span>
+    </div>
+    <nav class="footer-nav">
+        <a href="/inicio.html">Inicio</a>
+        <a href="/pages/finanzas.html">Finanzas</a>
+        <a href="/pages/mercados.html">Mercados</a>
+        <a href="/pages/geopolitica.html">Geopolítica</a>
+        <a href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
+        <a href="/pages/mexico.html">México</a>
+    </nav>
+    <p class="footer-copy">
+        Datos en tiempo real &nbsp;&middot;&nbsp;
+        Indicadores económicos &nbsp;&middot;&nbsp;
+        Seguimiento de divisas, granos y energéticos
+    </p>
+</footer>
+<script src="/assets/js/chat-widget.js?v=31" data-mascota="/assets/img/mascota1.png"></script>
+<script src="/assets/js/flags-widget.js"></script>
+</body>
+</html>

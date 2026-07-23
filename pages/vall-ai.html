@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VALL AI, asistente de inteligencia económica de VALLNews.">
+    <link rel="icon" type="image/png" href="/assets/img/logo1.png">
+    <title>VALLNEWS · VALL AI</title>
+    <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
+    <script src="/assets/js/page-loader.js?v=4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/header.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <link rel="stylesheet" href="/assets/css/vall-ai-page.css?v=12">
+</head>
+<body class="vall-ai-body">
+<header class="header">
+    <div class="hdr-top">
+        <a class="logo" href="/inicio.html">
+            <div class="logo-icon"><img src="/assets/img/logo1.png" alt="VALLNEWS"></div>
+            <span class="logo-text">VALLNews</span>
+        </a>
+        <span class="hdr-tagline">Inteligencia económica · análisis asistido · decisiones con contexto</span>
+    </div>
+    <nav class="hdr-nav">
+        <div class="nav-center">
+            <a class="nav-link" href="/inicio.html"><i class="fas fa-house"></i></a>
+            <a class="nav-link" href="/pages/finanzas.html">Finanzas</a>
+            <a class="nav-link" href="/pages/mercados.html">Mercados</a>
+            <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
+            <a class="nav-link" href="/pages/mercadoproteinas.html">Proteínas</a>
+            <a class="nav-link" href="/pages/mexico.html">México</a>
+            <a class="nav-link active" href="/pages/vall-ai.html"><i class="fas fa-wand-magic-sparkles"></i> VALL AI</a>
+        </div>
+        <a class="nav-user" id="navUser" title="Mi cuenta" style="cursor:pointer"><i class="fas fa-circle-user"></i></a>
+    </nav>
+</header>
+
+<main class="vai-shell">
+    <aside class="vai-sidebar" id="vaiSidebar" aria-label="Historial de conversaciones">
+        <div class="vai-side-brand">
+            <div class="vai-orb"><img src="/assets/img/mascota1.png" alt="VALL AI"></div>
+            <div class="vai-side-brand-copy"><strong>VALL AI</strong><span><i></i> Disponible</span></div>
+            <button class="vai-side-close" id="vaiSideClose" type="button" aria-label="Cerrar historial"><i class="fas fa-xmark"></i></button>
+        </div>
+        <button class="vai-sidebar-collapse" id="vaiSidebarCollapse" type="button" aria-label="Contraer historial" aria-expanded="true" title="Contraer historial"><i class="fas fa-chevron-left"></i></button>
+
+        <button class="vai-new" id="vaiNew" type="button" title="Nueva conversación"><i class="fas fa-plus"></i><span>Nueva conversación</span></button>
+
+        <label class="vai-search" for="vaiHistorySearch">
+            <i class="fas fa-magnifying-glass"></i>
+            <input id="vaiHistorySearch" type="search" placeholder="Buscar en el historial…" autocomplete="off">
+            <kbd id="vaiHistoryCount">0</kbd>
+        </label>
+
+        <div class="vai-history-head"><span>Conversaciones</span><small>Guardadas en este dispositivo</small></div>
+        <div class="vai-history" id="vaiHistory"></div>
+
+        <div class="vai-side-foot">
+            <i class="fas fa-shield-halved"></i>
+            <span>La clave de Gemini permanece protegida en el servidor.</span>
+        </div>
+    </aside>
+
+    <section class="vai-workspace">
+        <header class="vai-toolbar">
+            <button class="vai-history-toggle" id="vaiHistoryToggle" type="button" aria-label="Abrir historial"><i class="fas fa-bars"></i></button>
+            <div class="vai-toolbar-title">
+                <span>Asistente profesional <i class="vai-live-dot"></i></span>
+                <strong id="vaiConversationTitle">Nueva conversación</strong>
+            </div>
+            <div class="vai-toolbar-actions">
+                <div class="vai-auto-route" id="vaiAutoRoute" title="VALL AI selecciona automáticamente la profundidad y el modelo">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <span><small>Selección automática</small><b>Modelo adaptativo</b></span>
+                </div>
+                <button class="vai-report-open" id="vaiReportOpen" type="button" title="Vista previa y exportación" aria-label="Abrir estudio de reportes"><i class="fas fa-file-pen"></i><span>Reporte</span></button>
+                <button id="vaiDelete" type="button" title="Eliminar conversación" aria-label="Eliminar conversación"><i class="fas fa-trash-can"></i></button>
+            </div>
+        </header>
+
+        <div class="vai-messages" id="vaiMessages" aria-live="polite">
+            <section class="vai-welcome" id="vaiWelcome">
+                <div class="vai-welcome-mark"><img src="/assets/img/mascota1.png" alt="VALL AI"></div>
+                <span class="vai-eyebrow">INTELIGENCIA ECONÓMICA GENERATIVA</span>
+                <h1>¿Qué quieres analizar hoy?</h1>
+                <p>Consulta mercados, tasas, divisas, commodities, geopolítica o solicita un reporte estructurado.</p>
+                <div class="vai-prompts">
+                    <button type="button" data-prompt="Dame un panorama ejecutivo de los mercados globales hoy"><i class="fas fa-earth-americas"></i><span><b>Panorama global</b><small>Mercados, tasas y riesgo</small></span></button>
+                    <button type="button" data-prompt="Analiza los principales riesgos para el peso mexicano"><i class="fas fa-chart-line"></i><span><b>Peso mexicano</b><small>Catalizadores y escenarios</small></span></button>
+                    <button type="button" data-prompt="Compara petróleo, gas natural y metales industriales"><i class="fas fa-oil-well"></i><span><b>Materias primas</b><small>Comparación estructurada</small></span></button>
+                    <button type="button" data-prompt="Crea un reporte técnico sobre renta fija global"><i class="fas fa-file-lines"></i><span><b>Reporte técnico</b><small>Datos, riesgos y conclusión</small></span></button>
+                </div>
+            </section>
+        </div>
+
+        <footer class="vai-composer-wrap">
+            <form class="vai-composer" id="vaiForm">
+                <div class="vai-dropzone" id="vaiDropzone" hidden>
+                    <i class="fas fa-cloud-arrow-up"></i>
+                    <strong>Suelta tus archivos aquí</strong>
+                    <span>Imágenes, PDF, texto, CSV, Markdown o JSON</span>
+                </div>
+                <div class="vai-attachments" id="vaiAttachments" hidden aria-live="polite"></div>
+                <textarea id="vaiInput" rows="1" maxlength="4000" placeholder="Pregunta a VALL AI…" aria-label="Mensaje para VALL AI"></textarea>
+                <div class="vai-compose-bottom">
+                    <div class="vai-compose-context">
+                        <button class="vai-attach" id="vaiAttach" type="button" title="Adjuntar archivos o imágenes" aria-label="Adjuntar archivos o imágenes"><i class="fas fa-paperclip"></i></button>
+                        <input id="vaiFileInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,text/csv,text/markdown,application/json,.md,.csv,.json,.txt,.pdf">
+                        <span><i class="fas fa-sparkles"></i> Contexto, tablas, gráficas y documentos</span>
+                    </div>
+                    <div>
+                        <button class="vai-stop" id="vaiStop" type="button" hidden><i class="fas fa-stop"></i></button>
+                        <button class="vai-send" id="vaiSend" type="submit" aria-label="Enviar mensaje"><i class="fas fa-arrow-up"></i></button>
+                    </div>
+                </div>
+            </form>
+            <p class="vai-disclaimer">VALL AI puede cometer errores. Verifica cifras sensibles antes de tomar decisiones.</p>
+        </footer>
+    </section>
+</main>
+<div class="vai-overlay" id="vaiOverlay"></div>
+
+<section class="vai-report-studio" id="vaiReportStudio" hidden aria-modal="true" role="dialog" aria-labelledby="vaiReportStudioTitle">
+    <div class="vai-report-backdrop" data-report-close></div>
+    <div class="vai-report-window">
+        <header class="vai-report-header">
+            <div><span>ESTUDIO DE DOCUMENTOS</span><h2 id="vaiReportStudioTitle">Vista previa del reporte</h2><p id="vaiReportScope"><i class="fas fa-crosshairs"></i> Reporte solicitado detectado</p></div>
+            <div class="vai-report-status"><i></i><span id="vaiReportStatus">Cambios guardados localmente</span></div>
+            <button type="button" data-report-close aria-label="Cerrar"><i class="fas fa-xmark"></i></button>
+        </header>
+        <div class="vai-report-toolbar">
+            <label>Título<input id="vaiReportTitle" maxlength="120" value="Reporte VALL AI"></label>
+            <label>Formato<select id="vaiReportFormat"><option value="docx">Word (.docx)</option><option value="pdf">PDF (.pdf)</option><option value="html">Página HTML</option><option value="markdown">Markdown (.md)</option><option value="txt">Texto (.txt)</option><option value="json">Datos (.json)</option></select></label>
+            <label class="vai-report-zoom-label">Zoom<select id="vaiReportZoom"><option value="85">85%</option><option value="100" selected>100%</option><option value="115">115%</option></select></label>
+            <div class="vai-report-modes" role="group" aria-label="Modo del estudio">
+                <button type="button" data-report-view="edit"><i class="fas fa-pen"></i> Editar</button>
+                <button type="button" data-report-view="split" class="active"><i class="fas fa-columns"></i> Dividido</button>
+                <button type="button" data-report-view="preview"><i class="fas fa-eye"></i> Vista previa</button>
+            </div>
+            <button id="vaiReportRefresh" type="button"><i class="fas fa-rotate"></i> Actualizar</button>
+            <button class="primary" id="vaiReportExport" type="button"><i class="fas fa-download"></i> Exportar</button>
+        </div>
+        <div class="vai-report-body">
+            <section class="vai-report-editor-pane">
+                <div class="vai-pane-title">
+                    <span><i class="fas fa-pen-ruler"></i> Editor del reporte</span>
+                    <div class="vai-editor-tools">
+                        <button type="button" data-editor-command="undo" title="Deshacer"><i class="fas fa-rotate-left"></i></button>
+                        <button type="button" data-editor-command="redo" title="Rehacer"><i class="fas fa-rotate-right"></i></button>
+                        <span class="vai-tool-separator"></span>
+                        <button type="button" data-editor-command="bold" title="Negrita"><b>B</b></button>
+                        <button type="button" data-editor-command="italic" title="Cursiva"><i>I</i></button>
+                        <button type="button" data-editor-command="formatBlock" data-editor-value="h2" title="Título"><i class="fas fa-heading"></i></button>
+                        <button type="button" data-editor-command="insertUnorderedList" title="Lista"><i class="fas fa-list-ul"></i></button>
+                        <button type="button" data-editor-command="insertOrderedList" title="Lista numerada"><i class="fas fa-list-ol"></i></button>
+                        <button type="button" data-editor-command="formatBlock" data-editor-value="blockquote" title="Cita"><i class="fas fa-quote-left"></i></button>
+                        <button type="button" id="vaiReportSave" title="Guardar borrador"><i class="fas fa-floppy-disk"></i><span>Guardar</span></button>
+                    </div>
+                </div>
+                <div class="vai-rich-editor" id="vaiReportEditor" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" aria-label="Editor visual del reporte"></div>
+                <textarea id="vaiReportSource" hidden aria-hidden="true"></textarea>
+            </section>
+            <section class="vai-report-preview-pane">
+                <div class="vai-pane-title"><span><i class="fas fa-eye"></i> Vista previa final</span><small><i class="fas fa-circle-check"></i> <b id="vaiReportWords">0 palabras</b></small></div>
+                <article class="vai-report-paper" id="vaiReportPreview"></article>
+            </section>
+        </div>
+    </div>
+</section>
+
+<script src="/assets/js/data-service.js?v=22"></script>
+<script src="/assets/js/vall-ai-page.js?v=20"></script>
+</body>
+</html>

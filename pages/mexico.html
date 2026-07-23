@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/assets/img/logo1.png" />
+    <meta name="description" content="Economía de México en tiempo real: tipo de cambio USD/MXN, tasas Banxico, indicadores INEGI y análisis financiero." />
+    <title>VALLNEWS · México</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/header.css">
+    <link rel="stylesheet" href="/assets/css/footer.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
+    <script src="/assets/js/page-loader.js?v=4"></script>
+    <script src="/assets/js/api-keys.js?v=5"></script>
+    <script src="/assets/js/data-service.js?v=22"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; color: #1a1a2e; overflow-x: hidden; }
+
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+
+        .page-title {
+            display: flex; align-items: center; gap: 0.6rem;
+            font-size: 1.5rem; font-weight: 700; color: #1a1a2e;
+            margin-bottom: 1rem; padding-bottom: 0.8rem;
+            border-bottom: 2px solid rgba(0,33,58,0.15);
+        }
+        .page-title i { color: #00213a; font-size: 1.2rem; }
+
+        .filter-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+        .fpill {
+            background: #fff; border: 1px solid rgba(0,33,58,0.18);
+            color: #44546a; padding: 5px 14px; border-radius: 20px;
+            font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .fpill:hover { border-color: #00213a; color: #00213a; }
+        .fpill.active { background: #00213a; color: #fff; border-color: #00213a; }
+
+        .section-lbl {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; color: #00213a; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .section-lbl::after { content: ""; flex: 1; height: 1px; background: rgba(0,0,0,0.1); }
+
+        .news-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.2rem; margin-bottom: 1.8rem; }
+        .news-card {
+            background: #fff; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06);
+            cursor: pointer; transition: transform .25s, box-shadow .25s;
+        }
+        .news-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.13); }
+        .nc-img  { width: 100%; height: 150px; object-fit: cover; display: block; }
+        .nc-body { padding: 1rem 1.1rem 1.1rem; }
+        .nc-cat  { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #00213a; margin-bottom: 0.25rem; display: block; }
+        .nc-date { font-size: 0.62rem; color: #888; margin-bottom: 0.45rem; display: block; }
+        .nc-title { font-family: 'Playfair Display', serif; font-size: 0.98rem; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 0.5rem; }
+        .nc-desc  { font-size: 0.77rem; color: #555; line-height: 1.55; margin-bottom: 0.85rem;
+                    display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+        .nc-foot  { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+        .tag-src  { font-size: 0.6rem; font-weight: 700; background: #00213a; color: #fff; padding: 2px 8px; border-radius: 3px; }
+        .tag-high { font-size: 0.6rem; font-weight: 700; background: rgba(239,68,68,0.12); color: #dc2626; padding: 2px 8px; border-radius: 3px; }
+        .tag-med  { font-size: 0.6rem; font-weight: 700; background: rgba(245,158,11,0.12); color: #d97706; padding: 2px 8px; border-radius: 3px; }
+        .tag-low  { font-size: 0.6rem; font-weight: 700; background: rgba(22,163,74,0.12);  color: #16a34a; padding: 2px 8px; border-radius: 3px; }
+
+        .bottom-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+        .right-col    { display: flex; flex-direction: column; gap: 1.2rem; }
+        .panel {
+            background: #fff; border-radius: 10px; padding: 1.4rem 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .indicator-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.9rem 0.5rem; border-bottom: 1px solid rgba(0,0,0,0.07);
+        }
+        .indicator-row:last-child { border-bottom: none; }
+        .ind-name { font-size: 0.84rem; color: #334155; font-weight: 500; }
+        .ind-val  { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; color: #0f172a; }
+        .up   { color: #16a34a; }
+        .down { color: #dc2626; }
+
+        .ia-note {
+            background: rgba(0,33,58,0.05); border-radius: 6px;
+            padding: 0.8rem 1rem; margin-top: 1rem;
+            font-size: 0.74rem; color: #334155; line-height: 1.5;
+        }
+        .ia-note b { color: #00213a; }
+
+        .trade-header {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1rem;
+        }
+        .trade-big { }
+        .trade-lbl  { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .trade-val  { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #0f172a; }
+        .trade-val.accent { color: #d97706; }
+
+        .export-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.8rem; padding: 0.55rem 0.5rem; border-bottom: 1px solid rgba(0,0,0,0.07);
+        }
+        .export-row:last-child { border-bottom: none; }
+        .export-pct { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #00213a; }
+
+        .fx-card {
+            background: linear-gradient(135deg, #00213a 0%, #003d6b 100%);
+            border-radius: 10px; padding: 1.4rem 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+        }
+        .fx-lbl   { font-size: 0.6rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.55); text-transform: uppercase; margin-bottom: 0.4rem; }
+        .fx-val   { font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 0.25rem; }
+        .fx-chg   { font-size: 0.82rem; font-weight: 700; color: #f87171; margin-bottom: 0.8rem; }
+        .fx-body  { font-size: 0.74rem; color: rgba(255,255,255,0.7); line-height: 1.55; }
+        .fx-body b { color: #fbbf24; }
+        .fx-meta  {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.8rem;
+        }
+        .fx-meta-item { font-size: 0.68rem; color: rgba(255,255,255,0.55); }
+        .fx-meta-item b { color: rgba(255,255,255,0.85); display: block; font-size: 0.75rem; }
+
+
+        .dep-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.2rem; }
+        .dep-box {
+            background: #fff; border-radius: 10px; padding: 1.2rem 1.1rem; text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06);
+        }
+        .dep-lbl  { font-size: 0.62rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
+        .dep-pct  { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 700; color: #dc2626; line-height: 1; margin-bottom: 0.2rem; }
+        .dep-src  { font-size: 0.62rem; color: #555; }
+        .dep-bar  { width: 100%; height: 4px; background: rgba(0,0,0,0.08); border-radius: 2px; margin-top: 0.6rem; overflow: hidden; }
+        .dep-fill { height: 100%; border-radius: 2px; background: #dc2626; }
+
+        .risk-note {
+            background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.18);
+            border-radius: 8px; padding: 0.85rem 1rem; margin-top: 1rem;
+            font-size: 0.74rem; color: #334155; line-height: 1.5; display: flex; gap: 0.6rem; align-items: flex-start;
+        }
+        .risk-note i { color: #dc2626; flex-shrink: 0; margin-top: 2px; }
+
+        .mx-charts-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 2rem;
+            align-items: center;
+        }
+        .mx-charts-grid > div { min-width: 0; overflow: hidden; }
+        .mx-charts-grid canvas { display: block; width: 100% !important; max-width: 100% !important; }
+        @media (max-width: 1024px) {
+            .news-grid      { grid-template-columns: repeat(2,1fr); }
+            .bottom-grid    { grid-template-columns: 1fr; }
+            .dep-grid       { grid-template-columns: repeat(3,1fr); }
+            .mx-charts-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 640px) {
+            .news-grid      { grid-template-columns: 1fr; }
+            .container      { width: 100%; margin: 1.2rem auto; padding: 0 .75rem; }
+            .dep-grid       { grid-template-columns: repeat(3,1fr); gap: 0.7rem; }
+            .mx-charts-grid { grid-template-columns: 1fr; }
+            .mx-charts-grid > div { width: 100%; }
+            .fpill { min-height: 36px; padding: 6px 11px; touch-action: manipulation; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="hdr-top">
+        <a class="logo" href="/inicio.html">
+            <div class="logo-icon"><img src="/assets/img/logo1.png" alt="VALLNEWS Logo"></div>
+            <span class="logo-text">VALLNews</span>
+        </a>
+        <span class="hdr-tagline">Datos en tiempo real &nbsp;&middot;&nbsp; Economía global &nbsp;&middot;&nbsp; Mercados</span>
+    </div>
+    <nav class="hdr-nav">
+        <div class="nav-center">
+            <a class="nav-link" href="/inicio.html"><i class="fas fa-house"></i></a>
+            <a class="nav-link" href="/pages/finanzas.html">Finanzas</a>
+            <a class="nav-link" href="/pages/mercados.html">Mercados</a>
+            <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
+            <a class="nav-link" href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
+            <a class="nav-link active" href="/pages/mexico.html">México</a>
+        </div>
+        <a class="nav-user"><i class="fas fa-circle-user"></i></a>
+    </nav>
+</header>
+<div class="hdr-divider"></div>
+
+<div class="container">
+
+    <div class="page-title">
+        <i class="fas fa-flag"></i> México
+    </div>
+
+    <div class="filter-bar">
+        <button class="fpill active" onclick="filterCat('all',this)">TODOS</button>
+        <button class="fpill" onclick="filterCat('economia',this)">?? ECONOMÍA</button>
+        <button class="fpill" onclick="filterCat('comercio',this)">?? COMERCIO</button>
+        <button class="fpill" onclick="filterCat('infraestructura',this)">??? INFRAESTRUCTURA</button>
+    </div>
+
+    
+    <div class="news-grid" id="newsGrid"></div>
+
+    <div class="panel" id="mx-charts-panel" style="margin-bottom:1.2rem;">
+        <div class="section-lbl">Panorama Económico · Visualización de Datos</div>
+        <div class="mx-charts-grid">
+
+            <div>
+                <div style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1.8px; color:#00213a; margin-bottom:0.9rem;">Dependencia de Importaciones</div>
+                <canvas id="chartImports" style="max-height:190px;"></canvas>
+            </div>
+
+            <div>
+                <div style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1.8px; color:#00213a; margin-bottom:0.9rem;">Exportaciones de Cerdo por Destino</div>
+                <canvas id="chartExports" style="max-height:190px;"></canvas>
+            </div>
+
+            <div>
+                <div style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1.8px; color:#00213a; margin-bottom:0.9rem;">Tasas de Referencia (%)</div>
+                <canvas id="chartRates" style="max-height:190px;"></canvas>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="bottom-grid">
+
+        
+        <div style="display:flex; flex-direction:column; gap:1.2rem;">
+
+            <div class="panel">
+                <div class="section-lbl">Indicadores Económicos</div>
+                <div class="indicator-row">
+                    <span class="ind-name">Inflación Anualizada</span>
+                    <span class="ind-val down" id="mx-inflacion">4.5%</span>
+                </div>
+                <div class="indicator-row">
+                    <span class="ind-name">Tasa Banxico (Referencia)</span>
+                    <span class="ind-val" id="mx-banxico">11.0%</span>
+                </div>
+                <div class="indicator-row">
+                    <span class="ind-name">Remesas Acumuladas (Q1)</span>
+                    <span class="ind-val up">$5.2B USD</span>
+                </div>
+                <div class="indicator-row">
+                    <span class="ind-name">Déficit Comercial</span>
+                    <span class="ind-val down">-$2.1B USD</span>
+                </div>
+                <div class="ia-note" id="mx-ai-note">
+                    <i class="fas fa-robot" style="color:#00213a"></i>
+                    &nbsp;<b>VALL-AI:</b> El diferencial de tasas MX vs US (11% vs 5.5%) protege al peso, pero encarece el crédito para expansión de planta en el Bajío.
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="section-lbl">Comercio Exterior · Cerdo</div>
+                <div class="trade-header">
+                    <div class="trade-big">
+                        <div class="trade-lbl">Volumen Trimestral</div>
+                        <div class="trade-val">45,000 <small style="font-size:.9rem; color:#888">TON</small></div>
+                    </div>
+                    <div class="trade-big" style="text-align:right">
+                        <div class="trade-lbl">Valor Estimado</div>
+                        <div class="trade-val accent">$180M <small style="font-size:.9rem">USD</small></div>
+                    </div>
+                </div>
+                <div class="export-row"><span>???? Japón</span><span class="export-pct">40%</span></div>
+                <div class="export-row"><span>???? Corea del Sur</span><span class="export-pct">25%</span></div>
+                <div class="export-row"><span>???? China <small style="color:#16a34a; font-weight:700">? en crecimiento</small></span><span class="export-pct">15%</span></div>
+                <div class="export-row"><span>???? Estados Unidos</span><span class="export-pct">10%</span></div>
+                <div class="ia-insight" style="margin-top:1rem">
+                    <b>OPORTUNIDAD:</b> China incrementa demanda por sanciones a UE. Posible alza de cuota en Q3 2026.
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="right-col">
+
+         
+            <div class="fx-card">
+                <div class="fx-lbl">USD / MXN Spot</div>
+                <div class="fx-val" id="mx-usdmxn">17.20</div>
+                <div class="fx-chg" id="mx-fx-chg"><i class="fas fa-caret-up"></i> +1.5% var. día</div>
+                <div class="fx-body" id="mx-fx-body">
+                    El nivel actual <b>beneficia exportaciones</b> de proteína (más pesos por dólar). Umbral operativo de equilibrio: <b>$16.80 · $18.50</b>.
+                </div>
+                <div class="fx-meta">
+                    <div class="fx-meta-item">Petróleo MX<b>$70 / bbl</b></div>
+                    <div class="fx-meta-item">Riesgo País<b>Estable</b></div>
+                    <div class="fx-meta-item">Tasa Fed<b>5.5%</b></div>
+                    <div class="fx-meta-item">Reservas MX<b>$215B USD</b></div>
+                </div>
+            </div>
+
+           
+            <div class="panel">
+                <div class="section-lbl">Dependencia de Importaciones</div>
+                <div style="display:flex; flex-direction:column; gap:0.9rem;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.78rem; margin-bottom:4px">
+                            <span style="font-weight:600; color:#334155">?? Maíz Amarillo</span>
+                            <span style="font-family:'JetBrains Mono'; font-weight:700; color:#dc2626">85%</span>
+                        </div>
+                        <div class="dep-bar"><div class="dep-fill" style="width:85%"></div></div>
+                        <div style="font-size:0.62rem; color:#888; margin-top:3px">Origen: USA</div>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.78rem; margin-bottom:4px">
+                            <span style="font-weight:600; color:#334155">?? Soja</span>
+                            <span style="font-family:'JetBrains Mono'; font-weight:700; color:#dc2626">95%</span>
+                        </div>
+                        <div class="dep-bar"><div class="dep-fill" style="width:95%"></div></div>
+                        <div style="font-size:0.62rem; color:#888; margin-top:3px">Origen: USA / Brasil</div>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.78rem; margin-bottom:4px">
+                            <span style="font-weight:600; color:#334155">?? Fertilizantes</span>
+                            <span style="font-family:'JetBrains Mono'; font-weight:700; color:#d97706">70%</span>
+                        </div>
+                        <div class="dep-bar"><div class="dep-fill" style="width:70%; background:#d97706"></div></div>
+                        <div style="font-size:0.62rem; color:#888; margin-top:3px">Origen: Rusia / Canadá</div>
+                    </div>
+                </div>
+                <div class="risk-note">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <span>La exposición al dólar en la compra de granos es el <b>principal factor de riesgo</b> para el margen operativo del sector.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function filterCat(cat, el) {
+    document.querySelectorAll('.fpill').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('#newsGrid .news-card').forEach(c => {
+        c.style.display = (cat === 'all' || c.dataset.cat === cat) ? '' : 'none';
+    });
+}
+</script>
+<script>
+const IMGS_MEX = ['/assets/img/finanzas.webp','/assets/img/mercados.webp','/assets/img/mercadoP.webp'];
+
+(async () => {
+    const CK = 'mex_v8';
+    const stored  = VDS.load(CK, true);
+    const expired = VDS.isExpired(CK);
+    if (stored?.noticias) {
+        renderMex(stored); window.VNLoader?.hide();
+        if (!expired) return;
+        VDS.clear(CK);
+    }
+
+    const fd       = new Date();
+    const hora     = fd.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    const fechaFmt = fd.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+
+    try {
+        const [usdmxnR, tiieR, inflR] = await Promise.allSettled([
+            VDS.usdmxn(),
+            VDS.banxico('SF61745'),
+            VDS.banxico('SP74660'),
+        ]);
+
+        const usdmxnV = usdmxnR.status === 'fulfilled' && usdmxnR.value != null ? usdmxnR.value : null;
+        const tiieV   = tiieR.status   === 'fulfilled' && tiieR.value   != null ? tiieR.value   : null;
+        const inflV   = inflR.status   === 'fulfilled' && inflR.value   != null ? inflR.value   : null;
+
+        const fx   = usdmxnV != null ? usdmxnV.toFixed(2) : '17.20';
+        const tiie = tiieV   != null ? tiieV.toFixed(2)   : '11.0';
+        const infl = inflV   != null ? inflV.toFixed(1)   : '4.5';
+
+        const CATS_MEX = ['Economía · Tipo de Cambio', 'Economía · Inflación', 'Infraestructura'];
+        const DCS_MEX  = ['economia', 'economia', 'infraestructura'];
+        const IMP_MEX  = ['alto', 'medio', 'bajo'];
+        let noticias = null;
+
+        const avNews = await VDS.newsAlphaVantage('economy_macro', 5).catch(() => null);
+        if (avNews?.length) {
+            noticias = avNews.slice(0, 3).map((a, i) => ({
+                cat: CATS_MEX[i], dc: DCS_MEX[i], fecha: `${fechaFmt} · ${hora}`,
+                titulo: a.title || 'Noticia económica',
+                desc: a.description || 'Información económica actualizada.',
+                fuente: a.source || 'Alpha Vantage', imp: IMP_MEX[i],
+                insight: a.sentiment ? `Sentimiento de mercado: ${a.sentiment}.` : 'Información actualizada en tiempo real.'
+            }));
+        }
+
+        if (!noticias) {
+            const gdeltRaw = await VDS.gdeltNews('Mexico OR "Mexican peso" OR Banxico OR nearshoring OR AMLO OR "Bank of Mexico"', 3).catch(() => null);
+            if (gdeltRaw?.length) {
+                noticias = gdeltRaw.slice(0, 3).map((a, i) => ({
+                    cat: CATS_MEX[i], dc: DCS_MEX[i], fecha: `${fechaFmt} · ${hora}`,
+                    titulo: a.title || 'Noticia económica México',
+                    desc: a.description || 'Información económica de México actualizada.',
+                    fuente: a.source || 'GDELT', imp: IMP_MEX[i], insight: 'Datos en tiempo real desde GDELT.'
+                }));
+            }
+        }
+
+        if (!noticias) {
+            const finnhubRaw = await VDS.finnhubNews('general').catch(() => null);
+            if (finnhubRaw?.length) {
+                noticias = finnhubRaw.slice(0, 3).map((a, i) => ({
+                    cat: CATS_MEX[i], dc: DCS_MEX[i], fecha: `${fechaFmt} · ${hora}`,
+                    titulo: a.title || 'Noticia económica',
+                    desc: a.description || 'Información económica actualizada.',
+                    fuente: a.source || 'Finnhub', imp: IMP_MEX[i], insight: 'Datos de mercados actualizados.'
+                }));
+            }
+        }
+
+        if (!noticias) {
+            const fxN2 = parseFloat(fx), tiieN2 = parseFloat(tiie), fedN2 = 4.50;
+            noticias = [
+                {
+                    cat: 'Economía · Tipo de Cambio', dc: 'economia', fecha: `${fechaFmt} · ${hora}`,
+                    titulo: `USD/MXN: $${fx} ${usdmxnV ? '· Tiempo real' : '· Estimado'} · ${fechaFmt}`,
+                    desc: `El peso mexicano cotiza a $${fx}/USD. ${fxN2 > 17.5 ? 'Nivel beneficia exportaciones agropecuarias, aunque presiona costos de insumos importados.' : 'Nivel moderado: equilibrio exportaciones/importaciones.'}`,
+                    fuente: usdmxnV ? 'open.er-api.com' : 'Referencia', imp: 'alto',
+                    insight: `USD/MXN $${fx}: cada $1,000 USD exportado genera $${(fxN2*1000).toFixed(0)} MXN.`
+                },
+                {
+                    cat: 'Economía · Inflación', dc: 'economia', fecha: `${fechaFmt} · ${hora}`,
+                    titulo: `TIIE: ${tiie}% · Inflación: ${infl}% ${tiieV ? '· Banxico SIE' : '· Estimado'}`,
+                    desc: `TIIE a 28 días: ${tiie}%. Inflación general: ${infl}%. Diferencial TIIE/Fed: ${(tiieN2-fedN2).toFixed(2)}pp · ${tiieN2-fedN2>5 ? 'alto diferencial, soporte al peso.' : 'diferencial moderado.'}`,
+                    fuente: tiieV ? 'Banxico SIE' : 'Referencia', imp: 'medio',
+                    insight: `TIIE ${tiie}% vs Fed ${fedN2}%: diferencial ${(tiieN2-fedN2).toFixed(2)}pp protege al peso pero encarece crédito agropecuario.`
+                },
+                {
+                    cat: 'Infraestructura', dc: 'infraestructura', fecha: `${fechaFmt} · ${hora}`,
+                    titulo: `Nearshoring México: inversión industrial en corredor norte · ${fechaFmt}`,
+                    desc: `México consolida posición nearshoring. Manufactura, logística y agroindustria son los sectores con mayor atracción de inversión extranjera directa en el norte del país.`,
+                    fuente: 'Análisis VALL', imp: 'bajo',
+                    insight: `Nearshoring impulsa demanda de proteínas y granos en corredores industriales. Oportunidad para agroindustria nacional.`
+                }
+            ];
+        }
+
+        const fxN  = parseFloat(fx), tiieN = parseFloat(tiie), fedN = 4.50;
+        const ai_nota     = `TIIE ${tiie}% vs Fed ${fedN}%: diferencial ${(tiieN-fedN).toFixed(2)}pp protege al peso y atrae capitales, pero encarece crédito agropecuario.`;
+        const fx_analisis = `USD/MXN $${fx} ${usdmxnV ? '(tiempo real)' : '(estimado)'}. ${fxN > 17.5 ? 'Beneficia exportaciones de proteína, presiona costo de granos importados.' : 'Nivel moderado: equilibrio costo/competitividad exportadora.'}`;
+
+        noticias = await VDS.translateNews(noticias).catch(() => noticias);
+
+        const data = { usdmxn: fx, inflacion: infl, banxico: tiie, ai_nota, fx_analisis, noticias, fechaFmt, hora };
+        VDS.save(CK, data);
+        renderMex(data);
+        _loadMexAI(data).catch(() => {});
+        window.VNLoader?.hide();
+
+    } catch (err) {
+        console.error('México load error:', err);
+        window.VNLoader?.hide();
+        renderMex({
+            usdmxn:'17.20', inflacion:'4.5', banxico:'11.0',
+            ai_nota:`Datos de referencia · ${fechaFmt} · ${hora}`,
+            fx_analisis:'Verificar conexión a internet para datos en tiempo real.',
+            noticias: [
+                { cat:'Economía · Tipo de Cambio', dc:'economia', fecha:`${fechaFmt} · ${hora}`, titulo:`USD/MXN ref. $17.20 · ${fechaFmt}`, desc:'Tipo de cambio de referencia. Verificar conexión.', fuente:'Referencia', imp:'alto', insight:'Actualizar para datos en tiempo real.' },
+                { cat:'Economía · Inflación', dc:'economia', fecha:`${fechaFmt} · ${hora}`, titulo:`TIIE ref. 11.0% · Inflación ref. 4.5% · ${fechaFmt}`, desc:'Indicadores de referencia Banxico. Verificar conexión.', fuente:'Referencia', imp:'medio', insight:'Actualizar para datos en tiempo real.' },
+                { cat:'Infraestructura', dc:'infraestructura', fecha:`${fechaFmt} · ${hora}`, titulo:`Nearshoring México · ${fechaFmt}`, desc:'México mantiene posición estratégica como destino de nearshoring.', fuente:'Análisis VALL', imp:'bajo', insight:'Nearshoring impulsa demanda agropecuaria en corredores del norte.' }
+            ],
+            fechaFmt, hora
+        });
+    }
+})();
+
+// -- Nota VALL-AI real (Gemini) --------------------------------------
+// Reemplaza la nota estática de #mx-ai-note con un análisis generado a
+// partir de los indicadores reales. Si Gemini falla, queda la nota estática.
+async function _loadMexAI(d) {
+    const el = document.getElementById('mx-ai-note');
+    if (!el) return;
+    const prompt = `Eres VALL-AI, analista económico de VALLNews especializado en México. Con estos datos actuales, redacta una nota breve (2 oraciones) sobre la política monetaria y su impacto en el sector agropecuario/empresarial mexicano:\n\nUSD/MXN: ${d.usdmxn}\nTIIE (Banxico): ${d.banxico}%\nInflación: ${d.inflacion}%\n\nSé directo, sin frases de apertura genéricas.`;
+    const SYS = 'Eres un analista económico institucional de VALL News especializado en México. Responde en español, de forma concisa y profesional. Máximo 90 palabras.';
+    try {
+        const text = await VDS.geminiChat(prompt, SYS);
+        if (text) el.innerHTML = `<i class="fas fa-robot" style="color:#00213a"></i>&nbsp;<b>VALL-AI:</b> ${text}`;
+    } catch { /* deja la nota estática existente */ }
+}
+
+function renderMex(d) {
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+
+    
+    if (d.noticias && document.getElementById('newsGrid')) {
+        document.getElementById('newsGrid').innerHTML = d.noticias.map((n, i) => {
+            const tag = n.imp === 'alto'
+                ? '<span class="tag-high">ALTO</span>'
+                : n.imp === 'medio'
+                ? '<span class="tag-med">MEDIA</span>'
+                : '<span class="tag-low">BAJA</span>';
+            return `<div class="news-card" data-cat="${n.dc}">
+                <img class="nc-img" src="${IMGS_MEX[i % 3]}" alt="${n.cat}">
+                <div class="nc-body">
+                    <span class="nc-cat">${n.cat}</span>
+                    <h3 class="nc-title">${n.titulo}</h3>
+                    <p class="nc-desc">${n.desc}</p>
+                    <div class="nc-foot"><span class="tag-src">${n.fuente}</span>${tag}</div>
+                </div></div>`;
+        }).join('');
+    }
+
+    
+    if (d.inflacion) set('mx-inflacion', d.inflacion + '%');
+    if (d.banxico)   set('mx-banxico',   d.banxico + '%');
+
+    
+    if (d.usdmxn) {
+        set('mx-usdmxn', d.usdmxn);
+        const chg = document.getElementById('mx-fx-chg');
+        if (chg) chg.innerHTML = `<i class="fas fa-circle-info"></i> Tipo de cambio actualizado`;
+    }
+    if (d.fx_analisis) {
+        const fb = document.getElementById('mx-fx-body');
+        if (fb) fb.innerHTML = d.fx_analisis;
+    }
+
+    
+    if (d.ai_nota) {
+        const an = document.getElementById('mx-ai-note');
+        if (an) an.innerHTML = `<i class="fas fa-robot" style="color:#00213a"></i>&nbsp;<b>VALL-AI:</b> ${d.ai_nota}`;
+    }
+}
+</script>
+
+<footer class="footer">
+    <div class="footer-logo">
+        <div class="footer-icon">
+            <img src="/assets/img/logo2.png" alt="VALLNEWS">
+        </div>
+        <span class="footer-brand">VALLNews</span>
+    </div>
+    <nav class="footer-nav">
+        <a href="/inicio.html">Inicio</a>
+        <a href="/pages/finanzas.html">Finanzas</a>
+        <a href="/pages/mercados.html">Mercados</a>
+        <a href="/pages/geopolitica.html">Geopolítica</a>
+        <a href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
+        <a href="/pages/mexico.html">México</a>
+    </nav>
+    <p class="footer-copy">
+        Datos en tiempo real &nbsp;&middot;&nbsp;
+        Indicadores económicos &nbsp;&middot;&nbsp;
+        Seguimiento de divisas, granos y energéticos
+    </p>
+</footer>
+<script>
+(function initMxCharts() {
+    const BASE   = '#00213a';
+    const ACCENT = '#1a4a7a';
+    const RED    = '#dc2626';
+    const AMBER  = '#d97706';
+    const GREEN  = '#16a34a';
+
+    const defFont = { family: "'Inter', sans-serif", size: 11 };
+    Chart.defaults.font = defFont;
+
+    /* -- 1. Dependencia de Importaciones (horizontal bar) -------- */
+    new Chart(document.getElementById('chartImports'), {
+        type: 'bar',
+        data: {
+            labels: ['Maíz Amarillo', 'Soja', 'Fertilizantes'],
+            datasets: [{
+                label: 'Dependencia importada (%)',
+                data: [85, 95, 70],
+                backgroundColor: [RED + 'cc', RED + 'dd', AMBER + 'cc'],
+                borderColor:     [RED, RED, AMBER],
+                borderWidth: 1.5,
+                borderRadius: 5,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + '%' } }
+            },
+            scales: {
+                x: {
+                    min: 0, max: 100,
+                    ticks: { callback: v => v + '%', font: defFont },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y: { ticks: { font: defFont }, grid: { display: false } }
+            }
+        }
+    });
+
+    /* -- 2. Exportaciones de Cerdo por destino (doughnut) -------- */
+    new Chart(document.getElementById('chartExports'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Japón', 'Corea del Sur', 'China', 'EE.UU.', 'Otros'],
+            datasets: [{
+                data: [40, 25, 15, 10, 10],
+                backgroundColor: [BASE, ACCENT, '#2d6ca0', '#4d8fbd', '#a0c4dd'],
+                hoverOffset: 10,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { family: "'Inter', sans-serif", size: 10 }, padding: 8, boxWidth: 12 }
+                },
+                tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.raw + '%' } }
+            }
+        }
+    });
+
+    /* -- 3. Tasas de Referencia (bar) ---------------------------- */
+    function liveRate(id, fallback) {
+        const el = document.getElementById(id);
+        if (!el) return fallback;
+        return parseFloat(el.textContent) || fallback;
+    }
+
+    const tiie = liveRate('mx-banxico', 11.0);
+    const infl = liveRate('mx-inflacion', 4.5);
+
+    new Chart(document.getElementById('chartRates'), {
+        type: 'bar',
+        data: {
+            labels: ['TIIE Banxico', 'Fed EE.UU.', 'Inflación MX'],
+            datasets: [{
+                label: 'Tasa (%)',
+                data: [tiie, 4.50, infl],
+                backgroundColor: [BASE + 'cc', ACCENT + 'cc', RED + 'bb'],
+                borderColor:     [BASE, ACCENT, RED],
+                borderWidth: 1.5,
+                borderRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + '%' } }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    ticks: { callback: v => v + '%', font: defFont },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: { ticks: { font: defFont }, grid: { display: false } }
+            }
+        }
+    });
+})();
+</script>
+<script src="/assets/js/chat-widget.js?v=31" data-mascota="/assets/img/mascota1.png"></script>
+<script src="/assets/js/flags-widget.js"></script>
+</body>
+</html>

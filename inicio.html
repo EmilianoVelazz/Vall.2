@@ -1,22 +1,24 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/assets/img/logo1.png" />
+    <meta name="description" content="Plataforma de inteligencia económica global en tiempo real. Finanzas, mercados, divisas, commodities y análisis con IA." />
     <title>VALLNEWS · Inteligencia Económica Global</title>
     <script>if (!sessionStorage.getItem('vn_auth') && !localStorage.getItem('vn_auth')) location.replace('/');</script>
-    <script src="js/page-loader.js?v=3"></script>
+    <script src="/assets/js/page-loader.js?v=4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/hero.css">
-    <link rel="stylesheet" href="css/grid.css">
-    <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/header.css">
+    <link rel="stylesheet" href="/assets/css/hero.css">
+    <link rel="stylesheet" href="/assets/css/grid.css">
+    <link rel="stylesheet" href="/assets/css/footer.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
 <style>
 .lf-dot{display:inline-block;width:7px;height:7px;background:#ef4444;border-radius:50%;margin-right:4px;vertical-align:middle;animation:lf-pulse 1.4s ease-in-out infinite}
 @keyframes lf-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}
@@ -46,9 +48,9 @@
 <body>
 <header class="header">
     <div class="hdr-top">
-        <a class="logo" href="inicio.html">
+        <a class="logo" href="/inicio.html">
             <div class="logo-icon">
-                <img src="Logotipos/logo1.png" alt="VALLNEWS Logo">
+                <img src="/assets/img/logo1.png" alt="VALLNEWS Logo">
             </div>
             <span class="logo-text">VALLNews</span>
         </a>
@@ -58,12 +60,12 @@
     </div>
     <nav class="hdr-nav">
         <div class="nav-center">
-            <a class="nav-link active" href="inicio.html"><i class="fas fa-house"></i></a>
-            <a class="nav-link" href="finanzas/finanzas.html">Finanzas</a>
-            <a class="nav-link" href="mercados/mercados.html">Mercados</a>
-            <a class="nav-link" href="geopolitica/geopolitica.html">Geopolítica</a>
-            <a class="nav-link" href="mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
-            <a class="nav-link" href="mexico/mexico.html">México</a>
+            <a class="nav-link active" href="/inicio.html"><i class="fas fa-house"></i></a>
+            <a class="nav-link" href="/pages/finanzas.html">Finanzas</a>
+            <a class="nav-link" href="/pages/mercados.html">Mercados</a>
+            <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
+            <a class="nav-link" href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
+            <a class="nav-link" href="/pages/mexico.html">México</a>
         </div>
         <a class="nav-user" id="navUser" title="Mi cuenta" style="cursor:pointer">
             <i class="fas fa-circle-user"></i>
@@ -72,7 +74,7 @@
 </header>
 <div class="hdr-divider"></div>
 <section class="hero" id="heroSlider">
-    <div class="slide active" id="slide-finanzas" style="background-image:url('img/finanzas.webp')">
+    <div class="slide active" id="slide-finanzas" style="background-image:url('/assets/img/finanzas.webp')">
         <div class="slide-badge">
             <span class="slide-pill"><i class="fas fa-building-columns"></i>&nbsp;Macro MX</span>
             <span class="slide-sub">BANXICO</span>
@@ -81,7 +83,7 @@
             <p class="slide-date" id="sd-0"></p>
             <h1 class="slide-title" id="st-finanzas">Banxico: Expectativas de inflación para el cierre de Q2</h1>
             <p class="slide-desc" id="sd-fin-desc">El consenso de analistas proyecta movimientos en tasas y mercados globales.</p>
-            <a class="slide-btn" href="finanzas/finanzas.html">VER MÁS</a>
+            <a class="slide-btn" href="/pages/finanzas.html">VER MÁS</a>
             <div class="slide-tags">
                 <span class="tag-source">BANXICO</span>
                 <span class="tag-risk danger">
@@ -90,7 +92,7 @@
             </div>
         </div>
     </div>
-    <div class="slide" id="slide-mercados" style="background-image:url('img/mercados.webp')">
+    <div class="slide" id="slide-mercados" style="background-image:url('/assets/img/mercados.webp')">
         <div class="slide-badge">
             <span class="slide-pill" style="background:var(--clr-accent)">
                 <i class="fas fa-chart-bar"></i>&nbsp;Mercados
@@ -101,7 +103,7 @@
             <p class="slide-date" id="sd-1"></p>
             <h1 class="slide-title" id="st-mercados">Mercados globales: volatilidad ante datos macro de EE.UU.</h1>
             <p class="slide-desc" id="sd-mkt-desc">Los índices reaccionan a los datos de empleo y expectativas de política monetaria de la Fed.</p>
-            <a class="slide-btn" href="mercados/mercados.html">VER MÁS</a>
+            <a class="slide-btn" href="/pages/mercados.html">VER MÁS</a>
             <div class="slide-tags">
                 <span class="tag-source">BLOOMBERG</span>
                 <span class="tag-risk danger">
@@ -110,7 +112,7 @@
             </div>
         </div>
     </div>
-    <div class="slide" id="slide-geo" style="background-image:url('img/geo.webp')">
+    <div class="slide" id="slide-geo" style="background-image:url('/assets/img/geo.webp')">
         <div class="slide-badge">
             <span class="slide-pill" style="background:var(--clr-violet)">
                 <i class="fas fa-earth-americas"></i>&nbsp;Geopolítica
@@ -121,7 +123,7 @@
             <p class="slide-date" id="sd-2"></p>
             <h1 class="slide-title" id="st-geo">Tensiones globales incrementan el riesgo en cadenas de suministro</h1>
             <p class="slide-desc" id="sd-geo-desc">Las tensiones en regiones clave afectan directamente las cadenas de suministro globales.</p>
-            <a class="slide-btn" href="geopolitica/geopolitica.html">VER MÁS</a>
+            <a class="slide-btn" href="/pages/geopolitica.html">VER MÁS</a>
             <div class="slide-tags">
                 <span class="tag-source">REUTERS</span>
                 <span class="tag-risk">
@@ -130,7 +132,7 @@
             </div>
         </div>
     </div>
-    <div class="slide" id="slide-proteinas" style="background-image:url('img/mercadoP.webp')">
+    <div class="slide" id="slide-proteinas" style="background-image:url('/assets/img/mercadoP.webp')">
         <div class="slide-badge">
             <span class="slide-pill"><i class="fas fa-seedling"></i>&nbsp;Proteínas</span>
             <span class="slide-sub">CME · CHICAGO</span>
@@ -139,7 +141,7 @@
             <p class="slide-date" id="sd-3"></p>
             <h1 class="slide-title" id="st-proteinas">Maíz CME: Contratos futuros ante clima en el cinturón solar</h1>
             <p class="slide-desc" id="sd-prot-desc">Incertidumbre en la cosecha de EE.UU. eleva la volatilidad en la compra anticipada de grano.</p>
-            <a class="slide-btn" href="mercado_proteinas/mercadoproteinas.html">VER MÁS</a>
+            <a class="slide-btn" href="/pages/mercadoproteinas.html">VER MÁS</a>
             <div class="slide-tags">
                 <span class="tag-source">CME GROUP</span>
                 <span class="tag-risk">
@@ -148,7 +150,7 @@
             </div>
         </div>
     </div>
-    <div class="slide" id="slide-mexico" style="background-image:url('img/mexico2.webp')">
+    <div class="slide" id="slide-mexico" style="background-image:url('/assets/img/mexico2.webp')">
         <div class="slide-badge">
             <span class="slide-pill" style="background:var(--clr-green)">
                 <i class="fas fa-peso-sign"></i>&nbsp;México
@@ -159,7 +161,7 @@
             <p class="slide-date" id="sd-4"></p>
             <h1 class="slide-title" id="st-mexico">Tipo de cambio: El peso frente al dólar en tiempo real</h1>
             <p class="slide-desc" id="sd-mex-desc">El mercado cambiario refleja el pulso de la economía mexicana.</p>
-            <a class="slide-btn" href="mexico/mexico.html">VER MÁS</a>
+            <a class="slide-btn" href="/pages/mexico.html">VER MÁS</a>
             <div class="slide-tags">
                 <span class="tag-source">BANXICO</span>
                 <span class="tag-risk danger">
@@ -196,8 +198,8 @@
     <div class="grid">
 
         <a class="card" id="card-finanzas"
-             href="finanzas/finanzas.html"
-             style="background-image:url('img/finanzas.webp')">
+             href="/pages/finanzas.html"
+             style="background-image:url('/assets/img/finanzas.webp')">
             <div class="card-overlay">
                 <span class="card-badge"><i class="fas fa-chart-line"></i> Finanzas</span>
                 <div class="card-bottom">
@@ -207,8 +209,8 @@
             </div>
         </a>
         <a class="card" id="card-mercados"
-             href="mercados/mercados.html"
-             style="background-image:url('img/mercados.webp')">
+             href="/pages/mercados.html"
+             style="background-image:url('/assets/img/mercados.webp')">
             <div class="card-overlay">
                 <span class="card-badge"><i class="fas fa-globe"></i> Mercados</span>
                 <div class="card-bottom">
@@ -218,8 +220,8 @@
             </div>
         </a>
         <a class="card" id="card-geo"
-             href="geopolitica/geopolitica.html"
-             style="background-image:url('img/geo.webp')">
+             href="/pages/geopolitica.html"
+             style="background-image:url('/assets/img/geo.webp')">
             <div class="card-overlay">
                 <span class="card-badge" style="background:rgba(124,58,237,.9)">
                     <i class="fas fa-earth-americas"></i> Geopolítica
@@ -231,8 +233,8 @@
             </div>
         </a>
         <a class="card" id="card-proteinas"
-             href="mercado_proteinas/mercadoproteinas.html"
-             style="background-image:url('img/mercadoP.webp')">
+             href="/pages/mercadoproteinas.html"
+             style="background-image:url('/assets/img/mercadoP.webp')">
             <div class="card-overlay">
                 <span class="card-badge" style="background:rgba(5,150,105,.9)">
                     <i class="fas fa-seedling"></i> Mercados Proteína
@@ -244,8 +246,8 @@
             </div>
         </a>
         <a class="card" id="card-mexico"
-             href="mexico/mexico.html"
-             style="background-image:url('img/mexico2.webp')">
+             href="/pages/mexico.html"
+             style="background-image:url('/assets/img/mexico2.webp')">
             <div class="card-overlay">
                 <span class="card-badge" style="background:rgba(21,128,61,.9)">
                     <i class="fas fa-peso-sign"></i> México
@@ -285,17 +287,17 @@
 <footer class="footer">
     <div class="footer-logo">
         <div class="footer-icon">
-            <img src="Logotipos/logo2.png" alt="VALLNEWS">
+            <img src="/assets/img/logo2.png" alt="VALLNEWS">
         </div>
         <span class="footer-brand">VALLNews</span>
     </div>
     <nav class="footer-nav">
-        <a href="inicio.html">Inicio</a>
-        <a href="finanzas/finanzas.html">Finanzas</a>
-        <a href="mercados/mercados.html">Mercados</a>
-        <a href="geopolitica/geopolitica.html">Geopolítica</a>
-        <a href="mercado_proteinas/mercadoproteinas.html">Mercado Proteínas</a>
-        <a href="mexico/mexico.html">México</a>
+        <a href="/inicio.html">Inicio</a>
+        <a href="/pages/finanzas.html">Finanzas</a>
+        <a href="/pages/mercados.html">Mercados</a>
+        <a href="/pages/geopolitica.html">Geopolítica</a>
+        <a href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
+        <a href="/pages/mexico.html">México</a>
     </nav>
     <p class="footer-copy">
         Datos en tiempo real &nbsp;&middot;&nbsp;
@@ -348,10 +350,10 @@
         if (nu && user) nu.title = user + ' · Mi cuenta';
     })();
 </script>
-<script src="js/api-keys.js?v=4"></script>
-<script src="js/data-service.js?v=15"></script>
-<script src="js/live-engine.js?v=24"></script>
-<script src="js/chat-widget.js?v=22" data-mascota="Logotipos/mascota1.png"></script>
-<script src="js/flags-widget.js?v=2"></script>
+<script src="/assets/js/api-keys.js?v=5"></script>
+<script src="/assets/js/data-service.js?v=22"></script>
+<script src="/assets/js/live-engine.js?v=25"></script>
+<script src="/assets/js/chat-widget.js?v=31" data-mascota="/assets/img/mascota1.png"></script>
+<script src="/assets/js/flags-widget.js?v=3"></script>
 </body>
 </html>

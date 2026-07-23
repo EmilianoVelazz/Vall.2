@@ -2,58 +2,17 @@
 const express      = require('express');
 const path         = require('path');
 const fs           = require('fs');
-const { spawn }    = require('child_process');
 
 const { externalGet, yahooFetch, YF_UA } = require('../lib/http');
 const { IS_VERCEL, CACHE_DIR }           = require('../lib/config');
 
 const router = express.Router();
 
-// ── BMV Market (Python / yfinance) ────────────────────────────────────────────
-// Caché en memoria de 5 minutos para evitar spawns de Python en cada request.
-// Patrón stale-while-revalidate: devuelve caché inmediatamente, refresca en background.
-
-// Prefiere el intérprete del venv del proyecto (evita depender de que 'python3'
-// resuelva algo útil en PATH — en Windows sin venv suele caer al stub de la Store).
-function _resolvePython() {
-    const candidates = [
-        path.join(__dirname, '..', '..', '.venv', 'Scripts', 'python.exe'),
-        path.join(__dirname, '..', '..', '.venv', 'bin', 'python'),
-    ];
-    for (const c of candidates) if (fs.existsSync(c)) return c;
-    return process.platform === 'win32' ? 'python' : 'python3';
-}
-const PYTHON_BIN = _resolvePython();
+// ── BMV Market (Yahoo Finance) ────────────────────────────────────────────
+// Caché en memoria de 5 minutos. Patrón stale-while-revalidate.
 
 const _bmvCache  = { ts: 0, data: null };
 const BMV_TTL    = 5 * 60 * 1000; // 5 minutos
-let   _bmvFetching = false;
-
-function _runBmvPython() {
-    if (_bmvFetching) return; // ya hay un fetch en curso
-    _bmvFetching = true;
-    const scriptPath = path.join(__dirname, '..', 'market-data.py');
-    const python = spawn(PYTHON_BIN, [scriptPath]);
-    let output = '';
-    let errorOutput = '';
-
-    python.stdout.on('data', d => { output += d.toString(); });
-    python.stderr.on('data', d => { errorOutput += d.toString(); });
-    python.on('close', code => {
-        _bmvFetching = false;
-        if (code !== 0) {
-            console.error('[bmv] Python error:', errorOutput.slice(0, 200));
-            return;
-        }
-        try {
-            _bmvCache.data = JSON.parse(output);
-            _bmvCache.ts   = Date.now();
-            console.log('[bmv] Caché actualizado correctamente');
-        } catch (err) {
-            console.error('[bmv] JSON parse error:', err.message);
-        }
-    });
-}
 
 const BMV_YAHOO_ASSETS = [
     { ticker:'GRUMAB.MX',   symbol:'GRUMA',   name:'Gruma',          type:'stock',     bucket:'bmv'      },
@@ -120,49 +79,6 @@ router.get('/bmv-market', async (req, res) => {
         res.status(502).json({ success:false, error:'Datos BMV temporalmente no disponibles.' });
     }
 });
-
-router.get('/bmv-market-python-disabled', (req, res) => {
-    const age = Date.now() - _bmvCache.ts;
-
-    // Caché válido: devolver inmediatamente
-    if (_bmvCache.data && age < BMV_TTL) {
-        return res.json(_bmvCache.data);
-    }
-
-    // Caché expirado pero hay datos: devolver stale y refrescar en background
-    if (_bmvCache.data && age >= BMV_TTL) {
-        _runBmvPython(); // fire-and-forget
-        return res.json(_bmvCache.data);
-    }
-
-    // Sin caché: esperar a Python (primera carga)
-    const scriptPath = path.join(__dirname, '..', 'market-data.py');
-    const python = spawn(PYTHON_BIN, [scriptPath]);
-    let output = '';
-    let errorOutput = '';
-
-    python.stdout.on('data', d => { output += d.toString(); });
-    python.stderr.on('data', d => {
-        errorOutput += d.toString();
-        console.warn('[bmv] Python stderr:', d.toString());
-    });
-    python.on('close', code => {
-        if (code !== 0) {
-            console.error('[bmv] Python script error:', errorOutput);
-            return res.status(500).json({ success: false, error: 'Error al obtener datos de mercado.' });
-        }
-        try {
-            const data = JSON.parse(output);
-            _bmvCache.data = data;
-            _bmvCache.ts   = Date.now();
-            res.json(data);
-        } catch (err) {
-            console.error('[bmv] JSON parse error:', err.message);
-            res.status(500).json({ success: false, error: 'Datos de mercado en formato inválido.' });
-        }
-    });
-});
-
 
 // ── Commodity prices (Alpha Vantage proxy) ────────────────────────────────────
 // AV free tier: 5 req/min, 25 req/day → caché persistente en disco +

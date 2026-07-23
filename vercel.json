@@ -3,12 +3,13 @@
   "outputDirectory": "dist",
   "redirects": [
     { "source": "/inicio",            "destination": "/inicio.html",                              "permanent": false },
-    { "source": "/finanzas",          "destination": "/finanzas/finanzas.html",                   "permanent": false },
-    { "source": "/mercados",          "destination": "/mercados/mercados.html",                   "permanent": false },
-    { "source": "/geopolitica",       "destination": "/geopolitica/geopolitica.html",             "permanent": false },
-    { "source": "/mexico",            "destination": "/mexico/mexico.html",                       "permanent": false },
-    { "source": "/mercado-proteinas", "destination": "/mercado_proteinas/mercadoproteinas.html",  "permanent": false },
-    { "source": "/configuracion",     "destination": "/configuracion/configuracion.html",         "permanent": false }
+    { "source": "/finanzas",          "destination": "/pages/finanzas.html",                   "permanent": false },
+    { "source": "/mercados",          "destination": "/pages/mercados.html",                   "permanent": false },
+    { "source": "/geopolitica",       "destination": "/pages/geopolitica.html",             "permanent": false },
+    { "source": "/mexico",            "destination": "/pages/mexico.html",                       "permanent": false },
+    { "source": "/mercado-proteinas", "destination": "/pages/mercadoproteinas.html",  "permanent": false },
+    { "source": "/configuracion",     "destination": "/pages/configuracion.html",         "permanent": false },
+    { "source": "/vall-ai",           "destination": "/pages/vall-ai.html",               "permanent": false }
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.js" }
@@ -27,13 +28,13 @@
       ]
     },
     {
-      "source": "/js/(.*)\\.js",
+      "source": "/assets/js/(.*)\\.js",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
     {
-      "source": "/css/(.*)\\.css",
+      "source": "/assets/css/(.*)\\.css",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]

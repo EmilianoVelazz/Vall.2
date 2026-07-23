@@ -1,14 +1,7 @@
 'use strict';
-
-// ── 1. Variables de entorno (debe ir PRIMERO, antes de cualquier require de lib/) ──
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
 
-// ── 2. Fix TLS en Windows ──────────────────────────────────────────────────────
-// ssl-root-cas inyecta el bundle completo de CAs de Mozilla en el agente HTTPS
-// global de Node.js, resolviendo UNABLE_TO_GET_ISSUER_CERT_LOCALLY en Windows.
-// En Vercel (Linux) este paquete no hace nada extra; el bundle del sistema ya es correcto.
-// Si el paquete no está instalado, lib/http.js usa rejectUnauthorized:false como fallback.
 try {
     require('ssl-root-cas').inject();
     process.env._TLS_STRICT = '1';
@@ -18,7 +11,6 @@ try {
     console.warn('  [TLS] ssl-root-cas no disponible; en Windows puede haber errores de CA intermedia.');
 }
 
-// ── 3. Dependencias ───────────────────────────────────────────────────────────
 const express      = require('express');
 const cors         = require('cors');
 const cookieParser = require('cookie-parser');
@@ -32,8 +24,9 @@ const finanzasRouter                              = require('./routes/finanzas')
 const { router: marketRouter, initCommodityWarmer } = require('./routes/market');
 const externalRouter                              = require('./routes/external');
 const chatRouter                                  = require('./routes/chat');
+const exportRouter                                = require('./routes/export');
+const { router: attachmentsRouter }               = require('./routes/attachments');
 
-// ── 5. App ────────────────────────────────────────────────────────────────────
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
@@ -65,6 +58,14 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
+// Exportación admite imágenes de gráficas; usa un límite propio antes del
+// parser global pequeño que protege al resto de las rutas.
+app.use('/api', exportRouter);
+// Los adjuntos multimodales usan su propio límite y se conservan solo 30 minutos.
+app.use('/api', attachmentsRouter);
+// Chat usa un parser propio de 128 KB para historial y contexto. Debe montarse
+// antes del parser global de 10 KB sin ampliar el resto de la API.
+app.use('/api', chatRouter);
 app.use(express.json({ limit: '10kb' }));
 
 // Compatibilidad con enlaces guardados por versiones anteriores del frontend.
@@ -76,19 +77,26 @@ app.get('/finanzas/inicio.html', (req, res) => res.redirect(302, '/inicio.html')
 app.get('/finanzas/finanzas.html', (req, res, next) => {
     if (req.query.ui === '31') return next();
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.redirect(302, '/finanzas/finanzas.html?ui=31');
+    res.redirect(302, '/pages/finanzas.html?ui=31');
+});
+
+app.get('/pages/finanzas.html', (req, res, next) => {
+    if (req.query.ui === '31') return next();
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.redirect(302, '/pages/finanzas.html?ui=31');
 });
 
 // Rutas limpias equivalentes a las redirecciones de Vercel. Express local no
 // interpreta vercel.json, por lo que deben declararse también aquí.
 const LOCAL_PAGE_ROUTES = {
     '/inicio': '/inicio.html',
-    '/finanzas': '/finanzas/finanzas.html',
-    '/mercados': '/mercados/mercados.html',
-    '/geopolitica': '/geopolitica/geopolitica.html',
-    '/mexico': '/mexico/mexico.html',
-    '/mercado-proteinas': '/mercado_proteinas/mercadoproteinas.html',
-    '/configuracion': '/configuracion/configuracion.html',
+    '/finanzas': '/pages/finanzas.html',
+    '/mercados': '/pages/mercados.html',
+    '/geopolitica': '/pages/geopolitica.html',
+    '/mexico': '/pages/mexico.html',
+    '/mercado-proteinas': '/pages/mercadoproteinas.html',
+    '/configuracion': '/pages/configuracion.html',
+    '/vall-ai': '/pages/vall-ai.html',
 };
 Object.entries(LOCAL_PAGE_ROUTES).forEach(([route, target]) => {
     app.get(route, (req, res) => {
@@ -121,12 +129,13 @@ const _JWT_SECRET_STATIC = process.env.JWT_SECRET || 'cambia_este_secreto_jwt_ah
 // Nombres exactos de páginas protegidas
 const PROTECTED_PAGES = new Set([
     '/inicio.html',
-    '/finanzas/finanzas.html',
-    '/mercados/mercados.html',
-    '/geopolitica/geopolitica.html',
-    '/mexico/mexico.html',
-    '/mercado_proteinas/mercadoproteinas.html',
-    '/configuracion/configuracion.html',
+    '/pages/finanzas.html',
+    '/pages/mercados.html',
+    '/pages/geopolitica.html',
+    '/pages/mexico.html',
+    '/pages/mercadoproteinas.html',
+    '/pages/configuracion.html',
+    '/pages/vall-ai.html',
 ]);
 
 app.use((req, res, next) => {
@@ -171,12 +180,14 @@ app.use('/api', authRouter);
 app.use('/api', finanzasRouter);
 app.use('/api', marketRouter);
 app.use('/api', externalRouter);
-app.use('/api', chatRouter);
 
 // ── Error handler global ──────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
     console.error('Unhandled Express error:', err.message);
+    if (err.type === 'entity.too.large' || err.status === 413) {
+        return res.status(413).json({ success: false, error: 'La solicitud es demasiado grande. Reduce el número o tamaño de los archivos e intenta nuevamente.' });
+    }
     res.status(err.status || 500).json({ success: false, error: err.message || 'Error interno del servidor' });
 });
 
@@ -198,6 +209,8 @@ if (require.main === module) {
         console.log(`   GET  /api/bond-yields        → Rendimientos de bonos globales`);
         console.log(`   GET  /api/mx-rates           → Curva de tasas México`);
         console.log(`   POST /api/chat               → VALL-AI (Gemini)`);
+        console.log(`   POST /api/ai-rich            → Respuesta estructurada VALL-AI`);
+        console.log(`   POST /api/ai-insight-stream  → Streaming SSE compatible/rico`);
         console.log(`   Orígenes CORS: ${allowedOrigins.join(', ')}\n`);
     });
 }

@@ -33,6 +33,7 @@ backend/gdelt_cache.json
 backend/gdelt_cache.json.bak
 backend/generated-reports/
 backend/server.log
+backend/server-error.log
 backend/test-run.log
 backend/temp_report_*.docx
 

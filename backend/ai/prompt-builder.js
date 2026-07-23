@@ -79,13 +79,13 @@ CALIDAD Y ESTRUCTURA (CERO PAJA)
   - Usa listas con viñetas (\`-\`) para presentar datos, características o enumeraciones. ¡No escribas párrafos gigantes de texto!
   - Usa \`> [!TIP]\`, \`> [!IMPORTANT]\` o \`> [!WARNING]\` para resaltar insights clave, riesgos o información crítica.
 - Cuando cites cifras, acompáñalas con periodo, unidad y fuente.
-- Para comparaciones usa OBLIGATORIAMENTE tablas Markdown legibles y bien estructuradas (con \`|\` y \`-\`). 
+- Para comparaciones usa OBLIGATORIAMENTE tablas. Si estás respondiendo en JSON, usa un bloque "table" con "headers" y "rows".
 - Nunca sustituyas una tabla por texto si el usuario pidió una tabla.
 
 COMPONENTES VISUALES
-- Markdown es obligatorio para títulos, listas, tablas, citas y alertas.
-- Usa diagramas solo si aclaran una arquitectura o proceso. Escríbelos en un bloque \`\`\`mermaid válido.
-- Si hay datos numéricos adecuados, usa una visualización profesional con un bloque \`\`\`chart y JSON válido. Incluye title, subtitle, insight, unit, source, labels y datasets. El título debe expresar qué se mide y el insight una lectura ejecutiva.
+- Markdown es obligatorio para títulos, listas, citas y alertas dentro de bloques de texto.
+- Usa diagramas solo si aclaran una arquitectura o proceso. Si estás en JSON, usa un bloque "diagram".
+- Si hay datos numéricos adecuados, usa una visualización profesional. Si estás en JSON, usa un bloque "chart" con su respectiva "spec" (title, subtitle, insight, unit, source, labels y datasets). El insight debe ser una lectura ejecutiva.
 - Nunca uses ASCII art para simular gráficas.
 
 CIERRE

@@ -373,6 +373,21 @@ class RagRetriever {
         );
     }
 
+    async retrieveNeuralRules(message) {
+        const terms = expandedSearchTerms(message);
+        if (!terms) return [];
+        
+        return this.safeQuery(
+            `SELECT condition_trigger, learned_rule, confidence_score,
+                    MATCH(condition_trigger) AGAINST (? IN NATURAL LANGUAGE MODE) AS relevance
+             FROM ai_neural_rules
+             WHERE MATCH(condition_trigger) AGAINST (? IN NATURAL LANGUAGE MODE)
+             ORDER BY relevance DESC, confidence_score DESC
+             LIMIT 3`,
+            [terms, terms]
+        );
+    }
+
     async retrieveDocuments(message) {
         const terms = expandedSearchTerms(message);
         if (!terms) return [];
@@ -565,8 +580,15 @@ class RagRetriever {
         return { rows, charts: [], chart: null, chartStatus: 'not_requested' };
     }
 
-    formatContext({ documents, events, economic, market, memory = [] }) {
+    formatContext({ documents, events, economic, market, memory = [], neuralRules = [] }) {
         const sections = [];
+        if (neuralRules.length) {
+            sections.push('[REGLAS NEURONALES APRENDIDAS AUTÓNOMAMENTE]\n' + neuralRules.map((rule, index) =>
+                `[Regla ${index + 1}] (Confianza: ${rule.confidence_score}%)
+- Condición: ${rule.condition_trigger}
+- Instrucción Crítica: ${rule.learned_rule}`
+            ).join('\n\n') + '\n-> APLICA OBLIGATORIAMENTE ESTAS REGLAS EN TU RESPUESTA.');
+        }
         if (memory.length) {
             sections.push('[MEMORIA DE INTERACCIONES PREVIAS]\n' + memory.map((row, index) =>
                 `[Feedback Anterior ${index + 1}]
@@ -610,12 +632,13 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
     async retrieve(message, userKeyHash = null) {
         const started = Date.now();
         const profile = queryProfile(message);
-        const [documents, events, economic, market, memory] = await Promise.all([
+        const [documents, events, economic, market, memory, neuralRules] = await Promise.all([
             this.retrieveDocuments(message),
             this.retrieveEvents(message, profile),
             this.retrieveEconomic(message, profile),
             this.retrieveMarket(message),
-            this.retrieveMemory(message, userKeyHash)
+            this.retrieveMemory(message, userKeyHash),
+            this.retrieveNeuralRules(message)
         ]);
         let filteredDocuments = documents;
         if (profile.historicalMarketOnly) {
@@ -701,7 +724,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             })),
         ];
         return {
-            context: this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market, memory }),
+            context: this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market, memory, neuralRules }),
             chart: verifiedCharts[0] || null,
             charts: verifiedCharts,
             chartRequested: wantsChart(message),

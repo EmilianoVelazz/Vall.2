@@ -204,6 +204,16 @@ app.use((err, req, res, next) => {
 // Pasa true si server.js se ejecuta directamente (no como módulo serverless)
 initCommodityWarmer(require.main === module);
 
+// ── Cerebro Autodidacta (Worker) ──────────────────────────────────────────────
+if (require.main === module) {
+    try {
+        const brainWorker = require('./ai/brain-worker');
+        brainWorker.startWorker(); // Inicia el ciclo de aprendizaje autónomo
+    } catch (e) {
+        console.warn('  [Cerebro] No se pudo iniciar el worker:', e.message);
+    }
+}
+
 // ── Inicio del servidor ───────────────────────────────────────────────────────
 if (require.main === module) {
     app.listen(PORT, () => {

@@ -72,7 +72,21 @@ class AIOrchestrator {
         const enrichedContext = [evidence.context, context].filter(Boolean).join('\n\n');
         const built = buildPrompt({ message, history, context: enrichedContext, mode, responseFormat: 'markdown', attachments });
         const resolvedTier = tier === 'pro' || tier === 'flash' ? tier : built.recommendedTier;
-        const result = await this.provider.stream({ ...built, tier: resolvedTier, onText, attachments });
+        
+        let finalBuilt = built;
+        if (resolvedTier === 'pro') {
+            try {
+                // Paso de Reflexión (Borrador Rápido)
+                const draftResult = await this.provider.generate({ ...built, tier: 'flash', json: false, attachments });
+                if (draftResult.text) {
+                    finalBuilt.prompt += `\n\n[BORRADOR INTERNO PREVIO]\n${draftResult.text}\n\n[INSTRUCCIÓN DE REFLEXIÓN]\nRevisa el borrador anterior críticamente. Verifica que cumpla absolutamente con las [REGLAS NEURONALES APRENDIDAS AUTÓNOMAMENTE] (si existen en tu contexto). Escribe la versión final, mejorada y libre de errores. No menciones el proceso de revisión, solo entrega la respuesta perfecta.`;
+                }
+            } catch (e) {
+                console.warn('[Orchestrator] Falló el paso de borrador, omitiendo reflexión:', e.message);
+            }
+        }
+
+        const result = await this.provider.stream({ ...finalBuilt, tier: resolvedTier, onText, attachments });
         if (!result.text) throw Object.assign(new Error('El proveedor devolvió una respuesta vacía.'), { code: 'AI_EMPTY_RESPONSE', status: 502 });
         let response = markdownToRichResponse(result.text, {
             mode: built.mode, taskType: built.taskType, provider: this.provider.name,
@@ -111,7 +125,21 @@ class AIOrchestrator {
         const enrichedContext = [evidence.context, context].filter(Boolean).join('\n\n');
         const built = buildPrompt({ message, history, context: enrichedContext, mode, responseFormat: 'json', attachments });
         const resolvedTier = tier === 'pro' || tier === 'flash' ? tier : built.recommendedTier;
-        const result = await this.provider.generate({ ...built, tier: resolvedTier, json: true, attachments });
+        
+        let finalBuilt = built;
+        if (resolvedTier === 'pro') {
+            try {
+                // Paso de Reflexión (Borrador Rápido)
+                const draftResult = await this.provider.generate({ ...built, tier: 'flash', json: false, attachments });
+                if (draftResult.text) {
+                    finalBuilt.prompt += `\n\n[BORRADOR INTERNO PREVIO]\n${draftResult.text}\n\n[INSTRUCCIÓN DE REFLEXIÓN]\nRevisa el borrador anterior críticamente. Verifica que cumpla con las [REGLAS NEURONALES APRENDIDAS AUTÓNOMAMENTE]. Genera el JSON final mejorado.`;
+                }
+            } catch (e) {
+                console.warn('[Orchestrator] Falló el paso de borrador estructurado, omitiendo reflexión:', e.message);
+            }
+        }
+
+        const result = await this.provider.generate({ ...finalBuilt, tier: resolvedTier, json: true, attachments });
         let parsed;
         try { parsed = JSON.parse(result.text); }
         catch {

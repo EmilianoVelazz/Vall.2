@@ -626,19 +626,50 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
                 `${row.canonical_url ? ` | url=${row.canonical_url}` : ''}\n${row.summary || ''}`
             ).join('\n\n'));
         }
+        if (arguments[0].liveNews && arguments[0].liveNews.length) {
+            sections.push('[NOTICIAS WEB EN TIEMPO REAL (ÚLTIMA HORA)]\n' + arguments[0].liveNews.map((news, index) => 
+                `[W${index + 1}] ${news.title}\nFuente: ${news.source.name} | Fecha: ${news.publishedAt} | URL: ${news.url}\nResumen: ${news.description}`
+            ).join('\n\n'));
+        }
         return sections.join('\n\n').slice(0, 14000);
+    }
+
+    async retrieveLiveNews(message) {
+        if (!process.env.NEWSAPI_KEY) return [];
+        const terms = expandedSearchTerms(message);
+        if (!terms || terms.length < 4) return [];
+        
+        try {
+            // Encode the top search term
+            const query = encodeURIComponent(terms.split(' ').slice(0, 2).join(' '));
+            const url = `https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&language=es&pageSize=3&apiKey=${process.env.NEWSAPI_KEY}`;
+            
+            const abortController = new AbortController();
+            const timeoutId = setTimeout(() => abortController.abort(), 3500); // 3.5s timeout max for live web search
+            
+            const response = await fetch(url, { signal: abortController.signal });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data.articles && Array.isArray(data.articles) ? data.articles : [];
+        } catch (error) {
+            console.warn('[Agente Web] Fallo en búsqueda en vivo:', error.message);
+            return [];
+        }
     }
 
     async retrieve(message, userKeyHash = null) {
         const started = Date.now();
         const profile = queryProfile(message);
-        const [documents, events, economic, market, memory, neuralRules] = await Promise.all([
+        const [documents, events, economic, market, memory, neuralRules, liveNews] = await Promise.all([
             this.retrieveDocuments(message),
             this.retrieveEvents(message, profile),
             this.retrieveEconomic(message, profile),
             this.retrieveMarket(message),
             this.retrieveMemory(message, userKeyHash),
-            this.retrieveNeuralRules(message)
+            this.retrieveNeuralRules(message),
+            this.retrieveLiveNews(message)
         ]);
         let filteredDocuments = documents;
         if (profile.historicalMarketOnly) {
@@ -724,7 +755,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             })),
         ];
         return {
-            context: this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market, memory, neuralRules }),
+            context: this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market, memory, neuralRules, liveNews }),
             chart: verifiedCharts[0] || null,
             charts: verifiedCharts,
             chartRequested: wantsChart(message),

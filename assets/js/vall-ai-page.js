@@ -432,6 +432,7 @@
         
         if (message.queryId) {
             html += `<span class="vai-feedback-group" style="margin-left:auto; display:flex; gap:0.25rem;">
+                <button type="button" data-speak title="Leer en voz alta"><i class="fas fa-volume-up"></i></button>
                 <button type="button" data-feedback="up" title="Útil"><i class="fas fa-thumbs-up"></i></button>
                 <button type="button" data-feedback="down" title="No útil"><i class="fas fa-thumbs-down"></i></button>
                 <button type="button" data-feedback="correct" title="Enseñar/Corregir" class="vai-btn-correct"><i class="fas fa-pen-to-square"></i> Corregir</button>
@@ -449,6 +450,19 @@
         });
         
         if (message.queryId) {
+            const speakBtn = actions.querySelector('[data-speak]');
+            speakBtn?.addEventListener('click', () => {
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                    speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                } else {
+                    const utterance = new SpeechSynthesisUtterance(message.text.replace(/[#*`_]/g, ''));
+                    utterance.lang = 'es-MX';
+                    utterance.onend = () => speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    speakBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                    window.speechSynthesis.speak(utterance);
+                }
+            });
             actions.querySelectorAll('[data-feedback]').forEach(btn => {
                 btn.addEventListener('click', (e) => handleFeedback(message.queryId, e.currentTarget.dataset.feedback, e.currentTarget));
             });
@@ -1036,6 +1050,37 @@
     });
     document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventListener('click', () => sendMessage(button.dataset.prompt)));
     window.addEventListener('resize', () => setSidebarCollapsed(localStorage.getItem(SIDEBAR_KEY) === '1', false));
+
+    // Voice Recognition Initialization
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition && els.send) {
+        const micBtn = document.createElement('button');
+        micBtn.type = 'button';
+        micBtn.id = 'vaiMic';
+        micBtn.className = 'vai-mic-btn';
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        micBtn.title = "Hablar con la IA";
+        els.send.parentNode.insertBefore(micBtn, els.send);
+        
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-MX';
+        recognition.interimResults = false;
+        
+        micBtn.addEventListener('click', () => {
+            micBtn.classList.add('listening');
+            recognition.start();
+        });
+        
+        recognition.addEventListener('result', (e) => {
+            els.input.value = Array.from(e.results).map(r => r[0].transcript).join('');
+            resizeInput();
+            els.form.requestSubmit();
+        });
+        
+        recognition.addEventListener('end', () => {
+            micBtn.classList.remove('listening');
+        });
+    }
 
     if (!activeConversation() && conversations.length) activeId = conversations[0].id;
     if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);

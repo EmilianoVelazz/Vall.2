@@ -399,29 +399,31 @@
         bubble.prepend(meta);
     }
 
-    async function handleFeedback(queryId, type, button) {
+    async function handleFeedback(queryId, type, button, prefilledCorrection = null) {
         if (!queryId) return;
         let payload = { queryId };
         if (type === 'up') payload.rating = 5;
         else if (type === 'down') payload.rating = 1;
         else if (type === 'correct') {
-            const correction = window.prompt('¿En qué se equivocó la IA? Esta corrección se memorizará para futuras preguntas.');
+            const correction = prefilledCorrection || window.prompt('¿En qué se equivocó la IA? Esta corrección se memorizará para futuras preguntas.');
             if (!correction) return;
             payload.correctionText = correction;
         }
         
-        button.disabled = true;
+        if (button) button.disabled = true;
         try {
             const response = await fetch('/api/ai-feedback', {
                 method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (response.ok) {
-                const group = button.closest('.vai-feedback-group');
-                if (group) group.innerHTML = '<span class="vai-feedback-thanks"><i class="fas fa-check"></i> Gracias por tu feedback.</span>';
+                if (button) {
+                    const group = button.closest('.vai-feedback-group');
+                    if (group) group.innerHTML = '<span class="vai-feedback-thanks"><i class="fas fa-check"></i> Gracias por tu feedback.</span>';
+                }
             }
         } catch {
-            button.disabled = false;
+            if (button) button.disabled = false;
         }
     }
 
@@ -648,13 +650,24 @@
     async function sendMessage(text) {
         const clean = String(text || '').trim() || (pendingFiles.length ? 'Analiza los archivos adjuntos y presenta los hallazgos principales.' : '');
         if (!clean || busy) return;
+        
+        const conversation = ensureConversation();
+        const correctionKeywords = /te equivocaste|est(a|á) mal|est(a|á)s mal|no era lo que ped[ií]|eso no|no me refer[ií]a a|incorrecto|corr[ií]ge|corr[ií]gelo|as[ií] no|m[aá]l/i;
+        if (correctionKeywords.test(clean)) {
+            const previousAiMessage = conversation.messages.slice().reverse().find(m => m.role === 'model' && m.queryId);
+            if (previousAiMessage) {
+                // Auto-reportar que el usuario está corrigiendo el último mensaje
+                handleFeedback(previousAiMessage.queryId, 'correct', null, clean);
+            }
+        }
+        
         const fileSnapshot = pendingFiles.slice();
         setBusy(true);
         let uploaded = [];
         try { uploaded = await uploadFiles(fileSnapshot); }
         catch (error) { setBusy(false); window.alert(error.message); return; }
         fileSnapshot.forEach(item => URL.revokeObjectURL(item.url)); pendingFiles = []; renderPendingFiles();
-        const conversation = ensureConversation();
+        
         els.welcome.hidden = true; if (els.welcome.parentNode === els.messages) els.welcome.remove();
         const userMessage = { role: 'user', text: clean, attachments: uploaded.map(({ name, type, size }) => ({ name, type, size })), ts: Date.now() };
         conversation.messages.push(userMessage); appendMessage(userMessage);

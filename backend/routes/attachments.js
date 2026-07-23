@@ -13,6 +13,7 @@ const MAX_BYTES = 6 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
     'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf',
     'text/plain', 'text/csv', 'text/markdown', 'application/json',
+    'audio/webm', 'audio/mp4', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg', 'audio/aac'
 ]);
 
 const uploadLimiter = rateLimit({

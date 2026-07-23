@@ -1152,7 +1152,8 @@
 
                 mediaRecorder.addEventListener('stop', () => {
                     if (audioChunks.length > 0) {
-                        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                        const cleanMimeType = (mediaRecorder.mimeType || 'audio/webm').split(';')[0].trim();
+                        const audioBlob = new Blob(audioChunks, { type: cleanMimeType });
                         const audioFile = new File([audioBlob], `Audio_${new Date().getTime()}.webm`, { type: audioBlob.type });
                         addFiles([audioFile]);
                         if (!els.input.value.trim() && continuousVoiceMode) els.form.requestSubmit();

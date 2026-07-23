@@ -266,12 +266,15 @@
         const allowed = new Set(['bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea']);
         const views = new Set(['bar', 'horizontalBar', 'stackedBar', 'line', 'area', 'mixed', 'pie', 'doughnut', 'radar', 'polarArea']);
         const source = raw && typeof raw === 'object' ? raw : {};
-        const labels = Array.isArray(source.labels) ? source.labels.slice(0, 36).map((value) => String(value).slice(0, 60)) : [];
-        const datasets = Array.isArray(source.datasets) ? source.datasets.slice(0, 8).map((dataset, index) => ({
+        const sourceLabels = Array.isArray(source.labels) ? source.labels : (source.data && Array.isArray(source.data.labels) ? source.data.labels : []);
+        const sourceDatasets = Array.isArray(source.datasets) ? source.datasets : (source.data && Array.isArray(source.data.datasets) ? source.data.datasets : []);
+        
+        const labels = sourceLabels.slice(0, 36).map((value) => String(value).slice(0, 60));
+        const datasets = sourceDatasets.slice(0, 8).map((dataset, index) => ({
             label: String(dataset?.label || `Serie ${index + 1}`).slice(0, 80),
             type: allowed.has(dataset?.type) ? dataset.type : undefined,
             data: Array.isArray(dataset?.data) ? dataset.data.slice(0, labels.length || 36).map((value) => Number.isFinite(Number(value)) ? Number(value) : null) : [],
-        })).filter((dataset) => dataset.data.length) : [];
+        })).filter((dataset) => dataset.data.length);
         return {
             type: allowed.has(source.type) ? source.type : 'bar', title: String(source.title || 'Visualización de datos').slice(0, 140),
             view: views.has(source.view) ? source.view : (allowed.has(source.type) ? source.type : 'bar'),

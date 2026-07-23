@@ -1140,6 +1140,41 @@
             }
         };
 
+        async function convertToWav(blob) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+            const numOfChan = audioBuffer.numberOfChannels;
+            const length = audioBuffer.length * numOfChan * 2;
+            const buffer = new ArrayBuffer(44 + length);
+            const view = new DataView(buffer);
+            const channels = [];
+            let offset = 0;
+            let pos = 0;
+
+            const setUint16 = (data) => { view.setUint16(pos, data, true); pos += 2; };
+            const setUint32 = (data) => { view.setUint32(pos, data, true); pos += 4; };
+            const writeString = (str) => { for (let i = 0; i < str.length; i++) { view.setUint8(pos, str.charCodeAt(i)); pos++; } };
+
+            writeString('RIFF'); setUint32(36 + length); writeString('WAVE');
+            writeString('fmt '); setUint32(16); setUint16(1); setUint16(numOfChan);
+            setUint32(audioBuffer.sampleRate); setUint32(audioBuffer.sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2); setUint16(16);
+            writeString('data'); setUint32(length);
+
+            for (let i = 0; i < audioBuffer.numberOfChannels; i++) channels.push(audioBuffer.getChannelData(i));
+            while (pos < buffer.byteLength) {
+                for (let i = 0; i < numOfChan; i++) {
+                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
         const startRecording = async () => {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1150,13 +1185,20 @@
                     if (event.data.size > 0) audioChunks.push(event.data);
                 });
 
-                mediaRecorder.addEventListener('stop', () => {
+                mediaRecorder.addEventListener('stop', async () => {
                     if (audioChunks.length > 0) {
-                        const cleanMimeType = (mediaRecorder.mimeType || 'audio/webm').split(';')[0].trim();
-                        const audioBlob = new Blob(audioChunks, { type: cleanMimeType });
-                        const audioFile = new File([audioBlob], `Audio_${new Date().getTime()}.webm`, { type: audioBlob.type });
-                        addFiles([audioFile]);
-                        if (!els.input.value.trim() && continuousVoiceMode) els.form.requestSubmit();
+                        try {
+                            const rawBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                            // Convert to WAV because Gemini 1.5 doesn't natively support WebM audio via REST inlineData
+                            const wavBlob = await convertToWav(rawBlob);
+                            const audioFile = new File([wavBlob], `Audio_${new Date().getTime()}.wav`, { type: 'audio/wav' });
+                            addFiles([audioFile]);
+                            if (!els.input.value.trim() && continuousVoiceMode) els.form.requestSubmit();
+                        } catch (err) {
+                            console.error('Error convirtiendo audio a WAV:', err);
+                            if (els.voiceOverlay) els.voiceOverlay.hidden = true;
+                            continuousVoiceMode = false;
+                        }
                     }
                 });
 

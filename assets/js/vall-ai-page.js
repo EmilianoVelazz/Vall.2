@@ -651,7 +651,7 @@
     }
 
     async function sendMessage(text) {
-        const clean = String(text || '').trim() || (pendingFiles.length ? 'Analiza los archivos adjuntos y presenta los hallazgos principales.' : '');
+        const clean = String(text || '').trim() || (pendingFiles.length ? (pendingFiles.some(f => String(f.type || '').startsWith('audio/')) ? 'Escucha este mensaje de voz y responde a mi consulta.' : 'Analiza los archivos adjuntos y presenta los hallazgos principales.') : '');
         if (!clean || busy) return;
         
         const conversation = ensureConversation();
@@ -1070,34 +1070,49 @@
     document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventListener('click', () => sendMessage(button.dataset.prompt)));
     window.addEventListener('resize', () => setSidebarCollapsed(localStorage.getItem(SIDEBAR_KEY) === '1', false));
 
-    // Voice Recognition Initialization
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition && els.send) {
+    // Voice Input via Audio Attachment for Gemini
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && els.send) {
         const micBtn = document.createElement('button');
         micBtn.type = 'button';
         micBtn.id = 'vaiMic';
         micBtn.className = 'vai-mic-btn';
         micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        micBtn.title = "Hablar con la IA";
+        micBtn.title = "Hablar con VALL AI (Voz a Gemini)";
         els.send.parentNode.insertBefore(micBtn, els.send);
         
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'es-MX';
-        recognition.interimResults = false;
-        
-        micBtn.addEventListener('click', () => {
-            micBtn.classList.add('listening');
-            recognition.start();
-        });
-        
-        recognition.addEventListener('result', (e) => {
-            els.input.value = Array.from(e.results).map(r => r[0].transcript).join('');
-            resizeInput();
-            els.form.requestSubmit();
-        });
-        
-        recognition.addEventListener('end', () => {
-            micBtn.classList.remove('listening');
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        micBtn.addEventListener('click', async () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                micBtn.classList.remove('listening');
+                micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        if (event.data.size > 0) audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener('stop', () => {
+                        stream.getTracks().forEach(track => track.stop());
+                        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                        const audioFile = new File([audioBlob], `Audio_${new Date().getTime()}.webm`, { type: audioBlob.type });
+                        addFiles([audioFile]);
+                        if (!els.input.value.trim()) els.form.requestSubmit();
+                    });
+
+                    mediaRecorder.start();
+                    micBtn.classList.add('listening');
+                    micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+                } catch (error) {
+                    window.alert('No se pudo acceder al micrófono para hablar con VALL AI.');
+                }
+            }
         });
     }
 

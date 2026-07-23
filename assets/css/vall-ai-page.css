@@ -100,3 +100,9 @@
 
 /* Gráficas editables dentro del estudio de reportes */
 .vai-rich-editor .vai-editor-chart{position:relative;margin:1.35rem 0 1.6rem;border-color:#c8d8e2;box-shadow:0 12px 34px rgba(6,23,40,.1);user-select:none}.vai-editor-chart-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #d8e2e8;background:linear-gradient(90deg,#0b304a,#174b68);color:#fff;font-size:.58rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.vai-editor-chart-bar span{display:flex;align-items:center;gap:7px}.vai-editor-chart-bar span i{color:#e4c36f}.vai-editor-chart-bar button{padding:5px 9px;border:1px solid rgba(255,255,255,.2);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font:700 .54rem Inter;cursor:pointer}.vai-editor-chart-bar button:hover{border-color:#f1cf76;background:rgba(241,207,118,.15)}.vai-rich-editor .vai-editor-chart .vai-chart-canvas{height:270px}.vai-rich-editor .vai-editor-chart .vai-chart-kpis{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}.vai-rich-editor .vai-editor-chart .vai-chart-tools button{min-width:28px}.vai-rich-editor .vai-editor-chart:focus-within{outline:3px solid rgba(213,169,78,.18);outline-offset:2px}@media(max-width:760px){.vai-rich-editor .vai-editor-chart .vai-chart-canvas{height:230px}.vai-editor-chart-bar{padding:7px 9px}.vai-editor-chart-bar button{font-size:0}.vai-editor-chart-bar button i{font-size:.58rem}}
+
+.vai-feedback-group { display: flex; gap: 0.25rem; margin-left: auto; align-items: center; }
+.vai-feedback-group button { background: none; border: 1px solid #dcdfe3; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; color: #6c7e8c; cursor: pointer; transition: all 0.2s; }
+.vai-feedback-group button:hover { background: #f0f2f5; color: #2d3b45; border-color: #bcc3c9; }
+.vai-feedback-thanks { font-size: 0.85rem; color: #16a34a; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+

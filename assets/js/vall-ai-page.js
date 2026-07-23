@@ -399,18 +399,61 @@
         bubble.prepend(meta);
     }
 
+    async function handleFeedback(queryId, type, button) {
+        if (!queryId) return;
+        let payload = { queryId };
+        if (type === 'up') payload.rating = 5;
+        else if (type === 'down') payload.rating = 1;
+        else if (type === 'correct') {
+            const correction = window.prompt('¿En qué se equivocó la IA? Esta corrección se memorizará para futuras preguntas.');
+            if (!correction) return;
+            payload.correctionText = correction;
+        }
+        
+        button.disabled = true;
+        try {
+            const response = await fetch('/api/ai-feedback', {
+                method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                const group = button.closest('.vai-feedback-group');
+                if (group) group.innerHTML = '<span class="vai-feedback-thanks"><i class="fas fa-check"></i> Gracias por tu feedback.</span>';
+            }
+        } catch {
+            button.disabled = false;
+        }
+    }
+
     function attachReportActions(bubble, message) {
         if (bubble.querySelector('.vai-response-actions')) return;
         const actions = document.createElement('div'); actions.className = 'vai-response-actions';
-        actions.innerHTML = '<button type="button" data-edit-report><i class="fas fa-file-pen"></i> Vista previa y exportar</button><button type="button" data-quick-word><i class="fas fa-file-word"></i> Word directo</button>';
+        let html = '<button type="button" data-edit-report><i class="fas fa-file-pen"></i> Vista previa y exportar</button><button type="button" data-quick-word><i class="fas fa-file-word"></i> Word directo</button>';
+        
+        if (message.queryId) {
+            html += `<span class="vai-feedback-group" style="margin-left:auto; display:flex; gap:0.25rem;">
+                <button type="button" data-feedback="up" title="Útil"><i class="fas fa-thumbs-up"></i></button>
+                <button type="button" data-feedback="down" title="No útil"><i class="fas fa-thumbs-down"></i></button>
+                <button type="button" data-feedback="correct" title="Enseñar/Corregir" class="vai-btn-correct"><i class="fas fa-pen-to-square"></i> Corregir</button>
+            </span>`;
+        }
+        
+        actions.innerHTML = html;
         actions.querySelector('[data-edit-report]').addEventListener('click', () => openReportStudio(message));
         actions.querySelector('[data-quick-word]').addEventListener('click', async (event) => {
-            const button = event.currentTarget; button.disabled = true;
+            const btn = event.currentTarget; btn.disabled = true;
             try {
                 const report = reportContextFor(message);
                 await requestServerExport(report.title, report.content, 'docx', bubble);
-            } finally { button.disabled = false; }
+            } finally { btn.disabled = false; }
         });
+        
+        if (message.queryId) {
+            actions.querySelectorAll('[data-feedback]').forEach(btn => {
+                btn.addEventListener('click', (e) => handleFeedback(message.queryId, e.currentTarget.dataset.feedback, e.currentTarget));
+            });
+        }
+        
         bubble.appendChild(actions);
     }
 
@@ -487,7 +530,7 @@
                 if (data.response) rich = data.response;
                 if (data.done) {
                     if (data.finalText) full = data.finalText;
-                    route = { tier: data.tier, mode: data.mode, model: data.model };
+                    route = { tier: data.tier, mode: data.mode, model: data.model, queryId: data.queryId };
                 }
             }
         }
@@ -624,7 +667,7 @@
             );
             updateAdaptiveRoute(result.route);
             renderRich(pending.bubble, result.rich, result.text);
-            const modelMessage = { role: 'model', text: result.text, rich: result.rich, ts: Date.now() };
+            const modelMessage = { role: 'model', text: result.text, rich: result.rich, ts: Date.now(), queryId: result.route?.queryId };
             decorateMessage(pending.bubble, modelMessage);
             conversation.messages.push(modelMessage);
             persistConversation(conversation);

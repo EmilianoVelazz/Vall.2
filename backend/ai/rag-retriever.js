@@ -335,14 +335,42 @@ class RagRetriever {
 
     async safeQuery(sql, params = []) {
         if (Date.now() < this.disabledUntil) return [];
-        try {
-            const [rows] = await this.getPool().execute(sql, params);
-            return rows;
-        } catch (error) {
-            this.disabledUntil = Date.now() + 60_000;
-            console.warn('[rag] MariaDB no disponible temporalmente:', error.message);
-            return [];
+        let attempt = 0;
+        while (attempt < 2) {
+            try {
+                const [rows] = await this.getPool().execute(sql, params);
+                return rows;
+            } catch (error) {
+                attempt++;
+                if (attempt >= 2 || !['ECONNRESET', 'PROTOCOL_CONNECTION_LOST', 'ETIMEDOUT'].includes(error.code)) {
+                    this.disabledUntil = Date.now() + 60_000;
+                    console.warn('[rag] MariaDB no disponible temporalmente:', error.message);
+                    return [];
+                }
+                // Breve pausa antes de reintentar
+                await new Promise(res => setTimeout(res, 300));
+            }
         }
+        return [];
+    }
+
+    async retrieveMemory(message, userKeyHash) {
+        if (!userKeyHash || !message) return [];
+        const terms = expandedSearchTerms(message);
+        if (!terms) return [];
+        
+        return this.safeQuery(
+            `SELECT q.question_text, q.response_text, f.rating, f.correction_text,
+                    MATCH(q.question_text) AGAINST (? IN NATURAL LANGUAGE MODE) AS relevance
+             FROM ai_queries q
+             JOIN ai_feedback f ON f.query_id = q.id
+             WHERE q.user_key_hash = ? 
+             AND (f.correction_text IS NOT NULL OR f.rating IS NOT NULL)
+             AND MATCH(q.question_text) AGAINST (? IN NATURAL LANGUAGE MODE)
+             ORDER BY relevance DESC, q.created_at DESC
+             LIMIT 5`,
+            [terms, userKeyHash, terms]
+        );
     }
 
     async retrieveDocuments(message) {
@@ -537,8 +565,18 @@ class RagRetriever {
         return { rows, charts: [], chart: null, chartStatus: 'not_requested' };
     }
 
-    formatContext({ documents, events, economic, market }) {
+    formatContext({ documents, events, economic, market, memory = [] }) {
         const sections = [];
+        if (memory.length) {
+            sections.push('[MEMORIA DE INTERACCIONES PREVIAS]\n' + memory.map((row, index) =>
+                `[Feedback Anterior ${index + 1}]
+Pregunta original: ${row.question_text}
+Respuesta dada: ${String(row.response_text).slice(0, 300)}...
+Calificación del usuario: ${row.rating !== null ? row.rating : 'N/A'}
+Corrección del usuario: ${row.correction_text || 'Ninguna'}
+-> INSTRUCCIÓN: Si la corrección aplica a la pregunta actual, obedece la corrección del usuario por encima de tus cálculos o conocimiento previo.`
+            ).join('\n\n'));
+        }
         if (market.rows.length) {
             sections.push('[SERIE DE MERCADO VERIFICADA EN VALL]\n' + market.rows.map((row, index) => {
                 if (row.month_number) {
@@ -569,14 +607,15 @@ class RagRetriever {
         return sections.join('\n\n').slice(0, 14000);
     }
 
-    async retrieve(message) {
+    async retrieve(message, userKeyHash = null) {
         const started = Date.now();
         const profile = queryProfile(message);
-        const [documents, events, economic, market] = await Promise.all([
+        const [documents, events, economic, market, memory] = await Promise.all([
             this.retrieveDocuments(message),
             this.retrieveEvents(message, profile),
             this.retrieveEconomic(message, profile),
             this.retrieveMarket(message),
+            this.retrieveMemory(message, userKeyHash)
         ]);
         let filteredDocuments = documents;
         if (profile.historicalMarketOnly) {
@@ -662,7 +701,7 @@ class RagRetriever {
             })),
         ];
         return {
-            context: this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market }),
+            context: this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market, memory }),
             chart: verifiedCharts[0] || null,
             charts: verifiedCharts,
             chartRequested: wantsChart(message),

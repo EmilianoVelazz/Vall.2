@@ -68,7 +68,7 @@ class AIOrchestrator {
             return { response, text, tier: 'flash', mode: 'quick', model: 'vall-domain-guard' };
         }
         const retrievalQuery = retrievalQuestion(message, history, scope.reason);
-        const evidence = await this.retriever.retrieve(retrievalQuery);
+        const evidence = await this.retriever.retrieve(retrievalQuery, userKeyHash);
         const enrichedContext = [evidence.context, context].filter(Boolean).join('\n\n');
         const built = buildPrompt({ message, history, context: enrichedContext, mode, responseFormat: 'markdown', attachments });
         const resolvedTier = tier === 'pro' || tier === 'flash' ? tier : built.recommendedTier;
@@ -107,7 +107,7 @@ class AIOrchestrator {
             return { response, text, tier: 'flash', mode: 'quick', model: 'vall-domain-guard' };
         }
         const retrievalQuery = retrievalQuestion(message, history, scope.reason);
-        const evidence = await this.retriever.retrieve(retrievalQuery);
+        const evidence = await this.retriever.retrieve(retrievalQuery, userKeyHash);
         const enrichedContext = [evidence.context, context].filter(Boolean).join('\n\n');
         const built = buildPrompt({ message, history, context: enrichedContext, mode, responseFormat: 'json', attachments });
         const resolvedTier = tier === 'pro' || tier === 'flash' ? tier : built.recommendedTier;

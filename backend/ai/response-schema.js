@@ -335,8 +335,21 @@ function markdownToRichResponse(markdown, defaults = {}) {
             const content = cleanString(match[2], 30000);
             if (language === 'mermaid') blocks.push({ type: 'diagram', format: 'mermaid', content });
             else if (language === 'chart') {
-                try { blocks.push({ type: 'chart', spec: JSON.parse(content) }); }
-                catch { blocks.push({ type: 'code', language: 'json', content }); }
+                try {
+                    const rawJson = JSON.parse(content);
+                    const specSource = rawJson.chart?.spec || rawJson.chart || rawJson.spec || rawJson;
+                    blocks.push({ type: 'chart', spec: specSource });
+                } catch { blocks.push({ type: 'code', language: 'json', content }); }
+            } else if (language === 'json') {
+                try {
+                    const rawJson = JSON.parse(content);
+                    if (rawJson.chart || rawJson.spec || rawJson.datasets || rawJson.type === 'bar' || rawJson.type === 'line' || rawJson.type === 'pie') {
+                        const specSource = rawJson.chart?.spec || rawJson.chart || rawJson.spec || rawJson;
+                        blocks.push({ type: 'chart', spec: specSource });
+                    } else {
+                        blocks.push({ type: 'code', language, content });
+                    }
+                } catch { blocks.push({ type: 'code', language, content }); }
             } else blocks.push({ type: 'code', language, content });
             last = fence.lastIndex;
         }

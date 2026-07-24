@@ -37,7 +37,7 @@ function docxParagraphs(content) {
     let inCode = false;
     for (const raw of clean(content).split(/\r?\n/)) {
         if (/^```/.test(raw.trim())) { inCode = !inCode; continue; }
-        if (inCode && /^{|^\s*"(?:type|labels|datasets)"/.test(raw)) continue;
+        if (inCode) continue;
         const heading = raw.match(/^(#{1,4})\s+(.+)/);
         if (heading) {
             const levels = [HeadingLevel.TITLE, HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3];

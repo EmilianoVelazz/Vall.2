@@ -17,18 +17,23 @@ function retrievalQuestion(message, history, scopeReason) {
 
 function attachEvidence(response, evidence) {
     if (evidence.chartRequested && evidence.chartStatus !== 'user_supplied') {
-        response.blocks = response.blocks.filter(block => block.type !== 'chart');
-        if (response.markdown) {
-            response.markdown = response.markdown.replace(/```chart\s*\n[\s\S]*?```/gi, '').trim();
-        }
         const verifiedCharts = evidence.charts || (evidence.chart ? [evidence.chart] : []);
-        for (const spec of verifiedCharts) response.blocks.push({ type: 'chart', spec });
-        if (response.markdown && verifiedCharts.length) {
-            response.markdown += verifiedCharts.map(spec =>
-                `\n\n\`\`\`chart\n${JSON.stringify(spec)}\n\`\`\``
-            ).join('');
-        }
-        if (!verifiedCharts.length) {
+        const hasLlmChart = response.blocks.some(block => block.type === 'chart');
+        
+        if (verifiedCharts.length) {
+            // RAG provided a verified chart, overwrite the LLM's charts to prevent hallucinated data
+            response.blocks = response.blocks.filter(block => block.type !== 'chart');
+            if (response.markdown) {
+                response.markdown = response.markdown.replace(/```chart\s*\n[\s\S]*?```/gi, '').trim();
+            }
+            for (const spec of verifiedCharts) response.blocks.push({ type: 'chart', spec });
+            if (response.markdown) {
+                response.markdown += verifiedCharts.map(spec =>
+                    `\n\n\`\`\`chart\n${JSON.stringify(spec)}\n\`\`\``
+                ).join('');
+            }
+        } else if (!hasLlmChart) {
+            // Neither RAG nor LLM provided a chart, show the failure message
             const content = evidence.chartStatus === 'unsupported_subject'
                 ? 'No identifiqué una serie disponible relacionada con la gráfica solicitada. Indica el activo o indicador y el periodo.'
                 : 'No hay suficientes observaciones verificadas para construir esa gráfica sin inventar datos.';
@@ -141,7 +146,11 @@ class AIOrchestrator {
 
         const result = await this.provider.generate({ ...finalBuilt, tier: resolvedTier, json: true, attachments });
         let parsed;
-        try { parsed = JSON.parse(result.text); }
+        let cleanText = result.text.trim();
+        if (cleanText.startsWith('```')) {
+            cleanText = cleanText.replace(/^```[\w-]*\r?\n/, '').replace(/\r?\n```$/, '').trim();
+        }
+        try { parsed = JSON.parse(cleanText); }
         catch {
             let response = markdownToRichResponse(result.text, {
                 mode: built.mode, taskType: built.taskType, provider: this.provider.name,

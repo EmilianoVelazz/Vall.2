@@ -135,6 +135,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             httpOnly: true,
             secure:   req.secure || req.headers['x-forwarded-proto'] === 'https',
             sameSite: 'lax',
+            path:     '/',
             maxAge:   8 * 60 * 60 * 1000,
         });
         res.json({ success: true, token });

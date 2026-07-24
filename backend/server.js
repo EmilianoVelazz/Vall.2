@@ -165,7 +165,15 @@ app.use((req, res, next) => {
 });
 
 // Servir archivos estáticos desde public_html (directorio padre)
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '..'), {
+    setHeaders: (res, pathPath) => {
+        if (pathPath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 
 // ── Rate limiter (300 req/min por IP) ─────────────────────────────────────────

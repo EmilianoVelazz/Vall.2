@@ -801,7 +801,7 @@ body.ff-detail-tasas .ff-table-card {
     color: #10202e !important; /* Favro Ink */
 }
 
-/* Ensure titles and text inside Favro cards are dark (EXCEPT headers with dark backgrounds) */
+/* Ensure titles and text inside Favro cards are dark */
 body.ff-detail-rendimientos .ff-table-card *,
 body.ff-detail-rendimientos .ff-explainer *,
 body.ff-detail-rendimientos .ff-newsroom *,
@@ -816,30 +816,22 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
     text-shadow: none !important;
 }
 
-/* Base text inside debt-block is dark */
+/* Base text inside debt-block is dark (including normal headers) */
 body.ff-detail-bonos .debt-block,
 body.ff-detail-tasas .debt-block,
-body.ff-detail-bonos .debt-block p,
-body.ff-detail-tasas .debt-block p,
-body.ff-detail-bonos .debt-block span,
-body.ff-detail-tasas .debt-block span {
+body.ff-detail-bonos .debt-block *,
+body.ff-detail-tasas .debt-block * {
     color: #10202e !important;
     text-shadow: none !important;
 }
 
 /* BUT headers inside debt-block that have dark backgrounds MUST be white */
-body.ff-detail-bonos .debt-block-head h3,
-body.ff-detail-tasas .debt-block-head h3,
-body.ff-detail-bonos .debt-block-head p,
-body.ff-detail-tasas .debt-block-head p,
-body.ff-detail-bonos .debt-block-head small,
-body.ff-detail-tasas .debt-block-head small,
+.debt-global-block .sovereign-board-hero,
+.debt-global-block .sovereign-board-hero *,
 .sovereign-board-title h3,
 .sovereign-board-title p,
 .sovereign-board-title small,
-.debt-global-block .sovereign-board-hero h3,
-.debt-global-block .sovereign-board-hero p,
-.debt-global-block .sovereign-board-hero small {
+.sovereign-board-title-icon i {
     color: #ffffff !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
 }
@@ -890,7 +882,7 @@ body.ff-detail-tasas .debt-block-head small,
     <nav class="hdr-nav">
         <div class="nav-center">
             <a class="nav-link" href="/inicio.html"><i class="fas fa-house"></i></a>
-            <a class="nav-link active" href="/pages/finanzas.html?v=7">Finanzas</a>
+            <a class="nav-link active" href="/pages/finanzas.html?v=8">Finanzas</a>
             <a class="nav-link" href="/pages/mercados.html">Mercados</a>
             <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
             <a class="nav-link" href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
@@ -2944,7 +2936,7 @@ body.ff-detail-tasas .debt-block-head small,
     </div>
     <nav class="footer-nav">
         <a href="/inicio.html">Inicio</a>
-        <a href="/pages/finanzas.html?v=7">Finanzas</a>
+        <a href="/pages/finanzas.html?v=8">Finanzas</a>
         <a href="/pages/mercados.html">Mercados</a>
         <a href="/pages/geopolitica.html">Geopolítica</a>
         <a href="/pages/mercadoproteinas.html">Mercado Proteínas</a>

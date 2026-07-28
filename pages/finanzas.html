@@ -750,40 +750,31 @@
 
 <style>
 /* PREMIUM INTERMEDIATE PALETTE (Favro 2.0) */
+/* Workspaces background */
 body.ff-detail-rendimientos .ff-workspace,
 body.ff-detail-bonos .ff-workspace,
 body.ff-detail-tasas .ff-workspace {
     background: linear-gradient(135deg, #8ba3b5 0%, #647a8d 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    border-radius: 24px !important;
+    border: 1px solid #dfe7ed !important;
+    border-radius: 22px !important;
     padding: 2.5rem !important;
-    color: #ffffff !important;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 16px 45px rgba(7, 28, 44, .08) !important;
     position: relative !important;
     overflow: hidden !important;
 }
 
+/* Workspace titles (white text on dark background) */
 body.ff-detail-rendimientos .ff-workspace-title,
 body.ff-detail-bonos .ff-workspace-title,
 body.ff-detail-tasas .ff-workspace-title,
-body.ff-detail-bonos h2, body.ff-detail-bonos h3,
-body.ff-detail-tasas h2, body.ff-detail-tasas h3,
-.sovereign-board-title h3 {
+body.ff-detail-rendimientos .ff-workspace-description,
+body.ff-detail-bonos .ff-workspace-description,
+body.ff-detail-tasas .ff-workspace-description {
     color: #ffffff !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 }
 
-body.ff-detail-rendimientos .ff-workspace-description,
-body.ff-detail-rendimientos .ff-spark-title,
-body.ff-detail-rendimientos .ff-market-rail .ff-quote em,
-body.ff-detail-bonos .ff-workspace-description,
-body.ff-detail-tasas .ff-workspace-description,
-body.ff-detail-bonos p, body.ff-detail-tasas p,
-body.ff-detail-bonos small, body.ff-detail-tasas small,
-.sovereign-board-title p, .sovereign-board-title small {
-    color: #f1f5f9 !important; 
-}
-
+/* CARDS AND BOXES: Unified Favro Design */
 body.ff-detail-rendimientos .ff-table-card,
 body.ff-detail-rendimientos .ff-explainer,
 body.ff-detail-rendimientos .ff-newsroom,
@@ -795,41 +786,76 @@ body.ff-detail-bonos .debt-block,
 body.ff-detail-tasas .debt-block,
 body.ff-detail-bonos .ff-table-card,
 body.ff-detail-tasas .ff-table-card {
-    background: rgba(255, 255, 255, 0.25) !important; 
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.4) !important;
-    color: #ffffff !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    border: 1px solid #dfe7ed !important; /* Favro Line */
+    border-radius: 16px !important; /* Favro Radius MD */
+    box-shadow: 0 16px 45px rgba(7, 28, 44, .08) !important; /* Favro Shadow */
+    color: #10202e !important; /* Favro Ink */
 }
 
+/* Ensure titles and text inside Favro cards are dark */
+body.ff-detail-rendimientos .ff-table-card *,
+body.ff-detail-rendimientos .ff-explainer *,
+body.ff-detail-rendimientos .ff-newsroom *,
+body.ff-detail-rendimientos .ff-analysis-card *,
+body.ff-detail-rendimientos .ff-insight-card *,
+body.ff-detail-rendimientos .ff-auto-conclusion *,
+body.ff-detail-rendimientos .ff-spark-card *,
+body.ff-detail-bonos .debt-block h2,
+body.ff-detail-tasas .debt-block h2,
+body.ff-detail-bonos .debt-block h3,
+body.ff-detail-tasas .debt-block h3,
+body.ff-detail-bonos .debt-block p,
+body.ff-detail-tasas .debt-block p,
+body.ff-detail-bonos .debt-block small,
+body.ff-detail-tasas .debt-block small,
+.sovereign-board-title h3,
+.sovereign-board-title p,
+.sovereign-board-title small {
+    color: #10202e !important;
+    text-shadow: none !important;
+}
+
+/* Specific elements inside cards that should be muted */
+.debt-kpi small,
+body.ff-detail-bonos .debt-block small,
+body.ff-detail-tasas .debt-block small {
+    color: #687887 !important; /* Favro Muted */
+}
+
+/* Table borders */
 body.ff-detail-rendimientos .ff-table-card th,
 body.ff-detail-rendimientos .ff-table-card td,
 body.ff-detail-bonos .ff-table-card th,
 body.ff-detail-bonos .ff-table-card td,
 body.ff-detail-tasas .ff-table-card th,
 body.ff-detail-tasas .ff-table-card td {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
-    color: #ffffff !important;
+    border-bottom: 1px solid #dfe7ed !important;
+    color: #10202e !important;
 }
 
-/* Fix Hub Card sidebar module for all */
+/* Hub Card sidebar modules */
 .ff-module[data-module="rendimientos"],
 .ff-module[data-module="bonos"],
 .ff-module[data-module="tasas"] {
-    background: linear-gradient(145deg, #7b94a8, #5a7082) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    background: #ffffff !important;
+    border: 1px solid #dfe7ed !important;
+    border-radius: 22px !important;
+    box-shadow: 0 16px 45px rgba(7, 28, 44, .08) !important;
 }
 
 .ff-module[data-module="rendimientos"] *,
 .ff-module[data-module="bonos"] *,
 .ff-module[data-module="tasas"] * {
-    color: #ffffff !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+    color: #10202e !important;
+    text-shadow: none !important;
 }
 
 .ff-module[data-module="rendimientos"] .ff-module-icon i,
 .ff-module[data-module="bonos"] .ff-module-icon i,
 .ff-module[data-module="tasas"] .ff-module-icon i {
-    color: #e0f2fe !important;
+    color: #246bfe !important; /* Favro Blue */
 }
 </style>
 </head>

@@ -753,7 +753,8 @@
 /* Workspaces background */
 body.ff-detail-rendimientos .ff-workspace,
 body.ff-detail-bonos .ff-workspace,
-body.ff-detail-tasas .ff-workspace {
+body.ff-detail-tasas .ff-workspace,
+.debt-pro {
     background: linear-gradient(135deg, #8ba3b5 0%, #647a8d 100%) !important;
     border: 1px solid #dfe7ed !important;
     border-radius: 22px !important;
@@ -769,7 +770,10 @@ body.ff-detail-bonos .ff-workspace-title,
 body.ff-detail-tasas .ff-workspace-title,
 body.ff-detail-rendimientos .ff-workspace-description,
 body.ff-detail-bonos .ff-workspace-description,
-body.ff-detail-tasas .ff-workspace-description {
+body.ff-detail-tasas .ff-workspace-description,
+.debt-pro-hero h2,
+.debt-pro-hero p,
+.debt-pro-eyebrow {
     color: #ffffff !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 }
@@ -797,7 +801,7 @@ body.ff-detail-tasas .ff-table-card {
     color: #10202e !important; /* Favro Ink */
 }
 
-/* Ensure titles and text inside Favro cards are dark */
+/* Ensure titles and text inside Favro cards are dark (EXCEPT headers with dark backgrounds) */
 body.ff-detail-rendimientos .ff-table-card *,
 body.ff-detail-rendimientos .ff-explainer *,
 body.ff-detail-rendimientos .ff-newsroom *,
@@ -807,44 +811,40 @@ body.ff-detail-rendimientos .ff-auto-conclusion *,
 body.ff-detail-rendimientos .ff-spark-card *,
 body.ff-detail-rendimientos .ff-supplement-kpi *,
 body.ff-detail-rendimientos .ff-supplement-table-card *,
-body.ff-detail-rendimientos .ff-detail-supplement *,
-body.ff-detail-bonos .debt-block h2,
-body.ff-detail-tasas .debt-block h2,
-body.ff-detail-bonos .debt-block h3,
-body.ff-detail-tasas .debt-block h3,
-body.ff-detail-bonos .debt-block p,
-body.ff-detail-tasas .debt-block p,
-body.ff-detail-bonos .debt-block small,
-body.ff-detail-tasas .debt-block small,
-.sovereign-board-title h3,
-.sovereign-board-title p,
-.sovereign-board-title small {
+body.ff-detail-rendimientos .ff-detail-supplement * {
     color: #10202e !important;
     text-shadow: none !important;
 }
 
-/* Specific elements inside cards that should be muted */
-.debt-kpi small,
-body.ff-detail-rendimientos .ff-supplement-kpi small,
-body.ff-detail-bonos .debt-block small,
-body.ff-detail-tasas .debt-block small {
-    color: #687887 !important; /* Favro Muted */
-}
-
-/* Table borders */
-body.ff-detail-rendimientos .ff-table-card th,
-body.ff-detail-rendimientos .ff-table-card td,
-body.ff-detail-rendimientos .ff-supplement-table-card th,
-body.ff-detail-rendimientos .ff-supplement-table-card td,
-body.ff-detail-bonos .ff-table-card th,
-body.ff-detail-bonos .ff-table-card td,
-body.ff-detail-tasas .ff-table-card th,
-body.ff-detail-tasas .ff-table-card td {
-    border-bottom: 1px solid #dfe7ed !important;
+/* Base text inside debt-block is dark */
+body.ff-detail-bonos .debt-block,
+body.ff-detail-tasas .debt-block,
+body.ff-detail-bonos .debt-block p,
+body.ff-detail-tasas .debt-block p,
+body.ff-detail-bonos .debt-block span,
+body.ff-detail-tasas .debt-block span {
     color: #10202e !important;
+    text-shadow: none !important;
 }
 
-/* Hub Card sidebar modules */
+/* BUT headers inside debt-block that have dark backgrounds MUST be white */
+body.ff-detail-bonos .debt-block-head h3,
+body.ff-detail-tasas .debt-block-head h3,
+body.ff-detail-bonos .debt-block-head p,
+body.ff-detail-tasas .debt-block-head p,
+body.ff-detail-bonos .debt-block-head small,
+body.ff-detail-tasas .debt-block-head small,
+.sovereign-board-title h3,
+.sovereign-board-title p,
+.sovereign-board-title small,
+.debt-global-block .sovereign-board-hero h3,
+.debt-global-block .sovereign-board-hero p,
+.debt-global-block .sovereign-board-hero small {
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
+}
+
+/* Fix Hub Card sidebar modules */
 .ff-module[data-module="rendimientos"],
 .ff-module[data-module="bonos"],
 .ff-module[data-module="tasas"] {
@@ -890,7 +890,7 @@ body.ff-detail-tasas .ff-table-card td {
     <nav class="hdr-nav">
         <div class="nav-center">
             <a class="nav-link" href="/inicio.html"><i class="fas fa-house"></i></a>
-            <a class="nav-link active" href="/pages/finanzas.html?v=5">Finanzas</a>
+            <a class="nav-link active" href="/pages/finanzas.html?v=6">Finanzas</a>
             <a class="nav-link" href="/pages/mercados.html">Mercados</a>
             <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
             <a class="nav-link" href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
@@ -2944,7 +2944,7 @@ body.ff-detail-tasas .ff-table-card td {
     </div>
     <nav class="footer-nav">
         <a href="/inicio.html">Inicio</a>
-        <a href="/pages/finanzas.html?v=5">Finanzas</a>
+        <a href="/pages/finanzas.html?v=6">Finanzas</a>
         <a href="/pages/mercados.html">Mercados</a>
         <a href="/pages/geopolitica.html">Geopolítica</a>
         <a href="/pages/mercadoproteinas.html">Mercado Proteínas</a>

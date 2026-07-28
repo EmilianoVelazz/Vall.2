@@ -865,6 +865,177 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
 .ff-module[data-module="tasas"] .ff-module-icon i {
     color: #246bfe !important; /* Favro Blue */
 }
+
+/* =========================================================
+   FAVRO PREMIUM EDITORIAL NEWSROOM
+   ========================================================= */
+
+/* Main Newsroom Container */
+.ff-newsroom {
+    background: #ffffff !important;
+    border: 1px solid #dfe7ed !important;
+    border-radius: 24px !important;
+    box-shadow: 0 20px 60px rgba(7, 28, 44, 0.08) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Masthead / Header */
+.ff-newsroom .ff-news-header {
+    background: #ffffff !important;
+    padding: 2.5rem 2.5rem 1.5rem 2.5rem !important;
+    border-bottom: 2px solid #10202e !important; /* Strong editorial line */
+    margin: 0 !important;
+}
+.ff-news-header h2#ff-news-title {
+    font-size: 2.2rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.05em !important;
+    color: #10202e !important;
+    margin-bottom: 0.5rem !important;
+}
+.ff-news-header p {
+    font-size: 1rem !important;
+    color: #647a8d !important;
+    font-weight: 500 !important;
+}
+
+/* News Grid Layout */
+.ff-news-grid {
+    background: #ffffff !important;
+    padding: 2.5rem !important;
+    gap: 2rem !important;
+    grid-template-columns: 1.8fr 1fr !important;
+}
+
+/* Lead Story - Front Page Vibe */
+.ff-lead-story {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    border-right: 1px solid #dfe7ed !important;
+    padding-right: 2rem !important;
+}
+.ff-lead-visual {
+    width: 100% !important;
+    height: 280px !important;
+    border-radius: 16px !important;
+    background: linear-gradient(135deg, #10202e 0%, #2a4158 100%) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 30px rgba(7, 28, 44, 0.15) !important;
+}
+.ff-market-orbit {
+    opacity: 0.2 !important;
+    transform: scale(2) !important;
+}
+.ff-news-tag {
+    position: absolute !important;
+    top: 1rem !important;
+    left: 1rem !important;
+    background: #e11d48 !important; /* Live red */
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 8px !important;
+    z-index: 10 !important;
+}
+
+.ff-lead-copy {
+    padding: 0 !important;
+}
+.ff-lead-copy h3 {
+    font-size: 1.85rem !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.03em !important;
+    color: #10202e !important;
+    margin: 0.5rem 0 1rem 0 !important;
+}
+.ff-lead-copy p {
+    font-size: 1.1rem !important;
+    line-height: 1.6 !important;
+    color: #4f606e !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* The 'Today In Brief' Sidebar */
+.ff-today {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 20px !important;
+    padding: 2rem !important;
+    box-shadow: none !important;
+}
+.ff-today .ff-today-title h3 {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+    color: #10202e !important;
+    margin-bottom: 1.5rem !important;
+}
+.ff-today li {
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 1.2rem 0 !important;
+}
+.ff-today li span {
+    color: #246bfe !important;
+    font-size: 0.8rem !important;
+    font-weight: 800 !important;
+    background: rgba(36, 107, 254, 0.1) !important;
+    padding: 0.3rem 0.6rem !important;
+    border-radius: 6px !important;
+}
+.ff-today li p {
+    font-size: 0.85rem !important;
+    color: #334155 !important;
+    font-weight: 500 !important;
+    line-height: 1.5 !important;
+}
+
+/* Headlines Track */
+.ff-headlines {
+    grid-column: 1 / -1 !important;
+    background: transparent !important;
+    border: none !important;
+    border-top: 1px solid #dfe7ed !important;
+    border-radius: 0 !important;
+    padding: 2rem 0 0 0 !important;
+}
+.ff-headlines-head h3 {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+    color: #10202e !important;
+}
+.ff-headline-track {
+    gap: 1.5rem !important;
+    margin-top: 1.5rem !important;
+}
+.ff-headline-skeleton {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+.ff-headline-skeleton:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 10px 25px rgba(7, 28, 44, 0.05) !important;
+    background: #ffffff !important;
+}
+
+/* Most Read */
+.ff-most-read {
+    background: transparent !important;
+    border: none !important;
+    border-left: 1px solid #dfe7ed !important;
+    border-radius: 0 !important;
+    padding: 0 0 0 2rem !important;
+}
 </style>
 </head>
 
@@ -889,7 +1060,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
     <nav class="hdr-nav">
         <div class="nav-center">
             <a class="nav-link" href="/inicio.html"><i class="fas fa-house"></i></a>
-            <a class="nav-link active" href="/pages/finanzas.html?v=9">Finanzas</a>
+            <a class="nav-link active" href="/pages/finanzas.html?v=10">Finanzas</a>
             <a class="nav-link" href="/pages/mercados.html">Mercados</a>
             <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
             <a class="nav-link" href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
@@ -2943,7 +3114,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
     </div>
     <nav class="footer-nav">
         <a href="/inicio.html">Inicio</a>
-        <a href="/pages/finanzas.html?v=9">Finanzas</a>
+        <a href="/pages/finanzas.html?v=10">Finanzas</a>
         <a href="/pages/mercados.html">Mercados</a>
         <a href="/pages/geopolitica.html">Geopolítica</a>
         <a href="/pages/mercadoproteinas.html">Mercado Proteínas</a>

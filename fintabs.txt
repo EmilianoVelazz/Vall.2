@@ -1,0 +1,83 @@
+portant; }
+        }
+
+        /* ── Tab Navigation ──────────────────────────────────── */
+        .fin-tabs-nav { display:grid; grid-template-columns:repeat(5,1fr); gap:.65rem; margin-bottom:1rem; }
+        @media(max-width:1100px) { .fin-tabs-nav { grid-template-columns:repeat(3,1fr); gap:.5rem; } }
+        @media(max-width:640px)  { .fin-tabs-nav { grid-template-columns:repeat(2,1fr); gap:.45rem; } }
+        @media(max-width:380px)  { .fin-tabs-nav { grid-template-columns:1fr; } }
+        .fin-tab-card {
+            display:flex; align-items:center; gap:.8rem;
+            padding:.85rem 1re
+=====
+mplate-columns:repeat(5,1fr); gap:.65rem; margin-bottom:1rem; }
+        @media(max-width:1100px) { .fin-tabs-nav { grid-template-columns:repeat(3,1fr); gap:.5rem; } }
+        @media(max-width:640px)  { .fin-tabs-nav { grid-template-columns:repeat(2,1fr); gap:.45rem; } }
+        @media(max-width:380px)  { .fin-tabs-nav { grid-template-columns:1fr; } }
+        .fin-tab-card {
+            display:flex; align-items:center; gap:.8rem;
+            padding:.85rem 1rem; border-radius:14px;
+            background:#fff; border:2px solid transparent;
+            cursor:pointer; text-align:left; transitio
+=====
+-tabs-nav { grid-template-columns:repeat(3,1fr); gap:.5rem; } }
+        @media(max-width:640px)  { .fin-tabs-nav { grid-template-columns:repeat(2,1fr); gap:.45rem; } }
+        @media(max-width:380px)  { .fin-tabs-nav { grid-template-columns:1fr; } }
+        .fin-tab-card {
+            display:flex; align-items:center; gap:.8rem;
+            padding:.85rem 1rem; border-radius:14px;
+            background:#fff; border:2px solid transparent;
+            cursor:pointer; text-align:left; transition:all .22s;
+            box-shadow:0 2px 12px rgba(0,33,58,.07),0 0 0 1px rgba(0,33,58,.04);
+          
+=====
+tabs-nav { grid-template-columns:repeat(2,1fr); gap:.45rem; } }
+        @media(max-width:380px)  { .fin-tabs-nav { grid-template-columns:1fr; } }
+        .fin-tab-card {
+            display:flex; align-items:center; gap:.8rem;
+            padding:.85rem 1rem; border-radius:14px;
+            background:#fff; border:2px solid transparent;
+            cursor:pointer; text-align:left; transition:all .22s;
+            box-shadow:0 2px 12px rgba(0,33,58,.07),0 0 0 1px rgba(0,33,58,.04);
+            position:relative; overflow:hidden; font-family:'Inter',sans-serif;
+            outline:none; -webkit-
+=====
+panel completo que utilizaban los apartados anteriores.
+    const tabNav = document.querySelector('.fin-tabs-nav');
+    if (tabNav) tabNav.style.display = '';
+
+    const g  = id => document.getElementById(id);
+    const bg = g('fin-bottom-grid');
+
+    // Reset: hide all content blocks
+    ['fin-layout-wrap','fx-pro-panel','equity-pro-panel','news-pro-panel','bvmx-panel','watchlist-panel','bolsa-news-panel','bonds-panel'].forEach(id => {
+        const el = g(id); if (el) el.style.display = 'none';
+    });
+    const pg = g('pane-general'); if (pg) pg.style.display = name === 'general' ? '' : 'no
+=====
+rtant;
+}
+.hub-cta:hover {
+    background: rgba(56, 189, 248, 0.1) !important;
+}
+</style>
+
+
+<style>
+.fin-tabs-nav { display: none !important; }
+</style>
+
+<style>
+/* Estilos premium para las tarjetas dentro de Rendimientos (Armonía de colores Favro) */
+body.ff-detail-rendimientos .ff-table-card,
+body.ff-detail-rendimientos .ff-explainer,
+body.ff-detail-rendimientos .ff-newsroom,
+body.ff-detail-rendimientos .ff-analysis-card,
+body.ff-detail-rendimientos .ff-workspace {
+    color: #ffffff !important;
+}
+
+body.ff-detail-rendimientos .ff-table-card *,
+body.ff-detail-rendimientos .ff-explainer *,
+body
+=====

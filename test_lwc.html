@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><script src='/assets/js/vendor/lightweight-charts.standalone.production.js'></script></head>
+<body><div id='chart' style='width:400px; height:300px;'></div>
+<script>
+window.onload = function() {
+    try {
+        const chart = LightweightCharts.createChart(document.getElementById('chart'), { width: 400, height: 300 });
+        const areaSeries = chart.addAreaSeries({ lineColor: 'red' });
+        areaSeries.setData([
+            { time: 1784899800, value: 7418 },
+            { time: 1784900100, value: 7420 }
+        ]);
+        document.body.innerHTML += '<p id="status">OK</p>';
+    } catch(e) {
+        document.body.innerHTML += '<p id="status">' + e.message + '</p>';
+    }
+}
+</script></body></html>

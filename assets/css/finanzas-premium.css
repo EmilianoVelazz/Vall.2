@@ -1,0 +1,2696 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+
+/* =========================================================================
+   PREMIUM FINANZAS DESIGN SYSTEM V3 - LIGHT GLASSMORPHISM
+   ========================================================================= */
+
+:root {
+    --fin-bg-color: #f1f5f9 !important;
+    --fin-card-bg: rgba(255, 255, 255, 0.75) !important;
+    --fin-card-hover: rgba(255, 255, 255, 0.95) !important;
+    --fin-border: rgba(15, 23, 42, 0.08) !important;
+    --fin-border-hover: rgba(59, 130, 246, 0.3) !important;
+    
+    --fin-text-main: #0f172a !important;
+    --fin-text-muted: #64748b !important;
+    --fin-text-dark: #1e293b !important;
+    
+    --fin-accent-blue: #2563eb !important;
+    --fin-accent-green: #059669 !important;
+    --fin-accent-red: #dc2626 !important;
+    --fin-accent-gold: #d97706 !important;
+    
+    --fin-shadow: 0 16px 40px -10px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    --fin-glow: 0 0 30px rgba(59, 130, 246, 0.1) !important;
+    --fin-blur: blur(24px) saturate(180%) !important;
+}
+
+/* --- STRIKING LIGHT THEME (MESH GRADIENTS & ANIMATIONS) --- */
+@keyframes slideUpFade {
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+body, html {
+    background: #fdfdfe !important;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 60%, rgba(14, 165, 233, 0.1) 0%, transparent 45%) !important;
+    background-attachment: fixed !important;
+    color: var(--fin-text-main) !important;
+    font-family: 'Inter', sans-serif !important;
+    overflow-x: hidden !important;
+}
+
+/* Elevate Typography */
+h1, h2, h3, h4, h5, .page-title-text, .section-lbl {
+    color: var(--fin-text-main) !important;
+    letter-spacing: -0.04em !important;
+    font-weight: 900 !important;
+}
+
+/* Gradient Titles for Hero */
+.ff-hero h1 {
+    background: linear-gradient(135deg, #0f172a 0%, #3b82f6 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+/* Ultra Premium Light Glass Panels */
+.panel, .fin-exec-card, .hub-card, .fx-pro-kpi, .fx-pro-block, .energy-kpi, .nc-card, .bond-pill, .mkt-row,
+.ff-module, .ff-workspace, .ff-analysis-card, .ff-newsroom, .ff-detail-supplement, .ff-exchange-card, .ff-detail-navigation, #bvmx-panel {
+    background: rgba(255, 255, 255, 0.6) !important;
+    backdrop-filter: blur(40px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    border-radius: 28px !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    color: var(--fin-text-main) !important;
+}
+
+.panel:hover, .fin-exec-card:hover, .hub-card:hover, .fx-pro-kpi:hover, .nc-card:hover, .bond-pill:hover, .mkt-row:hover,
+.ff-module:hover, .ff-exchange-card:hover {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    transform: translateY(-5px) scale(1.005) !important;
+    box-shadow: 0 25px 50px -15px rgba(15, 23, 42, 0.12), 0 0 40px rgba(59, 130, 246, 0.08) !important;
+}
+
+/* Staggered Animations */
+.ff-module, .ff-market-rail, .ff-hero {
+    animation: slideUpFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    opacity: 0;
+}
+.ff-module:nth-child(1) { animation-delay: 0.1s !important; }
+.ff-module:nth-child(2) { animation-delay: 0.2s !important; }
+.ff-module:nth-child(3) { animation-delay: 0.3s !important; }
+.ff-module:nth-child(4) { animation-delay: 0.4s !important; }
+
+/* Market Rail Redesign */
+.ff-market-rail {
+    background: rgba(255, 255, 255, 0.65) !important;
+    backdrop-filter: blur(30px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05) !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+}
+.ff-rail-label {
+    background: linear-gradient(135deg, #2563eb, #6366f1) !important;
+    color: white !important;
+}
+.ff-quote {
+    background: transparent !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.06) !important;
+}
+.ff-quote:hover {
+    background: rgba(59, 130, 246, 0.05) !important;
+}
+
+/* Fix Hub Card Texts for Light Mode */
+.hub-card-header .hub-hdr-title {
+    color: var(--fin-text-main) !important;
+    font-weight: 800 !important;
+    font-size: 1.1rem !important;
+}
+.hub-card-header .hub-hdr-sub {
+    color: var(--fin-text-muted) !important;
+}
+.hub-hdr-stat-lbl, .hub-hdr-stat-val {
+    color: var(--fin-text-main) !important;
+}
+.hub-desc {
+    color: var(--fin-text-muted) !important;
+}
+.hub-m-lbl { color: var(--fin-text-muted) !important; font-weight: 600 !important; }
+.hub-m-val { color: var(--fin-text-main) !important; font-family: 'JetBrains Mono', monospace !important; font-size: 1.2rem !important; font-weight: 800 !important; }
+
+/* Financial Data Typography */
+strong, .vn-price, .mkt-val, .bp-yld, .rds2-cval, .fx-pro-kpi strong, .hub-hdr-stat-val {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 800 !important;
+    color: var(--fin-text-main) !important;
+}
+
+/* Live Ticker Overrides */
+.vn-ticker {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05) !important;
+}
+.vn-item {
+    background: rgba(15, 23, 42, 0.02) !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+}
+.vn-item:hover {
+    background: rgba(59, 130, 246, 0.05) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Modals */
+.fin-modal, #mkt-modal, #risk-modal, #petro-modal, #fx-modal, #macro-modal {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.1) !important;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15), inset 0 0 40px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Badges and Positive/Negative Rates */
+.up, .row-up, .positive, .tone-green {
+    color: var(--fin-accent-green) !important;
+}
+.down, .row-down, .negative, .tone-red {
+    color: var(--fin-accent-red) !important;
+}
+.hub-hdr-badge, .vn-ticker-label, .fx-pro-eyebrow, .energy-pro-eyebrow {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.1), rgba(217, 119, 6, 0.02)) !important;
+    color: var(--fin-accent-gold) !important;
+    border: 1px solid rgba(217, 119, 6, 0.2) !important;
+    border-radius: 8px !important;
+}
+
+/* Gradients for major titles */
+.hub-hero-title, h1, #ff-page-title {
+    background: linear-gradient(135deg, #0f172a 0%, #334155 50%, #475569 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    filter: drop-shadow(0 2px 2px rgba(15,23,42,0.1)) !important;
+}
+
+/* Executive Strip Overrides */
+.fin-exec-strip {
+    margin-top: -2rem !important;
+}
+.fin-exec-card {
+    background: rgba(255, 255, 255, 0.8) !important;
+}
+.fin-exec-card small { color: var(--fin-text-muted) !important; }
+.fin-exec-card em { color: #94a3b8 !important; }
+
+/* Buttons */
+button, .chart-int-btn, .ff-ghost-button, .ff-icon-button {
+    color: var(--fin-text-main) !important;
+}
+button:hover, .chart-int-btn:hover {
+    color: var(--fin-accent-blue) !important;
+}
+.hub-cta-label { color: var(--fin-accent-blue) !important; }
+
+/* Text within cards */
+p, span, small {
+    color: var(--fin-text-main);
+}
+.hub-detail-item p, .hub-desc, .energy-pro-hero p, .fx-pro-hero p {
+    color: var(--fin-text-muted) !important;
+}
+
+/* Bolsa / Favro Specific Overrides - LIGHT MODE */
+.ff-bolsa-chart-host .market-chart-lab-head {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 1px solid var(--fin-border) !important;
+}
+.ff-bolsa-chart-host .market-chart-quote,
+.ff-bolsa-chart-host .chart-view-toolbar,
+.ff-bolsa-chart-host .chart-type-switch,
+.ff-market-search-field button,
+.ff-exchange-card {
+    background: rgba(255, 255, 255, 0.6) !important;
+    border: 1px solid var(--fin-border) !important;
+    backdrop-filter: var(--fin-blur) !important;
+    -webkit-backdrop-filter: var(--fin-blur) !important;
+    color: var(--fin-text-main) !important;
+}
+
+.ff-quote-identity > strong,
+.ff-quote-price > strong,
+.ff-quote-stat > strong,
+.ff-bolsa-chart-host .chart-view-copy strong,
+.ff-bolsa-chart-host .chart-type-btn > span > strong,
+.ff-exchange-card strong {
+    color: var(--fin-text-main) !important;
+}
+
+.ff-quote-identity > small,
+.ff-quote-price > em,
+.ff-quote-stat > span,
+.ff-quote-identity > span,
+.ff-quote-price > span,
+.ff-bolsa-chart-host .chart-view-copy > div > span,
+.ff-bolsa-chart-host .chart-type-btn > span > small,
+.ff-exchange-card small,
+.ff-exchange-card-foot span {
+    color: var(--fin-text-muted) !important;
+}
+
+.ff-quote-price, .ff-quote-identity, .ff-quote-stat {
+    background: transparent !important;
+    border-color: var(--fin-border) !important;
+}
+
+.ff-bolsa-chart-host .chart-type-btn {
+    background: transparent !important;
+    color: var(--fin-text-main) !important;
+}
+.ff-bolsa-chart-host .chart-type-btn:hover,
+.ff-bolsa-chart-host .chart-type-btn.active {
+    background: rgba(15, 23, 42, 0.05) !important;
+    border-color: rgba(15, 23, 42, 0.1) !important;
+    color: var(--fin-text-main) !important;
+}
+.ff-bolsa-chart-host .chart-type-btn > i {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: var(--fin-accent-blue) !important;
+}
+
+.ff-bolsa-chart-host .market-chart-controls .chart-int-btn {
+    background: rgba(15, 23, 42, 0.03) !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+    color: var(--fin-text-main) !important;
+}
+.ff-bolsa-chart-host .market-chart-controls .chart-int-btn:hover,
+.ff-bolsa-chart-host .market-chart-controls .chart-int-btn.active {
+    background: rgba(59, 130, 246, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+    color: var(--fin-accent-blue) !important;
+}
+
+.ff-market-field,
+.ff-market-search-field {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border-color: rgba(15, 23, 42, 0.1) !important;
+    color: var(--fin-text-main) !important;
+}
+.ff-market-search-field input {
+    color: var(--fin-text-main) !important;
+}
+.ff-market-control > span:first-child,
+.ff-market-control legend {
+    color: var(--fin-text-muted) !important;
+}
+
+/* Bolsa Data Table and Wrappers */
+.gmd-table-wrap, .gmd-news-wrap {
+    background: var(--fin-card-bg) !important;
+    backdrop-filter: var(--fin-blur) !important;
+    -webkit-backdrop-filter: var(--fin-blur) !important;
+    border: 1px solid var(--fin-border) !important;
+    box-shadow: var(--fin-shadow) !important;
+    border-radius: 24px !important;
+}
+
+#gmd-global-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+#gmd-global-table th {
+    color: var(--fin-text-muted) !important;
+    border-bottom: 2px solid rgba(15, 23, 42, 0.08) !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+#gmd-global-table td {
+    color: var(--fin-text-main) !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.04) !important;
+    padding: 1.2rem 0.8rem !important;
+    vertical-align: middle !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+}
+
+#gmd-global-table tbody tr {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    border-radius: 12px !important;
+}
+
+#gmd-global-table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.04) !important;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03) !important;
+    transform: translateY(-2px) !important;
+}
+
+.gmd-table-wrap h3, .gmd-news-wrap h3 {
+    color: var(--fin-text-main) !important;
+    font-family: 'Inter', sans-serif !important;
+    letter-spacing: -0.04em !important;
+}
+
+.gmd-table-wrap small {
+    color: var(--fin-accent-blue) !important;
+    font-weight: 800 !important;
+}
+
+#gmd-table-status {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: var(--fin-accent-blue) !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Table Utilities & Pills */
+#gmd-global-table td.td-bold { font-weight: 700 !important; color: var(--fin-text-main) !important; }
+#gmd-global-table td.td-muted { font-size: 12px !important; color: var(--fin-text-muted) !important; }
+#gmd-global-table td.td-center { text-align: center !important; }
+#gmd-global-table td.td-num { text-align: right !important; font-family: 'JetBrains Mono', monospace !important; font-weight: 700 !important; }
+
+.txt-up { color: var(--fin-accent-green) !important; }
+.txt-down { color: var(--fin-accent-red) !important; }
+
+.ff-data-pill {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+.pill-up {
+    background: rgba(5, 150, 105, 0.1) !important;
+    color: var(--fin-accent-green) !important;
+}
+.pill-down {
+    background: rgba(220, 38, 38, 0.1) !important;
+    color: var(--fin-accent-red) !important;
+}
+
+/* --- REDISEÑO AVANZADO DE BOLSA (EXCHANGE CARDS) --- */
+.ff-exchange-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 1.5rem !important;
+    padding: 1.5rem 0.5rem !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+.ff-exchange-grid::-webkit-scrollbar {
+    height: 8px !important;
+}
+.ff-exchange-grid::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.2) !important;
+    border-radius: 10px !important;
+}
+
+.ff-exchange-card {
+    flex: 0 0 320px !important;
+    scroll-snap-align: center !important;
+    background: var(--fin-card-bg) !important;
+    backdrop-filter: var(--fin-blur) !important;
+    -webkit-backdrop-filter: var(--fin-blur) !important;
+    border: 1px solid var(--fin-border) !important;
+    border-radius: 20px !important;
+    padding: 1.5rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    text-align: left !important;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04) !important;
+}
+
+.ff-exchange-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.ff-exchange-card-head {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+}
+
+.ff-head-identity {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.ff-head-identity strong {
+    font-size: 1.1rem !important;
+    color: var(--fin-text-main) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+}
+
+.ff-head-identity small {
+    font-size: 0.8rem !important;
+    color: var(--fin-text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+.ff-badge {
+    background: rgba(15, 23, 42, 0.05) !important;
+    padding: 0.3rem 0.6rem !important;
+    border-radius: 8px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: var(--fin-text-main) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-style: normal !important;
+}
+
+.ff-exchange-card-quote {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.8rem !important;
+}
+
+.ff-exchange-card-quote strong {
+    font-size: 1.8rem !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 800 !important;
+    color: var(--fin-text-main) !important;
+}
+
+.ff-delta-pill {
+    padding: 0.3rem 0.6rem !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700 !important;
+}
+
+.ff-exchange-card.is-up .ff-delta-pill {
+    background: rgba(5, 150, 105, 0.1) !important;
+    color: var(--fin-accent-green) !important;
+}
+
+.ff-exchange-card.is-down .ff-delta-pill {
+    background: rgba(220, 38, 38, 0.1) !important;
+    color: var(--fin-accent-red) !important;
+}
+
+.ff-exchange-card-chart {
+    position: relative !important;
+    height: 60px !important;
+    margin-top: 0.5rem !important;
+}
+
+.ff-chart-glow {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 80% !important;
+    height: 40px !important;
+    transform: translate(-50%, -50%) !important;
+    background: rgba(59, 130, 246, 0.15) !important;
+    filter: blur(20px) !important;
+    border-radius: 50% !important;
+    z-index: 0 !important;
+}
+
+.ff-exchange-card.is-up .ff-chart-glow { background: rgba(5, 150, 105, 0.15) !important; }
+.ff-exchange-card.is-down .ff-chart-glow { background: rgba(220, 38, 38, 0.15) !important; }
+
+.ff-exchange-card-chart canvas {
+    position: relative !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.ff-exchange-card-foot {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-top: 1px solid var(--fin-border) !important;
+    padding-top: 1rem !important;
+    margin-top: 0.5rem !important;
+}
+
+.ff-market-name {
+    font-size: 0.8rem !important;
+    color: var(--fin-text-muted) !important;
+    font-weight: 600 !important;
+}
+
+.ff-action-hover {
+    font-size: 0.85rem !important;
+    color: var(--fin-accent-blue) !important;
+    font-weight: 700 !important;
+    opacity: 0 !important;
+    transform: translateX(-10px) !important;
+    transition: all 0.3s ease !important;
+}
+
+.ff-exchange-card:hover .ff-action-hover {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+}
+
+/* --- REDISEÑO DE BOTONERA (CHART TYPE SWITCH) --- */
+.chart-type-switch {
+    display: flex !important;
+    gap: 0.8rem !important;
+    background: rgba(15, 23, 42, 0.03) !important;
+    padding: 0.8rem !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+}
+
+.chart-type-btn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    padding: 0.8rem 1.2rem !important;
+    border-radius: 14px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    flex: 1 1 auto !important;
+    min-width: 160px !important;
+    cursor: pointer !important;
+}
+
+.chart-type-btn:hover {
+    background: rgba(15, 23, 42, 0.05) !important;
+    transform: translateY(-1px) !important;
+}
+
+.chart-type-btn.active {
+    background: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06) !important;
+    transform: translateY(-2px) !important;
+}
+
+.chart-type-btn > i {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 12px !important;
+    background: rgba(14, 165, 233, 0.1) !important;
+    color: var(--fin-accent-blue) !important;
+    font-size: 1.1rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.chart-type-btn.active > i {
+    background: var(--fin-accent-blue) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3) !important;
+}
+
+.chart-type-btn > span {
+    display: flex !important;
+    flex-direction: column !important;
+    text-align: left !important;
+    gap: 0.2rem !important;
+}
+
+.chart-type-btn strong {
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    color: var(--fin-text-main) !important;
+    line-height: 1.1 !important;
+}
+
+.chart-type-btn small {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: var(--fin-text-muted) !important;
+    line-height: 1.1 !important;
+}
+
+/* --- REDISEÑO LECTURA VERIFICABLE (SUPPLEMENT SECTION) --- */
+.ff-detail-supplement {
+    position: relative !important;
+    padding: clamp(24px, 4vw, 40px) !important;
+    border-radius: 24px !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8)) !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    overflow: hidden !important;
+}
+
+.ff-detail-supplement::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important;
+    height: 4px !important;
+    background: linear-gradient(90deg, #3b82f6, #0ea5e9, #10b981) !important;
+    opacity: 0.8 !important;
+}
+
+.ff-supplement-header {
+    margin-bottom: 24px !important;
+}
+
+.ff-supplement-header .ff-kicker {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 6px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(14, 165, 233, 0.1) !important;
+    color: var(--fin-accent-blue) !important;
+    font-weight: 800 !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    margin-bottom: 12px !important;
+}
+
+.ff-supplement-title {
+    font-size: clamp(1.5rem, 2vw, 2rem) !important;
+    font-weight: 800 !important;
+    color: var(--fin-text-main) !important;
+    letter-spacing: -0.03em !important;
+    margin-bottom: 8px !important;
+}
+
+.ff-supplement-description {
+    font-size: 0.95rem !important;
+    color: var(--fin-text-muted) !important;
+    line-height: 1.6 !important;
+}
+
+.ff-supplement-source {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 16px !important;
+    background: #fff !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+    color: #10b981 !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1) !important;
+}
+
+.ff-supplement-kpi {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    transition: all 0.3s ease !important;
+}
+
+.ff-supplement-kpi:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05) !important;
+    background: #fff !important;
+}
+
+.ff-supplement-kpi small {
+    color: var(--fin-text-muted) !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.ff-supplement-kpi strong {
+    color: var(--fin-text-main) !important;
+    font-weight: 800 !important;
+    font-size: 1.8rem !important;
+    margin-top: 8px !important;
+}
+
+.ff-supplement-kpi:last-child {
+    background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.ff-supplement-kpi:last-child::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -50% !important; left: -50% !important;
+    width: 200% !important; height: 200% !important;
+    background: radial-gradient(circle at center, rgba(14, 165, 233, 0.15) 0%, transparent 50%) !important;
+    opacity: 0.8 !important;
+    pointer-events: none !important;
+}
+
+.ff-supplement-kpi:last-child small {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.ff-supplement-kpi:last-child strong {
+    color: #fff !important;
+}
+
+.ff-supplement-chart-card, .ff-supplement-table-card {
+    background: #fff !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(15, 23, 42, 0.04) !important;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.03) !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+}
+
+.ff-supplement-chart-card:hover, .ff-supplement-table-card:hover {
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06) !important;
+}
+
+.ff-supplement-chart-card header, .ff-supplement-table-card header {
+    padding: 20px 24px !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.04) !important;
+    background: rgba(248, 250, 252, 0.5) !important;
+}
+
+.ff-supplement-chart-card header small, .ff-supplement-table-card header small {
+    color: var(--fin-accent-blue) !important;
+    font-weight: 800 !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.08em !important;
+}
+
+.ff-supplement-chart-card h3, .ff-supplement-table-card h3 {
+    color: var(--fin-text-main) !important;
+    font-weight: 800 !important;
+    font-size: 1.1rem !important;
+    margin-top: 4px !important;
+}
+
+.ff-supplement-table-wrap th {
+    background: rgba(248, 250, 252, 0.8) !important;
+    color: var(--fin-text-muted) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-size: 0.75rem !important;
+    padding: 12px 16px !important;
+    border-bottom: 2px solid rgba(15, 23, 42, 0.05) !important;
+}
+
+.ff-supplement-table-wrap td {
+    padding: 14px 16px !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.03) !important;
+    color: var(--fin-text-main) !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+}
+
+.ff-supplement-table-wrap tbody tr:hover td {
+    background: rgba(248, 250, 252, 0.5) !important;
+}
+
+.ff-supplement-note {
+    margin-top: 24px !important;
+    padding: 16px 20px !important;
+    background: rgba(14, 165, 233, 0.05) !important;
+    border-left: 4px solid var(--fin-accent-blue) !important;
+    border-radius: 8px 16px 16px 8px !important;
+    display: flex !important;
+    gap: 12px !important;
+    align-items: center !important;
+}
+
+.ff-supplement-note i {
+    color: var(--fin-accent-blue) !important;
+    font-size: 1.2rem !important;
+}
+
+.ff-supplement-note p {
+    color: var(--fin-text-main) !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    margin: 0 !important;
+}
+
+/* --- REDISEÑO RENTA VARIABLE GLOBAL (EQUITY PRO PANEL) --- */
+body.ff-detail-bolsa #equity-pro-panel {
+    gap: 24px !important;
+}
+
+/* Hero Section */
+body.ff-detail-bolsa .eq-pro-hero {
+    position: relative !important;
+    overflow: hidden !important;
+    background: linear-gradient(135deg, #0f172a, #1e293b, #0f172a) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 32px !important;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2) !important;
+    padding: clamp(32px, 5vw, 48px) !important;
+}
+
+body.ff-detail-bolsa .eq-pro-hero::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important;
+    height: 100% !important;
+    background: radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.2) 0%, transparent 60%),
+                radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%) !important;
+    pointer-events: none !important;
+}
+
+body.ff-detail-bolsa .eq-pro-hero h2 {
+    color: #fff !important;
+    font-size: clamp(2.2rem, 3.5vw, 3.5rem) !important;
+    letter-spacing: -0.04em !important;
+    margin-bottom: 16px !important;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.ff-detail-bolsa .eq-pro-hero p {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1.1rem !important;
+    line-height: 1.6 !important;
+    max-width: 800px !important;
+}
+
+/* KPIs */
+body.ff-detail-bolsa .eq-kpi-grid {
+    gap: 16px !important;
+}
+
+body.ff-detail-bolsa .eq-kpi {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+    border-radius: 24px !important;
+    padding: 24px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+body.ff-detail-bolsa .eq-kpi:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08) !important;
+    background: #fff !important;
+}
+
+body.ff-detail-bolsa .eq-kpi strong {
+    color: var(--fin-text-main) !important;
+    font-weight: 800 !important;
+    font-size: 1.8rem !important;
+    margin: 8px 0 !important;
+    display: block !important;
+}
+
+body.ff-detail-bolsa .eq-kpi small {
+    color: var(--fin-text-muted) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-size: 0.8rem !important;
+}
+
+body.ff-detail-bolsa .eq-kpi.eq-kpi-regime {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9) !important;
+    border: 1px solid rgba(14, 165, 233, 0.2) !important;
+}
+
+/* Blocks */
+body.ff-detail-bolsa .eq-main-grid {
+    gap: 20px !important;
+}
+
+body.ff-detail-bolsa .eq-block {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 28px !important;
+    padding: clamp(24px, 3vw, 36px) !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.04) !important;
+}
+
+body.ff-detail-bolsa .eq-block-title h3 {
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+    color: var(--fin-text-main) !important;
+}
+
+/* --- MEJORA DEL RÉGIMEN DE MERCADO (Score Block) --- */
+body.ff-detail-bolsa .eq-score-block {
+    background: linear-gradient(145deg, #0f172a, #1e293b) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+body.ff-detail-bolsa .eq-score-block::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; right: 0 !important; width: 100% !important; height: 100% !important;
+    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.15), transparent 70%) !important;
+    pointer-events: none !important;
+}
+
+body.ff-detail-bolsa .eq-score-block .eq-block-head h3 {
+    color: #f8fafc !important;
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+}
+
+body.ff-detail-bolsa .eq-score-block .eq-block-head small {
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+/* Score Ring */
+body.ff-detail-bolsa .eq-score-ring {
+    background: conic-gradient(#38bdf8 calc(var(--eq-score) * 1%), rgba(255, 255, 255, 0.05) 0) !important;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.2) !important;
+    border-radius: 50% !important;
+}
+
+body.ff-detail-bolsa .eq-score-ring::before {
+    background: #1e293b !important; /* Inner circle matching card background */
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5) !important;
+}
+
+body.ff-detail-bolsa .eq-score-ring span {
+    color: #f8fafc !important;
+    font-size: 1.8rem !important;
+    text-shadow: 0 2px 10px rgba(56, 189, 248, 0.4) !important;
+}
+
+body.ff-detail-bolsa .eq-score-ring small {
+    color: #94a3b8 !important;
+}
+
+/* Score Copy */
+body.ff-detail-bolsa .eq-score-copy strong {
+    color: #fff !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    display: block !important;
+    margin-bottom: 6px !important;
+}
+
+body.ff-detail-bolsa .eq-score-copy p {
+    color: #cbd5e1 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+}
+
+/* Signal List */
+body.ff-detail-bolsa .eq-signal-list {
+    margin-top: 16px !important;
+    background: rgba(15, 23, 42, 0.4) !important;
+    border-radius: 16px !important;
+    padding: 12px 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+body.ff-detail-bolsa .eq-signal-list > div {
+    border-top-color: rgba(255, 255, 255, 0.05) !important;
+    padding: 10px 0 !important;
+}
+
+body.ff-detail-bolsa .eq-signal-list > div:first-child {
+    border-top: none !important;
+}
+
+body.ff-detail-bolsa .eq-signal-list span {
+    color: #94a3b8 !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+}
+
+body.ff-detail-bolsa .eq-signal-list strong {
+    color: #f8fafc !important;
+    font-size: 0.85rem !important;
+    padding: 4px 10px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+}
+
+body.ff-detail-bolsa .eq-signal-list strong.up {
+    color: #34d399 !important;
+    background: rgba(5, 150, 105, 0.2) !important;
+}
+
+body.ff-detail-bolsa .eq-signal-list strong.down {
+    color: #f87171 !important;
+    background: rgba(220, 38, 38, 0.2) !important;
+}
+
+/* Region Cards (Heatmap Redesign) */
+body.ff-detail-bolsa .eq-region-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+    gap: 8px !important;
+    background: #f1f5f9 !important;
+    padding: 8px !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+}
+
+body.ff-detail-bolsa .eq-region-card {
+    background: var(--eq-color, #1e293b) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: #fff !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 110px !important;
+    transition: transform 0.2s, filter 0.2s !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1) !important;
+}
+
+body.ff-detail-bolsa .eq-region-card:hover {
+    transform: scale(1.02) !important;
+    filter: brightness(1.1) !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.2) !important;
+    z-index: 2 !important;
+}
+
+body.ff-detail-bolsa .eq-region-card small {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em !important;
+}
+
+body.ff-detail-bolsa .eq-region-card strong {
+    color: #fff !important;
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    margin-top: auto !important;
+    margin-bottom: 4px !important;
+}
+
+body.ff-detail-bolsa .eq-region-card span {
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    display: inline-block !important;
+    width: fit-content !important;
+}
+
+/* Hide Hero and KPIs as requested */
+body.ff-detail-bolsa .eq-pro-hero,
+body.ff-detail-bolsa .eq-kpi-grid {
+    display: none !important;
+}
+
+/* Top Widgets (Sectors, Watchlist) */
+body.ff-detail-bolsa .eq-top-widgets > section {
+    background: #fff !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.04) !important;
+    padding: clamp(24px, 3vw, 32px) !important;
+}
+
+/* --- PLATINUM & CHAMPAGNE GOLD LUXURY UI --- */
+body.ff-detail-bolsa {
+    position: relative !important;
+    background: #f8f9fa !important; /* Soft platinum base */
+}
+
+/* Remove Aurora Backlight */
+body.ff-detail-bolsa::before {
+    display: none !important;
+}
+
+body.ff-detail-bolsa .eq-main-grid {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* --- MEJORA DE FACTORES DE RENTA VARIABLE (PLATINUM LUXURY) --- */
+body.ff-detail-bolsa .eq-factors-block {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-top: 40px !important;
+}
+
+body.ff-detail-bolsa .eq-factors-block .eq-block-head {
+    background: transparent !important;
+    padding: 0 0 24px 8px !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+}
+body.ff-detail-bolsa .eq-factors-block .eq-block-head h3 {
+    color: #020617 !important; /* Deep Navy/Black */
+    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    text-transform: uppercase !important;
+}
+body.ff-detail-bolsa .eq-factors-block .eq-block-head small {
+    color: #b8860b !important; /* Dark Goldenrod */
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2em !important;
+}
+
+/* PLATINUM WIDGETS */
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    margin-top: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-row {
+    flex: 1 1 calc(25% - 20px) !important;
+    min-width: 260px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; /* Platinum Sheen */
+    border: 1px solid rgba(212, 175, 55, 0.25) !important; /* Champagne Gold Border */
+    border-radius: 16px !important; /* Sharp, elegant radius */
+    padding: 32px !important;
+    min-height: auto !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(212, 175, 55, 0.05) !important; 
+    position: relative !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+}
+
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-row:hover {
+    transform: translateY(-4px) scale(1.01) !important;
+    background: #ffffff !important;
+    box-shadow: 0 20px 50px rgba(212, 175, 55, 0.15), 0 5px 15px rgba(0, 0, 0, 0.05) !important; /* Gold Glow */
+    border-color: rgba(212, 175, 55, 0.6) !important;
+}
+
+/* Flex layout mapping */
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-name { 
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    margin-bottom: 32px !important;
+}
+
+/* METALLIC GOLD TYPOGRAPHY */
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-row > strong { 
+    font-size: 3.4rem !important;
+    font-weight: 300 !important; /* Elegant Light Weight */
+    margin: 0 !important;
+    text-align: right !important;
+    line-height: 1 !important;
+    letter-spacing: -0.05em !important;
+    align-self: flex-end !important;
+    background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c) !important; /* Metallic Gold */
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: 0 4px 10px rgba(179, 135, 40, 0.1) !important;
+}
+
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-row > span { 
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    padding: 6px 14px !important;
+    border-radius: 4px !important; /* Sharp institutional edges */
+    position: absolute !important;
+    top: 32px !important;
+    right: 32px !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    border: none !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+}
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-bar { 
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 4px !important;
+    background: #e5e7eb !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: block !important;
+}
+
+/* Typography & Colors */
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-name strong {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    color: #020617 !important;
+    letter-spacing: 0 !important;
+    text-transform: uppercase !important;
+}
+
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-name small {
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+}
+
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-row > span.up {
+    background: #047857 !important; /* Deep Emerald */
+    color: #ffffff !important;
+}
+
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-row > span.down {
+    background: #be123c !important; /* Deep Crimson */
+    color: #ffffff !important;
+}
+
+body.ff-detail-bolsa .eq-factor-table:not(.view-heat):not(.view-ranking) .eq-factor-bar span {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, #bf953f, #fcf6ba) !important; /* Gold Bar */
+}
+
+/* Factor Heat Cards for .view-heat */
+body.ff-detail-bolsa .eq-factor-heat-card {
+    border-radius: 12px !important;
+    border: 1px solid rgba(212, 175, 55, 0.2) !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+    transition: all 0.3s ease !important;
+}
+
+body.ff-detail-bolsa .eq-factor-heat-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 24px rgba(212, 175, 55, 0.1) !important;
+    border-color: rgba(212, 175, 55, 0.5) !important;
+}
+
+/* --- CONTEXTO TRANSVERSAL (PLATINUM LUXURY) --- */
+body.ff-detail-bolsa .eq-context-list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    margin-top: 16px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+body.ff-detail-bolsa .eq-context-list > div {
+    flex: 1 1 calc(25% - 20px) !important;
+    min-width: 220px !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.25) !important;
+    border-radius: 16px !important;
+    padding: 32px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(212, 175, 55, 0.05) !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    position: relative !important;
+    color: #020617 !important;
+    z-index: 1 !important;
+}
+
+/* Clean background reset */
+body.ff-detail-bolsa .eq-context-list > div:nth-child(n) { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; }
+
+body.ff-detail-bolsa .eq-context-list > div:hover {
+    transform: translateY(-4px) scale(1.01) !important;
+    background: #ffffff !important;
+    box-shadow: 0 20px 50px rgba(212, 175, 55, 0.15), 0 5px 15px rgba(0, 0, 0, 0.05) !important;
+    border-color: rgba(212, 175, 55, 0.6) !important;
+}
+
+/* Gold Accent Line */
+body.ff-detail-bolsa .eq-context-list > div::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important;
+    height: 4px !important;
+    background: linear-gradient(90deg, #bf953f, #fcf6ba, #b38728) !important;
+    border-radius: 16px 16px 0 0 !important;
+    opacity: 0.5 !important;
+    transition: all 0.4s ease !important;
+}
+body.ff-detail-bolsa .eq-context-list > div:hover::before {
+    opacity: 1 !important;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important;
+}
+
+/* Icon and Label Container */
+body.ff-detail-bolsa .eq-context-list span {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    color: #475569 !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin-bottom: 24px !important;
+}
+
+/* Refined Subtle Icon Box - Gold Trim */
+body.ff-detail-bolsa .eq-context-list span i {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    background: #ffffff !important;
+    color: #b8860b !important; /* Gold */
+    border-radius: 8px !important; 
+    font-size: 1.1rem !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid rgba(212, 175, 55, 0.3) !important;
+    transition: all 0.4s ease !important;
+}
+body.ff-detail-bolsa .eq-context-list > div:hover span i {
+    background: linear-gradient(135deg, #bf953f, #fcf6ba) !important;
+    color: #020617 !important;
+    border-color: #bf953f !important;
+    box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Value (Number) - Massive Gold Typography */
+body.ff-detail-bolsa .eq-context-list strong {
+    font-size: 3.2rem !important;
+    font-weight: 300 !important; 
+    margin: 0 0 8px 0 !important;
+    line-height: 1 !important;
+    letter-spacing: -0.05em !important;
+    background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: 0 4px 10px rgba(179, 135, 40, 0.1) !important;
+}
+
+/* Description text */
+body.ff-detail-bolsa .eq-context-list small {
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+}nt;
+}
+
+/* --- REORDER LAYOUT TO PUT WATCHLIST ABOVE GRAPH --- */
+body.ff-detail-bolsa #equity-pro-panel {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+body.ff-detail-bolsa .eq-main-grid {
+    order: 1 !important;
+}
+
+body.ff-detail-bolsa .eq-top-widgets {
+    order: 2 !important;
+    margin-top: 10px !important;
+    margin-bottom: 24px !important;
+}
+
+body.ff-detail-bolsa .equity-lab-host {
+    order: 3 !important;
+}
+
+/* --- WATCHLIST PREMIUM REDESIGN --- */
+
+/* Contenedor principal de la Watchlist */
+body.ff-detail-bolsa #watchlist-panel {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.95)) !important;
+    backdrop-filter: blur(25px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    border-radius: 28px !important;
+    padding: 24px !important;
+    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.04) !important;
+    margin-bottom: 24px !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+body.ff-detail-bolsa #watchlist-panel::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; right: 0 !important; width: 300px !important; height: 100% !important;
+    background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.06), transparent 70%) !important;
+    pointer-events: none !important;
+}
+
+/* Titulo y Subtitulo */
+body.ff-detail-bolsa #watchlist-panel .section-lbl {
+    font-size: 1.15rem !important;
+    font-weight: 850 !important;
+    color: #0f172a !important;
+    letter-spacing: -0.02em !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+body.ff-detail-bolsa #watchlist-panel > div:first-child > span {
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+}
+
+/* Zona de Controles (Input y Botones) */
+body.ff-detail-bolsa #watchlist-panel > div:nth-child(2) {
+    background: #f8fafc !important;
+    padding: 16px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(15, 23, 42, 0.03) !important;
+    box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.02) !important;
+    margin-bottom: 20px !important;
+    display: flex !important;
+    gap: 12px !important;
+}
+
+/* El Input de Ticker */
+body.ff-detail-bolsa #wl-input {
+    border: none !important;
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+    font-size: 0.9rem !important;
+    color: #0f172a !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
+    transition: all 0.2s ease !important;
+}
+
+body.ff-detail-bolsa #wl-input:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+    outline: none !important;
+}
+
+/* Botones de acción */
+body.ff-detail-bolsa #watchlist-panel button {
+    border-radius: 12px !important;
+    padding: 10px 20px !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+body.ff-detail-bolsa #watchlist-panel button[onclick="wlAdd()"] {
+    background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15) !important;
+    color: white !important;
+}
+body.ff-detail-bolsa #watchlist-panel button[onclick="wlAdd()"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2) !important;
+}
+
+body.ff-detail-bolsa #watchlist-panel button[onclick="wlRefreshPrices()"] {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.1) !important;
+    color: #475569 !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
+}
+body.ff-detail-bolsa #watchlist-panel button[onclick="wlRefreshPrices()"]:hover {
+    background: #f1f5f9 !important;
+    transform: translateY(-2px) !important;
+}
+
+/* La Cuadrícula de Watchlist */
+body.ff-detail-bolsa #wl-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 16px !important;
+}
+
+/* Las Tarjetas de Watchlist */
+body.ff-detail-bolsa .wl-item {
+    background: #ffffff !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(15, 23, 42, 0.04) !important;
+    padding: 20px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.02) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+body.ff-detail-bolsa .wl-item:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06) !important;
+    border-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Fondo decorativo hover */
+body.ff-detail-bolsa .wl-item::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; right: 0 !important; width: 60% !important; height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.8)) !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s !important;
+}
+body.ff-detail-bolsa .wl-item:hover::after {
+    opacity: 1 !important;
+}
+
+/* Ticker Name */
+body.ff-detail-bolsa .wl-ticker {
+    font-size: 1.1rem !important;
+    font-weight: 850 !important;
+    color: #0f172a !important;
+    font-family: 'Inter', sans-serif !important;
+    letter-spacing: -0.01em !important;
+}
+
+/* Company Name */
+body.ff-detail-bolsa .wl-name {
+    font-size: 0.78rem !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    margin-top: 4px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 140px !important;
+}
+
+/* Contenedor Derecho (Precios) */
+body.ff-detail-bolsa .wl-item > div:last-child {
+    align-items: flex-end !important;
+    z-index: 1 !important;
+}
+
+/* Price */
+body.ff-detail-bolsa .wl-price {
+    font-size: 1.25rem !important;
+    font-weight: 850 !important;
+    color: #0f172a !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    line-height: 1 !important;
+}
+
+/* Porcentaje (up/down) */
+body.ff-detail-bolsa .wl-pct {
+    font-size: 0.8rem !important;
+    font-weight: 750 !important;
+    padding: 3px 8px !important;
+    border-radius: 8px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    margin-left: 6px !important;
+}
+body.ff-detail-bolsa .wl-pct.up {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #059669 !important;
+}
+body.ff-detail-bolsa .wl-pct.down {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #dc2626 !important;
+}
+
+/* Delete Button */
+body.ff-detail-bolsa .wl-rm {
+    background: #f1f5f9 !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    border-radius: 6px !important;
+    width: 24px !important;
+    height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    margin-left: 4px !important;
+    padding: 0 !important;
+}
+body.ff-detail-bolsa .wl-rm:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+}
+
+/* --- PULSO DEL MERCADO REDESIGN (PLATINUM LUXURY) --- */
+
+/* Panel Container */
+body.ff-detail-bolsa #bolsa-news-panel {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+    border: 1px solid rgba(212, 175, 55, 0.25) !important;
+    border-radius: 16px !important;
+    padding: 32px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(212, 175, 55, 0.05) !important;
+    margin-bottom: 24px !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Titles */
+body.ff-detail-bolsa #bolsa-news-panel .section-lbl,
+body.ff-detail-bolsa #bolsa-news-panel > div:nth-child(3) {
+    font-size: 1.15rem !important;
+    font-weight: 850 !important;
+    color: #020617 !important; /* Deep Navy */
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    margin-bottom: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+    padding-bottom: 12px !important;
+}
+
+body.ff-detail-bolsa #bolsa-news-panel > div:nth-child(3) {
+    margin-top: 40px !important;
+}
+
+/* 1. MKT PULSE (Top Metrics Bar) */
+body.ff-detail-bolsa #mkt-pulse {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+}
+
+body.ff-detail-bolsa #mkt-pulse > div {
+    flex: 1 1 auto !important;
+    min-width: 150px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    transition: transform 0.2s !important;
+    cursor: pointer !important;
+    text-align: left !important;
+}
+
+body.ff-detail-bolsa #mkt-pulse > div:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+/* Pulse Typography */
+body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(1) { /* Label */
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+}
+
+body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(2) { /* Price */
+    font-size: 1.7rem !important;
+    font-weight: 300 !important;
+    color: #020617 !important;
+    margin-top: 4px !important;
+    letter-spacing: -0.03em !important;
+}
+
+body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(3) { /* Pct */
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    display: inline-block !important;
+    margin-top: 4px !important;
+}
+
+/* Specific coloring for Pulse percentages in Light Theme */
+body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(3).up { color: #047857 !important; }
+body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(3).down { color: #be123c !important; }
+
+body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(4) { /* Sub */
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    margin-top: 4px !important;
+    color: #94a3b8 !important;
+    display: block !important;
+}
+
+/* 2. SECTORS (Leaderboard List) */
+body.ff-detail-bolsa #sector-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0 40px !important;
+}
+
+@media (max-width: 760px) {
+    body.ff-detail-bolsa #sector-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+body.ff-detail-bolsa #sector-grid > div {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 16px 8px !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transition: background 0.2s !important;
+    cursor: pointer !important;
+    position: relative !important;
+}
+
+body.ff-detail-bolsa #sector-grid > div:hover {
+    background: rgba(212, 175, 55, 0.03) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Sectors Typography inside row */
+body.ff-detail-bolsa #sector-grid > div > div:nth-child(1) { /* Icon */
+    font-size: 1.4rem !important;
+    margin-bottom: 0 !important;
+    margin-right: 16px !important;
+    width: 32px !important;
+    text-align: center !important;
+    filter: none !important;
+    color: #b8860b !important; /* Gold icons */
+}
+
+body.ff-detail-bolsa #sector-grid > div > div:nth-child(2) { /* Name */
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: #020617 !important;
+    text-align: left !important;
+    flex: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin-right: 16px !important;
+}
+
+body.ff-detail-bolsa #sector-grid > div > div:nth-child(3) { /* Pct */
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    margin-top: 0 !important;
+    text-align: right !important;
+}
+
+/* The Progress Bar transformed into a bottom accent border */
+body.ff-detail-bolsa #sector-grid > div > div:nth-child(4) {
+    display: block !important;
+    position: absolute !important;
+    bottom: -1px !important;
+    left: 0 !important;
+    height: 1px !important;
+    opacity: 0.8 !important;
+}
+
+/* Remove decorative glow from pulse */
+body.ff-detail-bolsa #mkt-pulse > div::after,
+body.ff-detail-bolsa #sector-grid > div::after {
+    display: none !important;
+}
+
+/* --- FIX EMPTY SPACE IN WIDGETS HOST --- */
+body.ff-detail-bolsa .eq-top-widgets {
+    display: block !important; /* Removes the 2-column grid since Watchlist was moved out */
+}
+
+/* --- HIDE EQ-THESIS (Risk-on amplio) --- */
+body.ff-detail-bolsa .eq-thesis {
+    display: none !important;
+}
+
+/* =========================================================================
+   INSTITUTIONAL TERMINAL REDESIGN (MID-TONE PREMIUM GLASSMORPHISM)
+   ========================================================================= */
+
+.inst-terminal {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    font-family: 'Inter', sans-serif !important;
+    background: linear-gradient(135deg, #8ba3b5 0%, #b2c2d1 100%) !important; /* Mid-tone steel blue */
+    padding: 24px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255,255,255,0.4) !important;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2) !important;
+    color: #0f172a !important; /* High contrast text */
+}
+
+/* Hero Section */
+.inst-hero {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px solid rgba(255,255,255,0.3) !important;
+    padding-bottom: 16px !important;
+    margin-bottom: 12px !important;
+}
+
+.inst-hero-left h2 {
+    font-size: 1.5rem !important;
+    font-weight: 850 !important;
+    color: #0f172a !important;
+    margin: 6px 0 4px !important;
+    letter-spacing: -0.02em !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 2px 4px rgba(255,255,255,0.4) !important;
+}
+
+.inst-hero-left p {
+    font-size: 0.8rem !important;
+    color: #334155 !important;
+    margin: 0 !important;
+    font-weight: 600 !important;
+}
+
+.inst-badge {
+    background: rgba(255, 255, 255, 0.65) !important;
+    color: #0369a1 !important;
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
+    padding: 4px 10px !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(255, 255, 255, 0.9) !important;
+    letter-spacing: 1px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.inst-hero-right {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+}
+
+.inst-status-led {
+    width: 8px !important;
+    height: 8px !important;
+    background: #16a34a !important;
+    border-radius: 50% !important;
+    margin-bottom: 6px !important;
+    box-shadow: 0 0 12px rgba(22, 163, 74, 0.6) !important;
+    animation: blink 2s infinite !important;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+}
+
+#eq-updated {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.65rem !important;
+    color: #475569 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Ticker Tape */
+.inst-ticker-tape {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 12px !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255,255,255,0.7) !important;
+    padding: 14px 20px !important;
+    border-radius: 12px !important;
+    overflow-x: auto !important;
+    box-shadow: inset 0 2px 5px rgba(255,255,255,0.8), 0 4px 6px rgba(0,0,0,0.05) !important;
+}
+
+.inst-ticker-tape::-webkit-scrollbar { height: 6px; }
+.inst-ticker-tape::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+.inst-ticker {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 85px !important;
+    border-right: 1px solid rgba(0,0,0,0.1) !important;
+    padding-right: 16px !important;
+    margin-right: 4px !important;
+}
+.inst-ticker:last-child { border-right: none !important; }
+
+.inst-ticker .lbl {
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
+    color: #475569 !important;
+}
+
+.inst-ticker strong {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    line-height: 1.3 !important;
+}
+
+.inst-ticker .sub {
+    font-size: 0.6rem !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Main Grid Layout */
+.inst-grid-main {
+    display: grid !important;
+    grid-template-columns: 1fr 360px !important;
+    gap: 20px !important;
+    align-items: start !important;
+}
+@media (max-width: 950px) {
+    .inst-grid-main { grid-template-columns: 1fr !important; }
+}
+
+.inst-col-left, .inst-col-right {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+}
+
+/* Panels */
+.inst-panel {
+    background: rgba(255, 255, 255, 0.65) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255,255,255,0.8) !important;
+    border-radius: 12px !important;
+    padding: 24px !important;
+    box-shadow: 0 8px 20px -4px rgba(0,0,0,0.08) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s !important;
+}
+.inst-panel:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 15px 30px -5px rgba(0,0,0,0.12) !important;
+    border-color: rgba(255,255,255,1) !important;
+}
+
+.inst-panel-hdr {
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    color: #334155 !important;
+    letter-spacing: 1.5px !important;
+    border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+/* KPI Table */
+.inst-kpi-table {
+    display: flex !important;
+    flex-direction: column !important;
+    border: 1px solid rgba(255,255,255,0.8) !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    overflow: hidden !important;
+}
+
+.inst-kpi-header {
+    display: grid !important;
+    grid-template-columns: 90px 150px 1fr 80px !important;
+    padding: 14px 20px !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+    font-size: 0.6rem !important;
+    font-weight: 800 !important;
+    color: #475569 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+}
+
+.inst-kpi-row {
+    display: grid !important;
+    grid-template-columns: 90px 150px 1fr 80px !important;
+    padding: 16px 20px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.5) !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    align-items: center !important;
+}
+.inst-kpi-row:hover { background: rgba(255,255,255,0.95) !important; }
+.inst-kpi-row:last-child { border-bottom: none !important; }
+
+.inst-kpi-row .kpi-sym {
+    font-size: 0.85rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+.inst-kpi-row .kpi-val {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    text-align: right !important;
+}
+
+.inst-kpi-row .kpi-pct {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    text-align: right !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    margin-left: 12px !important;
+}
+
+.inst-kpi-row .kpi-txt {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: #475569 !important;
+    text-align: right !important;
+    margin-left: 12px !important;
+}
+
+.inst-kpi-row .kpi-pct.up { background: rgba(34, 197, 94, 0.15) !important; color: #15803d !important; border: 1px solid rgba(34, 197, 94, 0.3) !important; }
+.inst-kpi-row .kpi-pct.down { background: rgba(239, 68, 68, 0.15) !important; color: #b91c1c !important; border: 1px solid rgba(239, 68, 68, 0.3) !important; }
+
+.kpi-range {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    justify-content: center !important;
+}
+
+.kpi-range small {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.6rem !important;
+    color: #475569 !important;
+    font-weight: 700 !important;
+}
+
+.kpi-bar-bg {
+    flex: 1 !important;
+    height: 6px !important;
+    background: rgba(0,0,0,0.06) !important;
+    border-radius: 3px !important;
+    position: relative !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+
+.kpi-marker {
+    position: absolute !important;
+    top: -3px !important;
+    width: 4px !important;
+    height: 12px !important;
+    background: #0f172a !important;
+    border-radius: 2px !important;
+    transform: translateX(-50%) !important;
+    box-shadow: 0 0 4px rgba(0,0,0,0.2) !important;
+}
+
+/* Heatmap - Improved Spacing */
+.inst-heatmap {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+    gap: 12px !important;
+}
+
+.hm-cell {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px 12px !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    color: #ffffff !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(255,255,255,0.2) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+.hm-cell::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+}
+.hm-cell:hover { 
+    transform: scale(1.06) !important; 
+    z-index: 10 !important; 
+    box-shadow: 0 12px 20px -5px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.5) !important;
+}
+
+.hm-cell span { 
+    font-size: 0.8rem !important; 
+    font-weight: 800 !important; 
+    margin-bottom: 12px !important; /* Increased spacing */
+    opacity: 0.95 !important; 
+    letter-spacing: 0.5px !important; 
+}
+.hm-cell strong { 
+    font-family: 'JetBrains Mono', monospace !important; 
+    font-size: 1.1rem !important; 
+    font-weight: 800 !important; 
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3) !important; 
+}
+
+.hm-up { background: linear-gradient(135deg, #22c55e, #15803d) !important; }
+.hm-down { background: linear-gradient(135deg, #ef4444, #b91c1c) !important; }
+.hm-flat { background: linear-gradient(135deg, #94a3b8, #475569) !important; }
+
+/* Regime Box */
+.inst-regime-box {
+    display: flex !important;
+    gap: 20px !important;
+    align-items: center !important;
+    margin-bottom: 24px !important;
+}
+
+.inst-regime-score {
+    background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    color: #0f172a !important;
+    padding: 24px 20px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: baseline !important;
+    min-width: 90px !important;
+    justify-content: center !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.05) !important;
+}
+.inst-regime-score .score-val { font-family: 'JetBrains Mono', monospace !important; font-size: 2rem !important; font-weight: 800 !important; }
+.inst-regime-score .score-max { font-size: 0.8rem !important; color: #64748b !important; margin-left: 4px !important; }
+
+.inst-regime-desc strong { display: block !important; font-size: 1rem !important; color: #0f172a !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
+.inst-regime-desc p { font-size: 0.8rem !important; color: #475569 !important; margin: 8px 0 0 !important; line-height: 1.5 !important; }
+
+.inst-regime-signals {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    background: rgba(255, 255, 255, 0.4) !important;
+    padding: 20px !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(255,255,255,0.6) !important;
+}
+
+.sig-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px dashed rgba(0,0,0,0.1) !important;
+    padding-bottom: 10px !important;
+}
+.sig-row:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+.sig-row span { font-size: 0.8rem !important; color: #334155 !important; font-weight: 700 !important; letter-spacing: 0.5px !important; }
+.sig-row strong { font-family: 'JetBrains Mono', monospace !important; font-size: 0.9rem !important; font-weight: 800 !important; }
+.sig-row strong.up { color: #15803d !important; }
+.sig-row strong.down { color: #b91c1c !important; }
+
+/* Thesis Panel */
+.thesis-panel {
+    cursor: pointer !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(241,245,249,0.9)) !important;
+    border: 1px solid rgba(255, 255, 255, 1) !important;
+}
+.thesis-panel:hover {
+    border-color: #0ea5e9 !important;
+    box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1), 0 0 0 1px #0ea5e9 !important;
+}
+
+.inst-thesis-content h3 {
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    color: #0369a1 !important;
+    margin: 0 0 8px !important;
+    letter-spacing: 0.5px !important;
+}
+
+.inst-thesis-content p {
+    font-size: 0.85rem !important;
+    color: #334155 !important;
+    margin: 0 !important;
+    line-height: 1.6 !important;
+}
+
+/* Ticking Animation */
+@keyframes inst-tick {
+    0% { background-color: rgba(34, 197, 94, 0.2); }
+    100% { background-color: transparent; }
+}
+
+.tick-update {
+    animation: inst-tick 1.5s ease-out !important;
+    border-radius: 4px !important;
+    padding: 0 4px !important;
+}
+
+/* End Additional Polish */
+
+
+/* =========================================================================
+   GENERAL DASHBOARD - INSTITUTIONAL LIGHT OVERRIDE
+   ========================================================================= */
+
+/* Overriding the Dark Hero */
+body .hub-hero {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    padding: 24px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+}
+
+body .hub-hero-title {
+    background: none !important;
+    -webkit-text-fill-color: #0f172a !important;
+    color: #0f172a !important;
+    font-size: 2rem !important;
+    font-weight: 850 !important;
+    text-shadow: none !important;
+}
+
+body .hub-hero-sub {
+    color: #475569 !important;
+    font-weight: 500 !important;
+}
+
+body .hub-hero-eyebrow {
+    color: #64748b !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.5px !important;
+}
+
+body .hub-hero-dot {
+    background: #0f172a !important;
+}
+
+body .hub-hero-live {
+    background: rgba(22, 163, 74, 0.1) !important;
+    border: 1px solid rgba(22, 163, 74, 0.2) !important;
+    color: #16a34a !important;
+}
+body .hub-live-dot {
+    background: #16a34a !important;
+}
+
+body #btn-refresh-all {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 700 !important;
+}
+body #btn-refresh-all:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+body #ai-status {
+    color: #64748b !important;
+}
+
+body .hub-hero::before, body .hub-hero::after, body .hub-hero-beam, body .hub-hero-accent {
+    display: none !important; /* Remove luxury glowing effects */
+}
+
+/* Hub Cards (General Grid) */
+body .hub-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+body .hub-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+    transform: translateY(-2px) !important;
+    border-color: #cbd5e1 !important;
+}
+
+body .hub-card-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 16px 20px !important;
+}
+
+body .hub-hdr-shine {
+    display: none !important; /* Remove luxury glares */
+}
+
+body .hub-hdr-icon {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border: none !important;
+    border-radius: 4px !important;
+}
+
+body .hub-hdr-title {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    font-size: 1.1rem !important;
+}
+
+body .hub-hdr-sub {
+    color: #64748b !important;
+}
+
+body .hub-hdr-badge {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border-radius: 2px !important;
+}
+body .hub-badge-dot {
+    background: #ffffff !important;
+}
+
+body .hub-hdr-stat-lbl {
+    color: #64748b !important;
+}
+
+body .hub-hdr-stat-val {
+    color: #0f172a !important;
+    text-shadow: none !important;
+    font-size: 1.6rem !important;
+}
+
+body .hub-card-body {
+    padding: 16px 20px !important;
+}
+
+body .hub-desc {
+    color: #475569 !important;
+    font-size: 0.75rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 16px !important;
+}
+
+body .hub-metrics {
+    gap: 16px !important;
+    margin-bottom: 24px !important;
+}
+
+body .hub-m {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+    padding: 12px !important;
+    background: #f8fafc !important;
+}
+body .hub-m:hover {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+}
+
+body .hub-m-lbl {
+    color: #64748b !important;
+    font-weight: 700 !important;
+    font-size: 0.6rem !important;
+}
+
+body .hub-m-val {
+    color: #0f172a !important;
+    font-size: 1.3rem !important;
+}
+
+body .hub-m-delta {
+    color: #94a3b8 !important;
+    font-size: 0.6rem !important;
+}
+
+body .hub-insight {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+}
+body .hub-insight i {
+    color: #0f172a !important;
+}
+
+body .hub-detail-head {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+body .hub-detail-item small {
+    color: #64748b !important;
+    font-weight: 700 !important;
+}
+
+body .hub-detail-item strong {
+    color: #0f172a !important;
+}
+
+body .hub-detail-item p {
+    color: #475569 !important;
+}
+
+body .hub-cta {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-top: 1px solid #e2e8f0 !important;
+    font-weight: 800 !important;
+    border-radius: 0 !important;
+    padding: 12px 20px !important;
+}
+body .hub-cta:hover {
+    background: #e2e8f0 !important;
+}
+
+body .hub-cta-arrow {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border-radius: 2px !important;
+}
+
+/* Tabs Navigation Styling to Match Terminal */
+body .fin-tabs-nav {
+    gap: 12px !important;
+}
+body .fin-tab-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    padding: 12px 16px !important;
+}
+body .fin-tab-card:hover {
+    border-color: #cbd5e1 !important;
+    background: #f8fafc !important;
+}
+body .fin-tab-card.active {
+    background: #0f172a !important;
+    border-color: #0f172a !important;
+}
+body .fin-tab-card.active .fin-tab-title {
+    color: #ffffff !important;
+}
+body .fin-tab-card.active .fin-tab-sub {
+    color: #94a3b8 !important;
+}
+body .fin-tab-card::after { display: none !important; } /* Remove colorful bottom lines */
+body .fin-tab-icon {
+    border-radius: 4px !important;
+}
+
+/* =========================================================================
+   PREMIUM SaaS FINANCIAL TERMINAL (STRIPE / KOYFIN AESTHETIC)
+   ========================================================================= */
+
+/* Hero Banner Refinement */
+body .hub-hero {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 1px solid rgba(0, 33, 58, 0.08) !important;
+    border-radius: 16px !important;
+    padding: 32px !important;
+    box-shadow: 0 12px 32px rgba(0, 33, 58, 0.04), 0 2px 6px rgba(0, 33, 58, 0.02) !important;
+    transition: all 0.3s ease !important;
+}
+body .hub-hero:hover {
+    box-shadow: 0 16px 40px rgba(0, 33, 58, 0.08), 0 2px 8px rgba(0, 33, 58, 0.03) !important;
+}
+
+body .hub-hero-title {
+    font-size: 2.2rem !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.03em !important;
+    color: #0f172a !important;
+    margin-bottom: 8px !important;
+}
+
+body .hub-hero-sub {
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+    max-width: 500px !important;
+    line-height: 1.6 !important;
+}
+
+/* Tabs Refinement */
+body .fin-tabs-nav {
+    background: #f8fafc !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(0, 33, 58, 0.06) !important;
+    display: inline-flex !important;
+    gap: 4px !important;
+}
+
+body .fin-tab-card {
+    border: none !important;
+    background: transparent !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+body .fin-tab-card:hover {
+    background: rgba(0, 33, 58, 0.04) !important;
+}
+body .fin-tab-card.active {
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 33, 58, 0.08) !important;
+}
+
+body .fin-tab-card .fin-tab-title {
+    color: #475569 !important;
+    font-weight: 700 !important;
+}
+body .fin-tab-card.active .fin-tab-title {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+}
+body .fin-tab-card .fin-tab-icon {
+    background: transparent !important;
+    color: #64748b !important;
+    font-size: 1.1rem !important;
+}
+body .fin-tab-card.active .fin-tab-icon {
+    color: #00213a !important;
+}
+
+/* Hub Cards Refinement */
+body .hub-card {
+    border-radius: 16px !important;
+    border: 1px solid rgba(0, 33, 58, 0.08) !important;
+    box-shadow: 0 4px 12px rgba(0, 33, 58, 0.03) !important;
+    background: #ffffff !important;
+}
+
+body .hub-card-header {
+    background: #ffffff !important;
+    border-bottom: 1px solid rgba(0, 33, 58, 0.06) !important;
+    padding: 20px 24px !important;
+}
+
+body .hub-hdr-icon {
+    background: rgba(0, 33, 58, 0.04) !important;
+    color: #00213a !important;
+    border-radius: 10px !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.1rem !important;
+}
+
+body .hub-hdr-stat-val {
+    color: #0f172a !important;
+    font-size: 1.8rem !important;
+    letter-spacing: -0.04em !important;
+}
+
+body .hub-metrics {
+    gap: 12px !important;
+}
+
+body .hub-m {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 33, 58, 0.06) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 6px rgba(0, 33, 58, 0.02) !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
+}
+body .hub-m:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 16px rgba(0, 33, 58, 0.06) !important;
+    border-color: rgba(0, 33, 58, 0.15) !important;
+}
+
+body .hub-m-val {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    color: #0f172a !important;
+}
+
+body .hub-insight {
+    background: rgba(0, 33, 58, 0.03) !important;
+    border: 1px dashed rgba(0, 33, 58, 0.15) !important;
+    border-radius: 8px !important;
+    color: #334155 !important;
+    font-weight: 500 !important;
+}
+
+body .hub-cta {
+    background: #ffffff !important;
+    color: #00213a !important;
+    font-weight: 700 !important;
+    border-top: 1px solid rgba(0, 33, 58, 0.06) !important;
+}
+body .hub-cta:hover {
+    background: #f8fafc !important;
+}
+body .hub-cta-arrow {
+    background: rgba(0, 33, 58, 0.06) !important;
+    color: #00213a !important;
+    border-radius: 50% !important;
+    width: 28px !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Terminal Panels (Bolsa View) Refinement */
+body .inst-terminal {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    gap: 20px !important;
+}
+
+body .inst-hero {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 33, 58, 0.08) !important;
+    border-radius: 16px !important;
+    padding: 24px !important;
+    box-shadow: 0 4px 12px rgba(0, 33, 58, 0.03) !important;
+    border-bottom: 1px solid rgba(0, 33, 58, 0.08) !important;
+}
+
+body .inst-ticker-tape {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 33, 58, 0.08) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 33, 58, 0.03) !important;
+}
+
+body .inst-panel, body .inst-kpi-table {
+    border-radius: 16px !important;
+    border: 1px solid rgba(0, 33, 58, 0.08) !important;
+    box-shadow: 0 4px 12px rgba(0, 33, 58, 0.03) !important;
+    background: #ffffff !important;
+}
+
+body .inst-kpi-header {
+    background: #f8fafc !important;
+    border-top-left-radius: 16px !important;
+    border-top-right-radius: 16px !important;
+}

@@ -1,0 +1,190 @@
+/* OVERHAUL EXTREMO TASAS Y BONOS FAVRO */
+.debt-pro-hero {
+    min-height: 140px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1.5rem !important;
+    position: relative !important;
+    overflow: hidden !important;
+    padding: 2rem 2.5rem !important;
+    margin-bottom: 1.2rem !important;
+    border-radius: 24px !important;
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #8ba3b5 0%, #647a8d 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.35), inset 0 2px 5px rgba(255,255,255,0.15), inset 0 -2px 5px rgba(0,0,0,0.4) !important;
+}
+
+.debt-pro-hero::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    background: radial-gradient(circle at 80% 20%, rgba(36, 107, 254, 0.25) 0%, transparent 60%) !important;
+    pointer-events: none !important;
+}
+
+.debt-pro-hero::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+    opacity: 0.15 !important;
+    background-image: linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px) !important;
+    background-size: 40px 40px !important;
+}
+
+.debt-pro-hero > * { position: relative !important; z-index: 2 !important; }
+
+.debt-pro-eyebrow { 
+    display: inline-flex !important; 
+    align-items: center !important; 
+    gap: 0.5rem !important; 
+    margin-bottom: 0.6rem !important; 
+    color: #60a5fa !important; 
+    font-size: 0.6rem !important; 
+    font-weight: 900 !important; 
+    letter-spacing: 0.2em !important; 
+    text-transform: uppercase !important; 
+    background: rgba(36, 107, 254, 0.1) !important;
+    padding: 0.3rem 0.8rem !important;
+    border-radius: 99px !important;
+    border: 1px solid rgba(96, 165, 250, 0.3) !important;
+}
+.debt-pro-hero h2 { 
+    margin: 0 !important; 
+    font: 800 clamp(1.8rem, 3vw, 2.8rem)/1.1 'Inter', sans-serif !important; 
+    letter-spacing: -0.05em !important; 
+    text-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+.debt-pro-hero p { 
+    max-width: 750px !important; 
+    margin: 0.6rem 0 0 !important; 
+    color: rgba(255, 255, 255, 0.8) !important; 
+    font-size: 0.7rem !important; 
+    line-height: 1.6 !important; 
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* KPI CARDS REDESIGN */
+.debt-kpi {
+    --debt-tone: #246bfe !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 0.8rem !important;
+    position: relative !important;
+    overflow: hidden !important;
+    padding: 0.9rem 0.8rem !important;
+    border: 1px solid rgba(36, 107, 254, 0.15) !important;
+    border-radius: 18px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 6px 24px rgba(7, 28, 44, 0.04), inset 0 1px 1px rgba(255,255,255,1) !important;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    cursor: pointer !important;
+}
+
+.debt-kpi::before { 
+    content: '' !important; 
+    width: 4px !important; 
+    position: absolute !important; 
+    inset: 0 auto 0 0 !important; 
+    background: var(--debt-tone) !important; 
+    box-shadow: 2px 0 8px var(--debt-tone) !important;
+}
+.debt-kpi:hover { 
+    transform: translateY(-4px) scale(1.02) !important; 
+    border-color: rgba(36, 107, 254, 0.4) !important; 
+    box-shadow: 0 16px 32px rgba(7, 28, 44, 0.1), 0 0 15px rgba(36, 107, 254, 0.1) !important; 
+    z-index: 2 !important; 
+    background: #ffffff !important;
+}
+.debt-kpi-icon { 
+    width: 44px !important; 
+    height: 44px !important; 
+    display: grid !important; 
+    place-items: center !important; 
+    border-radius: 12px !important; 
+    color: var(--debt-tone) !important; 
+    background: rgba(36, 107, 254, 0.08) !important; 
+    font-size: 0.9rem !important; 
+    transition: all 0.3s ease !important;
+}
+.debt-kpi:hover .debt-kpi-icon {
+    background: var(--debt-tone) !important;
+    color: #ffffff !important;
+    transform: rotate(5deg) scale(1.05) !important;
+}
+.debt-kpi small { 
+    display: block !important; 
+    overflow: hidden !important; 
+    color: #64748b !important; 
+    font-size: 0.48rem !important; 
+    font-weight: 800 !important; 
+    letter-spacing: 0.1em !important; 
+    text-overflow: ellipsis !important; 
+    text-transform: uppercase !important; 
+    white-space: nowrap !important; 
+}
+.debt-kpi strong {
+    display: block !important;
+    margin: 0.1rem 0 0.1rem !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font: 800 1.2rem/1.2 'Inter', sans-serif !important;
+    font-variant-numeric: tabular-nums !important;
+    letter-spacing: -0.03em !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+.debt-kpi div > span { 
+    display: block !important; 
+    overflow: hidden !important; 
+    color: #94a3b8 !important; 
+    font-size: 0.45rem !important; 
+    font-weight: 600 !important; 
+    text-overflow: ellipsis !important; 
+    white-space: nowrap !important; 
+}
+
+/* BLOCKS REDESIGN */
+.debt-block {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 1.5rem !important;
+    border: 1px solid rgba(7, 28, 44, 0.06) !important;
+    border-radius: 24px !important;
+    background: #ffffff !important;
+    box-shadow: 0 12px 40px rgba(7, 28, 44, 0.03), 0 1px 3px rgba(7, 28, 44, 0.02) !important;
+    transition: box-shadow 0.4s ease, transform 0.4s ease !important;
+}
+.debt-block:hover { 
+    box-shadow: 0 20px 50px rgba(7, 28, 44, 0.06), 0 4px 12px rgba(7, 28, 44, 0.04) !important; 
+    transform: translateY(-2px) !important;
+}
+.debt-block-head h3 {
+    font-size: 1.1rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.02em !important;
+}
+.debt-block-head small {
+    color: #246bfe !important;
+    background: rgba(36, 107, 254, 0.1) !important;
+    padding: 0.2rem 0.6rem !important;
+    border-radius: 99px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.1em !important;
+}
+
+.debt-main-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.65fr) minmax(310px, 0.85fr) !important;
+    grid-template-areas: 'curve curve' 'regime context' 'global global' !important;
+    align-items: stretch !important;
+    gap: 1.2rem !important;
+    margin-top: 1.2rem !important;
+}

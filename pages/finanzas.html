@@ -801,7 +801,34 @@ body.ff-detail-tasas .ff-table-card {
     color: #10202e !important; /* Favro Ink */
 }
 
-/* Ensure titles and text inside Favro cards are dark */
+/* Base text inside debt-block is dark (including normal headers) */
+body.ff-detail-bonos .debt-block,
+body.ff-detail-tasas .debt-block,
+body.ff-detail-bonos .debt-block *,
+body.ff-detail-tasas .debt-block * {
+    color: #10202e !important;
+    text-shadow: none !important;
+}
+
+/* OVERRIDE SOVEREIGN HERO TO MATCH FAVRO (NO DARK BACKGROUND) */
+.debt-global-block .sovereign-board-hero {
+    background: transparent !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin-bottom: 1rem !important;
+}
+
+.debt-global-block .sovereign-board-hero,
+.debt-global-block .sovereign-board-hero *,
+.sovereign-board-title h3,
+.sovereign-board-title p,
+.sovereign-board-title small,
+.sovereign-board-title-icon i {
+    color: #10202e !important;
+    text-shadow: none !important;
+}
+
+/* Ensure ALL text in Rendimientos is dark */
 body.ff-detail-rendimientos .ff-table-card *,
 body.ff-detail-rendimientos .ff-explainer *,
 body.ff-detail-rendimientos .ff-newsroom *,
@@ -814,26 +841,6 @@ body.ff-detail-rendimientos .ff-supplement-table-card *,
 body.ff-detail-rendimientos .ff-detail-supplement * {
     color: #10202e !important;
     text-shadow: none !important;
-}
-
-/* Base text inside debt-block is dark (including normal headers) */
-body.ff-detail-bonos .debt-block,
-body.ff-detail-tasas .debt-block,
-body.ff-detail-bonos .debt-block *,
-body.ff-detail-tasas .debt-block * {
-    color: #10202e !important;
-    text-shadow: none !important;
-}
-
-/* BUT headers inside debt-block that have dark backgrounds MUST be white */
-.debt-global-block .sovereign-board-hero,
-.debt-global-block .sovereign-board-hero *,
-.sovereign-board-title h3,
-.sovereign-board-title p,
-.sovereign-board-title small,
-.sovereign-board-title-icon i {
-    color: #ffffff !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
 }
 
 /* Fix Hub Card sidebar modules */
@@ -882,7 +889,7 @@ body.ff-detail-tasas .debt-block * {
     <nav class="hdr-nav">
         <div class="nav-center">
             <a class="nav-link" href="/inicio.html"><i class="fas fa-house"></i></a>
-            <a class="nav-link active" href="/pages/finanzas.html?v=8">Finanzas</a>
+            <a class="nav-link active" href="/pages/finanzas.html?v=9">Finanzas</a>
             <a class="nav-link" href="/pages/mercados.html">Mercados</a>
             <a class="nav-link" href="/pages/geopolitica.html">Geopolítica</a>
             <a class="nav-link" href="/pages/mercadoproteinas.html">Mercado Proteínas</a>
@@ -2936,7 +2943,7 @@ body.ff-detail-tasas .debt-block * {
     </div>
     <nav class="footer-nav">
         <a href="/inicio.html">Inicio</a>
-        <a href="/pages/finanzas.html?v=8">Finanzas</a>
+        <a href="/pages/finanzas.html?v=9">Finanzas</a>
         <a href="/pages/mercados.html">Mercados</a>
         <a href="/pages/geopolitica.html">Geopolítica</a>
         <a href="/pages/mercadoproteinas.html">Mercado Proteínas</a>

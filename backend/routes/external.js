@@ -63,6 +63,54 @@ router.get('/banxico/:serie/history', async (req, res) => {
 router.get('/banxico/:serie', async (req, res) => {
 });
 
+// ── Histórico de tasas soberanas a 10 años del BCE ────────────────────────────
+// Serie "long-term interest rate for convergence purposes" (criterio de
+// Maastricht): rendimiento del bono soberano a 10 años, mensual, publicado por
+// el BCE para los países de la UE. Es la única fuente pública y gratuita que
+// cubre muchos mercados con histórico homogéneo, así que es la que permite que
+// la línea del tiempo sea internacional y no solo de México y EE.UU.
+const _ecbCache = new Map();
+const ECB_TTL = 12 * 60 * 60 * 1000;
+
+router.get('/ecb/:area/history', async (req, res) => {
+    const area = String(req.params.area || '').toUpperCase();
+    if (!/^[A-Z]{2}$/.test(area)) return res.status(400).json({ error: 'Área inválida' });
+
+    const years = Math.min(20, Math.max(1, parseInt(req.query.years, 10) || 5));
+    const n = years * 12;
+    const cacheKey = `${area}:${n}`;
+    const hit = _ecbCache.get(cacheKey);
+    if (hit && Date.now() - hit.ts < ECB_TTL) return res.json(hit.data);
+
+    try {
+        const url = `https://data-api.ecb.europa.eu/service/data/IRS/M.${area}.L.L40.CI.0000.EUR.N.Z`
+                  + `?format=jsondata&lastNObservations=${n}`;
+        const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(20000) });
+        if (!r.ok) throw new Error(`ECB ${r.status}`);
+        const j = await r.json();
+
+        const serieObj = j?.dataSets?.[0]?.series;
+        if (!serieObj) throw new Error('sin series');
+        const clave = Object.keys(serieObj)[0];
+        const obs = serieObj[clave]?.observations || {};
+        const periodos = j?.structure?.dimensions?.observation?.[0]?.values || [];
+        const nombre = j?.structure?.dimensions?.series?.find(d => d.id === 'REF_AREA')?.values?.[0]?.name || area;
+
+        const points = Object.keys(obs)
+            .map(i => ({ date: periodos[+i]?.id || null, value: Array.isArray(obs[i]) ? obs[i][0] : null }))
+            .filter(p => p.date && Number.isFinite(p.value));
+
+        if (!points.length) throw new Error('sin observaciones');
+        const data = { area, name: nombre, points };
+        boundedSet(_ecbCache, cacheKey, { ts: Date.now(), data }, 80);
+        res.json(data);
+    } catch (error) {
+        console.error(`/api/ecb/${area} history:`, error.message);
+        if (hit) return res.json(hit.data);
+        res.status(502).json({ error: 'No se pudo obtener el histórico del BCE.' });
+    }
+});
+
 // ── Bond yields ───────────────────────────────────────────────────────────────
 const _bondsCache = { ts: 0, data: null };
 const BONDS_TTL   = 20 * 60 * 1000;

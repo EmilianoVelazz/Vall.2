@@ -117,36 +117,40 @@
     color: #ffffff !important;
     transform: rotate(5deg) scale(1.05) !important;
 }
-.debt-kpi small { 
-    display: block !important; 
-    overflow: hidden !important; 
-    color: #64748b !important; 
-    font-size: 0.48rem !important; 
-    font-weight: 800 !important; 
-    letter-spacing: 0.1em !important; 
-    text-overflow: ellipsis !important; 
-    text-transform: uppercase !important; 
-    white-space: nowrap !important; 
+/* 0.48rem son 7.7px: por debajo de lo legible. Subimos a ~11px y bajamos el
+   interletrado, que a ese tamaño era lo que separaba de más las mayúsculas. */
+.debt-kpi small {
+    display: block !important;
+    overflow: hidden !important;
+    color: #566b7c !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    text-overflow: ellipsis !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
 }
+/* Estas tarjetas nacieron sobre fondo oscuro; al pasar a blanco el #ffffff
+   dejó la cifra invisible (contraste 1.06 sobre rgba(255,255,255,.9)). */
 .debt-kpi strong {
     display: block !important;
     margin: 0.1rem 0 0.1rem !important;
     overflow: hidden !important;
-    color: #ffffff !important;
+    color: #0f2436 !important;
     font: 800 1.2rem/1.2 'Inter', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
     letter-spacing: -0.03em !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
 }
-.debt-kpi div > span { 
-    display: block !important; 
-    overflow: hidden !important; 
-    color: #94a3b8 !important; 
-    font-size: 0.45rem !important; 
-    font-weight: 600 !important; 
-    text-overflow: ellipsis !important; 
-    white-space: nowrap !important; 
+.debt-kpi div > span {
+    display: block !important;
+    overflow: hidden !important;
+    color: #5c7180 !important;
+    font-size: 0.66rem !important;
+    font-weight: 600 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
 }
 
 /* BLOCKS REDESIGN */
@@ -165,19 +169,23 @@
     box-shadow: 0 20px 50px rgba(7, 28, 44, 0.06), 0 4px 12px rgba(7, 28, 44, 0.04) !important; 
     transform: translateY(-2px) !important;
 }
+/* Mismo caso que .debt-kpi strong: el bloque pasó a fondo #ffffff y el título
+   blanco quedó invisible (contraste 1.00). */
 .debt-block-head h3 {
     font-size: 1.1rem !important;
     font-weight: 800 !important;
-    color: #ffffff !important;
+    color: #0f2436 !important;
     letter-spacing: -0.02em !important;
 }
+/* Heredaba .46rem (7.4px) de finanzas-redesign-v2: ilegible en la píldora. */
 .debt-block-head small {
-    color: #246bfe !important;
+    color: #1f56c9 !important;
     background: rgba(36, 107, 254, 0.1) !important;
     padding: 0.2rem 0.6rem !important;
     border-radius: 99px !important;
+    font-size: 0.7rem !important;
     font-weight: 800 !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.07em !important;
 }
 
 .debt-main-grid {

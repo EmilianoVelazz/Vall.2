@@ -2,13 +2,16 @@
 const express = require('express');
 const fs      = require('fs');
 const path    = require('path');
+const https   = require('https');
+const http    = require('http');
 
 const { genAI, MODEL } = require('../lib/gemini');
 const { CACHE_DIR }    = require('../lib/config');
+const { externalGet }  = require('../lib/http');
 
 const router = express.Router();
 
-const CACHE_FILE         = path.join(CACHE_DIR, 'finanzas.json');
+let _finanzasCache       = null;
 const CACHE_TTL          =  6 * 60 * 60 * 1000; //  6 h
 const FALLBACK_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 h (tras error Gemini — evita spam de cuota)
 
@@ -148,9 +151,9 @@ Devuelve un JSON array sin texto adicional fuera del JSON:
 });
 
 router.get('/finanzas', async (req, res) => {
-    if (fs.existsSync(CACHE_FILE)) {
+    if (_finanzasCache) {
         try {
-            const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+            const cache = _finanzasCache;
             const edad  = Date.now() - cache.timestamp;
             const ttl   = cache.fallback ? FALLBACK_CACHE_TTL : CACHE_TTL;
             if (edad < ttl) {
@@ -164,7 +167,7 @@ router.get('/finanzas', async (req, res) => {
     console.log('Generando datos frescos con Gemini...');
     try {
         const data = await generarDatosFinanzas();
-        fs.writeFileSync(CACHE_FILE, JSON.stringify({ timestamp: Date.now(), data }, null, 2));
+        _finanzasCache = { timestamp: Date.now(), data };
         console.log(' Datos generados y guardados en caché');
         res.json({ success: true, data, desde_cache: false });
     } catch (err) {
@@ -176,10 +179,9 @@ router.get('/finanzas', async (req, res) => {
         console.error(`Error Gemini /api/finanzas [${kind}]:`, err.message.slice(0, 220));
 
         let fallbackData = null;
-        if (fs.existsSync(CACHE_FILE)) {
+        if (_finanzasCache) {
             try {
-                const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-                fallbackData = cache.data;
+                fallbackData = _finanzasCache.data;
                 console.log(' Usando caché anterior como fallback');
             } catch { /* caché corrupta */ }
         }
@@ -207,7 +209,7 @@ router.get('/finanzas', async (req, res) => {
 
         if (is429) {
             try {
-                fs.writeFileSync(CACHE_FILE, JSON.stringify({ timestamp: Date.now(), data: fallbackData, fallback: true }, null, 2));
+                _finanzasCache = { timestamp: Date.now(), data: fallbackData, fallback: true };
                 console.log('[Gemini] Fallback guardado en caché por 12h (cuota agotada)');
             } catch { /* no crítico */ }
         }
@@ -224,11 +226,7 @@ router.post('/finanzas/refresh', (req, res, next) => {
         return res.status(401).json({ success: false, error: 'No autorizado.' });
     next();
 }, async (req, res) => {
-    if (fs.existsSync(CACHE_FILE)) {
-        try { fs.unlinkSync(CACHE_FILE); } catch (err) {
-            console.error('Error eliminando caché:', err.message);
-        }
-    }
+    _finanzasCache = null;
     res.redirect(303, '/api/finanzas');
 });
 
@@ -312,6 +310,257 @@ Reglas: probabilidades deben sumar 100. Usa datos realistas, no ficticios. Solo 
             return res.status(429).json({ success: false, error: 'Cuota de API agotada. Intenta más tarde.' });
         res.status(500).json({ success: false, error: 'Error al generar escenarios.' });
     }
+});
+
+// ── Daily News: noticias REALES + tratamiento editorial "Favro" (Gemini) ──────
+// Trae titulares reales de finanzas internacionales (Finnhub + NewsAPI) y usa
+// Gemini SOLO para el trabajo editorial: traducir al español, resumir con voz
+// Favro, clasificar categoría/impacto y armar el briefing del día. NUNCA inventa
+// noticias: el modelo trabaja únicamente sobre los artículos reales recibidos.
+const FINNHUB_TOKEN = process.env.FINNHUB_TOKEN || '';
+const NEWSAPI_KEY   = process.env.NEWSAPI_KEY   || '';
+
+const _dailyNewsCache = { ts: 0, data: null, fallback: false };
+const DAILY_NEWS_TTL      = 40 * 60 * 1000; // 40 min (frescura razonable, controla costo Gemini)
+const DAILY_NEWS_FB_TTL   = 15 * 60 * 1000; // 15 min si servimos sin editorial
+
+function _stripHtml(s) {
+    return String(s || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function _normTitle(t) {
+    return String(t || '').toLowerCase().replace(/[^a-z0-9áéíóúñ ]/gi, '').replace(/\s+/g, ' ').trim();
+}
+
+async function _fetchFinnhubNews() {
+    if (!FINNHUB_TOKEN) return [];
+    try {
+        const r = await externalGet(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_TOKEN}`, {}, 9000);
+        if (!r.ok) return [];
+        const arr = await r.json();
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(a => a && a.headline && a.url).map(a => ({
+            title: a.headline,
+            summary: _stripHtml(a.summary),
+            source: a.source || 'Finnhub',
+            url: a.url,
+            image: a.image || '',
+            publishedAt: a.datetime ? new Date(a.datetime * 1000).toISOString() : null,
+            origin: 'finnhub',
+        }));
+    } catch (e) {
+        console.warn('[daily-news] Finnhub:', e.message);
+        return [];
+    }
+}
+
+async function _fetchNewsApiBusiness() {
+    if (!NEWSAPI_KEY) return [];
+    try {
+        const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=25&apiKey=${NEWSAPI_KEY}`;
+        const r = await externalGet(url, { 'X-Api-Key': NEWSAPI_KEY }, 9000);
+        if (!r.ok) return [];
+        const j = await r.json();
+        const arts = Array.isArray(j?.articles) ? j.articles : [];
+        return arts.filter(a => a && a.title && a.url && a.title !== '[Removed]').map(a => ({
+            title: a.title,
+            summary: _stripHtml(a.description || a.content),
+            source: a.source?.name || 'NewsAPI',
+            url: a.url,
+            image: a.urlToImage || '',
+            publishedAt: a.publishedAt || null,
+            origin: 'newsapi',
+        }));
+    } catch (e) {
+        console.warn('[daily-news] NewsAPI:', e.message);
+        return [];
+    }
+}
+
+// Mapea las etiquetas en español del editor a los buckets que usa el frontend.
+const _CAT_MAP = { mercados: 'markets', tasas: 'rates', bonos: 'bonds', divisas: 'markets', commodities: 'markets' };
+const _CAT_LABEL = { mercados: 'Mercados', tasas: 'Tasas', bonos: 'Bonos', divisas: 'Divisas', commodities: 'Commodities' };
+const _SENT_MAP = { positivo: 'positive', negativo: 'negative', neutral: 'neutral' };
+
+async function _editorializeNews(articles) {
+    if (!genAI) throw new Error('GEMINI_API_KEY no configurada');
+    // responseMimeType JSON obliga a Gemini a devolver JSON estricto (evita comillas
+    // sin escapar y otros errores de parseo que rompían el editorial).
+    const model = genAI.getGenerativeModel({
+        model: MODEL,
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.45 },
+    });
+    const input = articles.map((a, i) => ({ i, title: a.title, summary: (a.summary || '').slice(0, 320), source: a.source }));
+
+    const prompt = `Eres el editor financiero de VALLNEWS (marca editorial "Favro"). Te entrego noticias REALES de finanzas internacionales, la mayoría en inglés. Es CRÍTICO que NO inventes noticias, cifras ni fuentes: trabaja EXCLUSIVAMENTE con los artículos que te doy (identificados por "i").
+
+Para cada artículo devuelve, en ESPAÑOL neutro y profesional:
+- "titulo": titular editorial claro (traducido/reescrito, sin sensacionalismo ni clickbait)
+- "resumen": máximo 2 oraciones concretas que expliquen la noticia con base en lo dado
+- "insight": una sola línea "Qué significa" con el ángulo Favro para inversionistas/empresas (máx 16 palabras)
+- "categoria": una de "mercados" | "tasas" | "bonos" | "divisas" | "commodities"
+- "impacto": "alto" | "medio" | "bajo"
+- "sentimiento": "positivo" | "negativo" | "neutral"
+
+Además entrega:
+- "briefing": 3 frases cortas con lo esencial del día (una por punto)
+- "lead": el índice "i" del artículo más importante para portada
+
+Devuelve SOLO JSON puro, sin bloques de código ni texto extra:
+{"items":[{"i":0,"titulo":"","resumen":"","insight":"","categoria":"mercados","impacto":"medio","sentimiento":"neutral"}],"briefing":["","",""],"lead":0}
+
+NOTICIAS (JSON):
+${JSON.stringify(input)}`;
+
+    const result  = await model.generateContent(prompt);
+    const raw     = result.response.text().trim();
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(cleaned); }
+    catch {
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('Gemini no devolvió JSON válido en daily-news');
+        parsed = JSON.parse(match[0]);
+    }
+    return parsed;
+}
+
+function _formatFecha(iso) {
+    const d = iso ? new Date(iso) : new Date();
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()
+        + ' · ' + d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function _buildDailyNews() {
+    const [fh, na] = await Promise.all([_fetchFinnhubNews(), _fetchNewsApiBusiness()]);
+
+    // Combinar y deduplicar por título normalizado, preferir con imagen.
+    const seen = new Map();
+    for (const art of [...na, ...fh]) {
+        const k = _normTitle(art.title).slice(0, 60);
+        if (!k) continue;
+        const prev = seen.get(k);
+        if (!prev || (!prev.image && art.image)) seen.set(k, art);
+    }
+    let pool = [...seen.values()]
+        .filter(a => (a.summary || '').length > 0 || a.image)
+        .sort((x, y) => new Date(y.publishedAt || 0) - new Date(x.publishedAt || 0))
+        .slice(0, 12);
+
+    if (!pool.length) throw new Error('sin noticias reales disponibles');
+
+    let editorial = null;
+    try {
+        editorial = await _editorializeNews(pool);
+    } catch (e) {
+        console.warn('[daily-news] editorial Gemini falló:', e.message);
+    }
+
+    const editById = new Map();
+    if (editorial?.items) for (const it of editorial.items) editById.set(Number(it.i), it);
+
+    const noticias = pool.map((art, i) => {
+        const ed = editById.get(i) || {};
+        const catKey = (ed.categoria || '').toLowerCase();
+        return {
+            title:       ed.titulo  || art.title,
+            description: ed.resumen || art.summary || '',
+            insight:     ed.insight || '',
+            category:    _CAT_MAP[catKey] || 'markets',
+            categoryLabel: _CAT_LABEL[catKey] || 'Mercados',
+            sentiment:   _SENT_MAP[(ed.sentimiento || '').toLowerCase()] || 'neutral',
+            impact:      ['alto', 'medio', 'bajo'].includes((ed.impacto || '').toLowerCase()) ? ed.impacto.toLowerCase() : 'medio',
+            source:      art.source,
+            url:         art.url,
+            image:       art.image ? `/api/img?u=${encodeURIComponent(art.image)}` : '',
+            imageRaw:    art.image || '',
+            publishedAt: art.publishedAt,
+            fecha:       _formatFecha(art.publishedAt),
+        };
+    });
+
+    // Ordenar dejando primero el "lead" que eligió el editor.
+    const leadIdx = Number.isInteger(editorial?.lead) && editorial.lead >= 0 && editorial.lead < noticias.length ? editorial.lead : 0;
+    if (leadIdx > 0) noticias.unshift(noticias.splice(leadIdx, 1)[0]);
+
+    const briefing = Array.isArray(editorial?.briefing) && editorial.briefing.length
+        ? editorial.briefing.slice(0, 3).map(s => String(s).trim()).filter(Boolean)
+        : [];
+
+    const ahora = new Date();
+    return {
+        generado: ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+            + ' · ' + ahora.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(),
+        noticias,
+        briefing,
+        editorial: !!editorial,
+        fuente: [na.length ? 'NewsAPI' : null, fh.length ? 'Finnhub' : null, editorial ? 'Favro Editorial (Gemini)' : null].filter(Boolean).join(' · '),
+    };
+}
+
+router.get('/daily-news', async (req, res) => {
+    const cache = _dailyNewsCache;
+    if (cache.data) {
+        const ttl = cache.data.editorial ? DAILY_NEWS_TTL : DAILY_NEWS_FB_TTL;
+        if (Date.now() - cache.ts < ttl) return res.json({ success: true, data: cache.data, desde_cache: true });
+    }
+    try {
+        const data = await _buildDailyNews();
+        _dailyNewsCache.ts = Date.now();
+        _dailyNewsCache.data = data;
+        res.json({ success: true, data, desde_cache: false });
+    } catch (err) {
+        console.error('/api/daily-news:', err.message);
+        if (cache.data) return res.json({ success: true, data: cache.data, desde_cache: true, stale: true });
+        res.status(502).json({ success: false, error: 'No se pudieron cargar las noticias en este momento.' });
+    }
+});
+
+// ── Proxy de imágenes de noticias ─────────────────────────────────────────────
+// Muchas fuentes (Reuters, etc.) bloquean el hotlinking cross-origin. Servimos la
+// imagen desde nuestro propio origen para que cargue en el noticiero. Guarda
+// anti-SSRF básica: solo http/https y hosts públicos; exige content-type image/*.
+function _isPrivateHost(host) {
+    const h = (host || '').toLowerCase();
+    if (h === 'localhost' || h.endsWith('.local') || h === '::1') return true;
+    if (/^(?:127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h)) return true;
+    const m = h.match(/^172\.(\d+)\./);
+    if (m && +m[1] >= 16 && +m[1] <= 31) return true;
+    return false;
+}
+
+router.get('/img', (req, res) => {
+    const raw = req.query.u;
+    if (!raw || typeof raw !== 'string') return res.status(400).end();
+    let u;
+    try { u = new URL(raw); } catch { return res.status(400).end(); }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return res.status(400).end();
+    if (_isPrivateHost(u.hostname)) return res.status(403).end();
+
+    const lib = u.protocol === 'http:' ? http : https;
+    const upstream = lib.request({
+        hostname: u.hostname,
+        port:     u.port || (u.protocol === 'http:' ? 80 : 443),
+        path:     u.pathname + u.search,
+        method:   'GET',
+        rejectUnauthorized: false, // en local (Windows) faltan CAs intermedias de algunos CDNs
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; VALLNews/1.0)',
+            'Accept':     'image/avif,image/webp,image/*,*/*;q=0.8',
+            'Referer':    `${u.protocol}//${u.hostname}/`,
+        },
+    }, up => {
+        const type = up.headers['content-type'] || '';
+        if (up.statusCode >= 400 || !/^image\//i.test(type)) { up.resume(); return res.status(502).end(); }
+        res.setHeader('Content-Type', type);
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 h
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        up.pipe(res);
+    });
+    upstream.setTimeout(8000, () => { upstream.destroy(); if (!res.headersSent) res.status(504).end(); });
+    upstream.on('error', () => { if (!res.headersSent) res.status(502).end(); });
+    upstream.end();
 });
 
 module.exports = router;

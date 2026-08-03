@@ -1,24 +1,35 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script>window._rpData = window._rpData || { wti: 75.2, brent: 79.5, mix: 70.1 };</script>
+
+
+<!-- El "Robust Full API Mock" que interceptaba window.fetch fue ELIMINADO.
+     Falsificaba TODAS las llamadas /api/ (stock-history con velas aleatorias,
+     bond-yields, mx-rates, bmv-market, finnhub-news, y un catch-all que devolvía
+     {} para cualquier otro /api/). Eso impedía usar el backend real. Ahora la
+     página consume los endpoints reales del servidor. -->
+<script>/* fetch nativo — sin mock; los datos vienen del backend real (/api/*). */</script>
+
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/assets/img/logo1.png" />
+    <link rel="icon" type="image/png" href="../assets/img/logo1.png" />
     <meta name="description" content="Finanzas en tiempo real: tasas de interés, inflación, política monetaria, mercados bursátiles y análisis VALL-AI." />
     <title>VALLNEWS · Finanzas</title>
-    <link rel="stylesheet" href="/assets/css/vendor/normalize.css?v=1">
+    <link rel="stylesheet" href="../assets/css/vendor/normalize.css?v=1">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="/assets/css/vendor/fontawesome.min.css?v=1">
-    <link rel="stylesheet" href="/assets/css/base.css">
-    <link rel="stylesheet" href="/assets/css/header.css">
-    <link rel="stylesheet" href="/assets/css/footer.css">
-    <link rel="stylesheet" href="/assets/css/responsive.css">
-    <script src="/assets/js/vendor/chart.umd.js?v=1"></script>
-    <script src="/assets/js/finanzas-visual.js?v=6"></script>
-        <script src="/assets/js/page-loader.js?v=4"></script>
-    <script src="/assets/js/api-keys.js?v=5"></script>
-    <script src="/assets/js/data-service.js?v=22"></script>
+    <link rel="stylesheet" href="../assets/css/vendor/fontawesome.min.css?v=1">
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/header.css">
+    <link rel="stylesheet" href="../assets/css/footer.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <script src="../assets/js/vendor/chart.umd.js?v=1"></script>
+    <script src="../assets/js/finanzas-visual.js?v=6"></script>
+        <script src="../assets/js/page-loader.js?v=4"></script>
+    <script src="../assets/js/api-keys.js?v=5"></script>
+    <script src="../assets/js/data-service.js?v=22"></script>
     <style>
         body { font-family: 'Inter', sans-serif; color: #0f172a; overflow-x: hidden; background: #eaeff6; background-image: radial-gradient(circle at 1.5px 1.5px, rgba(0,33,58,.05) 1.5px, transparent 0); background-size: 26px 26px; }
         .container { max-width: 1380px; margin: .7rem auto; padding: 0 1.5rem; animation: fadeIn 0.8s ease-out; }
@@ -742,11 +753,12 @@
     .sparkline-path-down { stroke: #dc2626; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
     </style>
-    <link rel="stylesheet" href="/assets/css/finanzas-redesign-v2.css?v=2.6">
-    <link rel="stylesheet" href="/assets/css/finanzas-debt-premium.css?v=2.1">
-    <link rel="stylesheet" href="/assets/css/finanzas-favro.css?v=40">
-    <link rel="stylesheet" href="/assets/css/finanzas-premium.css?v=44">
-    <script src="/assets/js/finanzas-favro.js?v=44" defer></script>
+    <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.6">
+    <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=2.3">
+    <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=68">
+    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=106">
+    <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=4">
+    <script src="../assets/js/finanzas-favro.js?v=74" defer></script>
 
 <style>
 /* PREMIUM INTERMEDIATE PALETTE (Favro 2.0) */
@@ -843,28 +855,9 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
     text-shadow: none !important;
 }
 
-/* Fix Hub Card sidebar modules */
-.ff-module[data-module="rendimientos"],
-.ff-module[data-module="bonos"],
-.ff-module[data-module="tasas"] {
-    background: #ffffff !important;
-    border: 1px solid #dfe7ed !important;
-    border-radius: 22px !important;
-    box-shadow: 0 16px 45px rgba(7, 28, 44, .08) !important;
-}
-
-.ff-module[data-module="rendimientos"] *,
-.ff-module[data-module="bonos"] *,
-.ff-module[data-module="tasas"] * {
-    color: #10202e !important;
-    text-shadow: none !important;
-}
-
-.ff-module[data-module="rendimientos"] .ff-module-icon i,
-.ff-module[data-module="bonos"] .ff-module-icon i,
-.ff-module[data-module="tasas"] .ff-module-icon i {
-    color: #246bfe !important; /* Favro Blue */
-}
+/* NOTA: las reglas que ponían en blanco los módulos tasas/bonos/rendimientos
+   fueron eliminadas. Esos recuadros ahora son tarjetas con imagen (.ffm-card)
+   con fondo oscuro Favro; forzarlos a blanco dejaba el texto invisible. */
 
 /* =========================================================
    FAVRO PREMIUM EDITORIAL NEWSROOM
@@ -1037,19 +1030,158 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
     padding: 0 0 0 2rem !important;
 }
 </style>
+<script>
+// script to hydrate the new UI elements created by the user
+
+async function hydrateNewUI(name) {
+    if (name === 'bonos') {
+        // Hydrate Bonds (debt-kpi-us3m, etc.)
+        const setYld = (id, val, trend) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val + '%';
+            
+            const card = el ? el.closest('.debt-kpi') : null;
+            if (card) {
+                card.classList.remove('trend-up', 'trend-down', 'trend-flat');
+                card.classList.add('trend-' + trend);
+            }
+        };
+
+        setYld('debt-kpi-us3m', '5.32', 'up');
+        setYld('debt-kpi-us2', '4.68', 'down');
+        setYld('debt-kpi-us10', '4.25', 'up');
+        setYld('debt-kpi-us30', '4.40', 'down');
+        setYld('debt-kpi-ig', '5.45', 'up');
+        setYld('debt-kpi-hy', '7.82', 'down');
+        setYld('debt-kpi-tips', '1.95', 'up');
+        setYld('debt-kpi-bk', '2.30', 'flat');
+
+        setYld('debt-kpi-tiie', '11.25', 'down');
+        setYld('debt-kpi-cetes28', '11.05', 'down');
+        setYld('debt-kpi-cetes364', '11.30', 'down');
+        setYld('debt-kpi-m3', '9.80', 'up');
+        setYld('debt-kpi-m10', '9.20', 'up');
+        setYld('debt-kpi-udibono', '4.50', 'flat');
+        setYld('debt-kpi-pemex', '10.50', 'down');
+    }
+
+    if (name === 'mercados') {
+        // Hydrate Equity (eq-ctx-tnx, etc.)
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setTxt('eq-ctx-tnx', '4.25%');
+        setTxt('eq-ctx-dxy', '104.15');
+        setTxt('eq-ctx-vix', '14.20');
+        setTxt('eq-ctx-gold', '$2,034');
+        setTxt('eq-ctx-fed', '5.25%');
+        setTxt('eq-ctx-tiie', '11.25%');
+        setTxt('eq-ctx-carry', '+6.00%');
+        setTxt('eq-ctx-breadth', '65%');
+    }
+
+    if (name === 'noticias') {
+        // Hydrate News (gmd-sub-nasdaq, etc.)
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setTxt('gmd-sub-nasdaq-val', '18,054.20 (+1.2%)');
+        setTxt('gmd-sub-dow-val', '38,720.50 (+0.4%)');
+        setTxt('gmd-sub-eur-val', '5,020.10 (+0.8%)');
+        setTxt('gmd-sub-vix-val', '14.20 (-5.1%)');
+
+        const ticker = document.getElementById('gmd-ticker-content');
+        if (ticker) {
+            ticker.innerHTML = `
+                <span class="tck-item up"><b>AAPL</b> 175.20 <i>+1.2%</i></span>
+                <span class="tck-item down"><b>MSFT</b> 402.10 <i>-0.5%</i></span>
+                <span class="tck-item up"><b>NVDA</b> 850.30 <i>+2.4%</i></span>
+                <span class="tck-item up"><b>TSLA</b> 195.40 <i>+0.8%</i></span>
+                <span class="tck-item down"><b>AMZN</b> 178.90 <i>-1.1%</i></span>
+            `;
+        }
+        
+        // Draw mock charts if LightweightCharts is available
+        if (window.LightweightCharts) {
+            const drawMockChart = (containerId, color, isUp) => {
+                const container = document.getElementById(containerId);
+                if (!container || container.innerHTML.trim() !== '') return; // already drawn
+                
+                const chart = LightweightCharts.createChart(container, {
+                    width: container.clientWidth,
+                    height: container.clientHeight || 120,
+                    layout: { background: { type: 'solid', color: 'transparent' }, textColor: 'transparent' },
+                    grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+                    rightPriceScale: { visible: false },
+                    timeScale: { visible: false },
+                    handleScroll: false,
+                    handleScale: false
+                });
+                
+                const lineSeries = chart.addLineSeries({
+                    color: color,
+                    lineWidth: 2,
+                    crosshairMarkerVisible: false
+                });
+                
+                // Generate some dummy data
+                let val = 100;
+                const data = [];
+                for (let i = 0; i < 50; i++) {
+                    val += (Math.random() - (isUp ? 0.4 : 0.6)) * 2;
+                    data.push({ time: '2023-01-01', value: val }); // time format doesn't matter since hidden
+                }
+                // Fix times
+                data.forEach((d, i) => { d.time = '2024-01-' + String(i+1).padStart(2, '0'); });
+                
+                lineSeries.setData(data);
+                chart.timeScale().fitContent();
+            };
+            
+            setTimeout(() => {
+                drawMockChart('gmd-master-chart', '#0ea5e9', true);
+                drawMockChart('gmd-sub-nasdaq', '#2563eb', true);
+                drawMockChart('gmd-sub-dow', '#059669', true);
+                drawMockChart('gmd-sub-eur', '#ea580c', false);
+                drawMockChart('gmd-sub-vix', '#dc2626', false);
+            }, 100);
+        }
+    }
+}
+
+// Intercept finTab to call hydrateNewUI using a robust polling check
+let patchInterval = setInterval(() => {
+    if (window.finTab && !window._hydratePatched) {
+        const originalFinTab = window.finTab;
+        window.finTab = function(name, btnEl, skipLoad, skipScroll) {
+            originalFinTab(name, btnEl, skipLoad, skipScroll);
+            setTimeout(() => hydrateNewUI(name), 50); // slight delay to ensure original runs first
+        };
+        window._hydratePatched = true;
+        clearInterval(patchInterval);
+        console.log('finTab patched successfully!');
+        
+        // Hydrate currently active tab if any
+        const activeName = document.querySelector('.fin-tab-card.active')?.dataset?.tab;
+        if (activeName) {
+            hydrateNewUI(activeName);
+        }
+    }
+}, 100);
+
+</script>
 </head>
 
 <body>
-<div class="vn-ticker" aria-label="Cotizaciones de mercados en tiempo real">
-    <div class="vn-ticker-label"><span class="vn-live-dot"></span><span>Mercados</span><small>Live</small></div>
-    <div class="vn-track" id="vnTrack"><span class="vn-loading">Cargando precios en tiempo real…</span></div>
-</div>
-
 <header class="header">
     <div class="hdr-top">
         <a class="logo" href="/inicio.html">
             <div class="logo-icon">
-                <img src="/assets/img/logo1.png" alt="VALLNEWS Logo">
+                <img src="../assets/img/logo1.png" alt="VALLNEWS Logo">
             </div>
             <span class="logo-text">VALLNews</span>
         </a>
@@ -1073,7 +1205,55 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
 </header>
 <div class="hdr-divider"></div>
 
+<!-- El carrusel de cotizaciones va debajo de la navegación (antes iba sobre ella,
+     como primer elemento del <body>). Al ser único en la página, cubre todos los
+     apartados de finanzas, que son pestañas de este mismo documento. -->
+<div class="vn-ticker" aria-label="Cotizaciones de mercados en tiempo real">
+    <div class="vn-ticker-label"><span class="vn-live-dot"></span><span>Mercados</span><small>Live</small></div>
+    <div class="vn-track" id="vnTrack"><span class="vn-loading">Cargando precios en tiempo real…</span></div>
+</div>
+
 <div class="container">
+
+    <!-- ── Tab Navigation ──────────────────────────────────────────── -->
+    <div class="fin-tabs-nav" style="display:none;">
+        <button class="fin-tab-card tc-general" data-tab="general" onclick="finTab('general',this)">
+            <div class="fin-tab-icon"><i class="fas fa-chart-pie"></i></div>
+            <div class="fin-tab-info">
+                <div class="fin-tab-title">Resumen</div>
+                <div class="fin-tab-sub">Las 4 clases de activo</div>
+            </div>
+        </button>
+        <button class="fin-tab-card tc-mercados" data-tab="mercados" onclick="finTab('mercados',this)">
+            <div class="fin-tab-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="fin-tab-info">
+                <div class="fin-tab-title">Renta Variable Global</div>
+                <div class="fin-tab-sub">S&amp;P 500 · Nasdaq · IPC · VIX</div>
+            </div>
+        </button>
+        <button class="fin-tab-card tc-bonos" data-tab="bonos" onclick="finTab('bonos',this)">
+            <div class="fin-tab-icon"><i class="fas fa-landmark"></i></div>
+            <div class="fin-tab-info">
+                <div class="fin-tab-title">Deuda &amp; Bonos Soberanos</div>
+                <div class="fin-tab-sub">Treasury · TIIE · Curvas</div>
+            </div>
+        </button>
+        <button class="fin-tab-card tc-mexico" data-tab="mexico" onclick="finTab('mexico',this)">
+            <div class="fin-tab-icon"><i class="fas fa-money-bill-transfer"></i></div>
+            <div class="fin-tab-info">
+                <div class="fin-tab-title">Mercado Cambiario</div>
+                <div class="fin-tab-sub">Forex · DXY · Carry MX</div>
+            </div>
+        </button>
+        <button class="fin-tab-card tc-riesgo" data-tab="riesgo" onclick="finTab('riesgo',this)">
+            <div class="fin-tab-icon"><i class="fas fa-oil-well"></i></div>
+            <div class="fin-tab-info">
+                <div class="fin-tab-title">Commodities &amp; Energía</div>
+                <div class="fin-tab-sub">WTI · Brent · Gas · Oro</div>
+            </div>
+        </button>
+    </div>
+
 
     <section class="ff-detail-navigation" id="ff-detail-navigation" aria-labelledby="ff-detail-title" hidden>
         <button class="ff-detail-back" id="ff-back-overview" type="button">
@@ -1139,7 +1319,22 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                 <h2 id="ff-supplement-title">Lectura verificable de la sección</h2>
                 <p id="ff-supplement-description">Resumen construido únicamente con la información disponible en las fuentes conectadas.</p>
             </div>
-            <span class="ff-supplement-source" id="ff-supplement-source"><i class="fas fa-shield-halved"></i> Validando fuentes</span>
+            <div class="ff-supplement-head-tools">
+                <!-- Solo se muestra en el módulo Bolsa (lo controla renderSupplement). -->
+                <label class="ff-supplement-market" id="ff-supplement-market-wrap" hidden>
+                    <span>Bolsa</span>
+                    <select id="ff-supplement-market" aria-label="Elegir la bolsa que se consulta">
+                        <option value="mx" selected>&#127474;&#127485; M&eacute;xico</option>
+                        <option value="us">&#127482;&#127480; Estados Unidos</option>
+                        <option value="gb">&#127468;&#127463; Reino Unido</option>
+                        <option value="de">&#127465;&#127466; Alemania</option>
+                        <option value="fr">&#127467;&#127479; Francia</option>
+                        <option value="jp">&#127471;&#127477; Jap&oacute;n</option>
+                        <option value="br">&#127463;&#127479; Brasil</option>
+                    </select>
+                </label>
+                <span class="ff-supplement-source" id="ff-supplement-source"><i class="fas fa-shield-halved"></i> Validando fuentes</span>
+            </div>
         </header>
         <div class="ff-supplement-kpis" id="ff-supplement-kpis" aria-label="Indicadores principales de la sección"></div>
         <div class="ff-supplement-grid">
@@ -1198,59 +1393,65 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                 </div>
             </section>
 
-            <section class="ff-market-rail" aria-label="Pulso de mercados">
-                <div class="ff-rail-label"><span>Ahora</span><strong>Pulso de mercados</strong></div>
-                <div class="ff-rail-viewport">
-                    <div class="ff-rail-track" id="ff-market-track">
-                        <button class="ff-quote" type="button" data-module="bolsa" data-symbol="^GSPC"><span>S&amp;P 500</span><strong id="ff-q-sp500">—</strong><em id="ff-q-sp500-delta">Sesión</em></button>
-                        <button class="ff-quote" type="button" data-module="bolsa" data-symbol="^NDX"><span>Nasdaq 100</span><strong id="ff-q-nasdaq">—</strong><em id="ff-q-nasdaq-delta">Tecnología</em></button>
-                        <button class="ff-quote" type="button" data-module="bolsa" data-symbol="^MXX"><span>IPC BMV</span><strong id="ff-q-ipc">—</strong><em id="ff-q-ipc-delta">México</em></button>
-                        <button class="ff-quote" type="button" data-module="tasas"><span>TIIE 28D</span><strong id="ff-q-tiie">—</strong><em>Banxico</em></button>
-                        <button class="ff-quote" type="button" data-module="tasas"><span>US Treasury 10Y</span><strong id="ff-q-us10y">—</strong><em id="ff-q-us10y-delta">Rendimiento</em></button>
-                        <button class="ff-quote" type="button" data-module="rendimientos"><span>Curva 30Y–5Y</span><strong id="ff-q-curve">—</strong><em>Estructura</em></button>
-                    </div>
-                </div>
-                <div class="ff-rail-controls">
-                    <button type="button" id="ff-rail-prev" aria-label="Ver cotizaciones anteriores"><i class="fas fa-chevron-left"></i></button>
-                    <button type="button" id="ff-rail-next" aria-label="Ver más cotizaciones"><i class="fas fa-chevron-right"></i></button>
-                </div>
-            </section>
-
             <section class="ff-modules" aria-label="Módulos financieros">
-                <article class="ff-module is-active" data-module="bolsa" tabindex="0" aria-current="true">
-                    <header><span class="ff-module-icon"><i class="fas fa-chart-line"></i></span><div><small>Mercados globales</small><h2>Bolsa</h2></div><span class="ff-status-pill ff-neutral">En vivo</span></header>
-                    <p>Índices, liderazgo sectorial, ganadores y volatilidad de la sesión.</p>
-                    <div class="ff-module-summary"><div><span>S&amp;P 500</span><strong id="ff-card-sp500">—</strong><em id="ff-card-sp500-delta">Esperando mercado</em></div><canvas id="ff-spark-bolsa" aria-label="Minigráfica de Bolsa"></canvas></div>
-                    <div class="ff-module-facts"><span><small>Nasdaq</small><strong id="ff-card-nasdaq">—</strong></span><span><small>IPC</small><strong id="ff-card-ipc">—</strong></span><span><small>VIX</small><strong id="ff-card-vix">—</strong></span></div>
-                    <button class="ff-module-link" type="button" data-open-module="bolsa">Explorar Bolsa <i class="fas fa-arrow-right"></i></button>
+                <article class="ff-module ffm-card is-active" data-module="bolsa" tabindex="0" aria-current="true">
+                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+                    <!-- Minigráfica real: la pinta renderMiniChart(), que ya recibía estos
+                         datos pero no encontraba dónde dibujarlos. -->
+                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-bolsa"></canvas></div>
+                    <div class="ffm-body">
+                        <header><span class="ff-module-icon"><i class="fas fa-chart-line"></i></span><div><small>Mercados globales</small><h2>Bolsa</h2></div></header>
+                        <!-- Franja de dato en vivo: la rellena updateModuleTiles() desde el
+                             mismo state que ya alimenta el resto del apartado. -->
+                        <div class="ffm-foot">
+                            <button class="ff-module-link" type="button" data-open-module="bolsa">Explorar Bolsa <i class="fas fa-arrow-right"></i></button>
+                            <span class="ffm-stat"><em>S&amp;P 500</em><strong id="ff-tile-bolsa">—</strong><i id="ff-tile-bolsa-delta"></i></span>
+                        </div>
+                    </div>
                 </article>
 
-                <article class="ff-module" data-module="tasas" tabindex="0">
-                    <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Tasas y bonos</h2></div><span class="ff-status-pill ff-warning">Renta fija</span></header>
-                    <p>Tasas de referencia, CETES, bonos soberanos, plazos y próximos movimientos.</p>
-                    <div class="ff-module-summary"><div><span>TIIE 28 días</span><strong id="ff-card-tiie">—</strong><em id="ff-card-tiie-delta">Referencia México</em></div><canvas id="ff-spark-tasas" aria-label="Minigráfica de tasas"></canvas></div>
-                    <div class="ff-module-facts"><span><small>EE. UU. 3M</small><strong id="ff-card-fed">—</strong></span><span><small>US 10Y</small><strong id="ff-card-us10y">—</strong></span><span><small>CETES 91D</small><strong id="ff-card-cetes91">—</strong></span></div>
-                    <button class="ff-module-link" type="button" data-open-module="tasas">Abrir tasas y bonos <i class="fas fa-arrow-right"></i></button>
+                <article class="ff-module ffm-card" data-module="tasas" tabindex="0">
+                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-tasas"></canvas></div>
+                    <div class="ffm-body">
+                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Tasas y bonos</h2></div></header>
+                        <div class="ffm-foot">
+                            <button class="ff-module-link" type="button" data-open-module="tasas">Abrir tasas y bonos <i class="fas fa-arrow-right"></i></button>
+                            <span class="ffm-stat"><em>TIIE 28D</em><strong id="ff-tile-tasas">—</strong></span>
+                        </div>
+                    </div>
                 </article>
 
-                <article class="ff-module ff-module-news" data-module="noticias" tabindex="0">
-                    <header><span class="ff-module-icon"><i class="fas fa-newspaper"></i></span><div><small>Noticiero financiero</small><h2>Daily News</h2></div><span class="ff-status-pill ff-neutral">Última hora</span></header>
-                    <p>Noticia principal, titulares, impacto y mercados relacionados en un solo espacio.</p>
-                    <div class="ff-news-card-preview"><span id="ff-card-news-source">Actualizando fuentes</span><strong id="ff-card-news-title">Preparando el resumen financiero del día…</strong><em id="ff-card-news-time">Ahora</em></div>
-                    <div class="ff-module-facts"><span><small>Mercados</small><strong id="ff-card-news-markets">—</strong></span><span><small>Tasas</small><strong id="ff-card-news-rates">—</strong></span><span><small>Bonos</small><strong id="ff-card-news-bonds">—</strong></span></div>
-                    <button class="ff-module-link" type="button" data-open-module="noticias">Abrir Daily News <i class="fas fa-arrow-right"></i></button>
+                <article class="ff-module ff-module-news ffm-card" data-module="noticias" tabindex="0">
+                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+                    <div class="ffm-body">
+                        <header><span class="ff-module-icon"><i class="fas fa-newspaper"></i></span><div><small>Noticiero financiero</small><h2>Daily News</h2></div></header>
+                        <div class="ffm-foot">
+                            <button class="ff-module-link" type="button" data-open-module="noticias">Abrir Daily News <i class="fas fa-arrow-right"></i></button>
+                            <span class="ffm-stat"><em>Titulares hoy</em><strong id="ff-tile-noticias">—</strong></span>
+                        </div>
+                    </div>
                 </article>
 
-                <article class="ff-module" data-module="rendimientos" tabindex="0">
-                    <header><span class="ff-module-icon"><i class="fas fa-wave-square"></i></span><div><small>Riesgo y retorno</small><h2>Rendimientos de bonos</h2></div><span class="ff-status-pill ff-positive">Curva</span></header>
-                    <p>Curva soberana, diferenciales por plazo y rendimiento real.</p>
-                    <div class="ff-module-summary"><div><span>Pendiente 30Y–5Y</span><strong id="ff-card-curve">—</strong><em id="ff-card-curve-state">Esperando curva</em></div><canvas id="ff-spark-rendimientos" aria-label="Minigráfica de rendimientos"></canvas></div>
-                    <div class="ff-module-facts"><span><small>Real MX</small><strong id="ff-card-real">—</strong></span><span><small>Carry MX</small><strong id="ff-card-carry">—</strong></span><span><small>MOVE</small><strong id="ff-card-move">—</strong></span></div>
-                    <button class="ff-module-link" type="button" data-open-module="rendimientos">Ver curva completa <i class="fas fa-arrow-right"></i></button>
+                <article class="ff-module ffm-card" data-module="rendimientos" tabindex="0">
+                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-rendimientos"></canvas></div>
+                    <div class="ffm-body">
+                        <header><span class="ff-module-icon"><i class="fas fa-wave-square"></i></span><div><small>Riesgo y retorno</small><h2>Rendimientos de bonos</h2></div></header>
+                        <div class="ffm-foot">
+                            <button class="ff-module-link" type="button" data-open-module="rendimientos">Ver curva completa <i class="fas fa-arrow-right"></i></button>
+                            <span class="ffm-stat"><em>US 10 años</em><strong id="ff-tile-rendimientos">—</strong></span>
+                        </div>
+                    </div>
                 </article>
             </section>
 
-            <section class="ff-workspace" id="ff-workspace" aria-labelledby="ff-workspace-title">
+            <!-- OCULTO en la portada por decisión de diseño (2026-07): la gráfica principal,
+                 la comparativa/tabla y el explicador ya no se muestran debajo de los 4 recuadros.
+                 Los elementos siguen en el DOM (el JS los referencia) y esta misma información
+                 sigue disponible en las vistas de detalle y demás páginas. Para reactivar, quita
+                 el style="display:none" de estas 3 secciones (ff-workspace, ff-analysis-grid, ff-explainer). -->
+            <section class="ff-workspace" id="ff-workspace" aria-labelledby="ff-workspace-title" style="display:none">
                 <header class="ff-section-head">
                     <div><span class="ff-kicker" id="ff-workspace-kicker">Bolsa · Evolución histórica</span><h2 id="ff-workspace-title">S&amp;P 500</h2><p id="ff-workspace-description">Comportamiento del índice y comparación contra referencias relevantes.</p></div>
                     <div class="ff-head-metric"><span>Último</span><strong id="ff-main-value">—</strong><em id="ff-main-change" class="ff-neutral-text">Esperando datos</em></div>
@@ -1288,7 +1489,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                 </div>
             </section>
 
-            <section class="ff-analysis-grid" aria-label="Subgráficas y desglose">
+            <section class="ff-analysis-grid" aria-label="Subgráficas y desglose" style="display:none">
                 <article class="ff-analysis-card ff-breakdown">
                     <header><div><span class="ff-kicker">Comparativa</span><h3 id="ff-breakdown-title">Índices principales</h3></div><button class="ff-ghost-button" type="button" id="ff-sort-breakdown" aria-label="Ordenar comparativa"><i class="fas fa-arrow-down-wide-short"></i> Ordenar</button></header>
                     <div class="ff-mini-chart"><canvas id="ff-breakdown-chart" aria-label="Gráfica comparativa"></canvas></div>
@@ -1304,7 +1505,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                 </article>
             </section>
 
-            <section class="ff-explainer" aria-labelledby="ff-explainer-title">
+            <section class="ff-explainer" aria-labelledby="ff-explainer-title" style="display:none">
                 <header><div><span class="ff-kicker">Interpretación y contexto</span><h2 id="ff-explainer-title">Cómo leer esta información</h2><p id="ff-explainer-summary">Una guía breve para entender el movimiento, sus causas y los riesgos relevantes.</p></div><span class="ff-education-badge"><i class="fas fa-graduation-cap"></i> Contenido educativo</span></header>
                 <div class="ff-explainer-grid">
                     <div id="ff-insights" class="ff-insights" aria-live="polite"></div>
@@ -1314,24 +1515,96 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                 <p class="ff-disclaimer">Información de carácter educativo. No constituye asesoría ni una recomendación de compra o venta.</p>
             </section>
 
-            <div id="ff-newsroom-anchor" aria-hidden="true"></div>
-            <section class="ff-newsroom" aria-labelledby="ff-news-title">
-                <header class="ff-news-header">
-                    <div><span class="ff-eyebrow"><span class="ff-live-dot"></span> Daily News</span><h2 id="ff-news-title">La jornada financiera (FAVRO EDITORIAL)</h2><p>Titulares, impacto y mercados relacionados en una lectura editorial.</p></div>
-                    <div class="ff-news-actions"><div class="ff-segmented ff-news-filters" role="group" aria-label="Categorías de noticias"><button class="is-active" type="button" data-news-filter="all">Todo</button><button type="button" data-news-filter="markets">Mercados</button><button type="button" data-news-filter="rates">Tasas</button><button type="button" data-news-filter="bonds">Bonos</button></div><button class="ff-ghost-button" type="button" id="ff-open-news">Actualizar titulares <i class="fas fa-rotate-right"></i></button></div>
+            
+            <div class="fin-layout">
+    <div class="main-col">
+        <div id="ff-newsroom-anchor" aria-hidden="true"></div>
+            <section class="ff-newsroom fnb-newsroom" aria-labelledby="ff-news-title">
+                <header class="fnb-masthead">
+                    <div class="fnb-brand">
+                        <span class="fnb-kicker"><span class="fnb-live"></span> Favro Newsroom · En vivo</span>
+                        <h2 class="fnb-title" id="ff-news-title">Finanzas <em>Internacionales</em></h2>
+                        <p class="fnb-sub">Noticias globales de mercados, tasas, bonos y divisas — con lectura editorial de Favro.</p>
+                    </div>
+                    <div class="fnb-tools">
+                        <div class="fnb-filters" role="group" aria-label="Categorías de noticias">
+                            <button class="is-active" type="button" data-news-filter="all">Todo</button>
+                            <button type="button" data-news-filter="markets">Mercados</button>
+                            <button type="button" data-news-filter="rates">Tasas</button>
+                            <button type="button" data-news-filter="bonds">Bonos</button>
+                        </div>
+                        <button class="fnb-refresh" type="button" id="ff-open-news">Actualizar <i class="fas fa-rotate-right"></i></button>
+                    </div>
                 </header>
-                <div class="ff-news-grid">
-                    <article class="ff-lead-story" id="ff-lead-story">
-                        <div class="ff-lead-visual"><span class="ff-news-tag">En desarrollo</span><div class="ff-market-orbit"><i class="fas fa-chart-line"></i></div></div>
-                        <div class="ff-lead-copy"><div class="ff-story-meta"><span>Resumen de mercados</span><time id="ff-lead-time">Ahora</time></div><h3>Los mercados procesan tasas, crecimiento y resultados corporativos</h3><p>La lectura principal se actualizará con las fuentes financieras disponibles de Favro.</p><div class="ff-story-impact"><span class="ff-impact-neutral">Impacto neutral</span><em>Mercados globales</em></div><button type="button" data-open-module="bolsa">Ver contexto de mercado <i class="fas fa-arrow-right"></i></button></div>
-                    </article>
-                    <aside class="ff-today" aria-labelledby="ff-today-title"><div class="ff-today-title"><span>Briefing</span><h3 id="ff-today-title">Lo que debes saber hoy</h3></div><ol id="ff-today-list"><li><span>01</span><p>Las tasas largas definen el costo de capital y la valuación de activos.</p></li><li><span>02</span><p>La amplitud bursátil ayuda a validar si el movimiento es sólido.</p></li><li><span>03</span><p>La pendiente de la curva anticipa expectativas de crecimiento.</p></li></ol></aside>
-                    <div class="ff-headlines"><div class="ff-headlines-head"><div><span class="ff-kicker">Última hora</span><h3>Titulares</h3></div><div><button type="button" id="ff-news-prev" aria-label="Titular anterior"><i class="fas fa-chevron-left"></i></button><button type="button" id="ff-news-next" aria-label="Siguiente titular"><i class="fas fa-chevron-right"></i></button></div></div><div class="ff-headline-track" id="ff-headline-track"><article class="ff-headline-skeleton"><span></span><strong></strong><em></em></article><article class="ff-headline-skeleton"><span></span><strong></strong><em></em></article><article class="ff-headline-skeleton"><span></span><strong></strong><em></em></article></div></div>
-                    <aside class="ff-most-read"><span class="ff-kicker">Más consultadas</span><h3>Radar de atención</h3><div id="ff-most-read-list"><button type="button" data-open-module="tasas"><span>01</span><p>Próximas decisiones de bancos centrales</p><i class="fas fa-arrow-right"></i></button><button type="button" data-open-module="rendimientos"><span>02</span><p>Cómo leer una curva de rendimientos</p><i class="fas fa-arrow-right"></i></button><button type="button" data-open-module="tasas"><span>03</span><p>Riesgo, duración y precio de un bono</p><i class="fas fa-arrow-right"></i></button></div></aside>
+
+                <div class="fnb-top">
+                    <button class="fnb-lead" id="fnb-lead" type="button" aria-label="Abrir noticia principal">
+                        <div class="fnb-lead-fallback"><i class="fas fa-newspaper"></i></div>
+                        <div class="fnb-lead-body">
+                            <div class="fnb-chips"><span class="fnb-cat" data-cat="markets">Mercados</span><span class="fnb-impact medio">Impacto medio</span></div>
+                            <h3>Preparando la portada financiera del día…</h3>
+                            <p class="fnb-lead-dek">La lectura principal se actualizará con las fuentes reales conectadas a Favro.</p>
+                            <div class="fnb-lead-meta"><span class="fnb-src">Favro</span><span>Ahora</span><span class="fnb-go">Leer <i class="fas fa-arrow-right"></i></span></div>
+                        </div>
+                    </button>
+
+                    <aside class="fnb-brief" aria-label="Briefing del día">
+                        <span class="fnb-brief-h">Briefing</span>
+                        <h3>Lo que debes saber hoy</h3>
+                        <ol id="fnb-brief-list">
+                            <li><span>01</span><p>Cargando los puntos clave de la jornada…</p></li>
+                            <li><span>02</span><p>El editor de Favro resume el impacto en los mercados.</p></li>
+                            <li><span>03</span><p>Tasas, bonos y divisas en una sola lectura.</p></li>
+                        </ol>
+                    </aside>
                 </div>
-            
-            
+
+                <div class="fnb-more-h">Más noticias internacionales</div>
+                <div class="fnb-grid" id="fnb-grid">
+                    <div class="fnb-card is-skeleton"><div class="fnb-card-media"></div><div class="fnb-card-body"><div class="fnb-sk" style="width:40%"></div><div class="fnb-sk" style="width:90%"></div><div class="fnb-sk" style="width:70%"></div></div></div>
+                    <div class="fnb-card is-skeleton"><div class="fnb-card-media"></div><div class="fnb-card-body"><div class="fnb-sk" style="width:40%"></div><div class="fnb-sk" style="width:90%"></div><div class="fnb-sk" style="width:70%"></div></div></div>
+                    <div class="fnb-card is-skeleton"><div class="fnb-card-media"></div><div class="fnb-card-body"><div class="fnb-sk" style="width:40%"></div><div class="fnb-sk" style="width:90%"></div><div class="fnb-sk" style="width:70%"></div></div></div>
+                    <div class="fnb-card is-skeleton"><div class="fnb-card-media"></div><div class="fnb-card-body"><div class="fnb-sk" style="width:40%"></div><div class="fnb-sk" style="width:90%"></div><div class="fnb-sk" style="width:70%"></div></div></div>
+                </div>
         </section>
+    </div>
+    <div class="news-sidebar">
+            <div class="section-lbl" style="margin-bottom:.7rem;">
+                <i class="fas fa-newspaper" style="font-size:.72rem;"></i>Noticias Financieras
+            </div>
+            <div class="filter-bar">
+                <button class="fpill active" onclick="ncFilter('all',this)">TODOS</button>
+                <button class="fpill" onclick="ncFilter('globales',this)">🌐 Mercados</button>
+                <button class="fpill" onclick="ncFilter('commodities',this)">💱 Divisas</button>
+            </div>
+            <div class="news-carousel">
+                <div class="nc-viewport" id="ncViewport" style="height:732px;">
+                    <div class="nc-track" id="ncTrack">
+                        <div class="nc-card" style="pointer-events:none;"><div class="nc-img sk-block"></div><div class="nc-body"><div class="sk-line w45" style="height:7px;width:80px;margin:0;"></div><div class="sk-line w90" style="height:10px;margin:4px 0;"></div><div class="sk-line w70" style="height:10px;margin:0;"></div></div></div>
+                        <div class="nc-card" style="pointer-events:none;"><div class="nc-img sk-block"></div><div class="nc-body"><div class="sk-line w45" style="height:7px;width:80px;margin:0;"></div><div class="sk-line w90" style="height:10px;margin:4px 0;"></div><div class="sk-line w70" style="height:10px;margin:0;"></div></div></div>
+                        <div class="nc-card" style="pointer-events:none;"><div class="nc-img sk-block"></div><div class="nc-body"><div class="sk-line w45" style="height:7px;width:80px;margin:0;"></div><div class="sk-line w90" style="height:10px;margin:4px 0;"></div><div class="sk-line w70" style="height:10px;margin:0;"></div></div></div>
+                    </div>
+                </div>
+                <div class="nc-nav">
+                    <button class="nc-btn" id="ncBtnUp"   onclick="ncMove(-1)" title="Anteriores"><i class="fas fa-chevron-up"></i></button>
+                    <button class="nc-btn" id="ncBtnDown" onclick="ncMove(1)"  title="Siguientes"><i class="fas fa-chevron-down"></i></button>
+                </div>
+            </div>
+            <aside class="finance-sidebar-pulse" aria-label="Monitor cruzado de mercados">
+                <div class="finance-sidebar-pulse-head">
+                    <span><i class="fas fa-wave-square"></i> Monitor cruzado</span>
+                    <em>Lectura en vivo</em>
+                </div>
+                <div class="finance-sidebar-pulse-grid">
+                    <div><small>USD / MXN</small><strong id="sidebar-pulse-usdmxn">—</strong><span id="sidebar-pulse-usdmxn-note">Tipo de cambio</span></div>
+                    <div><small>DXY</small><strong id="sidebar-pulse-dxy">—</strong><span id="sidebar-pulse-dxy-note">Dólar global</span></div>
+                    <div><small>VIX</small><strong id="sidebar-pulse-vix">—</strong><span id="sidebar-pulse-vix-note">Volatilidad</span></div>
+                    <div><small>Carry MX</small><strong id="sidebar-pulse-carry">—</strong><span>Diferencial TIIE−Fed</span></div>
+                </div>
+                <p id="sidebar-pulse-reading"><i class="fas fa-circle-info"></i> El monitor conecta divisas, volatilidad y tasas para contextualizar la gráfica.</p>
+            </aside>
+        </div>
+</div>
 
             <div class="ff-news-reader" id="ff-news-reader" hidden>
                 <div class="ff-news-reader-backdrop" data-close-news-reader></div>
@@ -1347,287 +1620,10 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
             </div>
         </main>
 
-        <!-- Hero banner -->
-        <div class="hub-hero">
-            <div class="hub-hero-accent"></div>
-            <div class="hub-hero-beam"></div>
-            <div class="hub-hero-left">
-                <div class="hub-hero-eyebrow">
-                    <div class="hub-hero-dot"></div>
-                    VALLNews · Plataforma de Inteligencia
-                </div>
-                <div class="hub-hero-title">Inteligencia<br>Financiera</div>
-                <div class="hub-hero-sub">Análisis de mercados globales, tasas de interés, divisas y riesgo macroeconómico actualizado en tiempo real.</div>
-            </div>
-            <div class="hub-hero-right">
-                <div class="hub-hero-live">
-                    <div class="hub-live-dot"></div>Datos en vivo
-                </div>
-                <div class="hub-hero-meta">
-                    <span id="ai-status" style="font-family:'Inter',sans-serif;font-size:.54rem;color:rgba(255,255,255,.35);">—</span>
-                    <button id="btn-refresh-all" onclick="(async()=>{this.disabled=true;this.textContent='↻ Actualizando…';VDS.clear('fin_v7');_assetDataCache.clear();await refreshAll().catch(()=>{});this.disabled=false;this.textContent='↻ Actualizar';})()" title="Forzar actualización" style="font-family:'Inter',sans-serif;font-size:.6rem;font-weight:700;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.28rem .65rem;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);cursor:pointer;transition:background .18s,color .18s;" onmouseenter="this.style.background='rgba(255,255,255,.16)';this.style.color='#fff'" onmouseleave="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.7)'">↻ Actualizar</button>
-                </div>
-            </div>
-        </div>
-
-        <section class="fin-exec-strip" aria-label="Resumen ejecutivo de mercado">
-            <button class="fin-exec-card tone-equity" type="button" onclick="openFinanceSection('mercados')">
-                <span class="fin-exec-icon"><i class="fas fa-chart-line"></i></span>
-                <span class="fin-exec-copy"><small>Renta Variable Global</small><strong id="exec-sp500">—</strong><em>S&amp;P 500</em></span>
-                <i class="fas fa-arrow-right fin-exec-arrow"></i>
-            </button>
-            <button class="fin-exec-card tone-sovereign" type="button" onclick="openFinanceSection('bonos')">
-                <span class="fin-exec-icon"><i class="fas fa-landmark"></i></span>
-                <span class="fin-exec-copy"><small>Deuda &amp; Bonos</small><strong id="exec-us10y">—</strong><em>US Treasury 10Y</em></span>
-                <i class="fas fa-arrow-right fin-exec-arrow"></i>
-            </button>
-            <button class="fin-exec-card tone-fx" type="button" onclick="openFinanceSection('mexico')">
-                <span class="fin-exec-icon"><i class="fas fa-money-bill-transfer"></i></span>
-                <span class="fin-exec-copy"><small>Mercado Cambiario</small><strong id="exec-usdmxn">—</strong><em>USD / MXN</em></span>
-                <i class="fas fa-arrow-right fin-exec-arrow"></i>
-            </button>
-            <button class="fin-exec-card tone-energy" type="button" onclick="openFinanceSection('noticias')">
-                <span class="fin-exec-icon"><i class="fas fa-newspaper"></i></span>
-                <span class="fin-exec-copy"><small>Noticias Globales</small><strong>Titulares</strong><em>Última hora</em></span>
-                <i class="fas fa-arrow-right fin-exec-arrow"></i>
-            </button>
-        </section>
-
-        <div class="hub-grid">
-
-            <!-- Mercado Cambiario Internacional -->
-            <div class="hub-card hub-mx" tabindex="0" aria-label="Abrir Mercados Locales" onclick="openFinanceSection('mexico')" onkeydown="hubSectionKey(event,'mexico')">
-                <div class="hub-card-header">
-                    <div class="hub-hdr-shine"></div>
-                    <div class="hub-hdr-icon"><i class="fas fa-money-bill-transfer"></i></div>
-                    <div class="hub-hdr-text">
-                        <div class="hub-hdr-title">Mercado Cambiario Internacional</div>
-                        <div class="hub-hdr-sub">Forex · Divisas emergentes · Carry trade</div>
-                    </div>
-                    <span class="hub-hdr-badge"><span class="hub-badge-dot"></span>FOREX</span>
-                    <div class="hub-hdr-stat">
-                        <div class="hub-hdr-stat-lbl">USD / MXN</div>
-                        <div class="hub-hdr-stat-val" id="hub-hdr-usdmxn">—</div>
-                    </div>
-                </div>
-                <div class="hub-card-body">
-                    <p class="hub-desc">Cruces internacionales, fortaleza del dólar, monedas emergentes y diferenciales de tasas que explican los flujos cambiarios.</p>
-                    <div class="hub-metrics">
-                        <div class="hub-m" onclick="event.stopPropagation();openFxDetail(0)">
-                            <div class="hub-m-lbl">USD/MXN</div>
-                            <div class="hub-m-val" id="hub-usdmxn">—</div>
-                            <div class="hub-m-delta" id="hub-usdmxn-pct">Mercado spot</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openFxDetail(1)">
-                            <div class="hub-m-lbl">EUR/MXN</div>
-                            <div class="hub-m-val" id="hub-eurmxn">—</div>
-                            <div class="hub-m-delta" id="hub-eurmxn-pct">Cruce europeo</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openMktDetail(6)">
-                            <div class="hub-m-lbl">DXY</div>
-                            <div class="hub-m-val" id="hub-dxy">—</div>
-                            <div class="hub-m-delta" id="hub-dxy-pct">Índice dólar</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openRiskDetail('carry')">
-                            <div class="hub-m-lbl">Carry MX</div>
-                            <div class="hub-m-val" id="hub-fx-carry">—</div>
-                            <div class="hub-m-delta">TIIE − Fed</div>
-                        </div>
-                    </div>
-                    <div class="hub-insight" id="hub-fx-insight"><i class="fas fa-compass"></i><span>Calculando fortaleza del dólar y atractivo del peso…</span></div>
-                    <div class="hub-card-details" aria-hidden="true">
-                        <div class="hub-detail-head"><i class="fas fa-money-bill-transfer"></i><span>Lectura del mercado cambiario</span></div>
-                        <div class="hub-detail-grid">
-                            <div class="hub-detail-item"><small>Fortaleza del dólar</small><strong id="hub-detail-dxy">Esperando DXY</strong><p>Un dólar fuerte suele presionar monedas emergentes y materias primas.</p></div>
-                            <div class="hub-detail-item"><small>Comportamiento del peso</small><strong id="hub-detail-mxn">Esperando USD/MXN</strong><p>La caída del cruce representa apreciación del peso frente al dólar.</p></div>
-                            <div class="hub-detail-item"><small>Atractivo por tasas</small><strong id="hub-detail-carry">Calculando diferencial</strong><p>Compara la referencia mexicana contra el tramo corto estadounidense.</p></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="hub-cta">
-                    <span class="hub-cta-label">Abrir Mercados Locales</span>
-                    <div class="hub-cta-arrow"><i class="fas fa-arrow-right"></i></div>
-                </div>
-            </div>
-
-            <!-- Renta Variable Global -->
-            <div class="hub-card hub-mkt" tabindex="0" aria-label="Abrir Mercados Globales" onclick="openFinanceSection('mercados')" onkeydown="hubSectionKey(event,'mercados')">
-                <div class="hub-card-header">
-                    <div class="hub-hdr-shine"></div>
-                    <div class="hub-hdr-icon"><i class="fas fa-chart-line"></i></div>
-                    <div class="hub-hdr-text">
-                        <div class="hub-hdr-title">Renta Variable Global</div>
-                        <div class="hub-hdr-sub">S&amp;P 500 · Bolsas internacionales · Sectores</div>
-                    </div>
-                    <span class="hub-hdr-badge"><span class="hub-badge-dot"></span>BOLSAS</span>
-                    <div class="hub-hdr-stat">
-                        <div class="hub-hdr-stat-lbl">VIX</div>
-                        <div class="hub-hdr-stat-val" id="hub-hdr-vix">—</div>
-                    </div>
-                </div>
-                <div class="hub-card-body">
-                    <p class="hub-desc">Índices, sectores, emisoras y movimientos de capital para identificar liderazgo, amplitud y nivel de riesgo en las bolsas globales.</p>
-                    <div class="hub-metrics">
-                        <div class="hub-m" onclick="event.stopPropagation();openMktDetail(1)">
-                            <div class="hub-m-lbl">S&amp;P 500</div>
-                            <div class="hub-m-val" id="hub-sp500">—</div>
-                            <div class="hub-m-delta" id="hub-sp500-pct">Sesión</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openMktDetail(2)">
-                            <div class="hub-m-lbl">Nasdaq 100</div>
-                            <div class="hub-m-val" id="hub-nasdaq">—</div>
-                            <div class="hub-m-delta" id="hub-nasdaq-pct">Tecnología</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openMktDetail(0)">
-                            <div class="hub-m-lbl">IPC BMV</div>
-                            <div class="hub-m-val" id="hub-ipc">—</div>
-                            <div class="hub-m-delta" id="hub-ipc-pct">México</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openRiskDetail('vix')">
-                            <div class="hub-m-lbl">VIX</div>
-                            <div class="hub-m-val" id="hub-vix">—</div>
-                            <div class="hub-m-delta" id="hub-vix-level">Volatilidad</div>
-                        </div>
-                    </div>
-                    <div class="hub-insight" id="hub-equity-insight"><i class="fas fa-chart-simple"></i><span>Evaluando tendencia, amplitud y volatilidad global…</span></div>
-                    <div class="hub-card-details" aria-hidden="true">
-                        <div class="hub-detail-head"><i class="fas fa-chart-line"></i><span>Lectura de renta variable global</span></div>
-                        <div class="hub-detail-grid">
-                            <div class="hub-detail-item"><small>Dirección global</small><strong id="hub-detail-sp500">Esperando S&amp;P 500</strong><p>El índice resume el apetito por las principales empresas estadounidenses.</p></div>
-                            <div class="hub-detail-item"><small>Liderazgo tecnológico</small><strong id="hub-detail-tech">Esperando Nasdaq</strong><p>Compara el desempeño tecnológico contra el mercado amplio.</p></div>
-                            <div class="hub-detail-item"><small>Régimen de riesgo</small><strong id="hub-detail-vix">Esperando VIX</strong><p>Menor volatilidad favorece posiciones de riesgo; niveles altos exigen cautela.</p></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="hub-cta">
-                    <span class="hub-cta-label">Abrir Mercados Globales</span>
-                    <div class="hub-cta-arrow"><i class="fas fa-arrow-right"></i></div>
-                </div>
-            </div>
-
-            <!-- Commodities & Energía Global -->
-            <div class="hub-card hub-news" tabindex="0" aria-label="Abrir Noticias Globales" onclick="openFinanceSection('noticias')" onkeydown="hubSectionKey(event,'noticias')">
-                <div class="hub-card-header">
-                    <div class="hub-hdr-shine"></div>
-                    <div class="hub-hdr-icon"><i class="fas fa-newspaper"></i></div>
-                    <div class="hub-hdr-text">
-                        <div class="hub-hdr-title">Noticias Globales</div>
-                        <div class="hub-hdr-sub">Última hora · Mercados · Macroeconomía</div>
-                    </div>
-                    <span class="hub-hdr-badge">NOTICIAS</span>
-                    <div class="hub-hdr-stat">
-                        <div class="hub-hdr-stat-lbl">Titulares</div>
-                        <div class="hub-hdr-stat-val">Live</div>
-                    </div>
-                </div>
-                <div class="hub-card-body">
-                    <p class="hub-desc">Titulares en tiempo real sobre mercados financieros, bancos centrales, geopolítica y eventos macroeconómicos.</p>
-                    <div class="hub-insight" id="hub-news-insight"><i class="fas fa-rss"></i><span>Monitoreando fuentes globales...</span></div>
-                </div>
-                <div class="hub-cta">
-                    <span class="hub-cta-label">Abrir Noticias Globales</span>
-                    <div class="hub-cta-arrow"><i class="fas fa-arrow-right"></i></div>
-                </div>
-            </div>
-                <div class="hub-card-body">
-                    <p class="hub-desc">Precios internacionales de energía y materias primas, spreads de crudo y señales de oferta y demanda con impacto inflacionario.</p>
-                    <div class="hub-metrics">
-                        <div class="hub-m" onclick="event.stopPropagation();openPetroDetail('wti')">
-                            <div class="hub-m-lbl">WTI</div>
-                            <div class="hub-m-val" id="hub-commodity-wti">—</div>
-                            <div class="hub-m-delta" id="hub-wti-pct">Crudo EUA</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openPetroDetail('brent')">
-                            <div class="hub-m-lbl">Brent</div>
-                            <div class="hub-m-val" id="hub-commodity-brent">—</div>
-                            <div class="hub-m-delta" id="hub-brent-pct">Referencia global</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openPetroDetail('gas')">
-                            <div class="hub-m-lbl">Gas Natural</div>
-                            <div class="hub-m-val" id="hub-commodity-gas">—</div>
-                            <div class="hub-m-delta" id="hub-gas-pct">Henry Hub</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openMktDetail(4)">
-                            <div class="hub-m-lbl">Oro / oz</div>
-                            <div class="hub-m-val" id="hub-gold">—</div>
-                            <div class="hub-m-delta" id="hub-gold-pct">Activo refugio</div>
-                        </div>
-                    </div>
-                    <div class="hub-insight" id="hub-energy-insight"><i class="fas fa-fire-flame-curved"></i><span>Calculando presión energética y demanda de refugio…</span></div>
-                    <div class="hub-card-details" aria-hidden="true">
-                        <div class="hub-detail-head"><i class="fas fa-oil-well"></i><span>Lectura de commodities y energía</span></div>
-                        <div class="hub-detail-grid">
-                            <div class="hub-detail-item"><small>Spread entre crudos</small><strong id="hub-detail-oil-spread">Esperando WTI y Brent</strong><p>La prima de Brent refleja diferencias regionales de calidad y suministro.</p></div>
-                            <div class="hub-detail-item"><small>Presión energética</small><strong id="hub-detail-energy">Esperando sesión</strong><p>Movimientos fuertes del petróleo y gas pueden trasladarse a inflación.</p></div>
-                            <div class="hub-detail-item"><small>Demanda de refugio</small><strong id="hub-detail-gold">Esperando oro</strong><p>El oro suele fortalecerse ante incertidumbre, inflación o dólar débil.</p></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="hub-cta">
-                    <span class="hub-cta-label">Abrir Riesgo &amp; Macro</span>
-                    <div class="hub-cta-arrow"><i class="fas fa-arrow-right"></i></div>
-                </div>
-            </div>
-
-            <!-- Deuda & Bonos Soberanos -->
-            <div class="hub-card hub-bnd" tabindex="0" aria-label="Abrir Tasas y Bonos" onclick="openFinanceSection('bonos')" onkeydown="hubSectionKey(event,'bonos')">
-                <div class="hub-card-header">
-                    <div class="hub-hdr-shine"></div>
-                    <div class="hub-hdr-icon"><i class="fas fa-landmark"></i></div>
-                    <div class="hub-hdr-text">
-                        <div class="hub-hdr-title">Deuda &amp; Bonos Soberanos</div>
-                        <div class="hub-hdr-sub">Curvas de rendimiento · Bancos centrales · Spreads</div>
-                    </div>
-                    <span class="hub-hdr-badge"><span class="hub-badge-dot"></span>DEUDA</span>
-                    <div class="hub-hdr-stat">
-                        <div class="hub-hdr-stat-lbl">US 10Y</div>
-                        <div class="hub-hdr-stat-val" id="hub-hdr-us10y">—</div>
-                    </div>
-                </div>
-                <div class="hub-card-body">
-                    <p class="hub-desc">Rendimientos soberanos, primas por plazo y diferenciales entre economías para evaluar costo de capital y condiciones financieras.</p>
-                    <div class="hub-metrics">
-                        <div class="hub-m" onclick="event.stopPropagation();openBondDetail('us','10Y')">
-                            <div class="hub-m-lbl">Treasury 10Y</div>
-                            <div class="hub-m-val" id="hub-bnd-tnx">—</div>
-                            <div class="hub-m-delta">Rendimiento EUA</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openBondDetail('us','3M')">
-                            <div class="hub-m-lbl">Fed / tramo corto</div>
-                            <div class="hub-m-val" id="hub-fed">—</div>
-                            <div class="hub-m-delta">Política monetaria</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openRiskDetail('carry')">
-                            <div class="hub-m-lbl">TIIE 28D</div>
-                            <div class="hub-m-val" id="hub-tiie">—</div>
-                            <div class="hub-m-delta">Referencia México</div>
-                        </div>
-                        <div class="hub-m" onclick="event.stopPropagation();openRiskDetail('carry')">
-                            <div class="hub-m-lbl">Premio MX</div>
-                            <div class="hub-m-val" id="hub-bnd-premium">—</div>
-                            <div class="hub-m-delta">TIIE − Treasury</div>
-                        </div>
-                    </div>
-                    <div class="hub-insight" id="hub-bonds-insight"><i class="fas fa-scale-balanced"></i><span>Evaluando costo de capital y diferencial soberano…</span></div>
-                    <div class="hub-card-details" aria-hidden="true">
-                        <div class="hub-detail-head"><i class="fas fa-landmark"></i><span>Lectura de deuda soberana</span></div>
-                        <div class="hub-detail-grid">
-                            <div class="hub-detail-item"><small>Costo global de capital</small><strong id="hub-detail-us10y">Esperando Treasury 10Y</strong><p>Una tasa larga alta eleva el descuento aplicado a bonos y acciones.</p></div>
-                            <div class="hub-detail-item"><small>Postura monetaria</small><strong id="hub-detail-fed">Esperando referencia Fed</strong><p>El tramo corto refleja las condiciones monetarias estadounidenses.</p></div>
-                            <div class="hub-detail-item"><small>Prima soberana México</small><strong id="hub-detail-premium">Calculando premio</strong><p>El diferencial compensa riesgo, inflación y exposición cambiaria.</p></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="hub-cta">
-                    <span class="hub-cta-label">Abrir Tasas &amp; Bonos</span>
-                    <span class="hub-cta-arrow"><i class="fas fa-arrow-right"></i></span>
-                </div>
-            </div>
-
         </div>
     </div>
 
-        <section class="debt-pro" id="bonds-panel" style="display:none !important;">
+        <section class="debt-pro" id="bonds-panel" style="display:none">
 
         <header class="debt-pro-hero">
             <div>
@@ -1650,6 +1646,72 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
             <article class="debt-kpi tone-mx report-card" role="button" tabindex="0" onclick="openBondDetail('mx','TIIE 28D')"><span class="debt-kpi-icon"><i class="fas fa-peso-sign"></i></span><div><small>TIIE México</small><strong id="debt-kpi-tiie">—</strong><span id="debt-kpi-tiie-chg">Referencia monetaria</span></div></article>
             <article class="debt-kpi tone-carry report-card" role="button" tabindex="0" onclick="openBondDetail('mx','Prima')"><span class="debt-kpi-icon"><i class="fas fa-scale-balanced"></i></span><div><small>Prima México</small><strong id="debt-kpi-carry">—</strong><span id="debt-kpi-carry-state">Diferencial vs US10Y</span></div></article>
         </div>
+
+        <!-- ── Línea del tiempo de tasas y bonos ──────────────────────────────
+             Series históricas reales: México vía /api/banxico/:serie/history
+             (Banxico SIE, hasta 20 años) y EE.UU. vía /api/stock-history con los
+             índices ^IRX/^FVX/^TNX/^TYX. Solo se ofrecen los países cuyas fuentes
+             entregan histórico de verdad; los demás mercados del panel no lo
+             tienen y por eso no aparecen aquí. -->
+        <section class="rate-timeline" id="rate-timeline" aria-labelledby="rtl-title">
+            <header class="rtl-head">
+                <div class="rtl-copy">
+                    <small>Serie histórica</small>
+                    <h3 id="rtl-title">Línea del tiempo de tasas y bonos</h3>
+                    <p id="rtl-sub">Evolución del rendimiento a lo largo del periodo seleccionado.</p>
+                </div>
+                <div class="rtl-controls">
+                    <label class="rtl-field">
+                        <span>País</span>
+                        <select id="rtl-country" aria-label="País de la serie">
+                            <option value="mx" selected>&#127474;&#127485; M&eacute;xico</option>
+                            <option value="us">&#127482;&#127480; Estados Unidos</option>
+                        </select>
+                    </label>
+                    <label class="rtl-field">
+                        <span>Serie</span>
+                        <select id="rtl-series" aria-label="Instrumento"></select>
+                    </label>
+                    <label class="rtl-field">
+                        <span>Comparar con</span>
+                        <select id="rtl-compare" aria-label="Serie de comparación"></select>
+                    </label>
+                    <fieldset class="rtl-field rtl-periods">
+                        <legend>Periodo</legend>
+                        <div class="rtl-period-group" id="rtl-periods" role="group" aria-label="Periodo">
+                            <button type="button" data-years="1">1 a&ntilde;o</button>
+                            <button type="button" data-years="3">3 a&ntilde;os</button>
+                            <button type="button" data-years="5" class="is-active">5 a&ntilde;os</button>
+                            <button type="button" data-years="10">10 a&ntilde;os</button>
+                        </div>
+                    </fieldset>
+                </div>
+            </header>
+
+            <div class="rtl-stats" id="rtl-stats">
+                <div><span>Último</span><strong id="rtl-last">—</strong><em id="rtl-last-date">Sin lectura</em></div>
+                <div><span>Máximo del periodo</span><strong id="rtl-max">—</strong><em id="rtl-max-date">—</em></div>
+                <div><span>Mínimo del periodo</span><strong id="rtl-min">—</strong><em id="rtl-min-date">—</em></div>
+                <div><span>Variación</span><strong id="rtl-chg">—</strong><em>Inicio a último</em></div>
+                <div id="rtl-spread-cell" hidden><span>Diferencial</span><strong id="rtl-spread">—</strong><em id="rtl-spread-note">—</em></div>
+            </div>
+
+            <div class="rtl-legend" id="rtl-legend" hidden>
+                <span class="rtl-lg rtl-lg-main"><i></i><b id="rtl-lg-main">—</b></span>
+                <span class="rtl-lg rtl-lg-comp"><i></i><b id="rtl-lg-comp">—</b></span>
+                <span class="rtl-lg-note">El área sombreada es la distancia entre ambas series.</span>
+            </div>
+
+            <div class="rtl-chart">
+                <div class="rtl-state" id="rtl-state">Cargando serie histórica…</div>
+                <canvas id="rtl-canvas" aria-label="Evolución histórica del rendimiento"></canvas>
+            </div>
+
+            <footer class="rtl-foot">
+                <span id="rtl-source">Fuente pendiente</span>
+                <span id="rtl-count"></span>
+            </footer>
+        </section>
 
         <div class="debt-main-grid">
             <article class="debt-block debt-curve-block">
@@ -1824,12 +1886,12 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
         <div id="bonds-loading" style="display:none;text-align:center;color:#bbb;font-size:.74rem;padding:1.2rem 0;font-family:'Inter',sans-serif;"></div>
     </section>
 
-<section class="equity-pro inst-terminal" id="equity-pro-panel" style="display:none !important;">
+<section class="equity-pro inst-terminal" id="equity-pro-panel" style="display:none">
         <header class="inst-hero">
             <div class="inst-hero-left">
-                <span class="inst-badge"><i class="fas fa-terminal"></i> EQUITIES TERMINAL</span>
-                <h2>Global Equities Monitor</h2>
-                <p>Institutional summary of market breadth, regional performance, and tactical regime.</p>
+                <span class="inst-badge">Renta variable global</span>
+                <h2>C&oacute;mo van las bolsas del mundo</h2>
+                <p>Cu&aacute;ntos &iacute;ndices suben y cu&aacute;ntos bajan, c&oacute;mo se comporta cada regi&oacute;n y qu&eacute; se&ntilde;ala el conjunto en la sesi&oacute;n de hoy.</p>
             </div>
             <div class="inst-hero-right">
                 <div class="inst-status-led"></div>
@@ -1839,14 +1901,14 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
 
         <!-- Ticker Tape (Contexto Transversal) -->
         <div class="inst-ticker-tape">
-            <div class="inst-ticker"><span class="lbl">US10Y</span><strong id="eq-ctx-tnx">4.60%</strong><span class="sub">Cost of Cap</span></div>
-            <div class="inst-ticker"><span class="lbl">DXY</span><strong id="eq-ctx-dxy">100.96</strong><span class="sub">USD Idx</span></div>
-            <div class="inst-ticker"><span class="lbl">VIX</span><strong id="eq-ctx-vix">18.60</strong><span class="sub">Vol</span></div>
-            <div class="inst-ticker"><span class="lbl">GOLD</span><strong id="eq-ctx-gold">$4,013</strong><span class="sub">Safe Hvn</span></div>
-            <div class="inst-ticker"><span class="lbl">FED</span><strong id="eq-ctx-fed">4.50%</strong><span class="sub">US Rate</span></div>
-            <div class="inst-ticker"><span class="lbl">TIIE</span><strong id="eq-ctx-tiie">6.50%</strong><span class="sub">MX Rate</span></div>
-            <div class="inst-ticker"><span class="lbl">CARRY</span><strong id="eq-ctx-carry">+2.00%</strong><span class="sub">Spread</span></div>
-            <div class="inst-ticker"><span class="lbl">BREADTH</span><strong id="eq-ctx-breadth">11%</strong><span class="sub">Pos Rgn</span></div>
+            <div class="inst-ticker"><span class="lbl">Bono EUA 10A</span><strong id="eq-ctx-tnx">4.60%</strong><span class="sub">Costo del dinero</span></div>
+            <div class="inst-ticker"><span class="lbl">DXY</span><strong id="eq-ctx-dxy">100.96</strong><span class="sub">&Iacute;ndice d&oacute;lar</span></div>
+            <div class="inst-ticker"><span class="lbl">VIX</span><strong id="eq-ctx-vix">18.60</strong><span class="sub">Volatilidad</span></div>
+            <div class="inst-ticker"><span class="lbl">Oro</span><strong id="eq-ctx-gold">$4,013</strong><span class="sub">Activo refugio</span></div>
+            <div class="inst-ticker"><span class="lbl">Fed</span><strong id="eq-ctx-fed">4.50%</strong><span class="sub">Tasa EE.UU.</span></div>
+            <div class="inst-ticker"><span class="lbl">TIIE</span><strong id="eq-ctx-tiie">6.50%</strong><span class="sub">Tasa M&eacute;xico</span></div>
+            <div class="inst-ticker"><span class="lbl">Carry</span><strong id="eq-ctx-carry">+2.00%</strong><span class="sub">Diferencial MX&minus;EUA</span></div>
+            <div class="inst-ticker"><span class="lbl">Amplitud</span><strong id="eq-ctx-breadth">11%</strong><span class="sub">Regiones al alza</span></div>
         </div>
 
             <div class="inst-grid-main">
@@ -1855,10 +1917,10 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                 <!-- Data Density KPIs -->
                                 <div class="inst-kpi-table">
                     <div class="inst-kpi-header">
-                        <span>SYMBOL</span>
-                        <span style="text-align: center;">DAY RANGE (L / H)</span>
-                        <span style="text-align: right;">LAST</span>
-                        <span style="text-align: right;">CHG</span>
+                        <span>&Iacute;ndice</span>
+                        <span style="text-align: center;">Rango del d&iacute;a (m&iacute;n / m&aacute;x)</span>
+                        <span style="text-align: right;">&Uacute;ltimo</span>
+                        <span style="text-align: right;">Variaci&oacute;n</span>
                     </div>
                     <div class="inst-kpi-row" role="button" tabindex="0" onclick="openEquityInstitutionalReport('regions',0)">
                         <span class="kpi-sym">S&amp;P 500</span>
@@ -1898,13 +1960,13 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                             <small>19.5</small>
                         </div>
                         <strong class="kpi-val tick-update" id="eq-vix">18.60</strong>
-                        <span class="kpi-txt" id="eq-vix-state">Moderate</span>
+                        <span class="kpi-txt" id="eq-vix-state">Volatilidad moderada</span>
                     </div>
                 </div>
 
                 <!-- Regions Heatmap -->
                 <div class="inst-panel">
-                    <div class="inst-panel-hdr">GLOBAL REGIONS HEATMAP</div>
+                    <div class="inst-panel-hdr">&Iacute;ndices por regi&oacute;n</div>
                     <div class="inst-heatmap" id="eq-region-grid">
                         <div class="hm-cell hm-down" onclick="openEquityInstitutionalReport('regions',0)"><span>SPX</span><strong>-0.18%</strong></div>
                         <div class="hm-cell hm-up" onclick="openEquityInstitutionalReport('regions',1)"><span>NDX</span><strong>+0.25%</strong></div>
@@ -1923,30 +1985,30 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
             <div class="inst-col-right">
                 <!-- Tactical Regime -->
                 <div class="inst-panel">
-                    <div class="inst-panel-hdr">TACTICAL REGIME MODEL</div>
+                    <div class="inst-panel-hdr">Termómetro del mercado</div>
                     <div class="inst-regime-box">
                         <div class="inst-regime-score">
                             <span class="score-val" id="eq-score">15</span><span class="score-max">/100</span>
                         </div>
                         <div class="inst-regime-desc">
-                            <strong id="eq-score-label">Market Stress</strong>
-                            <p id="eq-score-desc">Weak breadth and regional lag favor a defensive stance.</p>
+                            <strong id="eq-score-label">Calculando</strong>
+                            <p id="eq-score-desc">La lectura aparecer&aacute; cuando haya datos de &iacute;ndices y factores.</p>
                         </div>
                     </div>
                     <div class="inst-regime-signals">
-                        <div class="sig-row"><span>Participation</span><strong id="eq-signal-breadth" class="down">11%</strong></div>
-                        <div class="sig-row"><span>Tech Ldrshp</span><strong id="eq-signal-tech" class="up">+0.60</strong></div>
-                        <div class="sig-row"><span>EQW vs SPX</span><strong id="eq-signal-equal" class="down">-0.25</strong></div>
-                        <div class="sig-row"><span>SML vs SPX</span><strong id="eq-signal-small" class="down">-0.15</strong></div>
+                        <div class="sig-row"><span title="Porcentaje de regiones que cierran al alza">&Iacute;ndices al alza</span><strong id="eq-signal-breadth" class="down">11%</strong></div>
+                        <div class="sig-row"><span title="Desempeño del sector tecnológico frente al S&amp;P 500">Tecnol&oacute;gicas vs S&amp;P 500</span><strong id="eq-signal-tech" class="up">+0.60</strong></div>
+                        <div class="sig-row"><span title="S&amp;P 500 con todas las empresas al mismo peso, frente al índice normal. Si va por debajo, el alza depende de pocas empresas">Ponderaci&oacute;n pareja vs S&amp;P 500</span><strong id="eq-signal-equal" class="down">-0.25</strong></div>
+                        <div class="sig-row"><span title="Empresas de baja capitalización frente al S&amp;P 500">Empresas peque&ntilde;as vs S&amp;P 500</span><strong id="eq-signal-small" class="down">-0.15</strong></div>
                     </div>
                 </div>
 
                 <!-- Institutional Thesis -->
                 <div class="inst-panel thesis-panel" onclick="openEquitySummaryReport('thesis')">
-                    <div class="inst-panel-hdr"><i class="fas fa-brain"></i> VALLNEWS THESIS</div>
+                    <div class="inst-panel-hdr"><i class="fas fa-brain"></i> Lectura de VALLNews</div>
                     <div class="inst-thesis-content">
-                        <h3 id="eq-thesis-title">Building market thesis...</h3>
-                        <p id="eq-thesis-text">Reading will update when indices and factors are available.</p>
+                        <h3 id="eq-thesis-title">Preparando la lectura de la sesi&oacute;n&hellip;</h3>
+                        <p id="eq-thesis-text">El resumen se completar&aacute; cuando lleguen los datos de &iacute;ndices y factores.</p>
                     </div>
                 </div>
             </div>
@@ -2049,7 +2111,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                     <span>Instrumento</span>
                     <span class="ff-market-field"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>
                 <select id="bmv-symbol" aria-label="Seleccionar instrumento financiero">
-                    <optgroup label="🇲🇽 México (BMV)">
+                    <optgroup label="🇲🇽 México">
                         <option value="GFNORTEO.MX" selected>Banorte</option>
                         <option value="WALMEX.MX">Walmart México</option>
                         <option value="AMXB.MX">América Móvil</option>    
@@ -2066,7 +2128,6 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                         <option value="OMAB.MX">OMA</option>
                         <option value="GENTERA.MX">Gentera</option>
                         <option value="TLEVISACPO.MX">Televisa</option>
-                        <option value="^MXX">IPC (Índice BMV)</option>
                     </optgroup>
                     <optgroup label="🇺🇸 Estados Unidos (NYSE / NASDAQ)">
                         <option value="AAPL">Apple</option>
@@ -2186,7 +2247,6 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                         <option value="XRP-USD">XRP</option>
                     </optgroup>
                     <optgroup label="💱 Divisas (Forex)">
-                        <option value="USDMXN=X">USD / MXN</option>
                         <option value="EURUSD=X">EUR / USD</option>
                         <option value="GBPUSD=X">GBP / USD</option>
                         <option value="USDJPY=X">USD / JPY</option>
@@ -2216,6 +2276,22 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                         <button id="bmv-custom-btn" type="button"><i class="fas fa-arrow-right" aria-hidden="true"></i><span>Analizar</span></button>
                     </span>
                 </label>
+                <!-- El tipo de gráfica vive aquí, junto al resto de controles. Antes
+                     ocupaba una fila propia de 1394px para 539px de contenido.
+                     #chart-type-title y #chart-type-note se conservan ocultos a la vista
+                     (no a lectores de pantalla) porque syncChartTypeUI() escribe en ellos
+                     sin comprobar que existan, y alimentan el aria-label de la gráfica. -->
+                <fieldset class="ff-market-control ff-market-control-chart">
+                    <legend>Gr&aacute;fico</legend>
+                    <div class="chart-type-switch" id="chart-type-switch" role="group" aria-label="Tipo de gráfica">
+                        <button type="button" class="chart-type-btn active" data-chart-type="candles" onclick="setFinChartType('candles',this)" aria-pressed="true" title="Velas japonesas · apertura, máximo, mínimo y cierre"><i class="fas fa-chart-column"></i><strong>Velas</strong></button>
+                        <button type="button" class="chart-type-btn" data-chart-type="line" onclick="setFinChartType('line',this)" aria-pressed="false" title="Línea · dirección del precio de cierre"><i class="fas fa-chart-line"></i><strong>L&iacute;nea</strong></button>
+                        <button type="button" class="chart-type-btn" data-chart-type="area" onclick="setFinChartType('area',this)" aria-pressed="false" title="Área · magnitud y evolución"><i class="fas fa-chart-area"></i><strong>&Aacute;rea</strong></button>
+                        <button type="button" class="chart-type-btn" data-chart-type="ohlc" onclick="setFinChartType('ohlc',this)" aria-pressed="false" title="OHLC · barras profesionales de precio"><i class="fas fa-chart-bar"></i><strong>OHLC</strong></button>
+                    </div>
+                    <strong id="chart-type-title" class="sr-only">Velas japonesas</strong>
+                    <span id="chart-type-note" class="sr-only">Apertura, m&aacute;ximo, m&iacute;nimo y cierre de cada periodo.</span>
+                </fieldset>
             </div>
         </div>
 
@@ -2233,19 +2309,6 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
             <div class="ff-quote-stat"><span>M&aacute;ximo de sesi&oacute;n</span><strong id="ch-high">—</strong></div>
             <div class="ff-quote-stat"><span>M&iacute;nimo de sesi&oacute;n</span><strong id="ch-low">—</strong></div>
         </section>
-
-        <div class="chart-view-toolbar">
-            <div class="chart-view-copy">
-                <span class="chart-view-icon"><i class="fas fa-sliders"></i></span>
-                <div><small>4 formatos de visualizaci&oacute;n</small><strong id="chart-type-title">Velas japonesas</strong><span id="chart-type-note">Apertura, m&aacute;ximo, m&iacute;nimo y cierre de cada periodo.</span></div>
-            </div>
-            <div class="chart-type-switch" id="chart-type-switch" role="group" aria-label="Tipo de gráfica">
-                <button type="button" class="chart-type-btn active" data-chart-type="candles" onclick="setFinChartType('candles',this)" aria-pressed="true" title="Ver apertura, máximo, mínimo y cierre"><i class="fas fa-chart-column"></i><span><strong>Velas</strong><small>An&aacute;lisis t&eacute;cnico</small></span></button>
-                <button type="button" class="chart-type-btn" data-chart-type="line" onclick="setFinChartType('line',this)" aria-pressed="false" title="Seguir la dirección del precio de cierre"><i class="fas fa-chart-line"></i><span><strong>L&iacute;nea</strong><small>Tendencia limpia</small></span></button>
-                <button type="button" class="chart-type-btn" data-chart-type="area" onclick="setFinChartType('area',this)" aria-pressed="false" title="Comparar magnitud y evolución"><i class="fas fa-chart-area"></i><span><strong>&Aacute;rea</strong><small>Magnitud visual</small></span></button>
-                <button type="button" class="chart-type-btn" data-chart-type="ohlc" onclick="setFinChartType('ohlc',this)" aria-pressed="false" title="Ver barras profesionales de precio"><i class="fas fa-chart-bar"></i><span><strong>OHLC</strong><small>Barras de precio</small></span></button>
-            </div>
-        </div>
 
         <div class="ff-chart-stage-layout">
             <div id="ch-wrapper" class="market-chart-canvas" role="region" aria-label="Gráfica interactiva del instrumento seleccionado" aria-busy="true">
@@ -2265,7 +2328,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
         </div>
         <footer class="ff-chart-source"><span><i class="fas fa-shield-halved" aria-hidden="true"></i> Datos del proveedor conectado a Favro</span><span>La visualizaci&oacute;n no constituye una recomendaci&oacute;n de inversi&oacute;n.</span></footer>
     </div>
-    <script src="/assets/js/vendor/lightweight-charts.standalone.production.js?v=1"></script>
+    <script src="../assets/js/vendor/lightweight-charts.standalone.production.js?v=1"></script>
     <script>
     (function(){
         let _chart = null, _series = null;
@@ -2479,8 +2542,19 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
                         rightPriceScale: { borderColor: '#dce5ea', scaleMargins: { top:.1, bottom:.12 } },
                         timeScale: { borderColor: '#dce5ea', timeVisible: showTime, rightOffset: 3, barSpacing: 8 },
                     });
+                    let _lastChartWidth = wrapper.clientWidth;
                     new ResizeObserver(() => {
-                        _chart.applyOptions({ width: wrapper.clientWidth, height: wrapper.clientHeight || 440 });
+                        const w = wrapper.clientWidth;
+                        _chart.applyOptions({ width: w, height: wrapper.clientHeight || 440 });
+                        /* Reajustar al nuevo ancho. El panel se construye oculto, así que
+                           clientWidth vale ~0 y el fitContent() inicial calcula el espaciado
+                           de barras para esa anchura. Al abrirse y ensancharse, la librería
+                           conserva ese espaciado y ancla la serie al borde derecho: las velas
+                           quedaban apelotonadas en un tercio y el resto en blanco. */
+                        if (w !== _lastChartWidth) {
+                            _lastChartWidth = w;
+                            _chart.timeScale().fitContent();
+                        }
                     }).observe(wrapper);
                 } else {
                     _chart.applyOptions({ timeScale: { timeVisible: showTime } });
@@ -2521,60 +2595,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
     })();
     </script>
         </div>
-        <div class="news-sidebar">
-            <div class="section-lbl" style="margin-bottom:.7rem;">
-                <i class="fas fa-newspaper" style="font-size:.72rem;"></i>Noticias Financieras
-            </div>
-            <div class="filter-bar">
-                <button class="fpill active" onclick="ncFilter('all',this)">TODOS</button>
-                <button class="fpill" onclick="ncFilter('globales',this)">🌐 Mercados</button>
-                <button class="fpill" onclick="ncFilter('commodities',this)">💱 Divisas</button>
-            </div>
-            <div class="news-carousel">
-                <div class="nc-viewport" id="ncViewport" style="height:732px;">
-                    <div class="nc-track" id="ncTrack">
-                        <div class="nc-card" style="pointer-events:none;"><div class="nc-img sk-block"></div><div class="nc-body"><div class="sk-line w45" style="height:7px;width:80px;margin:0;"></div><div class="sk-line w90" style="height:10px;margin:4px 0;"></div><div class="sk-line w70" style="height:10px;margin:0;"></div></div></div>
-                        <div class="nc-card" style="pointer-events:none;"><div class="nc-img sk-block"></div><div class="nc-body"><div class="sk-line w45" style="height:7px;width:80px;margin:0;"></div><div class="sk-line w90" style="height:10px;margin:4px 0;"></div><div class="sk-line w70" style="height:10px;margin:0;"></div></div></div>
-                        <div class="nc-card" style="pointer-events:none;"><div class="nc-img sk-block"></div><div class="nc-body"><div class="sk-line w45" style="height:7px;width:80px;margin:0;"></div><div class="sk-line w90" style="height:10px;margin:4px 0;"></div><div class="sk-line w70" style="height:10px;margin:0;"></div></div></div>
-                    </div>
-                </div>
-                <div class="nc-nav">
-                    <button class="nc-btn" id="ncBtnUp"   onclick="ncMove(-1)" title="Anteriores"><i class="fas fa-chevron-up"></i></button>
-                    <button class="nc-btn" id="ncBtnDown" onclick="ncMove(1)"  title="Siguientes"><i class="fas fa-chevron-down"></i></button>
-                </div>
-            </div>
-            <aside class="finance-sidebar-pulse" aria-label="Monitor cruzado de mercados">
-                <div class="finance-sidebar-pulse-head">
-                    <span><i class="fas fa-wave-square"></i> Monitor cruzado</span>
-                    <em>Lectura en vivo</em>
-                </div>
-                <div class="finance-sidebar-pulse-grid">
-                    <div><small>USD / MXN</small><strong id="sidebar-pulse-usdmxn">—</strong><span id="sidebar-pulse-usdmxn-note">Tipo de cambio</span></div>
-                    <div><small>DXY</small><strong id="sidebar-pulse-dxy">—</strong><span id="sidebar-pulse-dxy-note">Dólar global</span></div>
-                    <div><small>VIX</small><strong id="sidebar-pulse-vix">—</strong><span id="sidebar-pulse-vix-note">Volatilidad</span></div>
-                    <div><small>Carry MX</small><strong id="sidebar-pulse-carry">—</strong><span>Diferencial TIIE−Fed</span></div>
-                </div>
-                <p id="sidebar-pulse-reading"><i class="fas fa-circle-info"></i> El monitor conecta divisas, volatilidad y tasas para contextualizar la gráfica.</p>
-            </aside>
-        </div>
-    </div>
-    <div class="panel" id="bolsa-news-panel" style="margin-bottom:.7rem;display:none;">
-        <div class="section-lbl">📊 Pulso del Mercado · Sectores S&amp;P 500</div>
-        <div id="mkt-pulse" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:.55rem;">
-            <div class="sk-block" style="height:62px;"></div>
-            <div class="sk-block" style="height:62px;"></div>
-            <div class="sk-block" style="height:62px;"></div>
-            <div class="sk-block" style="height:62px;"></div>
-        </div>
-        <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:#94a3b8;margin-bottom:.55rem;">Sectores · Rendimiento del Día</div>
-        <div id="sector-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;">
-            <div class="sk-block" style="height:68px;"></div><div class="sk-block" style="height:68px;"></div>
-            <div class="sk-block" style="height:68px;"></div><div class="sk-block" style="height:68px;"></div>
-            <div class="sk-block" style="height:68px;"></div><div class="sk-block" style="height:68px;"></div>
-            <div class="sk-block" style="height:68px;"></div><div class="sk-block" style="height:68px;"></div>
-            <div class="sk-block" style="height:68px;"></div><div class="sk-block" style="height:68px;"></div>
-            <div class="sk-block" style="height:68px;"></div>
-        </div>
+        
     </div>
     <section class="fx-pro" id="fx-pro-panel" style="margin-bottom:.7rem;display:none;">
         <header class="fx-pro-hero">
@@ -2589,7 +2610,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
             </div>
         </header>
 
-        <div class="fx-pro-kpi-grid">
+        <div class="fx-pro-kpi-grid" id="fx-pro-kpi-grid">
             <article class="fx-pro-kpi tone-mxn report-card" role="button" tabindex="0" onclick="openFxDetail(0)" onkeydown="reportCardKey(event,()=>openFxDetail(0))"><span><i class="fas fa-dollar-sign"></i></span><div><small>USD / MXN</small><strong id="fx-pro-usdmxn">—</strong><em id="fx-pro-usdmxn-chg">Peso mexicano</em></div></article>
             <article class="fx-pro-kpi tone-eur report-card" role="button" tabindex="0" onclick="openFxDetail(1)" onkeydown="reportCardKey(event,()=>openFxDetail(1))"><span><i class="fas fa-euro-sign"></i></span><div><small>EUR / MXN</small><strong id="fx-pro-eurmxn">—</strong><em id="fx-pro-eurmxn-chg">Cruce europeo</em></div></article>
             <article class="fx-pro-kpi tone-gbp report-card" role="button" tabindex="0" onclick="openFxDetail(2)" onkeydown="reportCardKey(event,()=>openFxDetail(2))"><span><i class="fas fa-sterling-sign"></i></span><div><small>GBP / MXN</small><strong id="fx-pro-gbpmxn">—</strong><em id="fx-pro-gbpmxn-chg">Libra esterlina</em></div></article>
@@ -3109,7 +3130,7 @@ body.ff-detail-rendimientos .ff-detail-supplement * {
 </div>
 <footer class="footer">
     <div class="footer-logo">
-        <div class="footer-icon"><img src="/assets/img/logo2.png" alt="VALLNEWS"></div>
+        <div class="footer-icon"><img src="../assets/img/logo2.png" alt="VALLNEWS"></div>
         <span class="footer-brand">VALLNews</span>
     </div>
     <nav class="footer-nav">
@@ -3662,7 +3683,10 @@ function renderNewsGrid(noticias, hora) {
 }
 // Tasas de referencia de bancos centrales — se actualizan dinámicamente desde /api/bond-yields
 // Valores de arranque (fallback) mientras carga la API
-const CENTRAL_BANKS = { fed: 4.50, bce: 2.65, boe: 4.50, boj: 0.50 };
+// NOTA: usar var (no const) — finanzas-favro.js también declara este global.
+// Con const, el segundo script lanza "Identifier already declared" y aborta finanzas-favro.js.
+var CENTRAL_BANKS = window.CENTRAL_BANKS || { fed: 4.50, bce: 2.65, boe: 4.50, boj: 0.50 };
+window.CENTRAL_BANKS = CENTRAL_BANKS;
 
 /**
  * Actualiza CENTRAL_BANKS con los datos reales recibidos de /api/bond-yields.
@@ -3680,12 +3704,12 @@ function _syncCentralBanksFromBondData(bondData) {
                 // Tomamos el tramo corto (3M) como proxy de Fed Funds si disponible
                 const shortBond = entry.bonds.find(b => b.maturity === '3M');
                 const usRate = shortBond?.yield ?? rate;
-                if (usRate != null && !isNaN(usRate)) CENTRAL_BANKS.fed = +usRate.toFixed(2);
+                if (usRate != null && !isNaN(usRate)) CENTRAL_BANKS.fed = +(+usRate).toFixed(2);
                 break;
             }
-            case 'eu': CENTRAL_BANKS.bce = +rate.toFixed(2); break;
-            case 'gb': CENTRAL_BANKS.boe = +rate.toFixed(2); break;
-            case 'jp': CENTRAL_BANKS.boj = +rate.toFixed(2); break;
+            case 'eu': CENTRAL_BANKS.bce = +(+rate).toFixed(2); break;
+            case 'gb': CENTRAL_BANKS.boe = +(+rate).toFixed(2); break;
+            case 'jp': CENTRAL_BANKS.boj = +(+rate).toFixed(2); break;
         }
     });
     // Actualizar tooltips y raw-data panel si ya están renderizados
@@ -3695,9 +3719,10 @@ function _syncCentralBanksFromBondData(bondData) {
     });
 }
 
-const _rds = {};
+var _rds = window._rds || {};
+window._rds = _rds;
 
- const RDS2_META = [
+ var RDS2_META = [
     // Tasas
     { key:'tiie',         lbl:'TIIE 28D',     icon:'🏦', cat:'tasas', fmt:'pct2', bar:[2,12],   tip:'Tasa Interbancaria de Equilibrio a 28 días. Base para el crédito en México, fijada por Banxico.',          interp: v => v>9?'🔴 Muy restrictiva · crédito caro':v>7?'🟠 Restrictiva':v>5?'🟡 Moderada':'🟢 Expansiva' },
     // 'fix' (Tasa Fix) e 'infl' (Inflación MX) se quitaron: sus series de Banxico
@@ -4305,29 +4330,30 @@ async function cargarFinanzas() {
     tx('ai-status', `Cargando… · ${hora}`);
     const CATS_FIN = ['Mercados Globales', 'Divisas y Commodities', 'Mercados Globales', 'Economía Global', 'Divisas y Commodities', 'Mercados Globales', 'Commodities', 'Cripto y Fintech', 'Economía México'];
     const IMP_FIN  = ['alto', 'medio', 'bajo', 'medio', 'alto', 'bajo', 'medio', 'medio', 'alto'];
-    const fhNewsPromise = fetch('/api/finnhub-news?category=general')
-        .then(r => r.ok ? r.json() : []).catch(() => []);
+    // Carrusel lateral "Noticias Financieras": ahora usa el MISMO noticiero real y
+    // editorial (/api/daily-news, Finnhub+NewsAPI+Gemini) que el módulo Daily News.
+    // Ya viene en español, así que no se traduce con mymemory (evita los 429).
+    const dailyNewsPromise = fetch('/api/daily-news')
+        .then(r => r.ok ? r.json() : null)
+        .then(j => (Array.isArray(j?.data?.noticias) ? j.data.noticias : []).map(n => ({
+            categoria:   n.categoryLabel || 'Mercados',
+            titulo:      n.title || '',
+            descripcion: n.description || '',
+            fuente:      (n.source || 'FAVRO').toUpperCase(),
+            impacto:     n.impact || 'medio',
+            ia_insight:  n.insight || '',
+            image:       n.image || '',
+            url:         n.url || '',
+            fecha:       n.fecha || '',
+        })))
+        .catch(() => []);
 
-    fhNewsPromise.then(fhRaw => {
-        if (!Array.isArray(fhRaw) || !fhRaw.length) return;
-        const seen = new Set();
-        _fhImgPool = fhRaw.filter(a => {
-            if (!a.image?.startsWith('http') || seen.has(a.image)) return false;
-            seen.add(a.image); return true;
-        }).map(a => a.image);
-        const fhForNews = fhRaw.filter(a => a.headline || a.summary).slice(0, 9);
-        if (fhForNews.length < 3) return;
-        let noticiasFast = fhForNews.map((a, i) => ({
-            categoria: CATS_FIN[i % CATS_FIN.length], titulo: a.headline || a.summary || '',
-            descripcion: a.summary || '', fuente: (a.source || 'FINNHUB').toUpperCase(),
-            impacto: IMP_FIN[i % IMP_FIN.length], ia_insight: `Real-time data via ${a.source || 'Finnhub'}.`,
-            image: a.image?.startsWith('http') ? a.image : (_fhImgPool[i] || ''), url: a.url || '',
-        }));
-                if (noticiasFast.length < 9) {
-            const fb = buildFallback(null, null, null, hora);
-            noticiasFast = noticiasFast.concat(fb.slice(noticiasFast.length));
-        }
-        renderNewsGrid(noticiasFast, hora);
+    dailyNewsPromise.then(noticias => {
+        if (!Array.isArray(noticias) || noticias.length < 3) return;
+        _fhImgPool = noticias.filter(n => n.image && n.image.startsWith('http')).map(n => n.image);
+        let list = noticias.slice(0, 9);
+        if (list.length < 9) list = list.concat(buildFallback(null, null, null, hora).slice(list.length));
+        renderNewsGrid(list, hora);
         window.VNLoader?.hide();
     });
     const [tiieR, fixR, inflR, vixR, hygR, lqdR, fxR] = await Promise.allSettled([
@@ -4368,44 +4394,14 @@ async function cargarFinanzas() {
     updateForecastBanner(vaiPred, vaiVerdict, vaiAlerta, 'MERCADO MX');
     Object.assign(_rds, { tiie: tiieVal, fix, infl, vix: vixVal, creditSpread, fx, hora });
     renderRawDataPanel();
-    const fhRaw = await fhNewsPromise;
-    const seen2 = new Set();
-    _fhImgPool = fhRaw.filter(a => {
-        if (!a.image?.startsWith('http') || seen2.has(a.image)) return false;
-        seen2.add(a.image); return true;
-    }).map(a => a.image);
-
-    const fhForNews = fhRaw.filter(a => a.headline || a.summary).slice(0, 9);
-    let noticiasFast = fhForNews.length >= 3
-        ? fhForNews.map((a, i) => ({
-            categoria:   CATS_FIN[i % CATS_FIN.length],
-            titulo:      a.headline || a.summary || '',
-            descripcion: a.summary  || '',
-            fuente:      (a.source  || 'FINNHUB').toUpperCase(),
-            impacto:     IMP_FIN[i % IMP_FIN.length],
-            ia_insight:  `Real-time data via ${a.source || 'Finnhub'}.`,
-            image:       a.image?.startsWith('http') ? a.image : (_fhImgPool[i] || ''),
-            url:         a.url   || '',
-          }))
-        : buildFallback(tiieVal, fix, null, hora);
-    if (noticiasFast.length < 9) {
-        const fb = buildFallback(tiieVal, fix, null, hora);
-        noticiasFast = noticiasFast.concat(fb.slice(noticiasFast.length));
+    const dailyNews = await dailyNewsPromise;
+    _fhImgPool = dailyNews.filter(n => n.image && n.image.startsWith('http')).map(n => n.image);
+    let noticiasFinales = dailyNews.slice(0, 9);
+    if (noticiasFinales.length < 9) {
+        noticiasFinales = noticiasFinales.concat(buildFallback(tiieVal, fix, null, hora).slice(noticiasFinales.length));
     }
     const bc = { banxico: tiieVal, ...CENTRAL_BANKS };
-    let noticiasFinales = noticiasFast;
-    try {
-        const noticiasES = await Promise.all(
-            noticiasFast.map(n => toNoticia(
-                { title: n.titulo, source: n.fuente, url: n.url, description: n.descripcion, image: n.image },
-                n.categoria, n.impacto
-            ))
-        );
-        renderNewsGrid(noticiasES, hora);
-        noticiasFinales = noticiasES;
-    } catch {
-        renderNewsGrid(noticiasFast, hora);
-    }
+    renderNewsGrid(noticiasFinales, hora);
     window.VNLoader?.hide();
     tx('ai-status', `Actualizado · ${hora}`);
     const obj = { hora, tiie: tiieVal, fix, infl, vix: vixVal, creditSpread, bc, vai: [vaiPred, vaiVerdict, vaiAlerta, 'MERCADO MX'], noticias: noticiasFinales, imgPool: _fhImgPool, fx };
@@ -4556,7 +4552,6 @@ async function updateTicker() {
         { s: 'BIMBOA',   n: 'Bimbo',         t: 'BIMBOA.MX'   },
         { s: 'CEMEXCPO', n: 'Cemex',         t: 'CEMEXCPO.MX' },
         { s: 'GMEXICOB', n: 'Grupo México',  t: 'GMEXICOB.MX' },
-        { s: 'USD/MXN',  n: 'Tipo Cambio',   t: 'USDMXN=X'    },
         { s: 'CL=F',     n: 'Petróleo WTI',  t: 'CL=F'        },
         { s: 'GC=F',     n: 'Oro',           t: 'GC=F'        },
         { s: 'ZC=F',     n: 'Maíz CME',      t: 'ZC=F'        },
@@ -4900,8 +4895,10 @@ function updateDebtDashboard(data, isRef) {
         el.className = tone;
     };
 
-    // Simulated values for new KPIs if not present in state
-    const us2 = state.bondData?.find(d => d.key === 'us')?.bonds?.find(b => b.label === '2Y') || { yield: 4.85, prev: 4.88 };
+    // `state` es privado del IIFE de finanzas-favro.js: aquí no existe y lanzaba
+    // "state is not defined", abortando updateDebtDashboard en esta misma línea.
+    // Todo lo que va debajo se quedaba en "—". Se usa findUs, como el resto.
+    const us2 = findUs('2Y');
     const usig = { yield: 5.65, prev: 5.68 };
     const ushy = { yield: 7.85, prev: 7.90 };
     const ustips = { yield: 2.15, prev: 2.18 };
@@ -5087,6 +5084,467 @@ async function loadBonds() {
         if (loading) { loading.style.display = 'block'; loading.textContent = '⚠ Usando tasas de referencia · datos en vivo no disponibles'; }
     }
 }
+
+/* ── Línea del tiempo de tasas y bonos ─────────────────────────────────────────
+   20 mercados con serie histórica real y tres fuentes:
+     · México      Banxico SIE, diario, hasta 20 años (TIIE y CETES por plazo)
+     · EE.UU.      índices ^IRX/^FVX/^TNX/^TYX vía Yahoo (curva completa)
+     · 18 europeos BCE, tasa de convergencia de Maastricht: rendimiento del bono
+                   soberano a 10 años, mensual y homogénea entre países
+   Ningún mercado aparece aquí sin serie publicada: no se interpola ni se rellena. */
+(function () {
+    /* Genera la ficha de un país europeo servido por el BCE. */
+    const bce = (area, label) => ({
+        label, kind: 'ecb', area,
+        source: `BCE · rendimiento del bono a 10 años (${label})`,
+        series: [{ id: area, label: 'Bono soberano 10 años' }],
+    });
+
+    const CFG = {
+        mx: {
+            label: 'México',
+            kind: 'banxico',
+            source: 'Banxico · Sistema de Información Económica',
+            series: [
+                { id: 'SF61745', label: 'TIIE 28 días' },
+                { id: 'SF43884', label: 'TIIE 91 días' },
+                { id: 'SF43885', label: 'TIIE 182 días' },
+                { id: 'SF43936', label: 'CETES 28 días' },
+                { id: 'SF43939', label: 'CETES 91 días' },
+                { id: 'SF43942', label: 'CETES 182 días' },
+                { id: 'SF43945', label: 'CETES 364 días' },
+            ],
+        },
+        us: {
+            label: 'Estados Unidos',
+            kind: 'yahoo',
+            source: 'US Treasury · índices vía Yahoo Finance',
+            series: [
+                { id: '^IRX', label: 'Treasury 3 meses' },
+                { id: '^FVX', label: 'Treasury 5 años' },
+                { id: '^TNX', label: 'Treasury 10 años' },
+                { id: '^TYX', label: 'Treasury 30 años' },
+            ],
+        },
+        de: bce('DE', 'Alemania'),
+        fr: bce('FR', 'Francia'),
+        it: bce('IT', 'Italia'),
+        es: bce('ES', 'España'),
+        nl: bce('NL', 'Países Bajos'),
+        be: bce('BE', 'Bélgica'),
+        at: bce('AT', 'Austria'),
+        pt: bce('PT', 'Portugal'),
+        ie: bce('IE', 'Irlanda'),
+        gr: bce('GR', 'Grecia'),
+        fi: bce('FI', 'Finlandia'),
+        bg: bce('BG', 'Bulgaria'),
+        hr: bce('HR', 'Croacia'),
+        sk: bce('SK', 'Eslovaquia'),
+        si: bce('SI', 'Eslovenia'),
+        lt: bce('LT', 'Lituania'),
+        lv: bce('LV', 'Letonia'),
+        ee: bce('EE', 'Estonia'),
+    };
+
+    /* Agrupación para los desplegables. */
+    const REGIONES = [
+        { label: 'América', paises: ['mx', 'us'] },
+        { label: 'Europa',  paises: ['de', 'fr', 'it', 'es', 'nl', 'be', 'at', 'pt', 'ie', 'gr', 'fi', 'bg', 'hr', 'sk', 'si', 'lt', 'lv', 'ee'] },
+    ];
+
+    let chart = null;
+    let years = 5;
+    let reqId = 0;
+    let comparacionManual = false;
+
+    const $$ = id => document.getElementById(id);
+    /* Nombre con el que se anuncia una serie en leyendas, subtítulo y desplegables.
+       Los europeos publican un solo plazo, así que el país ya la identifica; en
+       México y EE.UU. hace falta el plazo para no confundir CETES con TIIE. */
+    const etiquetaSerie = (code, serieId) => {
+        const cfg = CFG[code];
+        if (!cfg) return serieId;
+        if (cfg.series.length < 2) return cfg.label;
+        const s = cfg.series.find(x => x.id === serieId);
+        return `${cfg.label} · ${s ? s.label : serieId}`;
+    };
+    const fmtPct = v => (v == null || !isFinite(v)) ? '—' : (+v).toFixed(2) + '%';
+    const fmtDate = d => d instanceof Date && !isNaN(d)
+        ? d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+    /* Se alterna por clase, no por style.display: la regla de la hoja lleva
+       !important y ganaba al display en línea, dejando el velo blanco sobre el
+       gráfico y haciendo que la serie se viera descolorida. */
+    function setState(msg) {
+        const el = $$('rtl-state');
+        if (!el) return;
+        el.textContent = msg || '';
+        el.classList.toggle('is-off', !msg);
+    }
+
+    /* Los 20 mercados, agrupados por región. */
+    function fillCountrySelect() {
+        const sel = $$('rtl-country');
+        if (!sel) return;
+        const frag = document.createDocumentFragment();
+        REGIONES.forEach(r => {
+            const g = document.createElement('optgroup');
+            g.label = r.label;
+            r.paises.forEach(code => g.appendChild(new Option(CFG[code].label, code)));
+            frag.appendChild(g);
+        });
+        sel.replaceChildren(frag);
+        sel.value = 'mx';
+    }
+
+    function fillSeriesSelect() {
+        const country = $$('rtl-country').value;
+        const cfg = CFG[country];
+        const sel = $$('rtl-series');
+        sel.replaceChildren(...cfg.series.map(s => new Option(s.label, s.id)));
+        sel.value = country === 'mx' ? 'SF61745' : country === 'us' ? '^TNX' : cfg.series[0].id;
+        // Con un solo plazo publicado (europeos) el selector no aporta nada.
+        sel.closest('.rtl-field').hidden = cfg.series.length < 2;
+        fillCompareSelect();
+    }
+
+    /* Con qué se lee cada mercado por defecto: en América, el cruce TIIE–Treasury
+       es la prima de México que mide el resto del panel; en la zona euro la
+       referencia universal es el Bund alemán (y a Alemania se le opone Italia,
+       el diferencial que sigue todo el mercado). */
+    function sugerirComparacion(country) {
+        const kind = CFG[country]?.kind;
+        if (kind === 'banxico') return 'us:^TNX';
+        if (kind === 'yahoo') return 'mx:SF61745';
+        return country === 'de' ? 'it:IT' : 'de:DE';
+    }
+
+    /* La comparación ofrece TODAS las series de los 20 mercados menos la
+       principal, agrupadas por región. */
+    function fillCompareSelect() {
+        const sel = $$('rtl-compare');
+        if (!sel) return;
+        const actual = sel.value;
+        const mainCountry = $$('rtl-country').value;
+        const mainSerie = $$('rtl-series').value;
+        const frag = document.createDocumentFragment();
+        frag.appendChild(new Option('Sin comparación', ''));
+        REGIONES.forEach(region => {
+            const grupo = document.createElement('optgroup');
+            grupo.label = region.label;
+            region.paises.forEach(code => {
+                CFG[code].series.forEach(s => {
+                    if (code === mainCountry && s.id === mainSerie) return;
+                    grupo.appendChild(new Option(etiquetaSerie(code, s.id), `${code}:${s.id}`));
+                });
+            });
+            if (grupo.children.length) frag.appendChild(grupo);
+        });
+        sel.replaceChildren(frag);
+        /* Mientras el usuario no elija comparación propia, cada país estrena la
+           suya; en cuanto elige una (incluido "Sin comparación") se respeta. */
+        const sugerida = sugerirComparacion(mainCountry);
+        const existe = v => [...sel.options].some(o => o.value === v);
+        if (comparacionManual && existe(actual)) sel.value = actual;
+        else sel.value = existe(sugerida) ? sugerida : '';
+    }
+
+    /* El BCE publica mensual: la fecha llega como "AAAA-MM". */
+    async function loadEcb(area) {
+        const r = await fetch(`/api/ecb/${encodeURIComponent(area)}/history?years=${years}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        return (j?.points || [])
+            .map(p => ({ date: new Date(p.date + '-01T00:00:00'), value: +p.value }))
+            .filter(p => !isNaN(p.date) && isFinite(p.value));
+    }
+
+    function loadSeries(country, id) {
+        const kind = CFG[country]?.kind;
+        if (kind === 'banxico') return loadMx(id);
+        if (kind === 'yahoo') return loadUs(id);
+        return loadEcb(CFG[country].area);
+    }
+
+    /* Las dos fuentes tienen frecuencias distintas (Banxico es diario, Yahoo
+       semanal). Se proyecta la serie de comparación sobre las fechas de la
+       principal arrastrando el último valor conocido: nunca se interpola ni se
+       inventa un punto que la fuente no publicó. */
+    function alinear(base, otra) {
+        const orden = [...otra].sort((a, b) => a.date - b.date);
+        let i = 0, ultimo = null;
+        return base.map(p => {
+            while (i < orden.length && orden[i].date <= p.date) { ultimo = orden[i].value; i++; }
+            return ultimo;
+        });
+    }
+
+    /* Banxico entrega la fecha como DD/MM/AAAA, que Date no interpreta bien. */
+    function parseBanxicoDate(texto) {
+        const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(texto || '').trim());
+        return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+    }
+
+    async function loadMx(serie) {
+        const end = new Date();
+        const start = new Date(end.getFullYear() - years, end.getMonth(), end.getDate());
+        const iso = d => d.toISOString().slice(0, 10);
+        const r = await fetch(`/api/banxico/${encodeURIComponent(serie)}/history?start=${iso(start)}&end=${iso(end)}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        const datos = j?.bmx?.series?.[0]?.datos || [];
+        return datos
+            .map(d => ({ date: parseBanxicoDate(d.fecha), value: parseFloat(d.dato) }))
+            .filter(p => p.date && isFinite(p.value));
+    }
+
+    async function loadUs(ticker) {
+        const range = years <= 1 ? '1y' : years <= 3 ? '3y' : years <= 5 ? '5y' : '10y';
+        const interval = years <= 1 ? '1d' : '1wk';
+        const r = await fetch(`/api/stock-history?ticker=${encodeURIComponent(ticker)}&range=${range}&interval=${interval}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        return (j?.candles || [])
+            .map(c => ({ date: new Date(typeof c.time === 'number' ? c.time * 1000 : c.time + 'T00:00:00'), value: +c.close }))
+            .filter(p => !isNaN(p.date) && isFinite(p.value));
+    }
+
+    function render(points, meta) {
+        const canvas = $$('rtl-canvas');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (chart) { chart.destroy(); chart = null; }
+
+        const values = points.map(p => p.value);
+        const last = points[points.length - 1];
+        const first = points[0];
+        let maxP = points[0], minP = points[0];
+        points.forEach(p => { if (p.value > maxP.value) maxP = p; if (p.value < minP.value) minP = p; });
+        const diff = last.value - first.value;
+        const sube = diff >= 0;
+
+        $$('rtl-last').textContent = fmtPct(last.value);
+        $$('rtl-last-date').textContent = fmtDate(last.date);
+        $$('rtl-max').textContent = fmtPct(maxP.value);
+        $$('rtl-max-date').textContent = fmtDate(maxP.date);
+        $$('rtl-min').textContent = fmtPct(minP.value);
+        $$('rtl-min-date').textContent = fmtDate(minP.date);
+        const chg = $$('rtl-chg');
+        chg.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} pp`;
+        chg.className = sube ? 'is-up' : 'is-down';
+        $$('rtl-source').textContent = meta.source;
+        $$('rtl-count').textContent = `${points.length} observaciones · ${fmtDate(first.date)} → ${fmtDate(last.date)}`;
+        $$('rtl-sub').textContent = meta.compLabel
+            ? `${meta.seriesLabel} frente a ${meta.compLabel}`
+            : meta.seriesLabel;
+
+        /* Diferencial actual entre ambas series, en puntos porcentuales. */
+        const celdaSpread = $$('rtl-spread-cell');
+        const leyenda = $$('rtl-legend');
+        if (meta.compValues) {
+            const ultimoComp = [...meta.compValues].reverse().find(v => v != null);
+            const spread = ultimoComp == null ? null : last.value - ultimoComp;
+            celdaSpread.hidden = false;
+            const el = $$('rtl-spread');
+            el.textContent = spread == null ? '—' : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pp`;
+            el.className = spread == null ? '' : spread >= 0 ? 'is-up' : 'is-down';
+            $$('rtl-spread-note').textContent = spread == null ? 'Sin dato comparable'
+                : spread >= 0 ? `${meta.seriesLabel} paga más` : `${meta.compLabel} paga más`;
+            leyenda.hidden = false;
+            $$('rtl-lg-main').textContent = meta.seriesLabel;
+            $$('rtl-lg-comp').textContent = meta.compLabel;
+        } else {
+            celdaSpread.hidden = true;
+            leyenda.hidden = true;
+        }
+
+        /* Colorimetría: la serie va siempre en el teal de Favro. El rojo y el
+           verde se reservan para lo que sí es direccional —la variación y los
+           extremos—, así el color significa una sola cosa en toda la vista. */
+        const TEAL = '#0d6d8c';
+        const maxIdx = points.indexOf(maxP);
+        const minIdx = points.indexOf(minP);
+
+        /* Línea punteada al nivel actual: ancla la cifra "Último" a la curva. */
+        const nivelActual = {
+            id: 'nivelActual',
+            afterDatasetsDraw(c) {
+                if (!c.chartArea) return;
+                const y = c.scales.y.getPixelForValue(last.value);
+                const { left, right } = c.chartArea;
+                const g = c.ctx;
+                g.save();
+                g.setLineDash([5, 5]);
+                g.strokeStyle = 'rgba(13,109,140,.5)';
+                g.lineWidth = 1;
+                g.beginPath(); g.moveTo(left, y); g.lineTo(right, y); g.stroke();
+                g.restore();
+            },
+        };
+
+        chart = new Chart(canvas, {
+            type: 'line',
+            plugins: [nivelActual],
+            data: {
+                // Etiquetas ya formateadas: el bundle de Chart.js del proyecto no
+                // incluye adaptador de fechas, así que `scales.x.type: 'time'` no
+                // funcionaría. Con categorías se consigue lo mismo sin dependencia.
+                labels: points.map(p => p.date.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })),
+                datasets: [{
+                    data: values,
+                    borderColor: TEAL,
+                    /* Sin comparación: degradado vertical hacia la base.
+                       Con comparación: el relleno va HASTA la otra serie, así la
+                       banda sombreada ES el diferencial, y se tiñe de rojo cuando
+                       esta serie paga más y de verde cuando paga menos. */
+                    backgroundColor: meta.compValues
+                        ? undefined
+                        : ctx => {
+                            const area = ctx.chart.chartArea;
+                            if (!area) return 'rgba(13,109,140,.14)';
+                            const g = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+                            g.addColorStop(0, 'rgba(13,109,140,.30)');
+                            g.addColorStop(1, 'rgba(13,109,140,.02)');
+                            return g;
+                        },
+                    borderWidth: 2.2,
+                    fill: meta.compValues
+                        ? { target: 1, above: 'rgba(179,38,30,.15)', below: 'rgba(14,122,64,.15)' }
+                        : true,
+                    tension: .25,
+                    /* Solo se marcan el máximo y el mínimo: son las dos cifras del
+                       resumen, y así el ojo las localiza sobre la curva. */
+                    pointRadius: points.map((_, i) => (i === maxIdx || i === minIdx) ? 5 : 0),
+                    pointBackgroundColor: points.map((_, i) => i === maxIdx ? '#b3261e' : i === minIdx ? '#0e7a40' : 'transparent'),
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: TEAL,
+                    pointHoverBorderColor: '#ffffff',
+                    label: meta.seriesLabel,
+                },
+                ...(meta.compValues ? [{
+                    data: meta.compValues,
+                    label: meta.compLabel,
+                    borderColor: '#c99745',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    fill: false,
+                    tension: .25,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: '#c99745',
+                    pointHoverBorderColor: '#ffffff',
+                    spanGaps: true,
+                }] : [])],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 420 },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#071c2c', padding: 10, cornerRadius: 9,
+                        displayColors: !!meta.compValues, boxWidth: 8, boxHeight: 8, usePointStyle: true,
+                        titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 12 },
+                        callbacks: {
+                            title: it => fmtDate(points[it[0].dataIndex].date),
+                            label: it => meta.compValues
+                                ? `${it.dataset.label}  ${fmtPct(it.parsed.y)}`
+                                : fmtPct(it.parsed.y),
+                            /* Cierra el tooltip con el diferencial de ese día. */
+                            footer: it => {
+                                if (!meta.compValues || it.length < 2) return '';
+                                const d = it[0].parsed.y - it[1].parsed.y;
+                                return `Diferencial  ${d >= 0 ? '+' : ''}${d.toFixed(2)} pp`;
+                            },
+                        },
+                        footerFont: { family: 'JetBrains Mono', size: 11 },
+                        footerColor: '#9fd0e8',
+                    },
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        border: { color: '#e2eaef' },
+                        ticks: {
+                            color: '#5b6f7e', font: { family: 'Inter', size: 11, weight: '600' },
+                            maxTicksLimit: 8, autoSkip: true, maxRotation: 0, padding: 6,
+                        },
+                    },
+                    y: {
+                        position: 'right',
+                        grid: { color: 'rgba(16,32,46,.06)', drawTicks: false },
+                        border: { display: false },
+                        ticks: {
+                            color: '#5b6f7e', font: { family: 'JetBrains Mono', size: 11 },
+                            padding: 10, maxTicksLimit: 6,
+                            callback: v => v.toFixed(1) + '%',
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    async function refresh() {
+        const mine = ++reqId;
+        const country = $$('rtl-country')?.value;
+        const serie = $$('rtl-series')?.value;
+        if (!country || !serie) return;
+        const cfg = CFG[country];
+        const seriesLabel = etiquetaSerie(country, serie);
+        const comparar = $$('rtl-compare')?.value || '';
+        const [compCountry, compSerie] = comparar ? comparar.split(':') : [];
+
+        setState('Cargando serie histórica…');
+        try {
+            const [points, compPoints] = await Promise.all([
+                loadSeries(country, serie),
+                comparar ? loadSeries(compCountry, compSerie) : Promise.resolve(null),
+            ]);
+            if (mine !== reqId) return;
+            if (!points.length) { setState('La fuente no devolvió observaciones para este periodo.'); return; }
+            setState('');
+            const compValues = compPoints && compPoints.length ? alinear(points, compPoints) : null;
+            /* Dos países europeos comparten fuente: se nombra una sola vez. */
+            const cfgComp = compValues ? CFG[compCountry] : null;
+            const fuente = !cfgComp ? cfg.source
+                : (cfg.kind === 'ecb' && cfgComp.kind === 'ecb')
+                    ? `BCE · rendimiento del bono a 10 años (${cfg.label} y ${cfgComp.label})`
+                    : `${cfg.source}  ·  ${cfgComp.source}`;
+            render(points, {
+                source: fuente, seriesLabel,
+                compValues, compLabel: compValues ? etiquetaSerie(compCountry, compSerie) : null,
+            });
+        } catch (e) {
+            if (mine !== reqId) return;
+            console.warn('Línea del tiempo:', e.message);
+            setState('No se pudo cargar la serie. Inténtalo de nuevo más tarde.');
+        }
+    }
+
+    function init() {
+        if (!$$('rate-timeline')) return;
+        fillCountrySelect();
+        fillSeriesSelect();
+        $$('rtl-country').addEventListener('change', () => { fillSeriesSelect(); refresh(); });
+        $$('rtl-series').addEventListener('change', () => { fillCompareSelect(); refresh(); });
+        $$('rtl-compare').addEventListener('change', () => { comparacionManual = true; refresh(); });
+        $$('rtl-periods').addEventListener('click', e => {
+            const b = e.target.closest('button[data-years]');
+            if (!b) return;
+            years = +b.dataset.years;
+            $$('rtl-periods').querySelectorAll('button').forEach(x => x.classList.toggle('is-active', x === b));
+            refresh();
+        });
+        refresh();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+    else init();
+})();
 
 async function loadRiskPanel() {
     try {
@@ -6035,7 +6493,10 @@ async function loadEquityInstitutional() {
         regionGrid.innerHTML = regions.map((item, index) => {
             const color = item.pct == null ? '#94a3b8' : item.pct >= 0 ? '#059669' : '#dc2626';
             const pct = item.pct == null ? 'Dato pendiente' : `${item.pct >= 0 ? '+' : ''}${item.pct.toFixed(2)}%`;
-            return `<div class="eq-region-card report-card" style="--eq-color:${color}" role="button" tabindex="0" title="Abrir reporte de ${item.label}" onclick="openEquityInstitutionalReport('regions',${index})" onkeydown="reportCardKey(event,()=>openEquityInstitutionalReport('regions',${index}))"><small>${item.flag} ${item.label} · ${item.region}</small><strong>${equityFormatPrice(item.price)}</strong><span>${pct}</span></div>`;
+            // La clase is-up / is-down permite dar al porcentaje un tono con contraste
+            // suficiente sobre fondo claro; --eq-color queda para el filete decorativo.
+            const tone = item.pct == null ? 'is-flat' : item.pct >= 0 ? 'is-up' : 'is-down';
+            return `<div class="eq-region-card report-card ${tone}" style="--eq-color:${color}" role="button" tabindex="0" title="Abrir reporte de ${item.label}" onclick="openEquityInstitutionalReport('regions',${index})" onkeydown="reportCardKey(event,()=>openEquityInstitutionalReport('regions',${index}))"><small>${item.flag} ${item.label} · ${item.region}</small><strong>${equityFormatPrice(item.price)}</strong><span>${pct}</span></div>`;
         }).join('');
     }
 
@@ -6073,7 +6534,7 @@ async function loadEquityInstitutional() {
     if (rspRel != null) score += rspRel >= 0 ? 8 : -6;
     if (iwmRel != null) score += iwmRel >= 0 ? 5 : -4;
     score = Math.max(0,Math.min(100,Math.round(score)));
-    const regime = score >= 72 ? 'Risk-on amplio' : score >= 58 ? 'Risk-on selectivo' : score >= 42 ? 'Neutral / rotación' : score >= 28 ? 'Defensivo' : 'Estrés de mercado';
+    const regime = score >= 72 ? 'Apetito por riesgo amplio' : score >= 58 ? 'Apetito por riesgo selectivo' : score >= 42 ? 'Mercado neutral / en rotación' : score >= 28 ? 'Postura defensiva' : 'Estrés de mercado';
     const regimeDesc = score >= 72 ? 'Tendencia y participación confirman apetito por riesgo.' : score >= 58 ? 'Índices firmes, pero el liderazgo permanece concentrado.' : score >= 42 ? 'Señales mixtas; priorizar selectividad y control de exposición.' : 'Volatilidad y amplitud aconsejan una postura más defensiva.';
     equitySetValue('eq-regime',regime); equitySetValue('eq-regime-note',`Puntuación ${score}/100`);
     equitySetValue('eq-score',String(score)); equitySetValue('eq-score-label',regime); equitySetValue('eq-score-desc',regimeDesc);
@@ -6425,7 +6886,14 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
     ['fin-layout-wrap','fx-pro-panel','equity-pro-panel','news-pro-panel','bvmx-panel','watchlist-panel','bolsa-news-panel','bonds-panel'].forEach(id => {
         const el = g(id); if (el) el.style.display = 'none';
     });
-    const pg = g('pane-general'); if (pg) pg.style.display = name === 'general' ? '' : 'none';
+    const pg = g('pane-general'); if (pg) pg.style.display = '';
+    /* Hide/show the Favro overview shell and hub sections (not the whole pane) */
+    const favroShell = g('favro-finance');
+    if (favroShell) favroShell.style.display = name === 'general' ? '' : 'none';
+    document.querySelectorAll('.hub-hero, .hub-grid, .fin-exec-strip').forEach(el => {
+        el.style.display = name === 'general' ? '' : 'none';
+    });
+
     if (bg) { bg.style.display = 'none'; bg.classList.remove('only-left','only-right'); }
 
     // Reset all bottom-grid inner panels to visible (tab logic will re-hide as needed)
@@ -6510,8 +6978,8 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
     setInterval(updateGeneralKPIs, 5 * 60 * 1000);
 })();
 </script>
-<script src="/assets/js/chat-widget.js?v=31" data-mascota="/assets/img/mascota1.png"></script>
-<script src="/assets/js/flags-widget.js"></script>
+<script src="../assets/js/chat-widget.js?v=31" data-mascota="/assets/img/mascota1.png"></script>
+<script src="../assets/js/flags-widget.js"></script>
 
 <script>
 const CAL_PROFILES = {

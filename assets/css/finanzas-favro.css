@@ -35,7 +35,8 @@ body.ff-detail-bolsa {
 }
 .fin-tabs-nav { display: none !important; }
 .energy-scenario-lab, .energy-drivers { display: none !important; }
-#pane-general > :not(.favro-finance-shell) { display: none !important; }
+/* Hide legacy chrome (old tab nav, old hub sections) but keep content panels that finTab toggles */
+#pane-general > :not(.favro-finance-shell):not(#fin-layout-wrap):not(#equity-pro-panel):not(#bonds-panel):not(#news-pro-panel):not(#fx-pro-panel):not(#bvmx-panel):not(#watchlist-panel):not(#bolsa-news-panel):not(.fin-exec-strip):not(.hub-grid):not(.hub-hero):not(#equity-lab-host):not(#fin-bottom-grid):not(#fin-section-status):not(script):not(#bvmx-panel-anchor):not(#calendar-panel-main) { display: none !important; }
 .favro-finance-shell { color: var(--ff-ink); display: grid; gap: 16px; padding-bottom: 40px; }
 .favro-finance-shell *, .favro-finance-shell *::before, .favro-finance-shell *::after { box-sizing: border-box; }
 .favro-finance-shell button, .favro-finance-shell input, .favro-finance-shell select { font: inherit; }
@@ -641,19 +642,14 @@ body #vn-cw-btn { width: 82px !important; height: 98px !important; }
 }
 .ff-exchange-grid {
     display: grid;
-    grid-template-columns: repeat(15, minmax(0,1fr));
+    grid-template-columns: 1fr;
     gap: 9px;
 }
-.ff-exchange-card:nth-child(-n+3) { grid-column: span 5; min-height: 190px; grid-template-rows: auto auto 72px auto; padding: 16px 16px 12px; }
-.ff-exchange-card:nth-child(n+4) { grid-column: span 3; }
-.ff-exchange-card:nth-child(-n+3) .ff-exchange-card-head strong { font-size: .78rem; }
-.ff-exchange-card:nth-child(-n+3) .ff-exchange-card-quote > strong { font-size: 1.05rem; }
-.ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart,
-.ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart canvas { height: 72px !important; }
+    /* Removed column span and sizing overrides for vertical layout */
 .ff-exchange-card {
     position: relative;
     min-width: 0;
-    min-height: 158px;
+    min-height: 0;
     padding: 13px 13px 10px;
     border: 1px solid #dfe7ed;
     border-radius: 15px;
@@ -663,7 +659,7 @@ body #vn-cw-btn { width: 82px !important; height: 98px !important; }
     cursor: pointer;
     overflow: hidden;
     display: grid;
-    grid-template-rows: auto auto 48px auto;
+    grid-template-rows: auto auto 175px auto;
     gap: 7px;
     transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
@@ -742,10 +738,14 @@ body #vn-cw-btn { width: 82px !important; height: 98px !important; }
 .ff-exchange-card-chart {
     position: relative;
     display: block;
+    box-sizing: border-box;
     min-width: 0;
-    height: 48px;
+    width: 100%;
+    max-width: 680px;
+    margin: 2px auto 0;
+    padding: 4px 12px;
+    height: 175px;
 }
-.ff-exchange-card-chart canvas { width: 100% !important; height: 48px !important; }
 .ff-exchange-card-foot {
     align-items: center;
     padding-top: 7px;
@@ -1231,9 +1231,13 @@ body.ff-detail-rendimientos #bonds-panel .debt-structure-block { order: 1; }
     .ff-chart-stage-layout { grid-template-columns: minmax(0,1fr) 320px; }
     .ff-bolsa-chart-host .market-chart-canvas,
     .ff-chart-reading { height: var(--ff-terminal-height) !important; }
-    .ff-exchange-card:nth-child(-n+3) { min-height: 220px; grid-template-rows: auto auto 92px auto; }
+    /* !important necesario: finanzas-premium.css fija `grid-template-rows: ... 130px !important`
+       en `.ff-exchange-card`. Sin esto la fila se quedaría en 130px mientras la gráfica
+       mide 150px, y la serie se saldría de su celda. */
+    .ff-exchange-card:nth-child(-n+3) { min-height: 330px !important; grid-template-rows: auto auto 200px auto !important; }
+    /* `> canvas`: no tocar los canvas internos de LightweightCharts (los deforma). */
     .ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart,
-    .ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart canvas { height: 92px !important; }
+    .ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart > canvas { height: 200px !important; }
 }
 @media (max-width: 1100px) {
     .ff-detail-navigation { grid-template-columns: auto 1fr; }
@@ -1255,14 +1259,17 @@ body.ff-detail-rendimientos #bonds-panel .debt-structure-block { order: 1; }
     .ff-quote-stat:nth-child(3) { border-left: 0; border-top: 1px solid #e1eaee; }
     .ff-quote-stat:nth-child(4) { border-top: 1px solid #e1eaee; }
     .ff-exchange-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    /* Mismo motivo que arriba: hay que ganarle al !important de finanzas-premium.css. */
     .ff-exchange-card:nth-child(n) {
         grid-column: auto;
-        min-height: 158px;
+        min-height: 250px !important;
         padding: 13px 13px 10px;
-        grid-template-rows: auto auto 48px auto;
+        grid-template-rows: auto auto 155px auto !important;
     }
+    /* La fila del grid y la gráfica deben medir lo mismo: antes la fila era de 80px
+       y la gráfica de 48px, lo que dejaba 32px muertos dentro de la tarjeta. */
     .ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart,
-    .ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart canvas { height: 48px !important; }
+    .ff-exchange-card:nth-child(-n+3) .ff-exchange-card-chart > canvas { height: 155px !important; }
     .ff-explainer-grid { grid-template-columns: 1fr 1fr; }
     .ff-definitions { grid-column: 1 / -1; grid-template-columns: repeat(3,1fr); }
     .ff-news-header { align-items: flex-start; flex-direction: column; }

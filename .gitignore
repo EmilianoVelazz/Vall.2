@@ -72,3 +72,27 @@ temp_script_*.js
 temp_utf8.html
 temp_old_finanzas.html
 .claude/
+
+# Scripts de diagnostico y parches de un solo uso (raiz)
+/check_*.js
+/diag_*.js
+/fix_*.js
+/inject_script*.js
+/find_missing_ids.js
+/carousel_*.js
+/extracted_functions.js
+/main_script.js
+/temp_script.js
+/finanzas-favro-new.js
+/sidebar_extracted.html
+/old_finanzas.html
+/temp_*.html
+/test_inline.html
+/temp.txt
+/*.patch
+pages/finanzas_broken.html
+pages/temp_check.js
+
+# Logs locales del backend
+backend/server-current.log
+backend/server-current-error.log

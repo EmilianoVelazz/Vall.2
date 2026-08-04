@@ -3261,6 +3261,93 @@ body:not(.ff-detail-mode) #favro-finance > .fin-layout { display: none !importan
    muestra como siempre. Tampoco se borra: es el panel que se rediseñó. */
 body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 
+/* Carrusel de mercado: bordes suaves, capa contenida y menor peso visual. */
+.vn-ticker {
+    isolation: isolate !important;
+    contain: layout paint !important;
+    z-index: 8 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    overflow: hidden !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid #dce5ea !important;
+    background: #f8fafb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+.vn-ticker::after {
+    content: "";
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 28px;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(248,250,251,0), #f8fafb 86%);
+}
+.vn-ticker .vn-ticker-label {
+    z-index: 5 !important;
+    min-width: 132px !important;
+    padding: 0 .85rem !important;
+    border: 0 !important;
+    border-right: 1px solid #d2dee5 !important;
+    border-radius: 0 !important;
+    background: #123f56 !important;
+    box-shadow: none !important;
+}
+.vn-ticker .vn-ticker-label::after {
+    inset: 0 -7px 0 auto !important;
+    width: 7px !important;
+    opacity: .7;
+    background: linear-gradient(90deg, rgba(18,63,86,.62), rgba(18,63,86,0)) !important;
+    pointer-events: none;
+}
+.vn-ticker .vn-track {
+    gap: 0 !important;
+    min-width: max-content;
+    height: 100%;
+    padding: 0 .35rem !important;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+.vn-ticker .vn-item {
+    min-height: 28px !important;
+    height: 28px;
+    gap: 6px !important;
+    padding: 0 .72rem !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.vn-ticker .vn-item:hover {
+    background: #eef4f7 !important;
+    border-color: transparent !important;
+}
+.vn-ticker .vn-sep {
+    width: 1px !important;
+    height: 15px !important;
+    margin: 0 !important;
+    background: #dbe4e9 !important;
+}
+.vn-ticker .vn-live-dot {
+    box-shadow: 0 0 0 3px rgba(61,220,151,.1) !important;
+}
+
+@media(max-width:768px){
+    .vn-ticker { height:32px!important; min-height:32px!important; max-height:32px!important; }
+    .vn-ticker .vn-ticker-label { min-width:42px!important; width:42px; padding:0!important; justify-content:center; }
+    .vn-ticker .vn-ticker-label::after { right:-5px!important; width:5px!important; }
+    .vn-ticker::after { width:18px; }
+    .vn-ticker .vn-item { min-height:26px!important; height:26px; padding:0 .58rem!important; }
+}
+@media(prefers-reduced-motion:reduce){
+    .vn-ticker .vn-track { animation:none!important; transform:none!important; }
+    .vn-ticker .vn-live-dot { animation:none!important; }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Recuadros de la portada: la foto se ve de entrada
    ───────────────────────────────────────────────────────────────────────────

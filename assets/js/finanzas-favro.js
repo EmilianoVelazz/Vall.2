@@ -12,6 +12,20 @@
         breakdownChart: null,
         contextChart: null,
         supplementChart: null,
+        returnsChart: null,
+        returnsHistoryChart: null,
+        returnsCurve: 'us',
+        returnsMode: 'level',
+        returnsHistoryYears: 3,
+        returnsHistoryCountry: 'us',
+        returnsHistorySeries: '',
+        returnsHistoryRequest: 0,
+        returnsGlobalChart: null,
+        returnsGlobalMode: 'sovereign',
+        returnsGlobalData: [],
+        returnsGlobalPromise: null,
+        returnsReferenceCountry: 'DE',
+        returnsTableSort: 'maturity',
         miniCharts: {},
         bondData: [],
         mxRates: null,
@@ -27,6 +41,10 @@
         news: [],
         newsIsDemo: false,
         newsFilter: 'all',
+        newsArchiveQuery: '',
+        newsArchiveSort: 'recent',
+        newsArchiveLimit: 8,
+        newsMeta: { generado: '', fuente: '', stale: false },
         newsOffset: 0,
         exchangeRanges: {},              // símbolo -> clave de periodo elegida en su tarjeta
         exchangeRangeLoading: new Set(), // peticiones en vuelo, para no duplicarlas
@@ -274,6 +292,787 @@
     function bond(key, maturity) {
         const country = state.bondData.find(item => item.key === key);
         return country?.bonds?.find(item => item.maturity === maturity || item.label === maturity) || null;
+    }
+
+    function returnsMaturityYears(value) {
+        const label = String(value || '').trim().toUpperCase();
+        const amount = Number.parseFloat(label.replace(',', '.'));
+        if (!Number.isFinite(amount)) return null;
+        if (/D|DÍA/.test(label)) return amount / 365;
+        if (/M|MES/.test(label) && !/AÑO/.test(label)) return amount / 12;
+        if (/Y|A|AÑO/.test(label)) return amount;
+        return amount;
+    }
+
+    function getReturnsCurves() {
+        const usEntry = state.bondData.find(item => item.key === 'us');
+        const normalize = (items, config) => (Array.isArray(items) ? items : []).map(item => {
+            const candidates = [item.maturity, item.label].filter(Boolean);
+            const maturityLabel = candidates.find(candidate => Number.isFinite(returnsMaturityYears(candidate)));
+            const label = maturityLabel || item.label || item.maturity || '—';
+            const value = item[config.valueKey];
+            return {
+                label,
+                x: returnsMaturityYears(maturityLabel),
+                y: isNumeric(value) ? +value : null,
+                prev: isNumeric(item.prev) ? +item.prev : null,
+            };
+        }).filter(item => Number.isFinite(item.x) && Number.isFinite(item.y)).sort((a, b) => a.x - b.x);
+        return {
+            us: {
+                key: 'us',
+                title: 'Treasury nominal de EE. UU.',
+                short: 'Treasury',
+                nature: 'Nominal',
+                source: usEntry?.source || 'US Treasury · fuente conectada',
+                points: normalize(usEntry?.bonds, { valueKey: 'yield' }),
+            },
+            cetes: {
+                key: 'cetes',
+                title: 'CETES nominal de México',
+                short: 'CETES',
+                nature: 'Nominal',
+                source: state.mxRates?.source === 'banxico' ? 'Banxico SIE' : 'Fuente México conectada',
+                points: normalize(state.mxRates?.cetes, { valueKey: 'yield' }),
+            },
+            udibonos: {
+                key: 'udibonos',
+                title: 'UDIBONOS reales de México',
+                short: 'UDIBONOS',
+                nature: 'Real',
+                source: state.mxRates?.source === 'banxico' ? 'Banxico SIE' : 'Fuente México conectada',
+                points: normalize(state.mxRates?.udibonos, { valueKey: 'realYield' }),
+            },
+        };
+    }
+
+    const RETURNS_HISTORY_SERIES = {
+        us: [
+            { id: '^IRX', label: 'Treasury 3 meses', source: 'US Treasury · Yahoo Finance' },
+            { id: '^FVX', label: 'Treasury 5 años', source: 'US Treasury · Yahoo Finance' },
+            { id: '^TNX', label: 'Treasury 10 años', source: 'US Treasury · Yahoo Finance', preferred: true },
+            { id: '^TYX', label: 'Treasury 30 años', source: 'US Treasury · Yahoo Finance' },
+        ],
+        cetes: [
+            { id: 'SF43936', label: 'CETES 28 días', source: 'Banxico SIE' },
+            { id: 'SF43939', label: 'CETES 91 días', source: 'Banxico SIE' },
+            { id: 'SF43942', label: 'CETES 182 días', source: 'Banxico SIE' },
+            { id: 'SF43945', label: 'CETES 364 días', source: 'Banxico SIE', preferred: true },
+        ],
+        udibonos: [],
+    };
+
+    const RETURNS_GLOBAL_SOVEREIGNS = [
+        ['DE','Alemania','🇩🇪'], ['FR','Francia','🇫🇷'], ['IT','Italia','🇮🇹'], ['ES','España','🇪🇸'],
+        ['NL','Países Bajos','🇳🇱'], ['BE','Bélgica','🇧🇪'], ['AT','Austria','🇦🇹'], ['PT','Portugal','🇵🇹'],
+        ['IE','Irlanda','🇮🇪'], ['GR','Grecia','🇬🇷'], ['FI','Finlandia','🇫🇮'], ['HR','Croacia','🇭🇷'],
+    ].map(([area, country, flag]) => ({ area, country, flag, region: 'Europa' }));
+
+    const RETURNS_HISTORY_COUNTRIES = {
+        us: { label: 'Estados Unidos', flag: '🇺🇸', region: 'América', kind: 'yahoo', series: RETURNS_HISTORY_SERIES.us },
+        mx: { label: 'México', flag: '🇲🇽', region: 'América', kind: 'banxico', series: RETURNS_HISTORY_SERIES.cetes },
+        ...Object.fromEntries(RETURNS_GLOBAL_SOVEREIGNS.map(market => [market.area.toLowerCase(), {
+            label: market.country,
+            flag: market.flag,
+            region: market.region,
+            kind: 'ecb',
+            series: [{ id: market.area, label: 'Soberano 10 años', source: 'Banco Central Europeo', preferred: true }],
+        }])),
+    };
+
+    function syncReturnsHistoryCountryOptions() {
+        const select = $('returns-history-country');
+        if (!select) return;
+        const fragment = document.createDocumentFragment();
+        ['América', 'Europa'].forEach(region => {
+            const group = document.createElement('optgroup'); group.label = region;
+            Object.entries(RETURNS_HISTORY_COUNTRIES).filter(([, config]) => config.region === region).forEach(([key, config]) => {
+                group.append(new Option(`${config.flag} ${config.label}`, key));
+            });
+            fragment.append(group);
+        });
+        select.replaceChildren(fragment);
+        if (!RETURNS_HISTORY_COUNTRIES[state.returnsHistoryCountry]) state.returnsHistoryCountry = 'us';
+        select.value = state.returnsHistoryCountry;
+    }
+
+    function setReturnsGlobalState(message, loading = false) {
+        const host = $('returns-global-state');
+        if (!host) return;
+        host.classList.toggle('is-hidden', !message);
+        host.classList.toggle('is-loading', loading);
+        const copy = host.querySelector('p'); if (copy) copy.textContent = message || '';
+    }
+
+    function syncReturnsReferenceOptions() {
+        const select = $('returns-reference-country');
+        if (!select) return;
+        const references = state.returnsGlobalData.filter(item => item.key !== 'US');
+        if (!references.length) {
+            select.replaceChildren(new Option('Cargando países…', ''));
+            select.disabled = true;
+            return;
+        }
+        const fragment = document.createDocumentFragment();
+        fragment.append(new Option('Sin referencia internacional', ''));
+        references.forEach(item => fragment.append(new Option(`${item.flag} ${item.country} · 10A`, item.key)));
+        select.replaceChildren(fragment);
+        if (state.returnsReferenceCountry && !references.some(item => item.key === state.returnsReferenceCountry)) {
+            state.returnsReferenceCountry = references.find(item => item.key === 'DE')?.key || references[0]?.key || '';
+        }
+        select.value = state.returnsReferenceCountry;
+        select.disabled = !references.length;
+    }
+
+    function getReturnsReference() {
+        return state.returnsGlobalData.find(item => item.key === state.returnsReferenceCountry) || null;
+    }
+
+    async function loadReturnsGlobalData() {
+        if (state.returnsGlobalData.length) { renderReturnsGlobal(); return; }
+        if (state.returnsGlobalPromise) return state.returnsGlobalPromise;
+        setReturnsGlobalState('Conectando mercados soberanos…', true);
+        state.returnsGlobalPromise = (async () => {
+            const us10 = bond('us', '10Y');
+            const base = isNumeric(us10?.yield) ? [{
+                key: 'US', country: 'Estados Unidos', flag: '🇺🇸', region: 'América',
+                label: 'Treasury 10A', value: +us10.yield, prev: isNumeric(us10.prev) ? +us10.prev : null, source: 'US Treasury',
+            }] : [];
+            const results = await Promise.allSettled(RETURNS_GLOBAL_SOVEREIGNS.map(async market => {
+                const data = await fetchJson(`/api/ecb/${market.area}/history?years=1`, 22000);
+                const points = Array.isArray(data?.points) ? data.points.filter(point => isNumeric(point.value)) : [];
+                if (!points.length) throw new Error('Sin observaciones');
+                const last = points.at(-1), previous = points.length > 1 ? points.at(-2) : null;
+                return { key: market.area, country: market.country, flag: market.flag, region: market.region, label: 'Soberano 10A', value: +last.value, prev: previous ? +previous.value : null, source: 'Banco Central Europeo' };
+            }));
+            state.returnsGlobalData = [...base, ...results.filter(result => result.status === 'fulfilled').map(result => result.value)];
+            state.returnsGlobalPromise = null;
+            syncReturnsReferenceOptions();
+            renderReturnsGlobal();
+            const activeCurve = getReturnsCurves()[state.returnsCurve];
+            if (activeCurve) renderReturnsChart(activeCurve);
+            if (state.returnsGlobalData.length) setReturnsGlobalState('', false);
+            else setReturnsGlobalState('No fue posible obtener referencias soberanas internacionales.', false);
+        })().catch(() => {
+            state.returnsGlobalPromise = null;
+            setReturnsGlobalState('No fue posible obtener referencias soberanas internacionales.', false);
+        });
+        return state.returnsGlobalPromise;
+    }
+
+    function getReturnsGlobalAnchors() {
+        const region = { us: 'América', mx: 'América', br: 'América', ca: 'América', gb: 'Europa', jp: 'Asia', cn: 'Asia' };
+        const type = {
+            us: 'Treasury 3M · proxy monetario', mx: 'TIIE 28D · interbancaria', br: 'SELIC · política', ca: 'Objetivo · política',
+            gb: 'Tasa base · política', jp: 'Objetivo · política', cn: 'LPR 1A · crédito',
+        };
+        return state.bondData.filter(entry => region[entry.key]).map(entry => {
+            const item = entry.key === 'us' ? entry.bonds?.find(rate => rate.maturity === '3M') : entry.bonds?.[0];
+            if (!item || !isNumeric(item.yield)) return null;
+            return {
+                key: entry.key.toUpperCase(), country: entry.country, flag: entry.flag || '•', region: region[entry.key],
+                label: type[entry.key], value: +item.yield, prev: isNumeric(item.prev) ? +item.prev : null, source: entry.source,
+            };
+        }).filter(Boolean);
+    }
+
+    function renderReturnsGlobalChart(items) {
+        const canvas = $('returns-global-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (state.returnsGlobalChart) { state.returnsGlobalChart.destroy(); state.returnsGlobalChart = null; }
+        if (!items.length) return;
+        const ordered = [...items].sort((a, b) => a.value - b.value);
+        const tones = { 'América': '#9b2945', 'Europa': '#bd8b3d', 'Asia': '#6f8979' };
+        state.returnsGlobalChart = new Chart(canvas, {
+            type: 'bar',
+            data: { labels: ordered.map(item => item.country), datasets: [{
+                data: ordered.map(item => item.value), backgroundColor: ordered.map(item => `${tones[item.region] || '#898781'}d9`),
+                borderColor: ordered.map(item => tones[item.region] || '#898781'), borderWidth: 1, borderRadius: 6, borderSkipped: false, barThickness: items.length > 10 ? 12 : 18,
+            }] },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                animation: { duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 760, easing: 'easeOutQuart' },
+                plugins: { legend: { display: false }, tooltip: {
+                    backgroundColor: '#071722', padding: 10, displayColors: false,
+                    callbacks: { label: context => `${context.parsed.x.toFixed(2)}% anual` },
+                } },
+                scales: {
+                    x: { grid: { color: 'rgba(23,39,55,.08)' }, border: { display: false }, ticks: { color: '#657787', callback: value => `${value}%`, font: { family: 'JetBrains Mono', size: 9 } } },
+                    y: { grid: { display: false }, border: { display: false }, ticks: { color: '#304759', font: { family: 'Inter', size: 9, weight: '700' } } },
+                },
+            },
+        });
+    }
+
+    function renderReturnsCountryGrid(items) {
+        const host = $('returns-country-grid');
+        if (!host) return;
+        host.replaceChildren();
+        items.forEach((item, index) => {
+            const change = Number.isFinite(item.prev) ? (item.value - item.prev) * 100 : null;
+            const card = document.createElement('article'); card.className = 'returns-country-card'; card.style.setProperty('--delay', `${Math.min(index, 12) * .035}s`);
+            const flag = document.createElement('i'); flag.textContent = item.flag;
+            const copy = document.createElement('div'); const country = document.createElement('span'); country.textContent = item.country; const label = document.createElement('small'); label.textContent = item.label; copy.append(country, label);
+            const value = document.createElement('strong'); value.append(document.createTextNode(`${item.value.toFixed(2)}%`));
+            const delta = document.createElement('em'); delta.className = change === null || Math.abs(change) < .05 ? 'is-flat' : change > 0 ? 'is-up' : 'is-down'; delta.textContent = change === null ? 'Sin previo' : `${change >= 0 ? '+' : ''}${change.toFixed(1)} pb`; value.append(delta);
+            card.append(flag, copy, value); host.append(card);
+        });
+    }
+
+    function renderReturnsGlobal() {
+        const mode = state.returnsGlobalMode;
+        const items = mode === 'sovereign' ? state.returnsGlobalData : getReturnsGlobalAnchors();
+        document.querySelectorAll('[data-returns-global-mode]').forEach(button => {
+            const active = button.dataset.returnsGlobalMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+        });
+        if (!items.length) {
+            if (mode === 'sovereign' && state.returnsGlobalPromise) setReturnsGlobalState('Conectando mercados soberanos…', true);
+            return;
+        }
+        const values = items.map(item => item.value).sort((a, b) => a - b);
+        const middle = Math.floor(values.length / 2);
+        const median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+        const highest = items.reduce((best, item) => item.value > best.value ? item : best, items[0]);
+        const changes = items.filter(item => Number.isFinite(item.prev)).map(item => item.value - item.prev);
+        const rising = changes.filter(value => value > 0).length;
+        if ($('returns-global-count')) $('returns-global-count').textContent = String(items.length);
+        if ($('returns-global-count-note')) $('returns-global-count-note').textContent = `${new Set(items.map(item => item.region)).size} regiones representadas`;
+        if ($('returns-global-median')) $('returns-global-median').textContent = `${median.toFixed(2)}%`;
+        if ($('returns-global-high')) $('returns-global-high').textContent = `${highest.value.toFixed(2)}%`;
+        if ($('returns-global-high-note')) $('returns-global-high-note').textContent = highest.country;
+        if ($('returns-global-breadth')) $('returns-global-breadth').textContent = changes.length ? `${Math.round(rising / changes.length * 100)}%` : '—';
+        if ($('returns-global-breadth-note')) $('returns-global-breadth-note').textContent = changes.length ? `${rising} de ${changes.length} al alza` : 'Sin lectura previa';
+        if ($('returns-global-chart-title')) $('returns-global-chart-title').textContent = mode === 'sovereign' ? 'Rendimiento soberano a 10 años' : 'Tasas que anclan cada mercado';
+        if ($('returns-global-region-count')) $('returns-global-region-count').textContent = `${items.length} mercados`;
+        if ($('returns-global-source')) $('returns-global-source').textContent = mode === 'sovereign' ? 'BCE · US Treasury' : 'Bancos centrales · Banxico · mercado monetario';
+        if ($('returns-global-note')) $('returns-global-note').textContent = mode === 'sovereign'
+            ? 'Comparación homogénea de referencias soberanas a 10 años; el cambio europeo corresponde a la última publicación mensual.'
+            : 'Las anclas monetarias no son bonos: se muestran aparte para explicar el entorno que condiciona las curvas de cada región.';
+        renderReturnsGlobalChart(items);
+        renderReturnsCountryGrid([...items].sort((a, b) => a.region.localeCompare(b.region) || b.value - a.value));
+        setReturnsGlobalState('', false);
+    }
+
+    function setReturnsSpread(id, value, noteId = null) {
+        const element = $(id);
+        if (!element) return;
+        element.classList.remove('is-ascending', 'is-inverted', 'is-flat');
+        if (!Number.isFinite(value)) { element.textContent = '—'; if (noteId && $(noteId)) $(noteId).textContent = 'Sin tramos comparables'; return; }
+        element.textContent = `${value >= 0 ? '+' : ''}${value.toFixed(2)} pp`;
+        element.classList.add(value > .35 ? 'is-ascending' : value < -.35 ? 'is-inverted' : 'is-flat');
+        if (noteId && $(noteId)) $(noteId).textContent = value > .35 ? 'Curva ascendente' : value < -.35 ? 'Curva invertida' : 'Curva plana';
+    }
+
+    function renderReturnsSpreads(curves) {
+        const spread = points => points.length > 1 ? points.at(-1).y - points[0].y : null;
+        const us = curves.us.points;
+        const us5 = nearestReturnsPoint(us, 5);
+        const us30 = nearestReturnsPoint(us, 30);
+        setReturnsSpread('returns-spread-us', spread(us), 'returns-spread-us-note');
+        setReturnsSpread('returns-spread-us-duration', us5 && us30 ? us30.y - us5.y : null);
+        setReturnsSpread('returns-spread-cetes', spread(curves.cetes.points));
+        setReturnsSpread('returns-spread-udi', spread(curves.udibonos.points));
+    }
+
+    function syncReturnsHistorySeries() {
+        const select = $('returns-history-series');
+        if (!select) return null;
+        const available = RETURNS_HISTORY_COUNTRIES[state.returnsHistoryCountry]?.series || [];
+        const previous = state.returnsHistorySeries;
+        select.replaceChildren(...available.map(item => new Option(item.label, item.id)));
+        const selected = available.find(item => item.id === previous) || available.find(item => item.preferred) || available[0] || null;
+        state.returnsHistorySeries = selected?.id || '';
+        select.value = state.returnsHistorySeries;
+        select.disabled = !available.length;
+        return selected;
+    }
+
+    function setReturnsHistoryState(message, loading = false) {
+        const host = $('returns-history-state');
+        if (!host) return;
+        host.classList.toggle('is-hidden', !message);
+        host.classList.toggle('is-loading', loading);
+        const copy = host.querySelector('p'); if (copy) copy.textContent = message || '';
+    }
+
+    function parseReturnsBanxicoDate(value) {
+        const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(value || '').trim());
+        return match ? new Date(+match[3], +match[2] - 1, +match[1]) : null;
+    }
+
+    async function fetchReturnsHistory(countryKey, seriesId, years) {
+        const country = RETURNS_HISTORY_COUNTRIES[countryKey];
+        const cacheKey = `returns-history:${countryKey}:${seriesId}:${years}`;
+        if (state.marketSeries.has(cacheKey)) return state.marketSeries.get(cacheKey);
+        let points = [];
+        if (country?.kind === 'yahoo') {
+            const range = years <= 1 ? '1y' : years <= 3 ? '3y' : years <= 5 ? '5y' : '10y';
+            const interval = years <= 1 ? '1d' : '1wk';
+            const data = await fetchJson(`/api/stock-history?ticker=${encodeURIComponent(seriesId)}&range=${range}&interval=${interval}`, 18000);
+            points = (Array.isArray(data?.candles) ? data.candles : []).map(item => ({
+                date: new Date(typeof item.time === 'number' ? item.time * 1000 : `${item.time}T00:00:00`),
+                value: +item.close,
+            })).filter(item => !Number.isNaN(item.date.getTime()) && Number.isFinite(item.value));
+        } else if (country?.kind === 'banxico') {
+            const end = new Date(); const start = new Date(end.getFullYear() - years, end.getMonth(), end.getDate());
+            const iso = date => date.toISOString().slice(0, 10);
+            const data = await fetchJson(`/api/banxico/${encodeURIComponent(seriesId)}/history?start=${iso(start)}&end=${iso(end)}`, 18000);
+            points = (data?.bmx?.series?.[0]?.datos || []).map(item => ({ date: parseReturnsBanxicoDate(item.fecha), value: Number.parseFloat(item.dato) }))
+                .filter(item => item.date && Number.isFinite(item.value));
+        } else if (country?.kind === 'ecb') {
+            const data = await fetchJson(`/api/ecb/${encodeURIComponent(seriesId)}/history?years=${years}`, 22000);
+            points = (Array.isArray(data?.points) ? data.points : []).map(item => ({
+                date: new Date(`${item.date}-01T00:00:00`), value: +item.value,
+            })).filter(item => !Number.isNaN(item.date.getTime()) && Number.isFinite(item.value));
+        }
+        points.sort((a, b) => a.date - b.date);
+        state.marketSeries.set(cacheKey, points);
+        return points;
+    }
+
+    function formatReturnsHistoryDate(date) {
+        return date instanceof Date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    }
+
+    function renderReturnsHistoryChart(points, meta) {
+        const canvas = $('returns-history-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (state.returnsHistoryChart) { state.returnsHistoryChart.destroy(); state.returnsHistoryChart = null; }
+        const maximumPoints = 520;
+        const step = Math.max(1, Math.ceil(points.length / maximumPoints));
+        const sampled = points.filter((_, index) => index % step === 0 || index === points.length - 1);
+        const values = sampled.map(point => point.value);
+        const lastValue = points.at(-1)?.value;
+        const currentLine = {
+            id: 'returnsCurrentLine',
+            afterDatasetsDraw(chart) {
+                if (!Number.isFinite(lastValue) || !chart.chartArea) return;
+                const y = chart.scales.y.getPixelForValue(lastValue); const { left, right } = chart.chartArea; const ctx = chart.ctx;
+                ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(153,111,47,.55)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke(); ctx.restore();
+            },
+        };
+        state.returnsHistoryChart = new Chart(canvas, {
+            type: 'line', plugins: [currentLine],
+            data: { labels: sampled.map(point => point.date.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })), datasets: [{
+                label: meta.label, data: values, borderColor: '#9b2945', borderWidth: 2.4, pointRadius: 0, pointHoverRadius: 5,
+                pointHoverBackgroundColor: '#9b2945', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2,
+                backgroundColor: context => {
+                    const area = context.chart.chartArea; if (!area) return 'rgba(153,111,47,.14)';
+                    const gradient = context.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+                    gradient.addColorStop(0, 'rgba(153,111,47,.3)'); gradient.addColorStop(1, 'rgba(153,111,47,.015)'); return gradient;
+                }, fill: true, tension: .22,
+            }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                animation: { duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 720, easing: 'easeOutQuart' },
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false }, tooltip: {
+                    backgroundColor: '#142536', padding: 10, displayColors: false,
+                    callbacks: { title: items => formatReturnsHistoryDate(sampled[items[0].dataIndex].date), label: item => `${item.parsed.y.toFixed(2)}%` },
+                } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#667989', maxTicksLimit: 8, maxRotation: 0, font: { size: 9, weight: '600' } } },
+                    y: { position: 'right', grid: { color: 'rgba(23,39,55,.07)' }, ticks: { color: '#667989', callback: value => `${Number(value).toFixed(1)}%`, font: { family: 'JetBrains Mono', size: 9 } } },
+                },
+            },
+        });
+    }
+
+    async function loadReturnsHistory() {
+        const countryKey = state.returnsHistoryCountry;
+        const country = RETURNS_HISTORY_COUNTRIES[countryKey];
+        const series = (country?.series || []).find(item => item.id === state.returnsHistorySeries);
+        const request = ++state.returnsHistoryRequest;
+        const ids = ['returns-history-last','returns-history-high','returns-history-low','returns-history-change'];
+        const clearStats = () => {
+            ids.forEach(id => { if ($(id)) { $(id).textContent = '—'; $(id).className = ''; } });
+            ['returns-history-last-date','returns-history-high-date','returns-history-low-date'].forEach(id => { if ($(id)) $(id).textContent = 'Periodo'; });
+            if ($('returns-history-observations')) $('returns-history-observations').textContent = 'Sin observaciones';
+            if ($('returns-history-position')) $('returns-history-position').textContent = '—';
+            if ($('returns-history-position-bar')) $('returns-history-position-bar').style.setProperty('--position', '0%');
+        };
+        if (!series) {
+            clearStats();
+            if ($('returns-history-title')) $('returns-history-title').textContent = 'Serie histórica no conectada';
+            if ($('returns-history-subtitle')) $('returns-history-subtitle').textContent = 'La fuente actual no publica una serie histórica utilizable para este instrumento.';
+            setReturnsHistoryState('No hay una serie histórica conectada para esta curva. La fotografía actual permanece disponible arriba.', false);
+            if (state.returnsHistoryChart) { state.returnsHistoryChart.destroy(); state.returnsHistoryChart = null; }
+            return;
+        }
+        if ($('returns-history-title')) $('returns-history-title').textContent = `${country.flag} ${country.label} · ${series.label}`;
+        if ($('returns-history-subtitle')) $('returns-history-subtitle').textContent = `Evolución del rendimiento de ${country.label} durante ${state.returnsHistoryYears} ${state.returnsHistoryYears === 1 ? 'año' : 'años'}.`;
+        if ($('returns-history-source')) $('returns-history-source').textContent = series.source;
+        clearStats();
+        setReturnsHistoryState('Cargando serie histórica…', true);
+        try {
+            const points = await fetchReturnsHistory(countryKey, series.id, state.returnsHistoryYears);
+            if (request !== state.returnsHistoryRequest) return;
+            if (points.length < 2) throw new Error('Serie insuficiente');
+            const first = points[0], last = points.at(-1);
+            const high = points.reduce((best, point) => point.value > best.value ? point : best, points[0]);
+            const low = points.reduce((best, point) => point.value < best.value ? point : best, points[0]);
+            const change = last.value - first.value;
+            const position = high.value === low.value ? 50 : (last.value - low.value) / (high.value - low.value) * 100;
+            if ($('returns-history-last')) $('returns-history-last').textContent = `${last.value.toFixed(2)}%`;
+            if ($('returns-history-last-date')) $('returns-history-last-date').textContent = formatReturnsHistoryDate(last.date);
+            if ($('returns-history-high')) $('returns-history-high').textContent = `${high.value.toFixed(2)}%`;
+            if ($('returns-history-high-date')) $('returns-history-high-date').textContent = formatReturnsHistoryDate(high.date);
+            if ($('returns-history-low')) $('returns-history-low').textContent = `${low.value.toFixed(2)}%`;
+            if ($('returns-history-low-date')) $('returns-history-low-date').textContent = formatReturnsHistoryDate(low.date);
+            if ($('returns-history-change')) { $('returns-history-change').textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} pp`; $('returns-history-change').className = change > 0 ? 'returns-change-up' : change < 0 ? 'returns-change-down' : 'returns-change-flat'; }
+            if ($('returns-history-observations')) $('returns-history-observations').textContent = `${points.length.toLocaleString('es-MX')} observaciones`;
+            if ($('returns-history-position')) $('returns-history-position').textContent = `${position.toFixed(0)}%`;
+            if ($('returns-history-position-bar')) $('returns-history-position-bar').style.setProperty('--position', `${Math.max(0, Math.min(100, position))}%`);
+            renderReturnsHistoryChart(points, series);
+            setReturnsHistoryState('', false);
+        } catch (error) {
+            if (request !== state.returnsHistoryRequest) return;
+            setReturnsHistoryState('No fue posible cargar esta serie histórica. Conservamos la curva actual disponible.', false);
+        }
+    }
+
+    function nearestReturnsPoint(points, years) {
+        return points.reduce((best, point) => !best || Math.abs(point.x - years) < Math.abs(best.x - years) ? point : best, null);
+    }
+
+    function setReturnsMetric(id, value, { digits = 2, suffix = '', signed = false } = {}) {
+        const element = $(id);
+        if (!element) return;
+        if (!Number.isFinite(value)) { element.textContent = '—'; return; }
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const format = number => `${signed && number > 0 ? '+' : ''}${number.toFixed(digits)}${suffix}`;
+        if (reduced) { element.textContent = format(value); return; }
+        const token = `${Date.now()}-${Math.random()}`;
+        element.dataset.returnsAnimation = token;
+        const start = performance.now();
+        const duration = 520;
+        const tick = now => {
+            if (element.dataset.returnsAnimation !== token) return;
+            const progress = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            element.textContent = format(value * eased);
+            if (progress < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    }
+
+    function renderReturnsChart(curve) {
+        const canvas = $('returns-curve-chart');
+        const empty = $('returns-chart-empty');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (state.returnsChart) { state.returnsChart.destroy(); state.returnsChart = null; }
+        if (curve.points.length < 2) {
+            canvas.hidden = true;
+            if (empty) empty.hidden = false;
+            return;
+        }
+        canvas.hidden = false;
+        if (empty) empty.hidden = true;
+        const isChange = state.returnsMode === 'change';
+        const reference = curve.nature === 'Nominal' ? getReturnsReference() : null;
+        const hasPrevious = curve.points.some(point => Number.isFinite(point.prev));
+        const labels = curve.points.map(point => point.label);
+        const current = curve.points.map(point => point.y);
+        const previous = curve.points.map(point => point.prev);
+        const changes = curve.points.map(point => Number.isFinite(point.prev) ? (point.y - point.prev) * 100 : 0);
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const chartGuides = {
+            id: 'returnsChartGuides',
+            beforeTooltipDraw(chart) {
+                const active = chart.tooltip?.getActiveElements?.() || [];
+                if (!active.length) return;
+                const x = active[0].element.x;
+                const { ctx, chartArea } = chart;
+                ctx.save();
+                ctx.beginPath(); ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(35,60,79,.28)';
+                ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke(); ctx.restore();
+            },
+            afterDatasetsDraw(chart) {
+                if (isChange) return;
+                const { ctx, chartArea } = chart;
+                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    if (datasetIndex === 1 && dataset.label === 'Anterior') return;
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    const point = meta.data.at(-1);
+                    const value = dataset.data.at(-1);
+                    if (!point || !Number.isFinite(value)) return;
+                    const text = `${value.toFixed(2)}%`;
+                    ctx.save(); ctx.font = "700 10px 'JetBrains Mono', monospace";
+                    const width = ctx.measureText(text).width + 14;
+                    const x = Math.min(point.x - width - 7, chartArea.right - width - 3);
+                    const y = Math.max(chartArea.top + 3, Math.min(point.y - 13, chartArea.bottom - 25));
+                    const radius = 6;
+                    ctx.beginPath(); ctx.roundRect(x, y, width, 22, radius);
+                    ctx.fillStyle = datasetIndex === 0 ? '#7d1f38' : '#b88635'; ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + 7, y + 11); ctx.restore();
+                });
+            },
+        };
+        const datasets = isChange ? [{
+            label: 'Cambio', data: changes,
+            backgroundColor: changes.map(value => value > .25 ? 'rgba(180,58,74,.84)' : value < -.25 ? 'rgba(8,116,86,.84)' : 'rgba(116,132,145,.72)'),
+            hoverBackgroundColor: changes.map(value => value > .25 ? '#b3261e' : value < -.25 ? '#0b6e4f' : '#898781'),
+            borderRadius: 9, borderSkipped: false, maxBarThickness: 38,
+        }] : [{
+            label: 'Actual', data: current, borderColor: '#8e213d',
+            backgroundColor: context => {
+                const area = context.chart.chartArea;
+                if (!area) return 'rgba(142,33,61,.12)';
+                const gradient = context.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+                gradient.addColorStop(0, 'rgba(142,33,61,.24)'); gradient.addColorStop(.58, 'rgba(184,134,53,.08)'); gradient.addColorStop(1, 'rgba(142,33,61,0)');
+                return gradient;
+            },
+            borderWidth: 3.5, pointRadius: 4.5, pointHoverRadius: 8, pointHitRadius: 16,
+            pointBackgroundColor: '#fff', pointBorderColor: '#8e213d', pointBorderWidth: 2.5,
+            fill: true, tension: .34, cubicInterpolationMode: 'monotone',
+        }, ...(hasPrevious ? [{
+            label: 'Anterior', data: previous, borderColor: '#898781', backgroundColor: 'transparent', borderDash: [6, 5],
+            borderWidth: 2, pointRadius: 2.5, pointHoverRadius: 5, pointHitRadius: 12, tension: .3,
+        }] : []), ...(reference ? [{
+            label: `${reference.country} 10A`, data: curve.points.map(() => reference.value),
+            borderColor: '#b88635', backgroundColor: 'transparent', borderDash: [4, 5],
+            borderWidth: 2.25, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 12, fill: false, tension: 0,
+        }] : [])];
+        state.returnsChart = new Chart(canvas, {
+            type: isChange ? 'bar' : 'line',
+            data: { labels, datasets },
+            plugins: [chartGuides],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 14, right: 10, bottom: 4, left: 4 } },
+                animation: { duration: reducedMotion ? 0 : 1050, easing: 'easeOutQuart' },
+                transitions: { active: { animation: { duration: reducedMotion ? 0 : 260 } } },
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(20,37,54,.96)', borderColor: 'rgba(255,255,255,.14)', borderWidth: 1,
+                        cornerRadius: 10, padding: 12, displayColors: true, usePointStyle: true,
+                        titleFont: { family: 'Inter', size: 11, weight: '700' }, bodyFont: { family: 'JetBrains Mono', size: 10, weight: '600' },
+                        callbacks: {
+                            title: items => `Vencimiento ${items[0]?.label || ''}`,
+                            label: context => `${context.dataset.label}: ${isChange ? `${context.parsed.y >= 0 ? '+' : ''}${context.parsed.y.toFixed(1)} pb` : `${context.parsed.y.toFixed(2)}%`}`,
+                            footer: items => {
+                                if (isChange || !reference || !items.length) return '';
+                                const spread = (current[items[0].dataIndex] - reference.value) * 100;
+                                return `Diferencial vs ${reference.country}: ${spread >= 0 ? '+' : ''}${spread.toFixed(1)} pb`;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: { border: { display: false }, grid: { display: false }, ticks: { color: '#536b7d', padding: 9, font: { family: 'Inter', size: 10, weight: '700' } } },
+                    y: {
+                        border: { display: false }, grid: { color: 'rgba(23,39,55,.075)', drawTicks: false },
+                        ticks: { color: '#637687', padding: 10, font: { family: 'JetBrains Mono', size: 9, weight: '600' }, callback: value => isChange ? `${value} pb` : `${value}%` },
+                        title: { display: true, text: isChange ? 'Cambio en puntos base' : 'Rendimiento anual %', color: '#637687', font: { size: 10, weight: '700' } },
+                    },
+                },
+            },
+        });
+        const legend = $('returns-legend');
+        if (legend) legend.hidden = isChange;
+        const referenceLegend = $('returns-reference-legend');
+        if (referenceLegend) referenceLegend.hidden = isChange || !reference;
+        if ($('returns-reference-legend-label')) $('returns-reference-legend-label').textContent = reference ? `${reference.flag} ${reference.country} 10A` : 'Referencia 10A';
+        if ($('returns-chart-title')) $('returns-chart-title').textContent = isChange
+            ? `Cambios por tramo · ${curve.title}`
+            : reference ? `${curve.title} frente a ${reference.country} 10A` : curve.title;
+        if ($('returns-chart-unit')) $('returns-chart-unit').textContent = isChange ? 'Cambio en puntos base' : 'Rendimiento anual %';
+    }
+
+    function renderReturnsHeatmap(curve) {
+        const host = $('returns-heatmap');
+        if (!host) return;
+        host.replaceChildren();
+        if (!curve.points.length) { const empty = document.createElement('span'); empty.textContent = 'Sin datos por tramo.'; host.append(empty); return; }
+        curve.points.forEach((point, index) => {
+            const change = Number.isFinite(point.prev) ? (point.y - point.prev) * 100 : null;
+            const tone = change === null || Math.abs(change) < .25 ? '#898781' : change > 0 ? '#b3261e' : '#0b6e4f';
+            const item = document.createElement('div'); item.className = 'returns-heatmap-item'; item.style.setProperty('--tone', tone); item.style.setProperty('--delay', `${index * .045}s`);
+            const label = document.createElement('span'); label.textContent = point.label;
+            const value = document.createElement('strong'); value.textContent = `${point.y.toFixed(2)}%`;
+            const delta = document.createElement('small'); delta.textContent = change === null ? 'Sin lectura previa' : `${change >= 0 ? '+' : ''}${change.toFixed(1)} pb`;
+            item.append(label, value, delta); host.append(item);
+        });
+    }
+
+    function renderReturnsComparison(curves) {
+        const host = $('returns-comparison');
+        if (!host) return;
+        const rows = Object.values(curves).map(curve => {
+            const target = curve.key === 'cetes' ? curve.points.at(-1) : nearestReturnsPoint(curve.points, 10);
+            return target ? { curve, target } : null;
+        }).filter(Boolean);
+        host.replaceChildren();
+        if (!rows.length) { const empty = document.createElement('span'); empty.textContent = 'Sin referencias comparables.'; host.append(empty); return; }
+        const maximum = Math.max(...rows.map(row => row.target.y), .01);
+        const tones = { us: '#9b2945', cetes: '#bd8b3d', udibonos: '#6f8979' };
+        rows.forEach((row, index) => {
+            const item = document.createElement('div'); item.className = 'returns-comparison-row'; item.style.setProperty('--tone', tones[row.curve.key]); item.style.setProperty('--delay', `${index * .09}s`);
+            const label = document.createElement('span'); label.textContent = `${row.curve.short} ${row.target.label}`;
+            const track = document.createElement('div'); track.className = 'returns-comparison-track';
+            const bar = document.createElement('i'); bar.style.setProperty('--width', `${Math.max(5, row.target.y / maximum * 100)}%`); track.append(bar);
+            const value = document.createElement('strong'); value.textContent = `${row.target.y.toFixed(2)}%`;
+            item.append(label, track, value); host.append(item);
+        });
+    }
+
+    function renderReturnsTable(curve) {
+        const body = $('returns-table-body');
+        if (!body) return;
+        body.replaceChildren();
+        if (!curve.points.length) {
+            const row = document.createElement('tr'); const cell = document.createElement('td'); cell.colSpan = 9; cell.textContent = 'No hay vencimientos disponibles para esta curva.'; row.append(cell); body.append(row); return;
+        }
+        const values = curve.points.map(point => point.y);
+        const minimum = Math.min(...values), maximum = Math.max(...values);
+        const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+        const orderedValues = [...values].sort((a, b) => a - b);
+        const middle = Math.floor(orderedValues.length / 2);
+        const median = orderedValues.length % 2 ? orderedValues[middle] : (orderedValues[middle - 1] + orderedValues[middle]) / 2;
+        const deviation = Math.sqrt(values.reduce((sum, value) => sum + ((value - average) ** 2), 0) / values.length);
+        const benchmark = nearestReturnsPoint(curve.points, 10) || curve.points.at(-1);
+        const slope = curve.points.at(-1).y - curve.points[0].y;
+        const biggest = curve.points.filter(point => Number.isFinite(point.prev)).reduce((best, point) => {
+            if (!best) return point;
+            return Math.abs(point.y - point.prev) > Math.abs(best.y - best.prev) ? point : best;
+        }, null);
+        if ($('returns-table-count')) $('returns-table-count').textContent = `${curve.points.length} tramos`;
+        if ($('returns-table-average')) $('returns-table-average').textContent = `${average.toFixed(2)}%`;
+        if ($('returns-table-median')) $('returns-table-median').textContent = `${median.toFixed(2)}%`;
+        if ($('returns-table-range')) $('returns-table-range').textContent = `${(maximum - minimum).toFixed(2)} pp`;
+        if ($('returns-table-deviation')) $('returns-table-deviation').textContent = `${deviation.toFixed(2)} pp`;
+        if ($('returns-table-max-move')) {
+            const move = biggest ? (biggest.y - biggest.prev) * 100 : null;
+            $('returns-table-max-move').textContent = biggest ? `${biggest.label} · ${move >= 0 ? '+' : ''}${move.toFixed(1)} pb` : 'Sin previo';
+        }
+        if ($('returns-table-insight')) {
+            const high = curve.points.reduce((best, point) => point.y > best.y ? point : best, curve.points[0]);
+            const low = curve.points.reduce((best, point) => point.y < best.y ? point : best, curve.points[0]);
+            const shape = slope > .35 ? 'ascendente' : slope < -.35 ? 'invertida' : 'prácticamente plana';
+            $('returns-table-insight').textContent = `Curva ${shape}: máximo en ${high.label} (${high.y.toFixed(2)}%) y mínimo en ${low.label} (${low.y.toFixed(2)}%).`;
+        }
+        const maturityIndex = new Map(curve.points.map((point, index) => [point, index]));
+        const rows = [...curve.points].sort((a, b) => {
+            if (state.returnsTableSort === 'yield-desc') return b.y - a.y;
+            if (state.returnsTableSort === 'move-desc') return Math.abs((b.y - (b.prev ?? b.y)) * 100) - Math.abs((a.y - (a.prev ?? a.y)) * 100);
+            return maturityIndex.get(a) - maturityIndex.get(b);
+        });
+        const segmentFor = point => {
+            const match = String(point.label).toUpperCase().match(/([\d.]+)\s*(D|M|Y|A)/);
+            if (!match) return 'Referencia';
+            const value = +match[1], unit = match[2];
+            const years = unit === 'D' ? value / 365 : unit === 'M' ? value / 12 : value;
+            return years <= 1 ? 'Corto plazo' : years <= 10 ? 'Tramo medio' : 'Largo plazo';
+        };
+        rows.forEach((point, rowIndex) => {
+            const change = Number.isFinite(point.prev) ? (point.y - point.prev) * 100 : null;
+            const spreadBenchmark = (point.y - benchmark.y) * 100;
+            const spreadAverage = (point.y - average) * 100;
+            const row = document.createElement('tr'); row.style.setProperty('--delay', `${rowIndex * .045}s`);
+            if (point === benchmark) row.classList.add('is-benchmark');
+            const reading = change === null ? 'Nivel actual sin lectura previa'
+                : change > 1 ? 'Rendimiento sube · precio bajo presión'
+                : change < -1 ? 'Rendimiento baja · precio favorecido'
+                : 'Sin desplazamiento relevante';
+            const maturity = document.createElement('td');
+            const maturityLabel = document.createElement('strong'); maturityLabel.textContent = point.label; maturity.append(maturityLabel);
+            if (point === benchmark) { const tag = document.createElement('small'); tag.textContent = 'REFERENCIA'; maturity.append(tag); }
+            const segment = document.createElement('td');
+            const segmentPill = document.createElement('span'); segmentPill.className = 'returns-nature-pill'; segmentPill.textContent = segmentFor(point); segment.append(segmentPill);
+            const currentCell = document.createElement('td'); currentCell.textContent = `${point.y.toFixed(2)}%`;
+            const previousCell = document.createElement('td'); previousCell.textContent = Number.isFinite(point.prev) ? `${point.prev.toFixed(2)}%` : '—';
+            const changeCell = document.createElement('td'); changeCell.textContent = change === null ? '—' : `${change >= 0 ? '+' : ''}${change.toFixed(1)} pb`;
+            changeCell.className = change === null || Math.abs(change) <= 1 ? 'returns-change-flat' : change > 0 ? 'returns-change-up' : 'returns-change-down';
+            const benchmarkCell = document.createElement('td'); benchmarkCell.textContent = `${spreadBenchmark >= 0 ? '+' : ''}${spreadBenchmark.toFixed(1)} pb`; benchmarkCell.className = Math.abs(spreadBenchmark) < .05 ? 'returns-change-flat' : spreadBenchmark > 0 ? 'returns-spread-positive' : 'returns-spread-negative';
+            const averageCell = document.createElement('td'); averageCell.textContent = `${spreadAverage >= 0 ? '+' : ''}${spreadAverage.toFixed(1)} pb`; averageCell.className = spreadAverage >= 0 ? 'returns-spread-positive' : 'returns-spread-negative';
+            const positionCell = document.createElement('td'); positionCell.className = 'returns-position-cell';
+            const position = maximum === minimum ? 50 : ((point.y - minimum) / (maximum - minimum)) * 100;
+            const positionLabel = document.createElement('span'); positionLabel.textContent = `${position.toFixed(0)}%`;
+            const positionTrack = document.createElement('span'); positionTrack.className = 'returns-position-track';
+            const positionBar = document.createElement('i'); positionBar.style.setProperty('--position', `${Math.max(4, position)}%`); positionTrack.append(positionBar);
+            const positionWrap = document.createElement('div'); positionWrap.append(positionLabel, positionTrack); positionCell.append(positionWrap);
+            const readingCell = document.createElement('td'); readingCell.textContent = reading;
+            row.append(maturity, segment, currentCell, previousCell, changeCell, benchmarkCell, averageCell, positionCell, readingCell);
+            body.append(row);
+        });
+    }
+
+    function renderReturnsPanel() {
+        const panel = $('returns-panel');
+        if (!panel) return;
+        const curves = getReturnsCurves();
+        let curve = curves[state.returnsCurve];
+        if (!curve?.points.length) curve = Object.values(curves).find(item => item.points.length) || curve;
+        if (!curve) return;
+        state.returnsCurve = curve.key;
+        syncReturnsHistoryCountryOptions();
+        syncReturnsHistorySeries();
+        syncReturnsReferenceOptions();
+        const referenceSelect = $('returns-reference-country');
+        if (referenceSelect) referenceSelect.disabled = curve.nature !== 'Nominal' || !state.returnsGlobalData.some(item => item.key !== 'US');
+        if ($('returns-reference-label')) $('returns-reference-label').textContent = curve.nature === 'Nominal'
+            ? `Comparar ${curve.key === 'us' ? 'EE. UU.' : 'México'} contra`
+            : 'No comparable con curva real';
+        if ($('returns-base-legend')) $('returns-base-legend').textContent = curve.key === 'us' ? 'EE. UU.' : curve.key === 'cetes' ? 'México' : 'México real';
+        document.querySelectorAll('[data-returns-curve]').forEach(button => {
+            const active = button.dataset.returnsCurve === curve.key;
+            button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+            button.disabled = !curves[button.dataset.returnsCurve]?.points.length;
+        });
+        document.querySelectorAll('[data-returns-mode]').forEach(button => {
+            const active = button.dataset.returnsMode === state.returnsMode;
+            button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+        });
+        if ($('returns-chart-mode')) $('returns-chart-mode').value = state.returnsMode;
+        const points = curve.points;
+        const first = points[0], last = points.at(-1);
+        const benchmark = curve.key === 'cetes' ? last : nearestReturnsPoint(points, 10);
+        const slope = first && last && first !== last ? last.y - first.y : null;
+        const moves = points.filter(point => Number.isFinite(point.prev)).map(point => (point.y - point.prev) * 100);
+        const averageMove = moves.length ? moves.reduce((sum, value) => sum + value, 0) / moves.length : null;
+        const range = points.length ? Math.max(...points.map(point => point.y)) - Math.min(...points.map(point => point.y)) : null;
+        setReturnsMetric('returns-kpi-benchmark', benchmark?.y, { suffix: '%' });
+        setReturnsMetric('returns-kpi-slope', slope, { suffix: ' pp', signed: true });
+        setReturnsMetric('returns-kpi-move', averageMove, { digits: 1, suffix: ' pb', signed: true });
+        setReturnsMetric('returns-kpi-range', range, { suffix: ' pp' });
+        if ($('returns-kpi-benchmark-note')) $('returns-kpi-benchmark-note').textContent = benchmark ? `${curve.short} ${benchmark.label}` : 'Sin referencia';
+        if ($('returns-kpi-slope-note')) $('returns-kpi-slope-note').textContent = first && last ? `${last.label} menos ${first.label}` : 'Se requieren dos plazos';
+        if ($('returns-kpi-move-note')) $('returns-kpi-move-note').textContent = moves.length ? `${moves.length} tramos con lectura previa` : 'Sin lectura anterior';
+        if ($('returns-kpi-range-note')) $('returns-kpi-range-note').textContent = points.length ? `${points.length} vencimientos observados` : 'Sin vencimientos';
+        if ($('returns-chart-title')) $('returns-chart-title').textContent = curve.title;
+        if ($('returns-table-source')) $('returns-table-source').textContent = curve.source;
+        if ($('returns-updated')) $('returns-updated').textContent = `Actualizado ${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`;
+
+        const shape = !Number.isFinite(slope) ? { title: 'Sin clasificar', badge: '—', copy: 'Se requieren al menos dos vencimientos para interpretar la forma de la curva.' }
+            : slope > .35 ? { title: 'Curva ascendente', badge: `+${slope.toFixed(2)} pp`, copy: 'El tramo largo ofrece mayor rendimiento que el corto. Esto puede reflejar compensación por plazo, inflación esperada y prima de riesgo.' }
+            : slope < -.35 ? { title: 'Curva invertida', badge: `${slope.toFixed(2)} pp`, copy: 'El tramo corto rinde más que el largo. La inversión suele asociarse con política restrictiva y expectativas de menor crecimiento o inflación.' }
+            : { title: 'Curva plana', badge: `${slope >= 0 ? '+' : ''}${slope.toFixed(2)} pp`, copy: 'La diferencia entre extremos es reducida. El mercado ofrece poca compensación adicional por extender el vencimiento.' };
+        if ($('returns-shape-title')) $('returns-shape-title').textContent = shape.title;
+        if ($('returns-shape-badge')) $('returns-shape-badge').textContent = shape.badge;
+        if ($('returns-shape-copy')) $('returns-shape-copy').textContent = shape.copy;
+        const high = points.reduce((best, point) => !best || point.y > best.y ? point : best, null);
+        const low = points.reduce((best, point) => !best || point.y < best.y ? point : best, null);
+        const biggest = points.filter(point => Number.isFinite(point.prev)).reduce((best, point) => !best || Math.abs(point.y - point.prev) > Math.abs(best.y - best.prev) ? point : best, null);
+        if ($('returns-high-point')) $('returns-high-point').textContent = high ? `${high.label} · ${high.y.toFixed(2)}%` : '—';
+        if ($('returns-low-point')) $('returns-low-point').textContent = low ? `${low.label} · ${low.y.toFixed(2)}%` : '—';
+        if ($('returns-biggest-move')) $('returns-biggest-move').textContent = biggest ? `${biggest.label} · ${((biggest.y - biggest.prev) * 100) >= 0 ? '+' : ''}${((biggest.y - biggest.prev) * 100).toFixed(1)} pb` : 'Sin lectura previa';
+        if ($('returns-nature-note')) $('returns-nature-note').textContent = curve.nature === 'Real'
+            ? 'Esta curva expresa rendimiento real sobre inflación; no debe compararse directamente con una tasa nominal.'
+            : 'Esta curva es nominal: incorpora inflación esperada y no equivale a rendimiento real.';
+        renderReturnsChart(curve);
+        renderReturnsSpreads(curves);
+        renderReturnsHeatmap(curve);
+        renderReturnsComparison(curves);
+        renderReturnsTable(curve);
+        renderReturnsGlobal();
+        if (document.body.classList.contains('ff-detail-rendimientos')) {
+            loadReturnsHistory();
+            loadReturnsGlobalData();
+        }
     }
 
     async function fetchJson(url, timeout = 12000) {
@@ -1085,9 +1884,9 @@
             legacySection: 'bonos',
         },
         rendimientos: {
-            eyebrow: 'Riesgo y retorno',
-            title: 'Bonos y rendimientos',
-            description: 'Curvas de rendimiento, tramos, primas por plazo y señales del ciclo de tasas.',
+            eyebrow: 'Renta fija · análisis de curva',
+            title: 'Rendimientos',
+            description: 'Niveles, cambios en puntos base, pendiente y lectura por vencimiento de curvas soberanas nominales y reales.',
             legacySection: 'bonos',
         },
         noticias: {
@@ -1117,7 +1916,7 @@
         const copy = {
             bolsa: ['Bolsa · Renta variable global', 'Índices, factores, emisoras y gráfica histórica multiactivo.'],
             tasas: ['Tasas y bonos', 'Referencias monetarias, instrumentos de deuda, curvas soberanas y próximas decisiones.'],
-            rendimientos: ['Curvas y rendimientos', 'Pendiente, primas por plazo y estructura global de rendimientos.'],
+            rendimientos: ['Monitor de rendimientos', 'Curvas soberanas, cambios por tramo, pendiente y dispersión entre vencimientos.'],
             noticias: ['Daily News', 'Última hora, noticia principal, impacto y mercados relacionados.'],
         }[name];
         if (!copy) return;
@@ -1188,12 +1987,15 @@
         const host = $('ff-bolsa-chart-host');
         const board = $('ff-exchange-board');
         const chartPanel = $('bvmx-panel');
+        const fxPanel = $('fx-section');
         const wlPanel = $('watchlist-panel');
         if (host && chartPanel) {
             host.hidden = false;
+            if (fxPanel) host.append(fxPanel);
             if (wlPanel) host.append(wlPanel);
             host.append(chartPanel);
             chartPanel.style.display = '';
+            if (fxPanel && fxPanel.querySelector('#fxStrip')?.children.length) fxPanel.style.display = '';
             if (wlPanel) wlPanel.style.display = '';
         }
         if (board) board.hidden = false;
@@ -1236,6 +2038,9 @@
         const supplement = $('ff-detail-supplement');
         if (isNews) {
             if (supplement) supplement.hidden = true;
+        } else if (name === 'rendimientos') {
+            if (supplement) supplement.hidden = true;
+            renderReturnsPanel();
         } else {
             renderSupplement(name);
         }
@@ -1462,7 +2267,7 @@
             `Emisoras · ${cfg.label}`,
             '% sesión',
             'Precio y movimiento',
-            'Favro solo muestra los campos que entrega la fuente; los ausentes no se estiman.',
+            'La plataforma solo muestra los campos que entrega la fuente; los ausentes no se estiman.',
         );
 
         let rows = [];
@@ -1507,7 +2312,7 @@
             `Emisoras · ${cfg.label}`,
             '% sesión',
             'Precio y movimiento',
-            'Favro solo muestra los campos que entrega la fuente; los ausentes no se estiman.',
+            'La plataforma solo muestra los campos que entrega la fuente; los ausentes no se estiman.',
         );
         renderSupplementKpis([
             { label: 'Emisoras', value: `${rows.length}`, note: `Disponibles en ${cfg.label}` },
@@ -1559,7 +2364,7 @@
                 'Tasas y referencias monetarias',
                 '% anual',
                 'Tasas e instrumentos disponibles',
-                `Treasury 3M es un proxy de mercado, no la tasa oficial de la Fed. Zona Euro 10Y es un bono soberano, no tasa del BCE. ${isNumeric(state.inflation) ? `Inflación México disponible: ${formatYield(state.inflation)}.` : 'La inflación de México no está disponible; Favro no calcula una tasa real con un supuesto.'} Los datos indicativos no equivalen a cotizaciones en vivo.`,
+                `Treasury 3M es un proxy de mercado, no la tasa oficial de la Fed. Zona Euro 10Y es un bono soberano, no tasa del BCE. ${isNumeric(state.inflation) ? `Inflación México disponible: ${formatYield(state.inflation)}.` : 'La inflación de México no está disponible; no se calcula una tasa real con un supuesto.'} Los datos indicativos no equivalen a cotizaciones en vivo.`,
             );
             renderSupplementKpis([
                 { label: 'TIIE 28D', value: formatYield(mx?.yield), note: 'Interbancaria México' },
@@ -1757,7 +2562,7 @@
             const stocks = state.bmvData.filter(item => item.type === 'stock');
             labels = stocks.map(item => item.symbol);
             datasets = [{ label: 'Variación diaria', data: stocks.map(item => +item.change_pct), backgroundColor: stocks.map(item => +item.change_pct >= 0 ? colors.green : colors.red), borderRadius: 5 }];
-            kicker = 'Emisoras'; title = 'Pulso de acciones mexicanas'; badge = 'Sesión'; note = 'Variación diaria de las emisoras disponibles en Favro; verde indica avance y rojo retroceso.';
+            kicker = 'Emisoras'; title = 'Pulso de acciones mexicanas'; badge = 'Sesión'; note = 'Variación diaria de las emisoras disponibles; verde indica avance y rojo retroceso.';
         } else if (state.module === 'tasas') {
             const rates = getReferenceRateItems();
             labels = rates.map(item => item.key.toUpperCase());
@@ -1804,7 +2609,7 @@
 
     function updateAutomaticConclusion() {
         let title = 'Lectura neutral mientras se completan los datos';
-        let text = 'Favro conserva los últimos datos disponibles y evita convertir valores ausentes en señales.';
+        let text = 'La plataforma conserva los últimos datos disponibles y evita convertir valores ausentes en señales.';
         let risk = 'Sin clasificar';
         if (state.module === 'bolsa') {
             const changes = Object.values(state.quotes).filter(item => item.symbol !== '^VIX' && Number.isFinite(item.change)).map(item => item.change);
@@ -1846,10 +2651,12 @@
     function classifyNews(item) {
         // Respeta la categoría asignada por el editor Favro (Gemini); si no viene,
         // cae al heurístico por texto.
-        if (item.category === 'rates' || item.category === 'bonds' || item.category === 'markets') return item.category;
+        if (['rates', 'bonds', 'markets', 'fx', 'commodities'].includes(item.category)) return item.category;
         const text = `${item.title || ''} ${item.description || ''}`.toLowerCase();
         if (/fed|banxico|rate|tasa|inflaci/.test(text)) return 'rates';
         if (/bond|bono|treasury|yield|debt/.test(text)) return 'bonds';
+        if (/divisa|forex|dólar|dolar|euro|yen|peso|currency|exchange rate/.test(text)) return 'fx';
+        if (/petróleo|petroleo|oil|gold|oro|cobre|commodity|commodit|materia prima/.test(text)) return 'commodities';
         return 'markets';
     }
 
@@ -1864,17 +2671,27 @@
         return ['Neutral','ff-impact-neutral'];
     }
 
+    let newsReaderReturnFocus = null;
+
     function openNewsReader(item) {
         const reader = $('ff-news-reader');
         if (!reader || !item) return;
-        $('ff-reader-category').textContent = classifyNews(item) === 'rates' ? 'Tasas' : classifyNews(item) === 'bonds' ? 'Bonos' : 'Mercados';
+        const category = classifyNews(item);
+        newsReaderReturnFocus = document.activeElement;
+        $('ff-reader-category').textContent = _NEWS_CAT_ES[category] || 'Mercados';
         $('ff-reader-title').textContent = item.title || 'Detalle de la noticia';
         $('ff-reader-source').textContent = item.source || 'Fuente financiera';
         $('ff-reader-time').textContent = safeDate(item.publishedAt);
         $('ff-reader-impact').textContent = item.impact ? `Impacto ${item.impact}` : impactFor(item)[0];
         $('ff-reader-description').textContent = item.description || 'No hay un resumen ampliado disponible para este titular.';
-        $('ff-reader-related').textContent = item.related || (classifyNews(item) === 'rates' ? 'Crédito, ahorro, divisas y renta fija' : classifyNews(item) === 'bonds' ? 'Tasas, duración y costo de capital' : 'Índices, sectores y volatilidad');
-        $('ff-reader-disclaimer').textContent = state.newsIsDemo ? 'Contenido demostrativo generado a partir de la fuente interna de Favro. No se presenta como una noticia verificada ni como asesoría financiera.' : 'Resumen informativo; consulta la fuente original para conocer todos los detalles.';
+        $('ff-reader-insight').textContent = item.insight || 'La mesa editorial recomienda seguir la fuente original y contrastar el movimiento con los datos de mercado.';
+        $('ff-reader-related').textContent = item.related || (category === 'rates' ? 'Crédito, ahorro, divisas y renta fija' : category === 'bonds' ? 'Tasas, duración y costo de capital' : category === 'fx' ? 'Divisas, tasas y flujos internacionales' : category === 'commodities' ? 'Materias primas, inflación y cadenas de suministro' : 'Índices, sectores y volatilidad');
+        const original = $('ff-reader-original');
+        if (original) {
+            original.hidden = !item.url;
+            original.href = item.url || '#';
+        }
+        $('ff-reader-disclaimer').textContent = state.newsIsDemo ? 'Contenido demostrativo generado a partir de una fuente editorial interna. No se presenta como una noticia verificada ni como asesoría financiera.' : 'Resumen informativo; consulta la fuente original para conocer todos los detalles.';
         reader.hidden = false;
         document.body.style.overflow = 'hidden';
         reader.querySelector('.ff-reader-close')?.focus();
@@ -1884,17 +2701,20 @@
         const reader = $('ff-news-reader');
         if (reader) reader.hidden = true;
         document.body.style.overflow = '';
+        if (newsReaderReturnFocus instanceof HTMLElement) newsReaderReturnFocus.focus();
+        newsReaderReturnFocus = null;
     }
 
     function updateNewsModuleCard() {
         updateModuleTiles();   // el contador de titulares de la baldosa Daily News
         const lead = state.news[0];
         const counts = state.news.reduce((summary, item) => {
-            summary[classifyNews(item)] += 1;
+            const key = classifyNews(item);
+            summary[key] = (summary[key] || 0) + 1;
             return summary;
-        }, { markets: 0, rates: 0, bonds: 0 });
+        }, { markets: 0, rates: 0, bonds: 0, fx: 0, commodities: 0 });
         if ($('ff-card-news-title')) $('ff-card-news-title').textContent = lead?.title || 'No hay titulares disponibles en este momento.';
-        if ($('ff-card-news-source')) $('ff-card-news-source').textContent = state.newsIsDemo ? `${lead?.source || 'Favro'} · contenido demostrativo` : (lead?.source || 'Fuente financiera');
+        if ($('ff-card-news-source')) $('ff-card-news-source').textContent = state.newsIsDemo ? `${lead?.source || 'Mesa editorial'} · contenido demostrativo` : (lead?.source || 'Fuente financiera');
         if ($('ff-card-news-time')) $('ff-card-news-time').textContent = lead ? safeDate(lead.publishedAt) : 'Pendiente de actualización';
         if ($('ff-card-news-markets')) $('ff-card-news-markets').textContent = String(counts.markets);
         if ($('ff-card-news-rates')) $('ff-card-news-rates').textContent = String(counts.rates);
@@ -1915,8 +2735,7 @@
         return it.sentiment === 'negative' ? 'alto' : it.sentiment === 'positive' ? 'bajo' : 'medio';
     }
     function _openNews(item) {
-        if (item?.url) window.open(item.url, '_blank', 'noopener');
-        else openNewsReader(item);
+        openNewsReader(item);
     }
     function _newsFallback(cls, k) {
         const d = document.createElement('div'); d.className = cls; d.dataset.cat = k;
@@ -1957,9 +2776,311 @@
         return card;
     }
 
+    function buildNewsStreamItem(item) {
+        const k = _newsCatKey(item);
+        const button = document.createElement('button');
+        button.className = 'fnb-stream-item'; button.type = 'button';
+        const time = document.createElement('span'); time.className = 'fnb-stream-time';
+        const published = item.publishedAt ? new Date(item.publishedAt) : null;
+        time.textContent = published && !Number.isNaN(published.getTime())
+            ? published.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+            : 'Ahora';
+        const copy = document.createElement('div'); copy.className = 'fnb-stream-copy'; copy.dataset.cat = k;
+        const cat = document.createElement('span'); cat.textContent = _newsCatLabel(item);
+        const title = document.createElement('h4'); title.textContent = item.title || '';
+        const source = document.createElement('small'); source.textContent = `${item.source || 'Fuente'} · Impacto ${_newsImpact(item)}`;
+        copy.append(cat, title, source); button.append(time, copy);
+        button.addEventListener('click', () => _openNews(item));
+        return button;
+    }
+
+    function updateNewsDesk(filtered) {
+        const counts = filtered.reduce((summary, item) => {
+            const key = _newsCatKey(item);
+            summary[key] = (summary[key] || 0) + 1;
+            return summary;
+        }, {});
+        const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'markets';
+        if ($('fnb-story-count')) $('fnb-story-count').textContent = String(filtered.length);
+        if ($('fnb-dominant-focus')) $('fnb-dominant-focus').textContent = _NEWS_CAT_ES[dominant] || 'Mercados';
+        if ($('fnb-reading-time')) $('fnb-reading-time').textContent = `${Math.max(2, Math.ceil(filtered.length * .32))} min`;
+        if ($('fnb-updated')) $('fnb-updated').textContent = state.newsMeta.generado || 'Edición actualizada';
+        if ($('fnb-source')) $('fnb-source').textContent = state.newsIsDemo
+            ? 'Respaldo editorial interno'
+            : (state.newsMeta.fuente || 'Fuentes financieras verificadas');
+    }
+
+    function renderNewsTrending(items) {
+        const host = $('fnb-trending-track');
+        if (!host) return;
+        const headlines = items.slice(0, 6);
+        if (!headlines.length) {
+            host.innerHTML = '<span>Sin temas en desarrollo.</span>';
+            return;
+        }
+        host.replaceChildren(...headlines.map((item, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `${index === 0 ? 'EN DESARROLLO: ' : ''}${item.title || ''}`;
+            button.addEventListener('click', () => _openNews(item));
+            return button;
+        }));
+    }
+
+    function buildDepartmentLead(item) {
+        const k = _newsCatKey(item);
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'fnb-department-lead';
+        const media = document.createElement('div'); media.className = 'fnb-department-media'; media.dataset.cat = k;
+        if (_isNewsImg(item.image)) media.appendChild(_newsImage(item.image, () => media.prepend(_newsFallback('fnb-card-fallback', k))));
+        else media.appendChild(_newsFallback('fnb-card-fallback', k));
+        const copy = document.createElement('div'); copy.className = 'fnb-department-copy'; copy.dataset.cat = k;
+        const cat = document.createElement('span'); cat.textContent = _newsCatLabel(item);
+        const title = document.createElement('h4'); title.textContent = item.title || '';
+        const summary = document.createElement('p'); summary.textContent = item.description || item.insight || '';
+        const meta = document.createElement('small'); meta.textContent = `${item.source || 'Fuente'} · ${item.fecha || safeDate(item.publishedAt)}`;
+        copy.append(cat, title, summary, meta); button.append(media, copy);
+        button.addEventListener('click', () => _openNews(item));
+        return button;
+    }
+
+    function buildDepartment(definition, items) {
+        const section = document.createElement('section'); section.className = 'fnb-department';
+        const head = document.createElement('header'); head.className = 'fnb-department-head'; head.dataset.cat = definition.accent;
+        const title = document.createElement('h3'); title.textContent = definition.title;
+        const label = document.createElement('span'); label.textContent = `${items.length} historias`;
+        head.append(title, label);
+        const grid = document.createElement('div'); grid.className = 'fnb-department-grid';
+        grid.appendChild(buildDepartmentLead(items[0]));
+        const list = document.createElement('div'); list.className = 'fnb-department-list'; list.dataset.cat = definition.accent;
+        items.slice(1, 5).forEach(item => {
+            const button = document.createElement('button'); button.type = 'button';
+            const wrap = document.createElement('div');
+            const itemTitle = document.createElement('h4'); itemTitle.textContent = item.title || '';
+            const meta = document.createElement('small'); meta.textContent = `${_newsCatLabel(item)} · ${item.source || 'Fuente'}`;
+            wrap.append(itemTitle, meta); button.appendChild(wrap);
+            button.addEventListener('click', () => _openNews(item)); list.appendChild(button);
+        });
+        grid.appendChild(list); section.append(head, grid);
+        return section;
+    }
+
+    function renderNewsDepartments(items) {
+        const host = $('fnb-department-host');
+        if (!host) return;
+        const definitions = [
+            { title: 'Mercados globales', cats: ['markets'], accent: 'markets' },
+            { title: 'Bancos centrales y renta fija', cats: ['rates', 'bonds'], accent: 'rates' },
+            { title: 'Divisas y materias primas', cats: ['fx', 'commodities'], accent: 'fx' },
+        ];
+        const sections = definitions.map(definition => ({
+            definition,
+            items: items.filter(item => definition.cats.includes(_newsCatKey(item))).slice(0, 5),
+        })).filter(group => group.items.length);
+        if (!sections.length) {
+            host.innerHTML = '<div class="fnb-empty">No hay bloques temáticos disponibles para este filtro.</div>';
+            return;
+        }
+        host.replaceChildren(...sections.map(group => buildDepartment(group.definition, group.items)));
+    }
+
+    function renderNewsPriority(items) {
+        const host = $('fnb-priority-list');
+        if (!host) return;
+        const weight = { alto: 3, medio: 2, bajo: 1 };
+        const priority = [...items].sort((a, b) => {
+            const impactDelta = (weight[_newsImpact(b)] || 0) - (weight[_newsImpact(a)] || 0);
+            if (impactDelta) return impactDelta;
+            return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0);
+        }).slice(0, 5);
+        host.replaceChildren(...priority.map((item, index) => {
+            const li = document.createElement('li');
+            const number = document.createElement('span'); number.textContent = String(index + 1).padStart(2, '0');
+            const wrap = document.createElement('div');
+            const button = document.createElement('button'); button.type = 'button'; button.textContent = item.title || '';
+            const meta = document.createElement('small'); meta.textContent = `${_newsCatLabel(item)} · Impacto ${_newsImpact(item)}`;
+            button.addEventListener('click', () => _openNews(item)); wrap.append(button, meta); li.append(number, wrap);
+            return li;
+        }));
+    }
+
+    function renderFavroPerspectives(items) {
+        const host = $('fnb-perspectives-grid');
+        if (!host) return;
+        const selected = [...items]
+            .sort((a, b) => Number(!!b.insight) - Number(!!a.insight))
+            .slice(0, 3);
+        if (!selected.length) {
+            host.innerHTML = '<div class="fnb-empty">La mesa editorial está preparando las claves de esta edición.</div>';
+            return;
+        }
+        host.replaceChildren(...selected.map(item => {
+            const k = _newsCatKey(item);
+            const article = document.createElement('article'); article.className = 'fnb-perspective'; article.dataset.cat = k;
+            const category = document.createElement('span'); category.textContent = `${_newsCatLabel(item)} · Lectura editorial`;
+            const title = document.createElement('h4'); title.textContent = item.title || '';
+            const insight = document.createElement('blockquote'); insight.textContent = item.insight || item.description || 'Consulta la noticia para conocer el contexto completo.';
+            const button = document.createElement('button'); button.type = 'button'; button.innerHTML = 'Profundizar <i class="fas fa-arrow-right"></i>';
+            button.addEventListener('click', () => _openNews(item));
+            article.append(category, title, insight, button);
+            return article;
+        }));
+    }
+
+    function buildCoverageCard(item) {
+        const k = _newsCatKey(item);
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'fnb-coverage-card'; button.dataset.cat = k;
+        if (_isNewsImg(item.image)) button.appendChild(_newsImage(item.image, () => button.prepend(_newsFallback('fnb-card-fallback', k))));
+        else button.appendChild(_newsFallback('fnb-card-fallback', k));
+        const copy = document.createElement('div'); copy.className = 'fnb-coverage-copy';
+        const category = document.createElement('span'); category.textContent = _newsCatLabel(item);
+        const title = document.createElement('h4'); title.textContent = item.title || '';
+        const meta = document.createElement('small'); meta.textContent = `${item.source || 'Fuente'} · ${item.fecha || safeDate(item.publishedAt)}`;
+        copy.append(category, title, meta); button.appendChild(copy);
+        button.addEventListener('click', () => _openNews(item));
+        return button;
+    }
+
+    function renderNewsCoverage(items) {
+        const host = $('fnb-coverage-grid');
+        if (!host) return;
+        const selected = [...items]
+            .sort((a, b) => Number(_isNewsImg(b.image)) - Number(_isNewsImg(a.image)))
+            .slice(0, 6);
+        if (!selected.length) {
+            host.innerHTML = '<div class="fnb-empty">No hay cobertura visual disponible para este filtro.</div>';
+            updateNewsCarouselUI();
+            return;
+        }
+        host.replaceChildren(...selected.map(buildCoverageCard));
+        host.scrollLeft = 0;
+        requestAnimationFrame(updateNewsCarouselUI);
+    }
+
+    function buildArchiveItem(item, index = 0, featured = false) {
+        const k = _newsCatKey(item), impact = _newsImpact(item);
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'fnb-archive-item'; button.dataset.cat = k;
+        const hasImage = _isNewsImg(item.image);
+        button.classList.toggle('has-image', hasImage);
+        button.classList.toggle('is-editorial-lead', featured && hasImage);
+        button.setAttribute('aria-label', `Abrir noticia: ${item.title || 'Noticia financiera'}`);
+        const stamp = document.createElement('span'); stamp.className = 'fnb-archive-stamp'; stamp.dataset.cat = k;
+        const rank = document.createElement('em'); rank.className = 'fnb-archive-rank'; rank.textContent = String(index + 1).padStart(2, '0');
+        const category = document.createElement('strong');
+        category.textContent = k === 'commodities' ? 'Materias primas' : _newsCatLabel(item);
+        const published = item.publishedAt ? new Date(item.publishedAt) : null;
+        const time = document.createElement('span'); time.textContent = published && !Number.isNaN(published.getTime())
+            ? published.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : 'Ahora';
+        stamp.append(rank, category, time);
+        const copy = document.createElement('div'); copy.className = 'fnb-archive-copy';
+        const title = document.createElement('h4'); title.textContent = item.title || '';
+        const summary = document.createElement('p'); summary.textContent = item.description || item.insight || 'Abre la noticia para consultar el contexto editorial completo.';
+        const source = document.createElement('small'); source.textContent = item.source || 'Fuente financiera';
+        copy.append(title, summary, source);
+        const media = document.createElement('span'); media.className = 'fnb-archive-thumb'; media.dataset.cat = k;
+        if (hasImage) media.appendChild(_newsImage(item.image, () => media.appendChild(_newsFallback('fnb-card-fallback', k))));
+        const badge = document.createElement('span'); badge.className = `fnb-archive-impact ${impact}`; badge.textContent = impact;
+        const action = document.createElement('span'); action.className = 'fnb-archive-action';
+        const arrow = document.createElement('i'); arrow.className = 'fas fa-arrow-right'; arrow.setAttribute('aria-hidden', 'true');
+        action.append(badge, arrow);
+        button.append(stamp);
+        if (hasImage) button.append(media);
+        button.append(copy, action); button.addEventListener('click', () => _openNews(item));
+        return button;
+    }
+
+    function renderArchiveSpotlight(item, total = 0) {
+        const host = $('fnb-archive-spotlight');
+        if (!host) return;
+        host.hidden = !item;
+        if (!item) {
+            host.replaceChildren();
+            return;
+        }
+        const k = _newsCatKey(item), impact = _newsImpact(item);
+        const article = document.createElement('article'); article.className = 'fnb-spotlight-card'; article.dataset.cat = k;
+        const media = document.createElement('div'); media.className = 'fnb-spotlight-media';
+        if (_isNewsImg(item.image)) media.appendChild(_newsImage(item.image, () => media.prepend(_newsFallback('fnb-card-fallback', k))));
+        else media.appendChild(_newsFallback('fnb-card-fallback', k));
+        const mediaLabel = document.createElement('span'); mediaLabel.className = 'fnb-spotlight-media-label'; mediaLabel.innerHTML = '<i class="fas fa-star" aria-hidden="true"></i> Historia de portada';
+        media.appendChild(mediaLabel);
+
+        const copy = document.createElement('div'); copy.className = 'fnb-spotlight-copy';
+        const eyebrow = document.createElement('div'); eyebrow.className = 'fnb-spotlight-eyebrow';
+        const category = document.createElement('span'); category.textContent = _newsCatLabel(item);
+        const selection = document.createElement('span'); selection.textContent = `Empieza aquí · ${total} historias en la edición`;
+        eyebrow.append(category, selection);
+        const title = document.createElement('h4'); title.textContent = item.title || 'La historia que define la jornada';
+        const description = document.createElement('p'); description.textContent = item.description || 'Una lectura esencial para comprender el movimiento de los mercados de hoy.';
+        const insight = document.createElement('div'); insight.className = 'fnb-spotlight-insight';
+        const insightIcon = document.createElement('i'); insightIcon.className = 'fas fa-lightbulb'; insightIcon.setAttribute('aria-hidden', 'true');
+        const insightText = document.createElement('span'); insightText.textContent = item.insight || 'Conecta esta noticia con el contexto financiero de la jornada.';
+        insight.append(insightIcon, insightText);
+        const foot = document.createElement('div'); foot.className = 'fnb-spotlight-foot';
+        const meta = document.createElement('div'); meta.className = 'fnb-spotlight-meta';
+        const source = document.createElement('span'); source.textContent = item.source || 'Fuente financiera';
+        const badge = document.createElement('span'); badge.className = `fnb-archive-impact ${impact}`; badge.textContent = `Impacto ${impact}`;
+        meta.append(source, badge);
+        const open = document.createElement('button'); open.type = 'button'; open.innerHTML = 'Entender esta historia <i class="fas fa-arrow-right" aria-hidden="true"></i>';
+        open.addEventListener('click', () => _openNews(item));
+        foot.append(meta, open);
+        copy.append(eyebrow, title, description, insight, foot);
+        article.append(media, copy);
+        host.replaceChildren(article);
+    }
+
+    function renderNewsArchive(items) {
+        const host = $('fnb-archive-list');
+        if (!host) return;
+        const query = state.newsArchiveQuery.trim().toLocaleLowerCase('es');
+        const impactWeight = { alto: 3, medio: 2, bajo: 1 };
+        const visible = items.filter(item => !query || [item.title, item.description, item.insight, item.source, _newsCatLabel(item)]
+            .filter(Boolean).join(' ').toLocaleLowerCase('es').includes(query));
+        visible.sort((a, b) => {
+            if (state.newsArchiveSort === 'impact') return (impactWeight[_newsImpact(b)] || 0) - (impactWeight[_newsImpact(a)] || 0);
+            return new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime();
+        });
+        if ($('fnb-archive-count')) $('fnb-archive-count').textContent = String(visible.length);
+        if ($('fnb-archive-summary')) $('fnb-archive-summary').textContent = query
+            ? `${visible.length} coincidencias dentro de ${items.length} historias de la edición.`
+            : `${visible.length} historias internacionales disponibles en esta selección.`;
+        if (!visible.length) {
+            renderArchiveSpotlight(null);
+            if ($('fnb-archive-more')) $('fnb-archive-more').hidden = true;
+            host.innerHTML = `<div class="fnb-empty fnb-archive-empty"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><strong>Sin coincidencias</strong><span>${query ? 'Prueba con otra empresa, mercado o palabra clave.' : 'No hay noticias archivadas para este filtro.'}</span></div>`;
+            return;
+        }
+        const spotlight = visible.find(item => _isNewsImg(item.image)) || visible[0];
+        renderArchiveSpotlight(spotlight, visible.length);
+        const remaining = visible.filter(item => item !== spotlight);
+        const shown = remaining.slice(0, state.newsArchiveLimit);
+        const featuredIndex = shown.findIndex(item => _isNewsImg(item.image));
+        if (shown.length) host.replaceChildren(...shown.map((item, index) => buildArchiveItem(item, index, index === featuredIndex)));
+        else host.innerHTML = '<div class="fnb-empty fnb-archive-empty"><i class="fas fa-circle-check" aria-hidden="true"></i><strong>Lectura localizada</strong><span>La historia destacada es la única coincidencia disponible.</span></div>';
+        const more = $('fnb-archive-more');
+        const moreButton = $('fnb-archive-more-button');
+        const moreLabel = $('fnb-archive-more-label');
+        const moreProgress = $('fnb-archive-more-progress');
+        const pending = Math.max(0, remaining.length - shown.length);
+        if (more) more.hidden = remaining.length === 0;
+        if (moreButton) {
+            moreButton.hidden = pending === 0;
+            const buttonLabel = moreButton.querySelector('span');
+            if (buttonLabel) buttonLabel.textContent = pending ? `Descubrir ${Math.min(8, pending)} historias más` : 'Edición explorada';
+        }
+        if (moreLabel) moreLabel.textContent = `Has explorado ${Math.min(shown.length + 1, visible.length)} de ${visible.length} historias`;
+        if (moreProgress) moreProgress.style.width = `${visible.length ? Math.min(100, ((shown.length + 1) / visible.length) * 100) : 0}%`;
+    }
+
     function renderNews() {
         updateNewsModuleCard();
         const filtered = state.news.filter(item => state.newsFilter === 'all' || classifyNews(item) === state.newsFilter);
+        updateNewsDesk(filtered);
+        renderNewsTrending(filtered);
+        renderNewsDepartments(filtered.slice(1));
+        renderNewsPriority(filtered);
+        renderFavroPerspectives(filtered);
+        renderNewsCoverage(filtered.slice(1));
+        renderNewsArchive(filtered);
 
         // ── Nota principal (hero) ──
         const lead = filtered[0] || state.news[0];
@@ -1989,7 +3110,7 @@
                 ins.append(i, s); body.append(ins);
             }
             const meta = document.createElement('div'); meta.className = 'fnb-lead-meta';
-            const src = document.createElement('span'); src.className = 'fnb-src'; src.textContent = lead.source || 'Favro';
+            const src = document.createElement('span'); src.className = 'fnb-src'; src.textContent = lead.source || 'Mesa editorial';
             const time = document.createElement('span'); time.textContent = lead.fecha || safeDate(lead.publishedAt);
             const go = document.createElement('span'); go.className = 'fnb-go'; go.innerHTML = 'Leer <i class="fas fa-arrow-right"></i>';
             meta.append(src, time, go);
@@ -2011,21 +3132,33 @@
         }
 
         // ── Grid tipo blog ──
-        const grid = $('fnb-grid');
-        if (!grid) return;
+        const grid = $('fnb-grid'), stream = $('fnb-stream');
+        if (!grid || !stream) return;
         const items = filtered.slice(1, 13);
         if (!items.length) {
             grid.innerHTML = '<div class="fnb-empty">No hay noticias para este filtro. Prueba con otra categoría.</div>';
+            stream.innerHTML = '<div class="fnb-empty">Sin titulares adicionales.</div>';
             return;
         }
-        grid.replaceChildren(...items.map(buildNewsCard));
+        const featured = items.slice(0, 4);
+        const latest = items.slice(4);
+        grid.replaceChildren(...featured.map(buildNewsCard));
+        if (latest.length) stream.replaceChildren(...latest.map(buildNewsStreamItem));
+        else stream.innerHTML = '<div class="fnb-empty">Esta edición no tiene más titulares.</div>';
     }
 
     async function loadNews() {
+        const refresh = $('ff-open-news');
+        const refreshLabel = refresh?.querySelector('span');
+        let newsLoaded = false;
+        refresh?.classList.add('is-loading');
+        refresh?.classList.remove('is-success');
+        if (refresh) refresh.disabled = true;
+        if (refreshLabel) refreshLabel.textContent = 'Actualizando…';
         try {
             // Noticiero Favro: noticias reales de finanzas internacionales (Finnhub +
             // NewsAPI) con tratamiento editorial en español hecho por Gemini.
-            const payload = await fetchJson('/api/daily-news', 20000);
+            const payload = await fetchJson('/api/daily-news', 45000);
             const data = payload?.data || payload;
             const items = Array.isArray(data?.noticias) ? data.noticias : [];
             if (!items.length) throw new Error('sin noticias');
@@ -2044,10 +3177,11 @@
                 categoryLabel: item.categoryLabel || '',
                 sentiment:     item.sentiment || null,      // 'positive' | 'negative' | 'neutral'
                 impact:        item.impact || '',           // 'alto' | 'medio' | 'bajo'
-            })).slice(0, 14);
+            })).slice(0, 24);
             state.briefing = Array.isArray(data?.briefing) ? data.briefing : [];
-            state.newsMeta = { generado: data?.generado || '', fuente: data?.fuente || '' };
+            state.newsMeta = { generado: data?.generado || '', fuente: data?.fuente || '', stale: !!payload?.stale };
             renderNews();
+            newsLoaded = true;
         } catch (error) {
             console.warn('Favro news (daily-news):', error);
             // Respaldo: fuente interna previa para no dejar el noticiero vacío.
@@ -2067,10 +3201,12 @@
                     image:       '',
                 })).filter(item => item.title);
                 if (items.length) {
-                    state.news = items.slice(0, 14);
+                    state.news = items.slice(0, 24);
                     state.newsIsDemo = true;
                     state.briefing = [];
+                    state.newsMeta = { generado: 'Lectura de respaldo', fuente: 'Mesa editorial', stale: true };
                     renderNews();
+                    newsLoaded = true;
                     return;
                 }
             } catch { /* sin respaldo */ }
@@ -2079,6 +3215,20 @@
             updateNewsModuleCard();
             const grid = $('fnb-grid');
             if (grid) grid.innerHTML = '<div class="fnb-empty">Sin conexión · no pudimos actualizar las noticias. Reintenta más tarde.</div>';
+            const stream = $('fnb-stream');
+            if (stream) stream.innerHTML = '<div class="fnb-empty">No hay titulares disponibles.</div>';
+            if ($('fnb-updated')) $('fnb-updated').textContent = 'Actualización no disponible';
+        } finally {
+            refresh?.classList.remove('is-loading');
+            if (refresh) refresh.disabled = false;
+            if (newsLoaded) {
+                refresh?.classList.add('is-success');
+                if (refreshLabel) refreshLabel.textContent = 'Edición actualizada';
+                window.setTimeout(() => {
+                    refresh?.classList.remove('is-success');
+                    if (refreshLabel) refreshLabel.textContent = 'Actualizar edición';
+                }, 1800);
+            } else if (refreshLabel) refreshLabel.textContent = 'Reintentar';
         }
     }
 
@@ -2106,10 +3256,11 @@
             syncLegacyValues();
             updateMarketCards();
             updateBondCards();
+            renderReturnsPanel();
             renderBreakdown();
             renderDetailTable();
             renderInsights();
-            if (document.body.classList.contains('ff-detail-mode') && !document.body.classList.contains('ff-detail-noticias')) renderSupplement(state.module);
+            if (document.body.classList.contains('ff-detail-mode') && !document.body.classList.contains('ff-detail-noticias') && state.module !== 'rendimientos') renderSupplement(state.module);
             await renderMainChart();
             $('ff-last-update').textContent = new Date().toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
             if (typeof VDS !== 'undefined' && VDS.banxico) {
@@ -2119,7 +3270,7 @@
                     updateBondCards();
                     renderContextChart();
                     updateAutomaticConclusion();
-                    if (document.body.classList.contains('ff-detail-mode') && !document.body.classList.contains('ff-detail-noticias')) renderSupplement(state.module);
+                    if (document.body.classList.contains('ff-detail-mode') && !document.body.classList.contains('ff-detail-noticias') && state.module !== 'rendimientos') renderSupplement(state.module);
                 }).catch(() => {});
             }
         } catch (error) {
@@ -2130,6 +3281,220 @@
         } finally {
             refresh?.classList.remove('is-loading');
         }
+    }
+
+    function setupNativeNewsNavigation() {
+        const buttons = [...document.querySelectorAll('[data-news-jump]')];
+        const sections = buttons.map(button => ({ button, section: $(button.dataset.newsJump) })).filter(item => item.section);
+        const current = $('fnb-native-current');
+        const progress = $('fnb-native-progress');
+        const activate = id => {
+            buttons.forEach(button => {
+                const active = button.dataset.newsJump === id;
+                button.classList.toggle('is-active', active);
+                if (active) button.setAttribute('aria-current', 'location');
+                else button.removeAttribute('aria-current');
+                if (active && current) current.textContent = button.querySelector('span')?.textContent || 'Daily News';
+            });
+        };
+        buttons.forEach(button => button.addEventListener('click', () => {
+            activate(button.dataset.newsJump);
+            $(button.dataset.newsJump)?.scrollIntoView({
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                block: 'start',
+            });
+        }));
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(entries => {
+                const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+                if (visible?.target?.id) activate(visible.target.id);
+            }, { rootMargin: '-24% 0px -62% 0px', threshold: [0, .15, .35] });
+            sections.forEach(item => observer.observe(item.section));
+        }
+        const updateProgress = () => {
+            const newsroom = document.querySelector('.fnb-newsroom');
+            if (!newsroom || !progress) return;
+            const rect = newsroom.getBoundingClientRect();
+            const distance = Math.max(1, rect.height - window.innerHeight);
+            const value = Math.max(0, Math.min(1, -rect.top / distance));
+            progress.style.width = `${(value * 100).toFixed(1)}%`;
+        };
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        window.addEventListener('resize', updateProgress, { passive: true });
+        updateProgress();
+    }
+
+    function getNewsCarouselState() {
+        const track = $('fnb-coverage-grid');
+        const cards = track ? [...track.querySelectorAll('.fnb-coverage-card')] : [];
+        if (!track || !cards.length) return { track, cards, index: 0 };
+        const trackRect = track.getBoundingClientRect();
+        const score = card => {
+            const rect = card.getBoundingClientRect();
+            const visible = Math.max(0, Math.min(rect.right, trackRect.right) - Math.max(rect.left, trackRect.left));
+            const coverage = visible / Math.max(1, rect.width);
+            const cardCenter = rect.left + rect.width / 2;
+            const trackCenter = trackRect.left + trackRect.width / 2;
+            const centerPenalty = Math.abs(cardCenter - trackCenter) / Math.max(1, trackRect.width);
+            return coverage - centerPenalty * .16;
+        };
+        const index = cards.reduce((closest, card, current) => score(card) > score(cards[closest]) ? current : closest, 0);
+        return { track, cards, index };
+    }
+
+    function scrollNewsCarouselToCard(track, card) {
+        if (!track || !card) return;
+        const centeredLeft = card.offsetLeft - Math.max(0, (track.clientWidth - card.offsetWidth) / 2);
+        const maxLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+        track.scrollTo({
+            left: Math.max(0, Math.min(maxLeft, centeredLeft)),
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        });
+    }
+
+    function syncNewsCarouselUI(forcedIndex = null) {
+        const stateNow = getNewsCarouselState();
+        const { track, cards } = stateNow;
+        const index = Number.isInteger(forcedIndex) ? Math.max(0, Math.min(cards.length - 1, forcedIndex)) : stateNow.index;
+        const count = $('fnb-carousel-count');
+        const dots = [...document.querySelectorAll('#fnb-carousel-dots button')];
+        if (track) track.dataset.carouselIndex = String(index);
+        if (count) count.textContent = cards.length ? `${index + 1} / ${cards.length}` : '0 / 0';
+        cards.forEach((card, cardIndex) => {
+            const active = cardIndex === index;
+            card.classList.toggle('is-active', active);
+            if (active) card.setAttribute('aria-current', 'true');
+            else card.removeAttribute('aria-current');
+        });
+        dots.forEach((dot, dotIndex) => {
+            const active = dotIndex === index;
+            dot.classList.toggle('is-active', active);
+            dot.setAttribute('aria-current', active ? 'true' : 'false');
+        });
+        if ($('fnb-carousel-prev')) $('fnb-carousel-prev').disabled = cards.length < 2;
+        if ($('fnb-carousel-next')) $('fnb-carousel-next').disabled = cards.length < 2;
+    }
+
+    function moveNewsCarousel(direction, wrap = false) {
+        const carousel = getNewsCarouselState();
+        const { track, cards } = carousel;
+        if (!track || cards.length < 2) return;
+        const storedIndex = Number.parseInt(track.dataset.carouselIndex, 10);
+        const index = Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex < cards.length ? storedIndex : carousel.index;
+        let next = index + direction;
+        if (wrap) next = (next + cards.length) % cards.length;
+        else next = Math.max(0, Math.min(cards.length - 1, next));
+        syncNewsCarouselUI(next);
+        scrollNewsCarouselToCard(track, cards[next]);
+    }
+
+    function updateNewsCarouselUI() {
+        const { track, cards } = getNewsCarouselState();
+        const dots = $('fnb-carousel-dots');
+        if (!track || !dots) return;
+        dots.replaceChildren(...cards.map((card, index) => {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.setAttribute('aria-label', `Ver noticia ${index + 1} de ${cards.length}`);
+            dot.addEventListener('click', () => {
+                syncNewsCarouselUI(index);
+                scrollNewsCarouselToCard(track, card);
+            });
+            return dot;
+        }));
+        syncNewsCarouselUI();
+    }
+
+    function setupNewsCoverageCarousel() {
+        const track = $('fnb-coverage-grid');
+        if (!track || track.dataset.carouselBound === 'true') return;
+        track.dataset.carouselBound = 'true';
+        let scrollTimer = 0;
+        let autoTimer = 0;
+        let pointerStartX = 0;
+        let pointerStartScroll = 0;
+        let pointerDragging = false;
+        let pointerHeld = false;
+        let suppressCardClick = false;
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const hoverCapable = window.matchMedia('(hover: hover)');
+        const shell = track.closest('.fnb-carousel-shell');
+        const stopAuto = () => {
+            window.clearInterval(autoTimer);
+            shell?.classList.add('is-paused');
+        };
+        const startAuto = () => {
+            window.clearInterval(autoTimer);
+            const shouldPause = reducedMotion.matches || document.hidden || pointerHeld
+                || (hoverCapable.matches && !!shell?.matches(':hover'))
+                || !!shell?.contains(document.activeElement);
+            shell?.classList.toggle('is-paused', shouldPause);
+            if (!shouldPause) autoTimer = window.setInterval(() => moveNewsCarousel(1, true), 6500);
+        };
+        $('fnb-carousel-prev')?.addEventListener('click', () => { moveNewsCarousel(-1, true); startAuto(); });
+        $('fnb-carousel-next')?.addEventListener('click', () => { moveNewsCarousel(1, true); startAuto(); });
+        track.addEventListener('keydown', event => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            moveNewsCarousel(event.key === 'ArrowRight' ? 1 : -1, true);
+            startAuto();
+        });
+        track.addEventListener('scroll', () => {
+            window.clearTimeout(scrollTimer);
+            scrollTimer = window.setTimeout(() => syncNewsCarouselUI(), 180);
+        }, { passive: true });
+        track.addEventListener('pointerdown', event => {
+            pointerHeld = true;
+            pointerStartX = event.clientX;
+            pointerStartScroll = track.scrollLeft;
+            pointerDragging = false;
+            suppressCardClick = false;
+            if (event.pointerType === 'mouse' && event.button === 0) track.setPointerCapture?.(event.pointerId);
+        });
+        track.addEventListener('pointermove', event => {
+            if (event.pointerType === 'mouse' && !(event.buttons & 1)) return;
+            const distance = event.clientX - pointerStartX;
+            if (Math.abs(distance) > 6) {
+                pointerDragging = true;
+                suppressCardClick = true;
+                if (event.pointerType === 'mouse') {
+                    track.classList.add('is-dragging');
+                    track.scrollLeft = pointerStartScroll - distance;
+                }
+            }
+        });
+        const finishPointerDrag = event => {
+            pointerHeld = false;
+            if (event?.pointerType === 'mouse' && track.hasPointerCapture?.(event.pointerId)) track.releasePointerCapture?.(event.pointerId);
+            track.classList.remove('is-dragging');
+            if (pointerDragging && event?.pointerType === 'mouse') {
+                const settled = getNewsCarouselState();
+                syncNewsCarouselUI(settled.index);
+                scrollNewsCarouselToCard(track, settled.cards[settled.index]);
+            }
+            if (pointerDragging) window.setTimeout(() => { suppressCardClick = false; }, 80);
+            pointerDragging = false;
+            startAuto();
+        };
+        track.addEventListener('pointerup', finishPointerDrag);
+        track.addEventListener('pointercancel', finishPointerDrag);
+        track.addEventListener('click', event => {
+            if (!suppressCardClick) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            suppressCardClick = false;
+        }, true);
+        shell?.addEventListener('mouseenter', stopAuto);
+        shell?.addEventListener('mouseleave', startAuto);
+        shell?.addEventListener('focusin', stopAuto);
+        shell?.addEventListener('focusout', startAuto);
+        shell?.addEventListener('pointerdown', stopAuto, { passive: true });
+        window.addEventListener('resize', syncNewsCarouselUI, { passive: true });
+        reducedMotion.addEventListener?.('change', startAuto);
+        hoverCapable.addEventListener?.('change', startAuto);
+        document.addEventListener('visibilitychange', () => document.hidden ? stopAuto() : startAuto());
+        updateNewsCarouselUI();
+        startAuto();
     }
 
     function bindEvents() {
@@ -2147,6 +3512,57 @@
             renderBolsaSupplement();
         });
         document.querySelectorAll('[data-detail-module]').forEach(button => button.addEventListener('click', () => openDetail(button.dataset.detailModule)));
+        document.querySelectorAll('[data-returns-curve]').forEach(button => button.addEventListener('click', () => {
+            if (button.disabled) return;
+            state.returnsCurve = button.dataset.returnsCurve;
+            renderReturnsPanel();
+        }));
+        document.querySelectorAll('[data-returns-mode]').forEach(button => button.addEventListener('click', () => {
+            state.returnsMode = button.dataset.returnsMode;
+            renderReturnsPanel();
+        }));
+        $('returns-chart-mode')?.addEventListener('change', event => {
+            state.returnsMode = event.target.value;
+            renderReturnsPanel();
+        });
+        $('returns-table-sort')?.addEventListener('change', event => {
+            state.returnsTableSort = event.target.value;
+            const curve = getReturnsCurves()[state.returnsCurve];
+            if (curve) renderReturnsTable(curve);
+        });
+        $('returns-reference-country')?.addEventListener('change', event => {
+            state.returnsReferenceCountry = event.target.value;
+            const curve = getReturnsCurves()[state.returnsCurve];
+            if (curve) renderReturnsChart(curve);
+        });
+        document.querySelectorAll('[data-returns-global-mode]').forEach(button => button.addEventListener('click', () => {
+            state.returnsGlobalMode = button.dataset.returnsGlobalMode;
+            renderReturnsGlobal();
+            if (state.returnsGlobalMode === 'sovereign') loadReturnsGlobalData();
+        }));
+        document.querySelectorAll('[data-returns-jump]').forEach(button => button.addEventListener('click', () => {
+            $(button.dataset.returnsJump)?.scrollIntoView({
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                block: 'start',
+            });
+        }));
+        $('returns-history-series')?.addEventListener('change', event => {
+            state.returnsHistorySeries = event.target.value;
+            loadReturnsHistory();
+        });
+        $('returns-history-country')?.addEventListener('change', event => {
+            state.returnsHistoryCountry = event.target.value;
+            state.returnsHistorySeries = '';
+            syncReturnsHistorySeries();
+            loadReturnsHistory();
+        });
+        document.querySelectorAll('[data-returns-years]').forEach(button => button.addEventListener('click', () => {
+            state.returnsHistoryYears = +button.dataset.returnsYears;
+            document.querySelectorAll('[data-returns-years]').forEach(item => {
+                const active = item === button; item.classList.toggle('is-active', active); item.setAttribute('aria-pressed', String(active));
+            });
+            loadReturnsHistory();
+        }));
         $('ff-back-overview')?.addEventListener('click', closeDetail);
         $('ff-periods')?.addEventListener('click', event => {
             const button = event.target.closest('[data-period]');
@@ -2179,9 +3595,54 @@
         $('ff-sort-breakdown')?.addEventListener('click', () => { state.breakdownDescending = !state.breakdownDescending; renderBreakdown(); });
         document.querySelectorAll('[data-news-filter]').forEach(button => button.addEventListener('click', () => {
             state.newsFilter = button.dataset.newsFilter;
-            document.querySelectorAll('[data-news-filter]').forEach(item => item.classList.toggle('is-active', item === button));
+            state.newsArchiveLimit = 8;
+            document.querySelectorAll('[data-news-filter]').forEach(item => {
+                const active = item === button;
+                item.classList.toggle('is-active', active);
+                item.setAttribute('aria-pressed', String(active));
+            });
+            const toolbar = button.closest('.fnb-toolbar');
+            toolbar?.classList.remove('is-changing');
+            if (toolbar) void toolbar.offsetWidth;
+            toolbar?.classList.add('is-changing');
             renderNews();
+            window.setTimeout(() => toolbar?.classList.remove('is-changing'), 520);
         }));
+        const renderCurrentArchive = () => renderNewsArchive(state.news.filter(item => (
+            state.newsFilter === 'all' || classifyNews(item) === state.newsFilter
+        )));
+        $('fnb-archive-search')?.addEventListener('input', event => {
+            state.newsArchiveQuery = event.target.value || '';
+            state.newsArchiveLimit = 8;
+            renderCurrentArchive();
+        });
+        document.querySelectorAll('[data-archive-sort]').forEach(button => button.addEventListener('click', () => {
+            state.newsArchiveSort = button.dataset.archiveSort;
+            state.newsArchiveLimit = 8;
+            document.querySelectorAll('[data-archive-sort]').forEach(item => {
+                const active = item === button;
+                item.classList.toggle('is-active', active);
+                item.setAttribute('aria-pressed', String(active));
+            });
+            renderCurrentArchive();
+        }));
+        $('fnb-archive-more-button')?.addEventListener('click', () => {
+            state.newsArchiveLimit += 8;
+            renderCurrentArchive();
+            window.requestAnimationFrame(() => $('fnb-archive-more-button')?.focus({ preventScroll: true }));
+        });
+        document.addEventListener('keydown', event => {
+            if (!(event.ctrlKey || event.metaKey) || event.key.toLocaleLowerCase('es') !== 'k') return;
+            const search = $('fnb-archive-search');
+            if (!search || !document.querySelector('.fnb-newsroom')) return;
+            event.preventDefault();
+            search.focus();
+            search.select();
+            $('fnb-archive-section')?.scrollIntoView({
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                block: 'start',
+            });
+        });
         const scrollTrack = (id, direction) => $(id)?.scrollBy({ left: direction * Math.min(330, $(id).clientWidth * .75), behavior: 'smooth' });
         $('ff-news-prev')?.addEventListener('click', () => scrollTrack('ff-headline-track', -1));
         $('ff-news-next')?.addEventListener('click', () => scrollTrack('ff-headline-track', 1));
@@ -2196,7 +3657,17 @@
         $('ff-open-news')?.addEventListener('click', loadNews);
         document.querySelectorAll('[data-definition]').forEach(button => button.setAttribute('title', button.querySelector('small')?.textContent || 'Definición financiera'));
         document.querySelectorAll('[data-close-news-reader]').forEach(button => button.addEventListener('click', closeNewsReader));
-        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('ff-news-reader')?.hidden) closeNewsReader(); });
+        document.addEventListener('keydown', event => {
+            const reader = $('ff-news-reader');
+            if (!reader || reader.hidden) return;
+            if (event.key === 'Escape') { closeNewsReader(); return; }
+            if (event.key !== 'Tab') return;
+            const focusable = [...reader.querySelectorAll('a[href]:not([hidden]),button:not([disabled])')];
+            if (!focusable.length) return;
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
     }
 
     function init() {
@@ -2204,7 +3675,10 @@
         if ($('ff-table-search')) $('ff-table-search').value = '';
         if ($('ff-table-filter')) $('ff-table-filter').value = 'all';
         document.querySelectorAll('[data-chart-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.classList.contains('is-active'))));
+        document.querySelectorAll('[data-returns-years]').forEach(button => button.setAttribute('aria-pressed', String(button.classList.contains('is-active'))));
         bindEvents();
+        setupNativeNewsNavigation();
+        setupNewsCoverageCarousel();
         renderInsights();
         updateControls();
         loadCoreData();

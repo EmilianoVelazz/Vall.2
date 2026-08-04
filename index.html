@@ -84,23 +84,26 @@
 
           <form id="loginForm" autocomplete="on">
             <div class="inputGroup">
-              <label><i class="fas fa-envelope"></i> Correo empresarial</label>
+              <label for="email"><i class="fas fa-envelope"></i> Correo empresarial</label>
               <input
                 type="email"
                 id="email"
                 class="inputField"
                 placeholder="ejecutivo@empresa.com"
                 autocomplete="email"
+                inputmode="email"
+                required
               />
             </div>
             <div class="inputGroup">
-              <label><i class="fas fa-lock"></i> Contraseña</label>
+              <label for="password"><i class="fas fa-lock"></i> Contraseña</label>
               <input
                 type="password"
                 id="password"
                 class="inputField"
                 placeholder="••••••••"
                 autocomplete="current-password"
+                required
               />
             </div>
             <button type="submit" id="submitBtn" class="btnPrimary">
@@ -131,7 +134,7 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast">
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true">
       <i id="toast-icon" class="fas fa-info-circle" style="color: #60a5fa;"></i>
       <span id="toast-msg">Mensaje</span>
     </div>

@@ -1,0 +1,598 @@
+/* Finanzas · responsive consolidation
+   Loaded last on finanzas.html so the page has one predictable layout contract. */
+
+:root {
+    --finance-page-gutter: clamp(.75rem, 2vw, 1.75rem);
+    --finance-touch-target: 44px;
+}
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+    -webkit-text-size-adjust: 100%;
+}
+
+.container,
+.finanzas-page,
+.favro-finance-shell,
+.ff-detail-navigation,
+.ff-detail-supplement,
+.ff-bolsa-chart-host,
+.ff-exchange-board,
+.ff-workspace,
+.fin-layout,
+.main-col,
+.bottom-grid,
+.panel,
+.debt-pro,
+.returns-pro,
+.fx-pro-panel,
+.fnb-newsroom {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.container {
+    padding-inline: var(--finance-page-gutter) !important;
+}
+
+img,
+video,
+svg {
+    max-width: 100%;
+}
+
+canvas {
+    display: block;
+    max-width: 100%;
+}
+
+.ff-supplement-table-wrap,
+.ff-table-card,
+.returns-table-wrap,
+.sovereign-board-table,
+.cf-table-wrap,
+.table-wrap,
+.inst-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ff-segmented,
+.returns-curve-tabs,
+.returns-view-tabs,
+.returns-history-periods,
+.returns-section-nav,
+.fnb-category-tabs,
+.fnb-news-nav,
+.chart-intervals {
+    scrollbar-width: thin;
+}
+
+/* Keep long financial labels from forcing their grid track wider. */
+.ff-detail-heading,
+.ff-detail-heading p,
+.market-chart-heading,
+.market-chart-heading > div,
+.ff-exchange-card-head,
+.ff-exchange-card-head > span,
+.ff-supplement-header > div,
+.debt-block,
+.debt-block-head > div,
+.returns-card,
+.returns-global-card-head > div,
+.returns-country-card,
+.wl-card,
+.fx-card,
+.fnb-archive-copy,
+.fnb-story-copy {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Large desktop: retain information density without stretching reading lines. */
+@media (min-width: 1440px) {
+    :root { --finance-page-gutter: clamp(1.5rem, 3vw, 3.25rem); }
+
+    .favro-finance-shell,
+    .ff-detail-navigation,
+    .ff-detail-supplement,
+    .ff-bolsa-chart-host,
+    .ff-exchange-board,
+    #pane-general > .panel,
+    #pane-general > .fin-layout,
+    #pane-general > .bottom-grid {
+        width: min(100%, 1680px);
+        margin-inline: auto;
+    }
+}
+
+/* Laptop and tablet landscape. */
+@media (max-width: 1180px) {
+    :root { --finance-page-gutter: 1rem; }
+
+    .ff-detail-navigation {
+        gap: 14px;
+    }
+
+    .fin-layout,
+    .bottom-grid,
+    .debt-main-grid,
+    .returns-main-grid,
+    .returns-secondary-grid,
+    .fx-pro-main-grid,
+    .fx-pro-secondary-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .news-sidebar {
+        position: static !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .market-chart-lab-head,
+    #bvmx-panel .market-chart-lab-head {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    #bvmx-panel .market-chart-controls,
+    .market-chart-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .ff-market-control-period {
+        grid-column: 1 / -1;
+    }
+
+    .debt-kpi-grid,
+    .returns-kpis,
+    .returns-global-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .ff-exchange-grid,
+    .fx-live-panel .fx-strip,
+    #wl-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* Tablet portrait: navigation becomes compact and data cards simplify. */
+@media (max-width: 900px) {
+    :root { --finance-page-gutter: .85rem; }
+
+    .ff-detail-navigation {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: stretch;
+    }
+
+    .ff-detail-tabs {
+        grid-column: 1 / -1;
+    }
+
+    .ff-detail-tabs button,
+    .ff-detail-back,
+    .ff-news-actions button,
+    .returns-toolbar button,
+    .returns-toolbar select,
+    .debt-pro button,
+    .debt-pro select {
+        min-height: var(--finance-touch-target);
+    }
+
+    .ff-detail-supplement,
+    .ff-exchange-board,
+    .ff-workspace,
+    .panel,
+    .debt-block,
+    .returns-card {
+        border-radius: 18px !important;
+    }
+
+    .ff-supplement-grid,
+    .ff-analysis-grid,
+    .ff-news-grid,
+    .ff-explainer-grid,
+    .cf-top,
+    .eq-main-grid,
+    .eq-top-widgets {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .ff-exchange-header,
+    .ff-supplement-header,
+    .debt-block-head,
+    .returns-global-head,
+    .returns-table-header-tools {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+
+    .ff-exchange-header > div,
+    .ff-supplement-head-tools,
+    .returns-chart-controls,
+    .returns-history-controls,
+    .sovereign-board-controls {
+        width: 100%;
+    }
+
+    .ff-exchange-header > div:last-child {
+        align-items: stretch !important;
+    }
+
+    .ff-exchange-header label,
+    .ff-supplement-market,
+    .returns-mode-field,
+    .returns-reference-field,
+    .cf-picker,
+    .sov-filter-group {
+        width: 100%;
+        min-width: 0 !important;
+    }
+
+    .ff-exchange-header select,
+    .ff-supplement-market select,
+    .returns-mode-field select,
+    .returns-reference-field select,
+    .cf-picker select,
+    .sov-filter-group select {
+        width: 100%;
+        min-width: 0 !important;
+    }
+
+    .eq-context-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* Phones and compact tablets. */
+@media (max-width: 700px) {
+    :root { --finance-page-gutter: .65rem; }
+
+    body {
+        background: #f3f6f7 !important;
+    }
+
+    .container {
+        padding-inline: var(--finance-page-gutter) !important;
+    }
+
+    .favro-finance-shell {
+        gap: 10px;
+        padding-bottom: 24px;
+    }
+
+    .ff-detail-navigation {
+        margin-bottom: 10px;
+        padding: 12px;
+        border-radius: 16px;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 9px;
+    }
+
+    .ff-detail-back {
+        width: 44px;
+        min-width: 44px;
+        padding: 0;
+        align-items: center;
+    }
+
+    .ff-detail-heading h1 {
+        font-size: clamp(1.35rem, 7vw, 1.8rem);
+        line-height: 1.05;
+    }
+
+    .ff-detail-heading p {
+        display: block;
+        font-size: .62rem;
+        line-height: 1.4;
+    }
+
+    .ff-detail-tabs {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 2px 1px 5px;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-inline: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ff-detail-tabs button {
+        flex: 0 0 min(31vw, 118px);
+        min-width: 88px;
+        min-height: 52px;
+        scroll-snap-align: start;
+        padding-inline: 8px;
+        font-size: .58rem;
+    }
+
+    .ff-detail-supplement,
+    .ff-exchange-board,
+    .ff-workspace,
+    .panel,
+    .debt-block,
+    .returns-card {
+        padding: 14px !important;
+        border-radius: 16px !important;
+    }
+
+    .market-chart-lab-head,
+    #bvmx-panel .market-chart-lab-head {
+        padding: 15px 13px !important;
+    }
+
+    #bvmx-panel .market-chart-controls,
+    .market-chart-controls {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .chart-intervals,
+    .chart-type-switch,
+    .returns-curve-tabs,
+    .returns-view-tabs,
+    .returns-history-periods,
+    .returns-section-nav {
+        display: flex !important;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .chart-intervals button,
+    .chart-type-switch button,
+    .returns-curve-tabs button,
+    .returns-view-tabs button,
+    .returns-history-periods button,
+    .returns-section-nav button {
+        flex: 0 0 auto;
+        min-width: var(--finance-touch-target);
+        min-height: var(--finance-touch-target);
+        scroll-snap-align: start;
+    }
+
+    .market-chart-canvas,
+    #bvmx-panel .market-chart-canvas {
+        height: clamp(270px, 68vw, 340px) !important;
+        min-height: 0 !important;
+    }
+
+    .ff-supplement-chart,
+    .returns-chart-wrap,
+    .returns-history-chart-wrap {
+        height: clamp(230px, 64vw, 310px) !important;
+        min-height: 0 !important;
+    }
+
+    .ff-exchange-grid,
+    .debt-kpi-grid,
+    .returns-kpis,
+    .returns-country-grid,
+    .returns-global-summary,
+    .returns-spread-grid,
+    .ff-supplement-kpis,
+    .eq-kpi-grid,
+    .eq-region-grid,
+    .eq-context-grid,
+    #mkt-pulse,
+    #sector-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .ff-exchange-card:nth-child(n) {
+        min-height: 224px !important;
+        grid-template-rows: auto auto 132px auto !important;
+    }
+
+    .ff-exchange-card:nth-child(n) .ff-exchange-card-chart,
+    .ff-exchange-card:nth-child(n) .ff-exchange-card-chart > canvas {
+        height: 132px !important;
+    }
+
+    .fx-live-head,
+    .ff-news-header,
+    .returns-toolbar,
+    .cf-head,
+    .sovereign-board-controls {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    .fx-live-status,
+    .ff-news-actions,
+    .returns-toolbar > *,
+    .cf-picker,
+    .sov-filter-group {
+        align-self: stretch !important;
+    }
+
+    .returns-toolbar,
+    .returns-chart-controls,
+    .returns-history-controls,
+    .sov-filter-row {
+        gap: 8px !important;
+    }
+
+    .returns-table-wrap table,
+    .ff-supplement-table-wrap table,
+    .sovereign-board-table,
+    .cf-table-wrap table {
+        min-width: 680px !important;
+    }
+
+    .fnb-newsroom img,
+    .fnb-archive-item img,
+    .fnb-story-card img {
+        max-width: 100%;
+        object-fit: cover;
+    }
+}
+
+/* Narrow phones: one meaningful card per row and no clipped controls. */
+@media (max-width: 480px) {
+    :root { --finance-page-gutter: .45rem; }
+
+    .hdr-top {
+        padding-inline: .75rem;
+    }
+
+    .logo-icon {
+        width: 39px;
+        height: 39px;
+    }
+
+    .logo-text {
+        font-size: 1.15rem;
+    }
+
+    .vn-ticker-label {
+        width: 42px !important;
+        min-width: 42px !important;
+    }
+
+    .vn-ticker-label > span:not(.vn-live-dot),
+    .vn-ticker-label small {
+        display: none !important;
+    }
+
+    .ff-detail-navigation {
+        border-radius: 14px;
+    }
+
+    .ff-detail-eyebrow,
+    .ff-detail-heading p {
+        white-space: normal;
+    }
+
+    .ff-detail-tabs button {
+        flex-basis: 104px;
+    }
+
+    .ff-detail-supplement,
+    .ff-exchange-board,
+    .ff-workspace,
+    .panel,
+    .debt-block,
+    .returns-card {
+        padding: 12px !important;
+        border-radius: 14px !important;
+    }
+
+    .ff-exchange-grid,
+    .debt-kpi-grid,
+    .returns-kpis,
+    .returns-country-grid,
+    .returns-global-summary,
+    .returns-spread-grid,
+    .ff-supplement-kpis,
+    .eq-kpi-grid,
+    .eq-region-grid,
+    .eq-context-grid,
+    .fx-live-panel .fx-strip,
+    #wl-list,
+    #mkt-pulse,
+    #sector-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .ff-exchange-card:nth-child(n) {
+        min-height: 242px !important;
+        grid-template-rows: auto auto 145px auto !important;
+    }
+
+    .ff-exchange-card:nth-child(n) .ff-exchange-card-chart,
+    .ff-exchange-card:nth-child(n) .ff-exchange-card-chart > canvas {
+        height: 145px !important;
+    }
+
+    .ff-chart-reading,
+    .ff-bolsa-chart-host .market-chart-quote {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .ff-news-actions,
+    .ff-supplement-head-tools,
+    .returns-chart-controls,
+    .returns-history-controls {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .ff-news-actions > *,
+    .ff-supplement-head-tools > *,
+    .returns-chart-controls > *,
+    .returns-history-controls > * {
+        width: 100%;
+        min-width: 0 !important;
+    }
+
+    .market-chart-canvas,
+    #bvmx-panel .market-chart-canvas {
+        height: 265px !important;
+    }
+
+    .ff-supplement-chart,
+    .returns-chart-wrap,
+    .returns-history-chart-wrap {
+        height: 245px !important;
+    }
+
+    .cf-row,
+    .cf-table-head {
+        min-width: 640px;
+    }
+}
+
+/* Touch hardware needs forgiving hit areas even on larger tablets. */
+@media (pointer: coarse) {
+    .favro-finance-shell button,
+    .favro-finance-shell select,
+    .favro-finance-shell input,
+    .debt-pro button,
+    .debt-pro select,
+    .returns-pro button,
+    .returns-pro select,
+    .fnb-newsroom button,
+    .fnb-newsroom select,
+    .fnb-newsroom input {
+        min-height: var(--finance-touch-target);
+    }
+
+    .ff-exchange-card:hover,
+    .eq-region-card:hover,
+    .debt-kpi:hover,
+    .returns-country-card:hover {
+        transform: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto !important; }
+
+    .finanzas-page *,
+    .finanzas-page *::before,
+    .finanzas-page *::after,
+    .favro-finance-shell *,
+    .favro-finance-shell *::before,
+    .favro-finance-shell *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+    }
+}

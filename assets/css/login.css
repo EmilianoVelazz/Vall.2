@@ -1,4 +1,9 @@
-.pageWrap { min-height: 100vh; background: #ccd9e3; }
+.pageWrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #ccd9e3;
+  overflow-x: clip;
+}
 
 .topBar {
   position: relative;
@@ -34,6 +39,7 @@
 .loginLayout {
   position: relative; z-index: 1;
   min-height: calc(100vh - 60px);
+  min-height: calc(100dvh - 60px);
   display: grid; grid-template-columns: 1fr 1fr;
   max-width: 1180px; margin: 0 auto;
   padding: 3rem 2.5rem; gap: 3rem; align-items: center;
@@ -139,6 +145,13 @@
 }
 .inputField::placeholder { color: #94a8bb; }
 .inputField:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.12); }
+.inputField:focus-visible,
+.btnPrimary:focus-visible,
+.btnSecondary:focus-visible,
+.topBarLogo:focus-visible {
+  outline: 3px solid rgba(217,119,6,.28);
+  outline-offset: 3px;
+}
 
 .btnPrimary {
   width: 100%;
@@ -179,17 +192,107 @@
 .securityNote i { color: rgba(217,119,6,0.5); }
 
 @media (max-width: 900px) {
-  .loginLayout { grid-template-columns: 1fr; max-width: 480px; padding: 2rem 1.25rem 3rem; gap: 2rem; }
-  .brandPanel { order: 2; padding-right: 0; gap: 1.25rem; }
+  .topBar { padding-inline: clamp(1rem, 4vw, 2rem); }
+  .loginLayout {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 720px;
+    min-height: calc(100dvh - 58px);
+    padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem) 3rem;
+    gap: 1.75rem;
+  }
+  .brandPanel {
+    order: 2;
+    width: min(100%, 520px);
+    margin-inline: auto;
+    padding-right: 0;
+    gap: 1.15rem;
+  }
   .formPanel  { order: 1; }
+  .loginCard { max-width: 500px; }
   .brandHeadline { font-size: 2.2rem; }
   .brandFeatures { display: none; }
   .brandFooter   { display: none; }
 }
-@media (max-width: 480px) {
+
+@media (max-width: 640px) {
+  .pageWrap { background: linear-gradient(180deg, #d8e3ea 0%, #eef3f6 100%); }
+  .topBar {
+    min-height: 56px;
+    padding-block: .58rem;
+    padding-left: max(.85rem, env(safe-area-inset-left));
+    padding-right: max(.85rem, env(safe-area-inset-right));
+  }
   .topBarTagline { display: none; }
-  .loginCard { padding: 1.75rem 1.25rem; border-radius: 1.2rem; }
-  .brandHeadline { font-size: 1.9rem; }
+  .topBarIcon { width: 34px; height: 34px; }
+  .topBarName { font-size: 1.18rem; }
+  .loginLayout {
+    min-height: calc(100dvh - 58px);
+    padding: 1rem max(.75rem, env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom)) max(.75rem, env(safe-area-inset-left));
+    gap: 1rem;
+    align-items: start;
+  }
+  .formPanel,
+  .loginCard { width: 100%; }
+  .loginCard {
+    max-width: none;
+    padding: clamp(1.25rem, 5vw, 1.75rem);
+    border-radius: 1.15rem;
+    box-shadow: 0 10px 30px rgba(0,33,58,.1);
+  }
+  .cardLogo { margin-bottom: 1.25rem; padding-bottom: 1rem; }
+  .cardTitle { font-size: clamp(1.45rem, 7vw, 1.7rem); }
+  .cardSubtitle { margin-bottom: 1.5rem; line-height: 1.5; }
+  .inputGroup { margin-bottom: 1rem; }
+  .inputField {
+    min-height: 48px;
+    padding: .78rem .9rem;
+    font-size: 1rem;
+  }
+  .btnPrimary { min-height: 48px; }
+  .btnSecondary { min-height: 44px; }
+  .brandPanel { text-align: center; align-items: center; }
+  .brandHeadline { display: none; }
+  .brandDesc {
+    max-width: 44ch;
+    padding-left: 0;
+    border-left: 0;
+    font-size: .78rem;
+    line-height: 1.55;
+  }
+}
+
+@media (max-width: 420px) {
+  .loginLayout { padding-top: .7rem; }
+  .loginCard { padding: 1.15rem 1rem 1.25rem; border-radius: 1rem; }
+  .cardLogoIcon { width: 32px; height: 32px; }
+  .cardLogoText { font-size: 1.08rem; }
+  .cardSubtitle { font-size: .76rem; }
+  .subscribeRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .subscribeText { text-align: center; }
+  .btnSecondary { width: 100%; justify-content: center; }
+  .securityNote { align-items: flex-start; line-height: 1.45; }
+}
+
+@media (max-height: 700px) and (min-width: 641px) {
+  .loginLayout { padding-block: 1.25rem; gap: 1.5rem; }
+  .brandPanel { gap: 1rem; }
+  .brandHeadline { font-size: clamp(2rem, 6vh, 2.8rem); }
+  .brandFeatures { gap: .45rem; }
+  .loginCard { padding: 1.5rem; }
+  .cardLogo { margin-bottom: 1rem; padding-bottom: .9rem; }
+  .cardSubtitle { margin-bottom: 1.25rem; }
+  .inputGroup { margin-bottom: .85rem; }
+  .divider { margin-block: 1rem; }
+}
+
+@media (max-height: 560px) and (max-width: 900px) {
+  .loginLayout { display: block; min-height: auto; }
+  .brandPanel { display: none; }
+  .loginCard { margin-inline: auto; }
 }
 
 /* Toast Styles */
@@ -210,7 +313,10 @@
   transition: opacity 0.25s;
   pointer-events: none;
   opacity: 0;
-  white-space: nowrap;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  white-space: normal;
+  text-align: center;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -221,4 +327,30 @@
 .toast.error {
   background: rgba(59,10,10,0.9);
   border-color: rgba(248,113,113,0.3);
+}
+
+@media (max-width: 480px) {
+  .toast {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    width: calc(100vw - 1.5rem);
+    justify-content: center;
+    padding: .72rem 1rem;
+    border-radius: 14px;
+    font-size: .78rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .btnPrimary,
+  .btnSecondary,
+  .inputField { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
 }

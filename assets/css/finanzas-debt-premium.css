@@ -1,74 +1,103 @@
 /* OVERHAUL EXTREMO TASAS Y BONOS FAVRO */
+
+/* ── Superficie única ────────────────────────────────────────────────────────
+   El hero traía un gradiente pizarra (#8ba3b5 → #647a8d) mientras .debt-kpi y
+   .debt-block son #ffffff: dos fondos distintos peleando dentro de la misma
+   sección. Se unifica a la superficie blanca de las tarjetas — mismo borde,
+   mismo radio, misma sombra — para que el apartado lea como un solo plano.
+   La identidad la carga ahora la regla de acento superior, no una losa de color. */
 .debt-pro-hero {
-    min-height: 140px !important;
+    min-height: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
     gap: 1.5rem !important;
     position: relative !important;
     overflow: hidden !important;
-    padding: 2rem 2.5rem !important;
+    padding: 1.6rem 1.8rem !important;
     margin-bottom: 1.2rem !important;
     border-radius: 24px !important;
-    color: #ffffff !important;
-    background: linear-gradient(135deg, #8ba3b5 0%, #647a8d 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.35), inset 0 2px 5px rgba(255,255,255,0.15), inset 0 -2px 5px rgba(0,0,0,0.4) !important;
+    color: #0f2436 !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(7, 28, 44, 0.06) !important;
+    box-shadow: 0 12px 40px rgba(7, 28, 44, 0.03), 0 1px 3px rgba(7, 28, 44, 0.02) !important;
 }
 
+/* Regla de acento: las seis familias de la paleta, en el mismo orden que la
+   fila de KPIs. Funciona como leyenda muda del código de color. */
 .debt-pro-hero::before {
     content: '' !important;
     position: absolute !important;
-    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-    background: radial-gradient(circle at 80% 20%, rgba(36, 107, 254, 0.25) 0%, transparent 60%) !important;
+    top: 0 !important; left: 0 !important; right: 0 !important;
+    height: 3px !important;
+    background: linear-gradient(90deg,
+        #1baf7a 0%, #1baf7a 16.6%,
+        #2a78d6 16.6%, #2a78d6 33.3%,
+        #4a3aa7 33.3%, #4a3aa7 50%,
+        #e34948 50%, #e34948 66.6%,
+        #eda100 66.6%, #eda100 83.3%,
+        #008300 83.3%, #008300 100%) !important;
     pointer-events: none !important;
 }
 
-.debt-pro-hero::after {
-    content: '' !important;
-    position: absolute !important;
-    inset: 0 !important;
-    pointer-events: none !important;
-    opacity: 0.15 !important;
-    background-image: linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px) !important;
-    background-size: 40px 40px !important;
-}
+.debt-pro-hero::after { content: none !important; }
 
 .debt-pro-hero > * { position: relative !important; z-index: 2 !important; }
 
-.debt-pro-eyebrow { 
-    display: inline-flex !important; 
-    align-items: center !important; 
-    gap: 0.5rem !important; 
-    margin-bottom: 0.6rem !important; 
-    color: #60a5fa !important; 
-    font-size: 0.6rem !important; 
-    font-weight: 900 !important; 
-    letter-spacing: 0.2em !important; 
-    text-transform: uppercase !important; 
-    background: rgba(36, 107, 254, 0.1) !important;
+.debt-pro-eyebrow {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.6rem !important;
+    color: #1f56c9 !important;
+    font-size: 0.62rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    background: rgba(36, 107, 254, 0.08) !important;
     padding: 0.3rem 0.8rem !important;
     border-radius: 99px !important;
-    border: 1px solid rgba(96, 165, 250, 0.3) !important;
+    border: 1px solid rgba(36, 107, 254, 0.18) !important;
 }
-.debt-pro-hero h2 { 
-    margin: 0 !important; 
-    font: 800 clamp(1.8rem, 3vw, 2.8rem)/1.1 'Inter', sans-serif !important; 
-    letter-spacing: -0.05em !important; 
-    text-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+.debt-pro-hero h2 {
+    margin: 0 !important;
+    color: #0f2436 !important;
+    font: 800 clamp(1.4rem, 2.2vw, 2rem)/1.15 'Inter', sans-serif !important;
+    letter-spacing: -0.03em !important;
+    text-shadow: none !important;
 }
-.debt-pro-hero p { 
-    max-width: 750px !important; 
-    margin: 0.6rem 0 0 !important; 
-    color: rgba(255, 255, 255, 0.8) !important; 
-    font-size: 0.7rem !important; 
-    line-height: 1.6 !important; 
+.debt-pro-hero p {
+    max-width: 750px !important;
+    margin: 0.5rem 0 0 !important;
+    color: #566b7c !important;
+    font-size: 0.76rem !important;
+    line-height: 1.6 !important;
     font-family: 'Inter', sans-serif !important;
 }
 
-/* KPI CARDS REDESIGN */
+/* El meta venía en #fde68a y rgba(255,255,255,.5): pensados para el hero oscuro,
+   invisibles sobre blanco. El small estaba además a .48rem (7.7px). */
+.debt-pro-meta span { color: #1f56c9 !important; font-size: 0.66rem !important; font-weight: 800 !important; }
+.debt-pro-meta span i { color: #1baf7a !important; filter: none !important; }
+.debt-pro-meta small {
+    color: #6b7f8f !important;
+    font: 600 0.66rem/1.4 'Inter', sans-serif !important;
+}
+
+/* ── Paleta semántica por familia de instrumento ─────────────────────────────
+   Esta regla declaraba `--debt-tone: #246bfe !important`, y como los .tone-*
+   de finanzas-redesign-v2.css no llevan !important, el azul ganaba en las diez
+   tarjetas: el código de color existía en el HTML pero no se veía en pantalla.
+
+   Se reemplaza por seis familias en vez de nueve tonos sueltos. Validadas con
+   el validador de paleta sobre superficie #ffffff: peor par adyacente ΔE 16.3
+   (normal) y 13.0 (deuteranopía), ambos sobre el piso. Cada familia trae dos
+   niveles porque el hue que pasa el test de separación no siempre pasa el de
+   contraste: --debt-tone pinta la barra de 4px y el tinte del icono (formas
+   grandes), --debt-tone-ink pinta el glifo (todos >= 4.4:1 sobre blanco). */
 .debt-kpi {
-    --debt-tone: #246bfe !important;
+    --debt-tone: #2a78d6;
+    --debt-tone-ink: #2a78d6;
     min-width: 0 !important;
     display: grid !important;
     grid-template-columns: 44px minmax(0, 1fr) !important;
@@ -77,45 +106,59 @@
     position: relative !important;
     overflow: hidden !important;
     padding: 0.9rem 0.8rem !important;
-    border: 1px solid rgba(36, 107, 254, 0.15) !important;
+    border: 1px solid rgba(7, 28, 44, 0.08) !important;
     border-radius: 18px !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    backdrop-filter: blur(12px) !important;
+    background: #ffffff !important;
     box-shadow: 0 6px 24px rgba(7, 28, 44, 0.04), inset 0 1px 1px rgba(255,255,255,1) !important;
     transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     cursor: pointer !important;
 }
 
-.debt-kpi::before { 
-    content: '' !important; 
-    width: 4px !important; 
-    position: absolute !important; 
-    inset: 0 auto 0 0 !important; 
-    background: var(--debt-tone) !important; 
-    box-shadow: 2px 0 8px var(--debt-tone) !important;
+/* El glow de color saturaba el borde de la tarjeta y ensuciaba el blanco. */
+.debt-kpi::before {
+    content: '' !important;
+    width: 4px !important;
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    background: var(--debt-tone) !important;
+    box-shadow: none !important;
 }
-.debt-kpi:hover { 
-    transform: translateY(-4px) scale(1.02) !important; 
-    border-color: rgba(36, 107, 254, 0.4) !important; 
-    box-shadow: 0 16px 32px rgba(7, 28, 44, 0.1), 0 0 15px rgba(36, 107, 254, 0.1) !important; 
-    z-index: 2 !important; 
+.debt-kpi:hover {
+    transform: translateY(-3px) !important;
+    border-color: color-mix(in srgb, var(--debt-tone) 35%, transparent) !important;
+    box-shadow: 0 16px 32px rgba(7, 28, 44, 0.09) !important;
+    z-index: 2 !important;
     background: #ffffff !important;
 }
-.debt-kpi-icon { 
-    width: 44px !important; 
-    height: 44px !important; 
-    display: grid !important; 
-    place-items: center !important; 
-    border-radius: 12px !important; 
-    color: var(--debt-tone) !important; 
-    background: rgba(36, 107, 254, 0.08) !important; 
-    font-size: 0.9rem !important; 
+/* Familias. El orden en la fila es corto → US → largo → crédito → inflación →
+   México, que es el orden con el que se validó la separación entre adyacentes. */
+.debt-kpi.tone-front,
+.debt-kpi.tone-mid       { --debt-tone: #1baf7a; --debt-tone-ink: #0e7a56; }  /* tramo corto / monetario */
+.debt-kpi.tone-us        { --debt-tone: #2a78d6; --debt-tone-ink: #2a78d6; }  /* referencia US */
+.debt-kpi.tone-long,
+.debt-kpi.tone-curve     { --debt-tone: #4a3aa7; --debt-tone-ink: #4a3aa7; }  /* larga duración / estructura */
+.debt-kpi.tone-credit    { --debt-tone: #e34948; --debt-tone-ink: #c62f2e; }  /* crédito corporativo */
+.debt-kpi.tone-inflation { --debt-tone: #eda100; --debt-tone-ink: #8a6100; }  /* inflación / tasa real */
+.debt-kpi.tone-mx,
+.debt-kpi.tone-carry     { --debt-tone: #008300; --debt-tone-ink: #008300; }  /* México */
+
+.debt-kpi-icon {
+    width: 44px !important;
+    height: 44px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 12px !important;
+    color: var(--debt-tone-ink) !important;
+    background: color-mix(in srgb, var(--debt-tone) 12%, #ffffff) !important;
+    font-size: 0.9rem !important;
     transition: all 0.3s ease !important;
 }
+/* Blanco sobre --debt-tone daba 2.17:1 en la familia inflación. El nivel ink
+   deja todas las familias >= 4.4:1 con el glifo en blanco. */
 .debt-kpi:hover .debt-kpi-icon {
-    background: var(--debt-tone) !important;
+    background: var(--debt-tone-ink) !important;
     color: #ffffff !important;
-    transform: rotate(5deg) scale(1.05) !important;
+    transform: scale(1.05) !important;
 }
 /* 0.48rem son 7.7px: por debajo de lo legible. Subimos a ~11px y bajamos el
    interletrado, que a ese tamaño era lo que separaba de más las mayúsculas. */
@@ -153,6 +196,475 @@
     white-space: nowrap !important;
 }
 
+/* ── Distintivo de valor estimado ────────────────────────────────────────────
+   IG, High Yield, TIPS y Breakeven no vienen de ninguna API: son constantes en
+   updateDebtDashboard. El distintivo es gris neutro a propósito — en ámbar se
+   leería como un tono más de la familia inflación en vez de como un aviso. */
+.debt-kpi.is-estimate small {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    overflow: hidden !important;
+}
+.debt-kpi-est {
+    flex: 0 0 auto !important;
+    padding: 0.1rem 0.32rem !important;
+    border: 1px solid rgba(7, 28, 44, 0.12) !important;
+    border-radius: 5px !important;
+    background: rgba(7, 28, 44, 0.05) !important;
+    color: #6b7f8f !important;
+    font: 700 0.56rem/1.4 'Inter', sans-serif !important;
+    font-style: normal !important;
+    letter-spacing: 0.04em !important;
+    text-transform: none !important;
+    cursor: help !important;
+}
+
+/* ── Ficha por país: los números crudos ──────────────────────────────────────
+   Deliberadamente sin gráfica. El resto de la sección ya representa; aquí se
+   leen los valores tal cual llegan de la fuente. */
+.cf-block {
+    margin-top: 1.2rem !important;
+    padding: 1.5rem !important;
+    border: 1px solid rgba(7, 28, 44, 0.06) !important;
+    border-radius: 24px !important;
+    background: #ffffff !important;
+    box-shadow: 0 12px 40px rgba(7, 28, 44, 0.03), 0 1px 3px rgba(7, 28, 44, 0.02) !important;
+}
+.cf-head { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; gap: 1rem !important; flex-wrap: wrap !important; }
+.cf-copy small { display: block !important; color: #1f56c9 !important; font: 800 0.6rem/1 'Inter', sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; }
+.cf-copy h3 { margin: 0.35rem 0 0 !important; color: #0f2436 !important; font: 800 1.1rem/1.2 'Inter', sans-serif !important; letter-spacing: -0.02em !important; }
+.cf-copy p { margin: 0.3rem 0 0 !important; max-width: 62ch !important; color: #6b7f8f !important; font: 500 0.72rem/1.55 'Inter', sans-serif !important; }
+
+.cf-picker { display: flex !important; flex-direction: column !important; gap: 0.3rem !important; flex: 0 0 auto !important; }
+.cf-picker span { color: #7b8b99 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
+.cf-picker select {
+    min-width: 210px !important;
+    padding: 0.5rem 0.75rem !important;
+    border: 1px solid #dfe6ec !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    color: #0f2436 !important;
+    font: 700 0.76rem/1.2 'Inter', sans-serif !important;
+    cursor: pointer !important;
+}
+.cf-picker select:focus-visible { outline: 2px solid #2a78d6 !important; outline-offset: 1px !important; }
+
+/* Zona superior: el bloque no tenía punto focal y todo pesaba igual. Ahora
+   manda la cifra principal y a su lado va la posición relativa. */
+.cf-top {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) !important;
+    gap: 0.9rem !important;
+    margin: 1.1rem 0 1.2rem !important;
+}
+
+.cf-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.8rem !important;
+    position: relative !important;
+    overflow: hidden !important;
+    padding: 1.1rem 1.2rem !important;
+    border: 1px solid #eaeff4 !important;
+    border-radius: 16px !important;
+    background: #fafbfc !important;
+}
+/* Filo de color: misma paleta divergente que la Mesa, así el usuario reconoce
+   la escala sin releerla. */
+.cf-hero::before { content: '' !important; position: absolute !important; inset: 0 auto 0 0 !important; width: 4px !important; background: var(--cf-tone, #898781) !important; }
+.cf-hero.tone-high { --cf-tone: #e34948; }
+.cf-hero.tone-mid  { --cf-tone: #898781; }
+.cf-hero.tone-low  { --cf-tone: #2a78d6; }
+
+.cf-hero-id { display: flex !important; align-items: center !important; gap: 0.7rem !important; }
+.cf-flag { font-size: 1.6rem !important; line-height: 1 !important; flex: 0 0 auto !important; }
+.cf-identity-txt { min-width: 0 !important; }
+.cf-identity-txt strong { display: block !important; color: #0f2436 !important; font: 800 0.98rem/1.2 'Inter', sans-serif !important; }
+.cf-identity-txt small { display: block !important; margin-top: 0.12rem !important; color: #7b8b99 !important; font: 600 0.64rem/1.35 'Inter', sans-serif !important; }
+
+/* Cifra principal: una sola por vista, en la misma sans, con figuras
+   proporcionales (tabular-nums sólo en columnas que deben alinearse). */
+.cf-hero-figure { display: flex !important; align-items: baseline !important; gap: 0.7rem !important; flex-wrap: wrap !important; }
+.cf-hero-value { color: #0f2436 !important; font: 800 2.6rem/1 'Inter', sans-serif !important; letter-spacing: -0.04em !important; }
+.cf-hero-delta { font: 700 0.72rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-hero-delta.up { color: #b3261e !important; } .cf-hero-delta.down { color: #0b6e4f !important; } .cf-hero-delta.flat { color: #8394a3 !important; }
+
+/* Rellena el aire que dejaba el margin-top:auto del pie con datos reales en
+   lugar de estirar la tarjeta en vacío. */
+.cf-hero-meta {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
+    padding: 0.6rem 0 !important;
+    border-top: 1px solid #eaeff4 !important;
+    border-bottom: 1px solid #eaeff4 !important;
+}
+.cf-hero-meta span { display: block !important; color: #8394a3 !important; font: 700 0.56rem/1 'Inter', sans-serif !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; }
+.cf-hero-meta b { display: block !important; margin-top: 0.2rem !important; color: #33465a !important; font: 800 0.78rem/1.2 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+
+.cf-hero-foot { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 0.6rem !important; margin-top: auto !important; flex-wrap: wrap !important; }
+.cf-hero-inst { color: #5c7180 !important; font: 700 0.72rem/1.3 'Inter', sans-serif !important; }
+.cf-hero-foot em {
+    flex: 0 0 auto !important;
+    padding: 0.26rem 0.58rem !important;
+    border-radius: 99px !important;
+    font: 800 0.6rem/1 'Inter', sans-serif !important;
+    font-style: normal !important;
+}
+.cf-hero-foot em.is-live  { border: 1px solid #b9e5cf !important; background: #edfbf4 !important; color: #0b6e4f !important; }
+.cf-hero-foot em.is-ref   { border: 1px solid #e2e8ee !important; background: #f4f7fa !important; color: #6b7f8f !important; }
+.cf-hero-foot em.is-mixed { border: 1px solid #f0dfae !important; background: #fdf7e7 !important; color: #8a6100 !important; }
+
+.cf-side { display: grid !important; grid-template-rows: auto auto !important; gap: 0.6rem !important; min-width: 0 !important; }
+.cf-position, .cf-neighbors { padding: 0.85rem 1rem !important; border: 1px solid #eaeff4 !important; border-radius: 16px !important; background: #ffffff !important; }
+.cf-neighbors[hidden] { display: none !important; }
+
+.cf-pos-head { display: flex !important; align-items: baseline !important; justify-content: space-between !important; gap: 0.6rem !important; }
+.cf-pos-head span { color: #7b8b99 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
+.cf-pos-head b { color: #0f2436 !important; font: 800 0.84rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+
+.cf-pos-track { position: relative !important; height: 10px !important; margin: 0.6rem 0 0.35rem !important; border-radius: 0 3px 3px 0 !important; background: #eef1f4 !important; }
+.cf-pos-track i { display: block !important; height: 100% !important; border-radius: 0 4px 4px 0 !important; background: var(--cf-tone, #898781) !important; transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) !important; }
+.cf-pos-track.tone-high { --cf-tone: #e34948; } .cf-pos-track.tone-mid { --cf-tone: #898781; } .cf-pos-track.tone-low { --cf-tone: #2a78d6; }
+.cf-pos-track::after { content: '' !important; position: absolute !important; top: 50% !important; left: var(--cf-median, 50%) !important; width: 1px !important; height: 20px !important; transform: translateY(-50%) !important; background: #b9c4ce !important; }
+.cf-pos-scale { display: flex !important; justify-content: space-between !important; }
+.cf-pos-scale small { color: #a0aebb !important; font: 600 0.58rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-pos-copy { margin: 0.55rem 0 0 !important; color: #6b7f8f !important; font: 500 0.68rem/1.5 'Inter', sans-serif !important; }
+.cf-pos-copy strong { color: #33465a !important; font-weight: 800 !important; }
+.cf-pos-empty { display: flex !important; gap: 0.5rem !important; }
+.cf-pos-empty i { color: #2a78d6 !important; font-size: 0.7rem !important; margin-top: 0.15rem !important; }
+.cf-pos-empty span { color: #5c7180 !important; font: 500 0.68rem/1.5 'Inter', sans-serif !important; }
+
+.cf-nb-head { color: #7b8b99 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; margin-bottom: 0.4rem !important; }
+.cf-nb { display: grid !important; grid-template-columns: 34px minmax(0, 1fr) auto !important; align-items: center !important; gap: 0.5rem !important; padding: 0.3rem 0.4rem !important; border-radius: 7px !important; }
+.cf-nb span { color: #a0aebb !important; font: 800 0.64rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-nb b { overflow: hidden !important; color: #5c7180 !important; font: 600 0.72rem/1.3 'Inter', sans-serif !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.cf-nb em { color: #33465a !important; font: 700 0.74rem/1 'Inter', sans-serif !important; font-style: normal !important; font-variant-numeric: tabular-nums !important; }
+.cf-nb.is-current { background: #eef4fc !important; }
+.cf-nb.is-current span { color: #2a78d6 !important; }
+.cf-nb.is-current b { color: #0f2436 !important; font-weight: 800 !important; }
+.cf-nb.is-current em { color: #0f2436 !important; font-weight: 800 !important; }
+
+.cf-table-title { display: flex !important; align-items: baseline !important; justify-content: space-between !important; gap: 0.6rem !important; margin-bottom: 0.5rem !important; }
+.cf-table-title span { color: #0f2436 !important; font: 800 0.8rem/1.2 'Inter', sans-serif !important; }
+.cf-table-title small { color: #8394a3 !important; font: 600 0.64rem/1 'Inter', sans-serif !important; }
+
+/* Distintivo por instrumento. Neutro para que no se confunda con un tono de
+   la paleta divergente de la Mesa. */
+.cf-ref {
+    margin-left: 0.4rem !important;
+    padding: 0.08rem 0.3rem !important;
+    border: 1px solid rgba(7, 28, 44, 0.12) !important;
+    border-radius: 5px !important;
+    background: rgba(7, 28, 44, 0.05) !important;
+    color: #6b7f8f !important;
+    font: 700 0.55rem/1.4 'Inter', sans-serif !important;
+    letter-spacing: 0.04em !important;
+    cursor: help !important;
+}
+
+.cf-table-head, .cf-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 2fr) 70px 100px 110px 90px !important;
+    align-items: center !important;
+    gap: 0.7rem !important;
+}
+.cf-table-head {
+    padding: 0 0.6rem 0.45rem !important;
+    border-bottom: 1px solid #e6ebf0 !important;
+    color: #8394a3 !important;
+    font: 800 0.58rem/1.3 'Inter', sans-serif !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+.cf-table-head span:not(:first-child), .cf-row > span:not(.cf-inst) { text-align: right !important; }
+.cf-row { padding: 0.6rem !important; border-bottom: 1px solid #f0f3f6 !important; }
+.cf-row:last-child { border-bottom: 0 !important; }
+.cf-inst { color: #0f2436 !important; font: 700 0.78rem/1.25 'Inter', sans-serif !important; }
+.cf-mat { color: #7b8b99 !important; font: 700 0.66rem/1 'Inter', sans-serif !important; }
+.cf-yld { color: #0f2436 !important; font: 800 0.92rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-prev { color: #7b8b99 !important; font: 600 0.74rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-chg { font: 700 0.72rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-chg.up { color: #b3261e !important; } .cf-chg.down { color: #0b6e4f !important; } .cf-chg.flat { color: #8394a3 !important; }
+
+.cf-context { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important; gap: 0.6rem !important; margin-top: 1rem !important; }
+.cf-context > div { padding: 0.7rem 0.85rem !important; border: 1px solid #eaeff4 !important; border-radius: 12px !important; background: #fafbfc !important; }
+.cf-context span { display: block !important; color: #8394a3 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
+.cf-context strong { display: block !important; margin: 0.25rem 0 0.12rem !important; color: #0f2436 !important; font: 800 1.05rem/1.1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-context small { display: block !important; color: #8394a3 !important; font: 600 0.62rem/1.35 'Inter', sans-serif !important; }
+.cf-note { grid-column: 1 / -1 !important; display: flex !important; gap: 0.5rem !important; padding: 0.75rem 0.9rem !important; border: 1px solid #e6edf5 !important; border-radius: 12px !important; background: #f4f8fc !important; }
+.cf-note i { color: #2a78d6 !important; font-size: 0.7rem !important; margin-top: 0.15rem !important; }
+.cf-note span { color: #5c7180 !important; font: 500 0.68rem/1.5 'Inter', sans-serif !important; letter-spacing: 0 !important; text-transform: none !important; }
+
+@media (max-width: 980px) {
+    .cf-top { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 760px) {
+    .cf-hero-value { font-size: 2.1rem !important; }
+    .cf-table-head { display: none !important; }
+    .cf-row {
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas: 'inst mat' 'yld chg' 'prev prev' !important;
+        gap: 0.25rem 0.6rem !important;
+        padding: 0.75rem 0.6rem !important;
+    }
+    .cf-inst { grid-area: inst !important; }
+    .cf-mat { grid-area: mat !important; }
+    .cf-yld { grid-area: yld !important; text-align: left !important; }
+    .cf-chg { grid-area: chg !important; }
+    .cf-prev { grid-area: prev !important; text-align: left !important; }
+    .cf-prev::before { content: 'Cierre previo: ' !important; color: #a0aebb !important; }
+    .cf-picker select { min-width: 0 !important; width: 100% !important; }
+}
+
+/* Nota de plazo fijo en la Mesa (sustituye al filtro de vencimientos). */
+.sov-fixed-note {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    align-self: flex-start !important;
+    color: #7b8b99 !important;
+    font: 600 0.63rem/1 'Inter', sans-serif !important;
+}
+.sov-fixed-note i { color: #b9c4ce !important; font-size: 0.58rem !important; }
+
+/* ── Mesa internacional de renta fija ────────────────────────────────────────
+   Antes eran 21 tarjetas sueltas, cada una con su propia barra normalizada
+   min–max: dos barras de igual longitud podían valer 13.20 % y 1.55 %, así que
+   no comparaban nada. Ahora es una tabla jerárquica: un solo eje de 0 % al
+   máximo, una línea de mediana común y color divergente según la posición
+   frente a esa mediana (rojo por encima, gris en zona media, azul por debajo). */
+
+/* Desagregación por región. Reusa la misma paleta divergente que las filas,
+   así que un bloque rojo aquí significa lo mismo que una barra roja abajo. */
+.sov-regions {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)) !important;
+    gap: 0.6rem !important;
+    margin: 0.2rem 0 1rem !important;
+}
+.sov-region {
+    position: relative !important;
+    overflow: hidden !important;
+    padding: 0.7rem 0.8rem 0.7rem 0.9rem !important;
+    border: 1px solid #eaeff4 !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+}
+.sov-region::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    width: 3px !important;
+    background: var(--sov-tone, #898781) !important;
+}
+.sov-region.tone-high { --sov-tone: #e34948; }
+.sov-region.tone-mid  { --sov-tone: #898781; }
+.sov-region.tone-low  { --sov-tone: #2a78d6; }
+.sov-region-name { display: block !important; color: #5c7180 !important; font: 800 0.6rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
+.sov-region strong { display: block !important; margin: 0.25rem 0 0.15rem !important; color: #0f2436 !important; font: 800 1.05rem/1.1 'Inter', sans-serif !important; }
+.sov-region small { display: block !important; color: #8394a3 !important; font: 600 0.62rem/1.35 'Inter', sans-serif !important; }
+.sov-region em { display: block !important; margin-top: 0.2rem !important; color: #6b7f8f !important; font: 700 0.62rem/1.3 'Inter', sans-serif !important; font-style: normal !important; font-variant-numeric: tabular-nums !important; }
+
+/* Rejilla compartida por el encabezado y las filas: si se cambia, cambiar ambas. */
+.sov-table-head,
+.sov-row {
+    display: grid !important;
+    grid-template-columns: 26px minmax(120px, 1.3fr) minmax(160px, 2.6fr) 72px 92px 14px !important;
+    align-items: center !important;
+    gap: 0.7rem !important;
+}
+
+.sov-table-head {
+    padding: 0 0.55rem 0.45rem !important;
+    border-bottom: 1px solid #e6ebf0 !important;
+    color: #8394a3 !important;
+    font: 800 0.58rem/1.3 'Inter', sans-serif !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+.sov-table-head .sov-th-chg,
+.sov-table-head .sov-th-spread { text-align: right !important; }
+.sov-table-head em {
+    color: #a0aebb !important;
+    font-style: normal !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    text-transform: none !important;
+}
+
+.sovereign-board-table {
+    display: flex !important;
+    flex-direction: column !important;
+    margin-top: 0.15rem !important;
+}
+
+.sov-row {
+    padding: 0.5rem 0.55rem !important;
+    border: 0 !important;
+    border-bottom: 1px solid #f0f3f6 !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+}
+.sov-row:last-child { border-bottom: 0 !important; }
+.sov-row:hover { background: #f4f7fa !important; }
+.sov-row:focus-visible { outline: 2px solid #2a78d6 !important; outline-offset: -2px !important; }
+
+.sov-rank {
+    color: #9aa8b5 !important;
+    font: 800 0.7rem/1 'Inter', sans-serif !important;
+    font-variant-numeric: tabular-nums !important;
+    text-align: right !important;
+}
+
+.sov-country { display: flex !important; align-items: center !important; gap: 0.55rem !important; min-width: 0 !important; }
+.sov-flag { flex: 0 0 auto !important; font-size: 1.05rem !important; font-style: normal !important; line-height: 1 !important; }
+.sov-country-txt { min-width: 0 !important; }
+.sov-country-txt strong {
+    display: block !important;
+    overflow: hidden !important;
+    color: #0f2436 !important;
+    font: 700 0.78rem/1.25 'Inter', sans-serif !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+.sov-country-txt small {
+    display: block !important;
+    overflow: hidden !important;
+    color: #7b8b99 !important;
+    font: 600 0.62rem/1.35 'Inter', sans-serif !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+/* Se marca la excepción, no la norma: 19 de 21 mercados son referencia
+   indicativa, así que etiquetarlos todos era ruido. Se señala el caso raro. */
+.sov-country-txt small em { font-style: normal !important; color: #0e7a56 !important; font-weight: 700 !important; }
+
+/* La barra. Fina (10px), extremo redondeado y base cuadrada: crece desde cero.
+   La pista es un elemento real, no un ::before: así el ancho de la barra y la
+   posición de la mediana se miden contra la misma caja. Con un pseudo-elemento
+   recortado por el ancho del valor, las dos escalas no coincidían. */
+.sov-bar { display: flex !important; align-items: center !important; gap: 0.55rem !important; min-width: 0 !important; }
+.sov-track {
+    flex: 1 1 auto !important;
+    position: relative !important;
+    min-width: 0 !important;
+    height: 10px !important;
+    border-radius: 0 3px 3px 0 !important;
+    background: #eef1f4 !important;
+}
+.sov-track i {
+    display: block !important;
+    height: 100% !important;
+    border-radius: 0 4px 4px 0 !important;
+    background: var(--sov-tone, #898781) !important;
+    transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+/* Línea de mediana: la referencia contra la que se calcula el diferencial.
+   Sin ella el color divergente no tiene contra qué leerse. */
+.sov-track::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: var(--sov-median, 50%) !important;
+    width: 1px !important;
+    height: 20px !important;
+    transform: translateY(-50%) !important;
+    background: #b9c4ce !important;
+    pointer-events: none !important;
+}
+/* El valor va en tinta, nunca del color de la barra. */
+.sov-bar b {
+    flex: 0 0 52px !important;
+    color: #0f2436 !important;
+    font: 800 0.8rem/1 'Inter', sans-serif !important;
+    font-variant-numeric: tabular-nums !important;
+    text-align: right !important;
+}
+
+/* Paleta divergente: rojo / gris neutro / azul, con la mediana como punto cero. */
+.sov-row.tone-high { --sov-tone: #e34948; }
+.sov-row.tone-mid  { --sov-tone: #898781; }
+.sov-row.tone-low  { --sov-tone: #2a78d6; }
+
+.sov-chg {
+    font: 700 0.66rem/1 'Inter', sans-serif !important;
+    font-variant-numeric: tabular-nums !important;
+    text-align: right !important;
+}
+.sov-chg.up   { color: #b3261e !important; }
+.sov-chg.down { color: #0b6e4f !important; }
+.sov-chg.flat { color: #8394a3 !important; }
+
+.sov-spread { text-align: right !important; }
+.sov-spread b {
+    display: block !important;
+    color: #33465a !important;
+    font: 800 0.7rem/1.25 'Inter', sans-serif !important;
+    font-variant-numeric: tabular-nums !important;
+}
+.sov-spread small { display: block !important; color: #8394a3 !important; font: 600 0.6rem/1.3 'Inter', sans-serif !important; }
+
+.sov-go { color: #c2ccd6 !important; font-size: 0.62rem !important; }
+.sov-row:hover .sov-go { color: #2a78d6 !important; }
+
+/* Controles: una fila por dimensión, encima de la tabla. */
+.sovereign-board-controls {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    margin: 0.9rem 0 0.8rem !important;
+    padding: 0.75rem 0.8rem !important;
+    border: 1px solid #eaeff4 !important;
+    border-radius: 14px !important;
+    background: #fafbfc !important;
+}
+.sov-filter-row { display: flex !important; align-items: center !important; gap: 0.6rem !important; flex-wrap: wrap !important; }
+.sov-filter-label {
+    flex: 0 0 52px !important;
+    color: #7b8b99 !important;
+    font: 800 0.6rem/1 'Inter', sans-serif !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+.sov-filter-group { display: flex !important; flex-wrap: wrap !important; gap: 0.3rem !important; }
+.sov-filter-group button {
+    padding: 0.32rem 0.7rem !important;
+    border: 1px solid #e2e8ee !important;
+    border-radius: 99px !important;
+    background: #ffffff !important;
+    color: #5c7180 !important;
+    font: 700 0.66rem/1 'Inter', sans-serif !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+.sov-filter-group button:hover { border-color: #b9cde8 !important; color: #1f56c9 !important; }
+.sov-filter-group button.active {
+    border-color: #2a78d6 !important;
+    background: #2a78d6 !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 820px) {
+    .sov-table-head { display: none !important; }
+    .sov-row {
+        grid-template-columns: 24px minmax(0, 1fr) 84px !important;
+        grid-template-areas: 'rank country chg' 'bar bar bar' 'spread spread spread' !important;
+        gap: 0.35rem 0.6rem !important;
+        padding: 0.7rem 0.55rem !important;
+    }
+    .sov-rank { grid-area: rank !important; }
+    .sov-country { grid-area: country !important; }
+    .sov-chg { grid-area: chg !important; }
+    .sov-bar { grid-area: bar !important; }
+    .sov-spread { grid-area: spread !important; text-align: left !important; }
+    .sov-spread b, .sov-spread small { display: inline !important; margin-right: 0.35rem !important; }
+    .sov-go { display: none !important; }
+}
+
 /* BLOCKS REDESIGN */
 .debt-block {
     min-width: 0 !important;
@@ -188,11 +700,20 @@
     letter-spacing: 0.07em !important;
 }
 
+/* Se retiró la fila 'curve' (bloque Comparativo internacional). */
 .debt-main-grid {
     display: grid !important;
     grid-template-columns: minmax(0, 1.65fr) minmax(310px, 0.85fr) !important;
-    grid-template-areas: 'curve curve' 'regime context' 'global global' !important;
+    grid-template-areas: 'regime context' 'global global' !important;
     align-items: stretch !important;
     gap: 1.2rem !important;
     margin-top: 1.2rem !important;
+}
+/* Esta regla lleva !important y no vivía en ninguna media query, así que también
+   ganaba por debajo de 1100px y rompía el apilado móvil de finanzas-redesign-v2. */
+@media (max-width: 1100px) {
+    .debt-main-grid {
+        grid-template-columns: 1fr !important;
+        grid-template-areas: 'regime' 'context' 'global' !important;
+    }
 }

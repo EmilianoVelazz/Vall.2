@@ -357,7 +357,7 @@ async function _fetchFinnhubNews() {
 async function _fetchNewsApiBusiness() {
     if (!NEWSAPI_KEY) return [];
     try {
-        const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=25&apiKey=${NEWSAPI_KEY}`;
+        const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=40&apiKey=${NEWSAPI_KEY}`;
         const r = await externalGet(url, { 'X-Api-Key': NEWSAPI_KEY }, 9000);
         if (!r.ok) return [];
         const j = await r.json();
@@ -378,9 +378,18 @@ async function _fetchNewsApiBusiness() {
 }
 
 // Mapea las etiquetas en español del editor a los buckets que usa el frontend.
-const _CAT_MAP = { mercados: 'markets', tasas: 'rates', bonos: 'bonds', divisas: 'markets', commodities: 'markets' };
+const _CAT_MAP = { mercados: 'markets', tasas: 'rates', bonos: 'bonds', divisas: 'fx', commodities: 'commodities' };
 const _CAT_LABEL = { mercados: 'Mercados', tasas: 'Tasas', bonos: 'Bonos', divisas: 'Divisas', commodities: 'Commodities' };
 const _SENT_MAP = { positivo: 'positive', negativo: 'negative', neutral: 'neutral' };
+
+function _inferNewsCategory(article) {
+    const text = `${article?.title || ''} ${article?.summary || ''}`.toLowerCase();
+    if (/\b(?:fed|banxico|central bank|interest rate|inflation|tasa|inflación)\b/.test(text)) return { key: 'rates', label: 'Tasas' };
+    if (/\b(?:bond|bonds|treasury|yield|debt|bono|bonos|deuda)\b/.test(text)) return { key: 'bonds', label: 'Bonos' };
+    if (/\b(?:currency|currencies|forex|dollar|euro|yen|peso|divisa|dólar)\b/.test(text)) return { key: 'fx', label: 'Divisas' };
+    if (/\b(?:oil|crude|gold|copper|commodity|commodities|petróleo|oro|cobre)\b/.test(text)) return { key: 'commodities', label: 'Commodities' };
+    return { key: 'markets', label: 'Mercados' };
+}
 
 async function _editorializeNews(articles) {
     if (!genAI) throw new Error('GEMINI_API_KEY no configurada');
@@ -446,13 +455,15 @@ async function _buildDailyNews() {
     let pool = [...seen.values()]
         .filter(a => (a.summary || '').length > 0 || a.image)
         .sort((x, y) => new Date(y.publishedAt || 0) - new Date(x.publishedAt || 0))
-        .slice(0, 12);
+        .slice(0, 24);
 
     if (!pool.length) throw new Error('sin noticias reales disponibles');
 
     let editorial = null;
     try {
-        editorial = await _editorializeNews(pool);
+        // La portada conserva hasta 24 historias, pero la edición generativa se
+        // limita a las 14 principales para mantener una carga rápida y estable.
+        editorial = await _editorializeNews(pool.slice(0, 14));
     } catch (e) {
         console.warn('[daily-news] editorial Gemini falló:', e.message);
     }
@@ -463,12 +474,13 @@ async function _buildDailyNews() {
     const noticias = pool.map((art, i) => {
         const ed = editById.get(i) || {};
         const catKey = (ed.categoria || '').toLowerCase();
+        const inferred = _inferNewsCategory(art);
         return {
             title:       ed.titulo  || art.title,
             description: ed.resumen || art.summary || '',
             insight:     ed.insight || '',
-            category:    _CAT_MAP[catKey] || 'markets',
-            categoryLabel: _CAT_LABEL[catKey] || 'Mercados',
+            category:    _CAT_MAP[catKey] || inferred.key,
+            categoryLabel: _CAT_LABEL[catKey] || inferred.label,
             sentiment:   _SENT_MAP[(ed.sentimiento || '').toLowerCase()] || 'neutral',
             impact:      ['alto', 'medio', 'bajo'].includes((ed.impacto || '').toLowerCase()) ? ed.impacto.toLowerCase() : 'medio',
             source:      art.source,
@@ -495,7 +507,7 @@ async function _buildDailyNews() {
         noticias,
         briefing,
         editorial: !!editorial,
-        fuente: [na.length ? 'NewsAPI' : null, fh.length ? 'Finnhub' : null, editorial ? 'Favro Editorial (Gemini)' : null].filter(Boolean).join(' · '),
+        fuente: [na.length ? 'NewsAPI' : null, fh.length ? 'Finnhub' : null, editorial ? 'Edición asistida (Gemini)' : null].filter(Boolean).join(' · '),
     };
 }
 

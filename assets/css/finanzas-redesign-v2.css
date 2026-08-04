@@ -591,57 +591,12 @@ body.energy-mode .ia-insight { border-color:#ead8c8 !important; background:#fff8
 .debt-context-list strong { display:block; margin:.3rem 0 .18rem; color:var(--fin-ink); font:850 .75rem 'JetBrains Mono',monospace; }
 .debt-context-list small { display:block; overflow:hidden; color:#9aa6b5; font-size:.43rem; text-overflow:ellipsis; white-space:nowrap; }
 
-.debt-thesis { overflow:hidden; padding:0; border:1px solid #d9e4ec; border-radius:18px; background:#fff; box-shadow:0 12px 34px rgba(8,30,55,.075); }
-.debt-thesis-head { display:flex; align-items:center; justify-content:space-between; gap:1rem; position:relative; overflow:hidden; padding:1rem 1.2rem; background:linear-gradient(118deg,#0a263c,#0e4569 62%,#0b5c7b); }
-.debt-thesis-head::after { content:''; position:absolute; width:230px; height:230px; top:-170px; right:10%; border:35px solid rgba(255,255,255,.055); border-radius:50%; }
-.debt-thesis-brand { display:flex; align-items:center; gap:.75rem; position:relative; z-index:1; min-width:0; }
-.debt-thesis-icon { width:44px; height:44px; flex:0 0 44px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.16); border-radius:12px; color:#bae6fd; background:rgba(255,255,255,.1); font-size:.9rem; }
-.debt-thesis-brand small { color:#7dd3fc; font-size:.45rem; font-weight:850; letter-spacing:.11em; text-transform:uppercase; }
-.debt-thesis h3 { margin:.18rem 0 0; color:#fff; font-size:.88rem; letter-spacing:-.015em; }
-.debt-thesis-status { display:flex; align-items:center; gap:.38rem; position:relative; z-index:1; flex-shrink:0; padding:.4rem .6rem; border:1px solid rgba(255,255,255,.17); border-radius:999px; color:#dff5ff; background:rgba(255,255,255,.09); font-size:.46rem; }
-.debt-thesis-status i { width:7px; height:7px; border-radius:50%; background:#fbbf24; box-shadow:0 0 0 4px rgba(251,191,36,.14); }
-.debt-thesis[data-regime="inverted"] .debt-thesis-status i { background:#fb7185; box-shadow:0 0 0 4px rgba(251,113,133,.14); }.debt-thesis[data-regime="positive"] .debt-thesis-status i { background:#34d399; box-shadow:0 0 0 4px rgba(52,211,153,.14); }
-.debt-thesis-layout { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr); gap:1rem; padding:1rem 1.15rem 1.15rem; }
-.debt-thesis-narrative { min-width:0; padding:.25rem .2rem; }
-.debt-thesis-kicker { display:block; margin-bottom:.42rem; color:#0b6c99; font-size:.45rem; font-weight:850; letter-spacing:.09em; text-transform:uppercase; }
-.debt-thesis p { max-width:900px; margin:0; color:#526b80; font-size:.59rem; line-height:1.65; }
-.debt-transition-map { display:grid; grid-template-columns:88px minmax(0,1fr); align-items:center; gap:.85rem; margin-top:.8rem; padding:.72rem .8rem; overflow:hidden; position:relative; border:1px solid rgba(14,116,144,.3); border-radius:14px; color:#fff; background:radial-gradient(circle at 92% 0,rgba(56,189,248,.2),transparent 42%),linear-gradient(125deg,#09253a,#0b405f); box-shadow:0 10px 24px rgba(8,47,73,.12); }
-.debt-transition-map::after { content:''; position:absolute; width:150px; height:150px; right:-85px; bottom:-105px; border:24px solid rgba(255,255,255,.04); border-radius:50%; pointer-events:none; }
-.debt-transition-gauge { width:82px; height:82px; display:grid; place-items:center; position:relative; border-radius:50%; background:conic-gradient(#38bdf8 0 var(--cycle-position,40%),rgba(255,255,255,.12) var(--cycle-position,40%) 100%); box-shadow:0 0 26px rgba(56,189,248,.17); }
-.debt-transition-gauge::before { content:''; position:absolute; inset:7px; border:1px solid rgba(255,255,255,.13); border-radius:50%; background:#0b3049; }
-.debt-transition-gauge > div { position:relative; z-index:1; text-align:center; }
-.debt-transition-gauge small,.debt-transition-gauge strong,.debt-transition-gauge span { display:block; }
-.debt-transition-gauge small { color:#83d8f8; font-size:.34rem; font-weight:850; text-transform:uppercase; letter-spacing:.08em; }
-.debt-transition-gauge strong { margin:.12rem 0; color:#fff; font:900 .78rem/1 'JetBrains Mono',monospace; }
-.debt-transition-gauge span { max-width:60px; overflow:hidden; color:#d8eff8; font-size:.37rem; text-overflow:ellipsis; white-space:nowrap; }
-.debt-transition-route { min-width:0; position:relative; z-index:1; }
-.debt-transition-route-head { display:flex; align-items:center; justify-content:space-between; gap:.6rem; }
-.debt-transition-route-head span { color:#e2f5fc; font-size:.48rem; font-weight:850; }.debt-transition-route-head b { padding:.23rem .38rem; border:1px solid rgba(125,211,252,.18); border-radius:999px; color:#7dd3fc; background:rgba(14,165,233,.09); font-size:.36rem; }
-.debt-transition-line { height:7px; position:relative; margin:.52rem .2rem .32rem; border-radius:999px; background:linear-gradient(90deg,#fb7185 0 25%,#fbbf24 25% 50%,#38bdf8 50% 75%,#34d399 75%); box-shadow:inset 0 1px 2px rgba(0,0,0,.28); }
-.debt-transition-line i { width:15px; height:15px; position:absolute; top:50%; left:var(--cycle-position,40%); border:3px solid #fff; border-radius:50%; background:#0c4a6e; box-shadow:0 0 0 4px rgba(125,211,252,.2),0 3px 9px rgba(0,0,0,.35); transform:translate(-50%,-50%); transition:left .45s ease; }
-.debt-transition-labels { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); color:#8fb3c5; font-size:.31rem; text-transform:uppercase; }.debt-transition-labels span:nth-child(2),.debt-transition-labels span:nth-child(3) { text-align:center; }.debt-transition-labels span:last-child { text-align:right; }
-.debt-transition-route > p { margin-top:.48rem; color:#b9d1de; font-size:.42rem; line-height:1.45; }
-.debt-thesis-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; margin-top:.9rem; }
-.debt-thesis-actions > div { min-width:0; display:grid; grid-template-columns:30px minmax(0,1fr); align-items:start; gap:.48rem; overflow:hidden; position:relative; padding:.68rem; border:1px solid #e0e8ef; border-radius:11px; background:linear-gradient(145deg,#fff,#f7fafc); box-shadow:0 4px 12px rgba(8,30,55,.035); }
-.debt-thesis-actions > div::after { content:''; position:absolute; inset:auto 0 0; height:2px; background:linear-gradient(90deg,#0284c7,#67e8f9); }
-.debt-thesis-actions > div > i { width:30px; height:30px; display:grid; place-items:center; border-radius:8px; color:#0878a8; background:#e6f5fb; font-size:.55rem; }
-.debt-thesis-actions span,.debt-thesis-actions small,.debt-thesis-actions strong { display:block; min-width:0; }
-.debt-thesis-actions small { color:#8a9aaa; font-size:.39rem; font-weight:800; text-transform:uppercase; letter-spacing:.045em; }
-.debt-thesis-actions strong { margin-top:.2rem; color:#26465f; font-size:.48rem; line-height:1.4; }
-.debt-thesis-monitor { min-width:0; padding:.78rem; border:1px solid #dce7ee; border-radius:13px; background:#f5f9fc; }
-.debt-thesis-monitor-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.55rem; }
-.debt-thesis-monitor-head span { color:#294861; font-size:.5rem; font-weight:850; }.debt-thesis-monitor-head span i { margin-right:.28rem; color:#0284c7; }.debt-thesis-monitor-head small { color:#96a5b3; font-size:.4rem; }
 .debt-snapshot { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.4rem; }
 .debt-snapshot > span { min-width:0; padding:.62rem; border:1px solid #dde7ee; border-radius:9px; background:#fff; box-shadow:0 3px 10px rgba(8,30,55,.035); }
 .debt-snapshot small,.debt-snapshot strong,.debt-snapshot em { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .debt-snapshot small { color:#8293a4; font-size:.38rem; font-weight:800; text-transform:uppercase; }
 .debt-snapshot strong { margin:.26rem 0 .18rem; color:#133d5b; font:850 .57rem 'JetBrains Mono',monospace; }
 .debt-snapshot em { color:#9ba8b5; font-size:.37rem; font-style:normal; }
-.debt-thesis-watch { margin-top:.6rem; padding-top:.58rem; border-top:1px solid #dce6ed; }
-.debt-thesis-watch > small { display:block; margin-bottom:.38rem; color:#8293a4; font-size:.39rem; font-weight:800; text-transform:uppercase; }
-.debt-thesis-watch > span { display:flex; flex-wrap:wrap; gap:.3rem; }
-.debt-thesis-watch b { padding:.27rem .4rem; border:1px solid #d7e3eb; border-radius:999px; color:#527087; background:#fff; font-size:.38rem; }
-@media (min-width:1001px) { .debt-thesis-monitor { display:flex; flex-direction:column; }.debt-thesis-monitor .debt-snapshot { grid-template-columns:1fr; }.debt-thesis-monitor .debt-snapshot > span { display:grid; grid-template-columns:minmax(100px,.8fr) minmax(80px,.55fr) minmax(0,1fr); align-items:center; gap:.5rem; }.debt-thesis-monitor .debt-snapshot strong { margin:0; }.debt-thesis-monitor .debt-snapshot em { text-align:right; }.debt-thesis-monitor .debt-thesis-watch { margin-top:auto; } }
 
 /* El detalle de bonos usa el mismo modal flotante central que Renta Variable. */
 #bond-modal-overlay { padding:clamp(16px,3vw,42px) !important; align-items:center !important; justify-content:center !important; background:rgba(2,12,23,.68) !important; backdrop-filter:blur(8px) !important; }
@@ -657,7 +612,6 @@ body.energy-mode .ia-insight { border-color:#ead8c8 !important; background:#fff8
 @media (max-width:520px) { .debt-kpi-grid { grid-template-columns:1fr; }.debt-kpi { min-height:68px; }.debt-block { padding:.85rem; }.debt-block-head { align-items:flex-start; flex-direction:column; }.debt-context-list { grid-template-columns:1fr; }.debt-curve-readout { grid-template-columns:82px minmax(0,1fr); }.debt-curve-orbit { width:80px; height:80px; }.debt-thesis { grid-template-columns:1fr; }.debt-thesis-icon { display:none; }.debt-snapshot { grid-column:auto; grid-template-columns:1fr; }.debt-global-chart-summary { grid-template-columns:1fr; }.debt-global-chart-summary > span { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }.debt-global-chart-summary strong { margin-top:0; }#bond-modal-overlay { padding:0 !important; }#bond-modal { width:100vw !important; max-height:100dvh !important; border-radius:0 !important; } }
 @media (max-width:900px) { .debt-global-block #bonds-global.sovereign-board-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:520px) { .debt-regime-hero { grid-template-columns:78px minmax(0,1fr); gap:.7rem; padding:.7rem; }.debt-regime-source { align-items:flex-start; }.debt-signal-grid { gap:.35rem; }.debt-signal-grid > div { padding:.52rem; }.debt-regime-implications { padding:.55rem; }.debt-regime-implications-head { align-items:flex-start; flex-direction:column; gap:.2rem; }.debt-global-block { padding:0; }.debt-global-block .sovereign-board-hero { align-items:flex-start; min-height:150px; padding:1rem .85rem 1.3rem; }.sovereign-board-title { align-items:flex-start; }.sovereign-board-title-icon { width:36px; height:36px; }.sovereign-board-summary { margin:-.28rem .65rem 0; }.sovereign-board-toolbar { margin:.7rem .65rem; }.sovereign-region-filter { grid-template-columns:repeat(2,minmax(0,1fr)); }.debt-global-block #bonds-global.sovereign-board-grid { grid-template-columns:1fr; margin:0 .65rem; }.sovereign-card { padding:.78rem; }.sovereign-board-footnote { margin:.7rem .65rem .75rem; } }
-@media (max-width:1000px) { .debt-thesis-layout { grid-template-columns:1fr; }.debt-thesis-narrative { padding:.15rem; } }
 @media (max-width:680px) { .debt-thesis-actions { grid-template-columns:1fr; }.debt-thesis-head { align-items:flex-start; flex-direction:column; }.debt-thesis-status { margin-left:56px; }.debt-thesis-layout { padding:.8rem; }.debt-snapshot { grid-template-columns:1fr; }.debt-snapshot > span { display:grid; grid-template-columns:minmax(80px,.75fr) minmax(75px,.55fr) minmax(0,1fr); align-items:center; gap:.35rem; }.debt-snapshot strong { margin:0; }.debt-snapshot em { text-align:right; } }
 @media (max-width:420px) { .debt-thesis-head { padding:.9rem .8rem; }.debt-thesis-icon { display:grid; width:38px; height:38px; flex-basis:38px; }.debt-thesis-status { margin-left:0; }.debt-thesis-layout { padding:.68rem; }.debt-transition-map { grid-template-columns:1fr; }.debt-transition-gauge { margin:auto; }.debt-transition-route-head { align-items:flex-start; flex-direction:column; gap:.28rem; }.debt-thesis-monitor { padding:.62rem; }.debt-thesis-monitor-head { align-items:flex-start; flex-direction:column; }.debt-snapshot > span { grid-template-columns:1fr auto; }.debt-snapshot em { grid-column:1 / -1; text-align:left; }.debt-thesis-watch b { flex:1 1 calc(50% - .3rem); text-align:center; } }
 @media (max-width:520px) { #petro-modal-overlay,#macro-modal-overlay,#cal-modal-overlay,#pulse-modal-overlay,#news-modal-overlay,#bond-modal-overlay,#mkt-modal-overlay,#fx-modal-overlay,#risk-modal-overlay,#credit-modal-overlay { padding:0 !important; }#petro-modal,#macro-modal,#cal-modal,#pulse-modal,#news-modal,#bond-modal,#mkt-modal,#fx-modal,#risk-modal,#credit-modal { width:100vw !important; max-width:none !important; max-height:100dvh !important; border-radius:0 !important; } }
@@ -1723,7 +1677,6 @@ body.equity-mode #movers-panel {
 .debt-block-head,.fx-pro-block-head { min-height:0; }
 .debt-block-head h3,.fx-pro-block-head h3,.energy-module-head h3 { line-height:1.3; }
 .debt-global-chart-note,.sovereign-board-footnote,.scenario-method,.commodity-map-foot { white-space:normal; }
-.debt-transition-labels span { min-width:0; white-space:normal; overflow-wrap:anywhere; text-align:center; }
 
 .energy-kpi,.eq-kpi,.debt-kpi,.fx-pro-kpi { height:auto; }
 .energy-kpi small,.eq-kpi small,.debt-kpi small,.fx-pro-kpi small { letter-spacing:.055em !important; }

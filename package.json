@@ -6,8 +6,9 @@
     "scripts": {
         "prestart": "npm run build",
         "start": "node backend/server.js",
-        "predev": "npm run build",
-        "dev": "node backend/server.js",
+        "dev": "node scripts/dev.mjs",
+        "dev:backend": "node backend/server.js",
+        "dev:react": "node frontend/node_modules/vite/bin/vite.js --port 5173",
         "build": "node scripts/build-dist.mjs",
         "db:migrate": "node scripts/migrate-database.cjs",
         "ingest:data": "node scripts/ingest-intelligence.cjs",

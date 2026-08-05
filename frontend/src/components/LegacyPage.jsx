@@ -71,9 +71,20 @@ export default function LegacyPage({ src }) {
         injected.push(st);
       });
 
-      // 2. Cuerpo (sin scripts) + reescritura de enlaces internos.
+      // 2. Cuerpo + reescritura de enlaces internos.
+      //
+      // Los <script> del cuerpo se sustituyen por una marca en su MISMA
+      // posición en vez de borrarse. Esa posición importa: algunos scripts
+      // legacy usan document.write, que inserta justo donde está el script.
       const bodyClone = doc.body.cloneNode(true);
-      bodyClone.querySelectorAll('script').forEach((s) => s.remove());
+      const scriptsCuerpo = [];
+      bodyClone.querySelectorAll('script').forEach((s, i) => {
+        const marca = doc.createElement('span');
+        marca.dataset.vnScriptSlot = String(i);
+        marca.style.display = 'none';
+        s.replaceWith(marca);
+        scriptsCuerpo.push(s);
+      });
       bodyClone.querySelectorAll('a[href]').forEach((a) => {
         const href = a.getAttribute('href');
         const file = href && href.split('/').pop().split('?')[0];
@@ -81,31 +92,71 @@ export default function LegacyPage({ src }) {
       });
       ref.current.innerHTML = bodyClone.innerHTML;
 
-      // 3. Reejecutar TODOS los scripts (head + body) en orden de documento.
+      // 3. document.write deja de ser destructivo mientras se reejecuta.
+      //
+      // Durante la carga normal de una página, document.write inserta texto en
+      // el punto donde está el script. Aquí los scripts corren DESPUÉS de que el
+      // documento esté cargado, y en ese momento document.write abre un
+      // documento nuevo y borra todo lo que hubiera — incluido el propio nodo
+      // de React. Es lo que vaciaba la pantalla: del login solo sobrevivía el
+      // año que escribía su pie de página.
+      //
+      // Se sustituye por una versión que inserta el HTML en la marca del script
+      // que se está ejecutando, que es donde el original lo habría puesto.
+      const writeOriginal = document.write;
+      const writelnOriginal = document.writeln;
+      let anclaActual = null;
+      const escribir = (...trozos) => {
+        const html = trozos.join('');
+        if (!html) return;
+        const destino = anclaActual && anclaActual.isConnected ? anclaActual : null;
+        const frag = document.createRange().createContextualFragment(html);
+        if (destino) destino.parentNode.insertBefore(frag, destino);
+        else if (ref.current) ref.current.appendChild(frag);
+      };
+      document.write = escribir;
+      document.writeln = (...t) => escribir(...t, '\n');
+
+      // 4. Reejecutar TODOS los scripts (head + cuerpo) en orden de documento.
       //    El head trae dependencias críticas (chart.js, api-keys, data-service
-      //    → window.VDS) de las que dependen los scripts del body.
-      const scripts = Array.from(doc.querySelectorAll('script'));
-      for (const s of scripts) {
-        if (cancelled) return;
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((resolve) => {
-          const el = document.createElement('script');
-          for (const attr of s.attributes) el.setAttribute(attr.name, attr.value);
-          el.dataset.vnLegacyScript = '1';
-          const srcAttr = s.getAttribute('src');
-          if (srcAttr) {
-            el.src = toSameOrigin(srcAttr, base);
-            el.async = false;
-            el.onload = resolve;
-            el.onerror = resolve;
-            document.body.appendChild(el);
-          } else {
-            el.textContent = s.textContent;
-            document.body.appendChild(el);
-            resolve();
-          }
-          injected.push(el);
-        });
+      //    → window.VDS) de las que dependen los scripts del cuerpo.
+      const scriptsCabecera = Array.from(doc.head.querySelectorAll('script'));
+      const enOrden = [
+        ...scriptsCabecera.map((s) => ({ s, marca: null })),
+        ...scriptsCuerpo.map((s, i) => ({
+          s,
+          marca: ref.current.querySelector(`[data-vn-script-slot="${i}"]`),
+        })),
+      ];
+
+      try {
+        for (const { s, marca } of enOrden) {
+          if (cancelled) return;
+          anclaActual = marca;
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((resolve) => {
+            const el = document.createElement('script');
+            for (const attr of s.attributes) el.setAttribute(attr.name, attr.value);
+            el.dataset.vnLegacyScript = '1';
+            const srcAttr = s.getAttribute('src');
+            if (srcAttr) {
+              el.src = toSameOrigin(srcAttr, base);
+              el.async = false;
+              el.onload = resolve;
+              el.onerror = resolve;
+              document.body.appendChild(el);
+            } else {
+              el.textContent = s.textContent;
+              document.body.appendChild(el);
+              resolve();
+            }
+            injected.push(el);
+          });
+        }
+      } finally {
+        document.write = writeOriginal;
+        document.writeln = writelnOriginal;
+        anclaActual = null;
       }
       if (cancelled) return;
 

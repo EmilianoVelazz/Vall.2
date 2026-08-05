@@ -490,11 +490,28 @@
         if (!items.length) return;
         const ordered = [...items].sort((a, b) => a.value - b.value);
         const tones = { 'América': '#9b2945', 'Europa': '#bd8b3d', 'Asia': '#6f8979' };
+
+        /* El pais elegido en "Comparar EE. UU. contra" se resalta aqui tambien:
+           antes solo destacaba EE. UU., y era por casualidad — es el unico de
+           America, asi que llevaba el burdeos mientras el resto de Europa
+           compartia el mismo oro.
+
+           El enfasis se hace con PESO (opacidad plena, borde grueso y barra mas
+           alta), no con un color nuevo: meter un cuarto hue romperia el codigo
+           por region, que es lo que la leyenda de arriba promete. */
+        const resaltado = state.returnsReferenceCountry;
+        const esResaltado = item => item.key === resaltado;
+        const tono = item => tones[item.region] || '#898781';
+
         state.returnsGlobalChart = new Chart(canvas, {
             type: 'bar',
             data: { labels: ordered.map(item => item.country), datasets: [{
-                data: ordered.map(item => item.value), backgroundColor: ordered.map(item => `${tones[item.region] || '#898781'}d9`),
-                borderColor: ordered.map(item => tones[item.region] || '#898781'), borderWidth: 1, borderRadius: 6, borderSkipped: false, barThickness: items.length > 10 ? 12 : 18,
+                data: ordered.map(item => item.value),
+                backgroundColor: ordered.map(item => (esResaltado(item) ? tono(item) : `${tono(item)}d9`)),
+                borderColor: ordered.map(item => (esResaltado(item) ? '#2f3a48' : tono(item))),
+                borderWidth: ordered.map(item => (esResaltado(item) ? 2.5 : 1)),
+                borderRadius: 6, borderSkipped: false,
+                barThickness: items.length > 10 ? 12 : 18,
             }] },
             options: {
                 indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -3547,6 +3564,14 @@
             state.returnsReferenceCountry = event.target.value;
             const curve = getReturnsCurves()[state.returnsCurve];
             if (curve) renderReturnsChart(curve);
+            // El ranking tambien marca el pais comparado, asi que hay que
+            // repintarlo: sin esto el resaltado se quedaba en el anterior.
+            //
+            // Se llama a renderReturnsGlobal() y no directamente al grafico
+            // porque en el modo "Anclas monetarias" los datos son otros
+            // (getReturnsGlobalAnchors), y pasar returnsGlobalData a pelo
+            // pintaria el conjunto equivocado.
+            renderReturnsGlobal();
         });
         document.querySelectorAll('[data-returns-global-mode]').forEach(button => button.addEventListener('click', () => {
             state.returnsGlobalMode = button.dataset.returnsGlobalMode;

@@ -1870,12 +1870,7 @@
         renderMainChart();
     }
 
-    function selectModule(name, scroll = true) {
-        if (!moduleConfig[name]) return;
-        state.module = name;
-        updateControls();
-        if (scroll) $('ff-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+
 
     const detailConfig = {
         bolsa: {

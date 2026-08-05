@@ -891,23 +891,7 @@
         };
     }
 
-    function buildConversationReport() {
-        const conversation = activeConversation();
-        const messages = conversation?.messages?.filter((message) => !message._hidden) || [];
-        const sections = [`# ${conversation?.title || 'Reporte VALL AI'}`, '', `**Fecha:** ${new Date().toLocaleString('es-MX')}`, '', '> Documento editable generado a partir de la conversación con VALL AI.', ''];
-        let questionNumber = 0;
-        messages.forEach((message) => {
-            if (message.role === 'user') {
-                questionNumber += 1;
-                sections.push(`## Consulta ${questionNumber}`, '', message.text || '', '');
-            } else if (message.role === 'model' || message.role === 'assistant') {
-                sections.push(message.text || '', '');
-            }
-        });
-        if (!messages.length) sections.push('## Resumen ejecutivo', '', 'Escribe aquí el contenido de tu reporte o genera primero un análisis con VALL AI.');
-        sections.push('', '---', '', '*Documento informativo. Verifica las cifras relevantes antes de tomar decisiones.*');
-        return sections.join('\n').trim();
-    }
+
 
     function openReportStudio(selectedMessage = null) {
         activeReportContext = reportContextFor(selectedMessage);
@@ -985,15 +969,9 @@
         return clone.innerHTML;
     }
 
-    function reportHtmlDocument() {
-        const title = escapeHtml(els.reportTitle.value.trim() || 'Reporte VALL AI');
-        return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><style>body{max-width:820px;margin:40px auto;padding:0 28px;color:#1c2d3a;font:15px/1.65 Arial,sans-serif}body:before{content:'VALLNEWS · INTELIGENCIA ECONÓMICA';display:block;padding-bottom:12px;border-bottom:4px solid #0a2c45;color:#9a762d;font-size:11px;font-weight:700;letter-spacing:2px}h1,h2,h3{color:#0b2b44}h1{font-size:30px}h2{margin-top:28px;border-bottom:1px solid #dce4e9;padding-bottom:7px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #dbe3e8;text-align:left}th{background:#edf2f5}pre{white-space:pre-wrap;padding:14px;background:#071827;color:#e5eff5;border-radius:8px}.vai-chart-card{margin:18px 0;padding:14px;border:1px solid #dbe3e8;border-radius:12px}.vai-chart-kpis{display:flex;gap:8px;flex-wrap:wrap}.vai-chart-kpis div{padding:7px;border:1px solid #e2e8ed}.vai-chart-foot{font-size:11px;color:#71818d}</style></head><body>${previewHtmlWithChartImages()}</body></html>`;
-    }
 
-    function downloadBlob(filename, content, mime) {
-        const url = URL.createObjectURL(new Blob([content], { type: mime }));
-        const link = document.createElement('a'); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500);
-    }
+
+
 
     function collectChartImages(container) {
         return Array.from(container?.querySelectorAll('canvas') || []).slice(0, 8).map(canvas => {

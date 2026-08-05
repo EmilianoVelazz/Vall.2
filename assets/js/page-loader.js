@@ -71,7 +71,11 @@
     const el = document.createElement('div');
     el.id = 'vn-loader';
     el.innerHTML = `
-        <img class="vnl-logo" src="${base}Logotipos/logo1.png" alt="VALLNews"
+        <!-- Apuntaba a Logotipos/, carpeta que existia en el arbol anterior del
+             repositorio y que aqui no esta: fallaba con 404 en cada carga de
+             cada pagina. El onerror lo ocultaba, asi que no se veia roto pero
+             si gastaba una peticion. El logo vive en assets/img. -->
+        <img class="vnl-logo" src="/assets/img/logo1.png" alt="VALLNews"
              onerror="this.style.display='none'">
         <div class="vnl-brand">VALLNews</div>
         <div class="vnl-bar-outer"><div class="vnl-bar-fill"></div></div>

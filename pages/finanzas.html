@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <script src="../assets/js/vendor/chart.umd.js?v=1"></script>
     <script src="../assets/js/finanzas-visual.js?v=6"></script>
-        <script src="../assets/js/page-loader.js?v=4"></script>
+        <script src="../assets/js/page-loader.js?v=5"></script>
     <script src="../assets/js/api-keys.js?v=5"></script>
     <script src="../assets/js/data-service.js?v=22"></script>
     <style>
@@ -1466,7 +1466,7 @@ let patchInterval = setInterval(() => {
                         <div class="ffm-foot">
                             <button class="ff-module-link" type="button" data-open-module="noticias">Abrir Daily News <i class="fas fa-arrow-right"></i></button>
                             <span class="ffm-stat"><em>Titulares hoy</em><strong id="ff-tile-noticias">—</strong></span>
-                        </div>  
+                        </div>
                     </div>
                 </article>
 
@@ -3533,10 +3533,7 @@ function isCacheValid(stored) {
     const conTitulo = stored.noticias.filter(n => n.titulo?.length > 5).length;
     return conTitulo >= 2;
 }
-function onImgError(el, fallback) {
-    el.onerror = null;
-    el.src = fallback;
-}
+
 async function loadPetroleo() {
     try {
         const [wtiR, brentR, gasR, mxnR] = await Promise.allSettled([
@@ -3724,11 +3721,7 @@ function renderCommodityExplorer() {
     document.querySelectorAll('[data-commodity-chart]').forEach(function(btn){var active=btn.dataset.commodityChart===_commodityChartType;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});
 }
 
-function setCommodityChartType(type,button) {
-    if(!['line','area','bars'].includes(type))return;
-    _commodityChartType=type;try{localStorage.setItem('vn_commodity_chart_type',type);}catch(e){}
-    renderCommodityExplorer();
-}
+
 
 function loadCommodityExplorer(force) {
     renderCommodityExplorer();
@@ -3749,32 +3742,9 @@ function loadCommodityExplorer(force) {
     return _commodityExplorerPromise;
 }
 
-function filterCommodityExplorer(group,button) {
-    document.querySelectorAll('.commodity-filters button').forEach(function(btn){btn.classList.toggle('active',btn===button);});
-    document.querySelectorAll('#commodity-map .commodity-tile').forEach(function(tile){tile.hidden=group!=='all'&&tile.dataset.group!==group;});
-}
 
-function openCommodityReport(key) {
-    if(key==='wti'||key==='brent'||key==='gas'){openPetroDetail(key);return;}
-    var meta=_COMMODITY_EXPLORER_META[key],data=Object.assign({},commodityExplorerCoreData(),_commodityExplorerData)[key]||{};
-    var overlay=document.getElementById('risk-modal-overlay'); if(!meta||!overlay)return;
-    var value=commodityExplorerPrice(key,data.price),pct=data.pct!=null&&Number.isFinite(+data.pct)?Number(data.pct):null;
-    var pct3m=data.pct3m!=null&&Number.isFinite(+data.pct3m)?Number(data.pct3m):null;
-    var signal=pct==null?'SIN DATO':Math.abs(pct)<1?'ESTABLE':pct>0?'IMPULSO POSITIVO':'PRESIÓN BAJISTA';
-    var signalColor=pct==null?'#64748b':Math.abs(pct)<1?'#d97706':pct>0?'#16a34a':'#dc2626';
-    var row=function(label,val){return '<div class="bm-metric-row"><span class="bm-metric-lbl">'+label+'</span><span class="bm-metric-val">'+val+'</span></div>';};
-    var pctText=pct==null?'—':(pct>=0?'+':'')+pct.toFixed(2)+'%';
-    var pct3Text=pct3m==null?'—':(pct3m>=0?'+':'')+pct3m.toFixed(2)+'%';
-    var metrics=row('Precio disponible',value)+row('Unidad',meta.unit)+row('Último movimiento',pctText)+row('Cambio aproximado 3 meses',pct3Text)+row('Complejo',meta.group)+row('Fuente',meta.source);
-    var now=new Date(),date=now.toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}),time=now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('rm-icon').textContent=meta.icon; document.getElementById('rm-title').textContent=meta.label;
-    document.getElementById('rm-sub').textContent=meta.group+' · '+meta.unit; document.getElementById('rm-val-big').textContent=value;
-    var badge=document.getElementById('rm-level-badge');badge.textContent=signal;badge.style.background=signalColor;badge.style.color='#fff';
-    document.getElementById('rm-upd').textContent='Act. '+time+' · VALL News';document.getElementById('rm-metrics').innerHTML=metrics;
-    document.getElementById('rm-analysis').innerHTML=meta.context+' <strong>Lectura actual:</strong> '+(pct==null?'la fuente no entregó una variación comparable; conviene validar el último cierre.':pct>1?'el movimiento positivo sugiere demanda firme o restricción de oferta.':pct<-1?'la corrección apunta a menor demanda, oferta holgada o toma de utilidades.':'el activo permanece en una zona de variación contenida.')
-    document.getElementById('rm-report').textContent=['========================================','REPORTE DE MATERIAS PRIMAS','VALL News -- Inteligencia Económica','========================================','Activo:             '+meta.label,'Complejo:           '+meta.group,'Precio disponible:  '+value+' '+meta.unit,'Último movimiento:  '+pctText,'Cambio aprox. 3M:   '+pct3Text,'Señal:              '+signal,'Fecha:              '+date,'Hora:               '+time,'','--- LECTURA FUNDAMENTAL -----------------',meta.context,'','Fuente: '+meta.source+'. Información de carácter informativo; no constituye asesoría de inversión.','========================================'].join('\n');
-    overlay.classList.add('open');document.body.style.overflow='hidden';
-}
+
+
 
 function updateEnergyScenario(value) {
     var shock=Number(value)||0,output=document.getElementById('energy-shock-output'); if(output)output.textContent=(shock>0?'+':'')+shock+'%';
@@ -5086,13 +5056,7 @@ const GLOBAL_BOND_REGIONS = {
 };
 const GLOBAL_BOND_EMERGING = new Set(['mx','br','cn','in','za','cl','id','pl']);
 
-function setGlobalBondMaturity(maturity, button) {
-    _globalBondMaturity = maturity;
-    _globalBondRegion = 'all';
-    document.querySelectorAll('.debt-maturity-filter button').forEach(item => item.classList.toggle('active', item.dataset.maturity === maturity));
-    document.querySelectorAll('.sovereign-region-filter button').forEach(item => item.classList.toggle('active', item.dataset.region === 'all'));
-    if (_globalBondData.length) { renderBondsCurveChart(_globalBondData, false); renderGlobalBondBoard(_globalBondData); }
-}
+
 
 function setGlobalBondRegion(region, button) {
     _globalBondRegion = region;
@@ -6683,17 +6647,9 @@ function initEconomicCalendar() {
     renderEconomicCalendar();
 }
 
-function calendarMoveMonth(delta) {
-    if (!_calendarViewDate) return;
-    _calendarViewDate = new Date(_calendarViewDate.getFullYear(), _calendarViewDate.getMonth() + delta, 1);
-    renderEconomicCalendar();
-}
 
-function calendarGoToday() {
-    const today = new Date();
-    _calendarViewDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    renderEconomicCalendar();
-}
+
+
 
 function calendarOpenEvent(index) {
     const card = document.querySelector('#calendar-panel-main .cal-card[data-calendar-index="' + index + '"]');
@@ -7102,13 +7058,7 @@ function syncFactorView() {
     });
 }
 
-function setFactorView(view) {
-    if (!['bars','heat','ranking'].includes(view)) return;
-    _factorView = view;
-    try { localStorage.setItem('vn_factor_view', view); } catch(e) {}
-    syncFactorView();
-    renderEquityFactorView();
-}
+
 
 async function loadEquityInstitutional() {
     const REGIONS = [
@@ -7366,11 +7316,7 @@ function openFinanceSection(name) {
     finTab(name, tabButton);
 }
 
-function hubSectionKey(event, name) {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    openFinanceSection(name);
-}
+
 
 function updateGeneralKPIs() {
     try {
@@ -7517,22 +7463,7 @@ function updateGeneralKPIs() {
     } catch(e) { console.warn('updateGeneralKPIs:', e); }
 }
 
-function prepareEquityLayout() {
-    const widgetsHost = document.getElementById('eq-top-widgets');
-    const labHost = document.getElementById('equity-lab-host');
-    if (!widgetsHost || !labHost) return;
-    ['bolsa-news-panel'].forEach(id => {
-        const panel = document.getElementById(id);
-        if (panel) widgetsHost.appendChild(panel);
-    });
-    const chartPanel = document.getElementById('bvmx-panel');
-    if (chartPanel) {
-        const fxPanel = document.getElementById('fx-section');
-        const wlPanel = document.getElementById('watchlist-panel');
-        if (fxPanel) chartPanel.parentNode.insertBefore(fxPanel, chartPanel);
-        if (wlPanel) chartPanel.parentNode.insertBefore(wlPanel, chartPanel);
-    }
-}
+
 
 function restoreEquityLayout() {
     const anchor = document.getElementById('bvmx-panel-anchor');
@@ -8030,20 +7961,9 @@ async function loadGeminiCalAnalysis(title, flag, dateText, pills, status, surpr
   }
 }
 
-function closeCalModal() {
-  var ov = document.getElementById('cal-modal-overlay');
-  if (ov) ov.classList.remove('open');
-  document.body.style.overflow = '';
-}
 
-function copyCalReport() {
-  var text = (document.getElementById('cm-report')||{}).textContent||'';
-  if (!navigator.clipboard) return;
-  navigator.clipboard.writeText(text).then(function(){
-    var btn = document.querySelector('#cal-modal .bm-btn-primary');
-    if (btn){var orig=btn.innerHTML;btn.innerHTML='<i class="fas fa-check"></i> Copiado';setTimeout(function(){btn.innerHTML=orig;},2000);}
-  }).catch(function(){});
-}
+
+
 
 function printCalReport() {
   var text    = (document.getElementById('cm-report')||{}).textContent||'';

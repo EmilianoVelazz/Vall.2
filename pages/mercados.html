@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/assets/css/header.css">
   <link rel="stylesheet" href="/assets/css/footer.css">
   <link rel="stylesheet" href="/assets/css/responsive.css">
-    <script src="/assets/js/page-loader.js?v=4"></script>
+    <script src="/assets/js/page-loader.js?v=5"></script>
   <script src="/assets/js/api-keys.js?v=5"></script>
   <script src="/assets/js/data-service.js?v=22"></script>
   <link rel="preload" href="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" as="script">
@@ -2526,166 +2526,14 @@ function updateProteinScenario(fromPreset=false) {
 }
 
 /* ── RACIONES ─────────────────────────────────────── */
-function renderRaciones(p, mxn) {
-  const maizMT  = parseFloat(p.maiz)  * 39.368;
-  const sojaMT  = parseFloat(p.soja)  || 0;
-  const trigoMT = parseFloat(p.trigo) * 36.744;
-  const sorgoMT = parseFloat(p.sorgo) * 39.368;
 
-  const bovino  = maizMT*0.65 + sorgoMT*0.20 + sojaMT*0.15;
-  const porcino = maizMT*0.55 + sojaMT*0.30  + trigoMT*0.15;
-  const aves    = maizMT*0.65 + sojaMT*0.32  + sorgoMT*0.03;
-  const dieselGal = parseFloat(p.diesel) || 2.5;
-  const gasN      = parseFloat(p.gasnat) || 2.5;
-  const energia   = dieselGal * 50 + gasN * 5;
-  const anyReal   = p.maiz_real || p.soja_real;
-
-  function fmtR(val, idUsd, idMxn, idPct, refPct) {
-    if (!val || isNaN(val)) return;
-    const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-    setEl(idUsd, '$' + val.toFixed(2) + '/MT');
-    if (mxn) setEl(idMxn, '$' + (val * parseFloat(mxn)).toFixed(0) + ' MXN/MT');
-    const el = document.getElementById(idPct);
-    if (el && refPct !== undefined) {
-      const n = parseFloat(refPct) || 0;
-      el.textContent = anyReal
-        ? (n > 0 ? `↑ +${n.toFixed(1)}% m/m vs mes ant.` : n < 0 ? `↓ ${n.toFixed(1)}% m/m vs mes ant.` : '→ Sin cambio m/m')
-        : 'Datos de referencia';
-      el.className = 'racion-pct ' + (n > 0.5 ? 'up' : n < -0.5 ? 'down' : 'neu');
-    }
-  }
-  fmtR(bovino,  'racion-bovino-usd',  'racion-bovino-mxn',  'racion-bovino-pct',  (parseFloat(p.maiz_pct)*0.65 + parseFloat(p.sorgo_pct||0)*0.20 + parseFloat(p.soja_pct)*0.15));
-  fmtR(porcino, 'racion-porcino-usd', 'racion-porcino-mxn', 'racion-porcino-pct', (parseFloat(p.maiz_pct)*0.55 + parseFloat(p.soja_pct)*0.30 + parseFloat(p.trigo_pct)*0.15));
-  fmtR(aves,    'racion-aves-usd',    'racion-aves-mxn',    'racion-aves-pct',    (parseFloat(p.maiz_pct)*0.65 + parseFloat(p.soja_pct)*0.32 + parseFloat(p.sorgo_pct||0)*0.03));
-  const enEl = document.getElementById('racion-energia-usd');
-  if (enEl) enEl.textContent = '$' + energia.toFixed(2) + '/día';
-  if (mxn) { const el = document.getElementById('racion-energia-mxn'); if (el) el.textContent = '$' + (energia * parseFloat(mxn)).toFixed(0) + ' MXN/día'; }
-  const enPct = document.getElementById('racion-energia-pct');
-  if (enPct) {
-    const n = parseFloat(p.wti_pct) || 0;
-    enPct.textContent = p.wti_real ? (n > 0 ? `↑ +${n.toFixed(1)}% WTI m/m` : n < 0 ? `↓ ${n.toFixed(1)}% WTI m/m` : '→ Estable m/m') : 'Estimado ref.';
-    enPct.className = 'racion-pct ' + (n > 0.5 ? 'up' : n < -0.5 ? 'down' : 'neu');
-  }
-}
 
 /* ── LOGISTICS PANEL ─────────────────────────────── */
-function renderLogistica(p, mxn) {
-  const wtiN    = parseFloat(p.wti)    || 70;
-  const dieselG = parseFloat(p.diesel) || 2.67;
 
-  const set = (id, v) => { const e = document.getElementById(id); if (e && v != null) e.textContent = v; };
-  // BDI — use wti proxy context (actual BDI would need dedicated API)
-  const bdiEst = Math.round(1200 + wtiN * 8.5);
-  set('bdi-val', bdiEst.toLocaleString('es-MX'));
-  set('bdi-sub', 'Índice de flete marítimo seco · Est. VALL');
-  const bdiTrend = document.getElementById('bdi-trend');
-  if (bdiTrend) {
-    const cls = wtiN > 75 ? 'lt-up' : wtiN < 65 ? 'lt-dn' : 'lt-neu';
-    const lbl = wtiN > 75 ? '↑ PRESIÓN ALTA' : wtiN < 65 ? '↓ FLETE BAJO' : '→ MERCADO NEUTRO';
-    bdiTrend.innerHTML = `<span class="log-trend ${cls}">${lbl}</span>`;
-  }
 
-  const fleteMX = (dieselG * 8.5).toFixed(0);
-  set('flete-mx', `~${fleteMX} MXN/ton·100km`);
-  if (mxn) { set('flete-mx-sub', `Diesel $${dieselG.toFixed(2)}/gal × 8.5`); }
 
-  set('log-diesel', `$${dieselG.toFixed(2)}/gal`);
-  if (mxn) { set('log-diesel-mxn', `≈ $${(dieselG * parseFloat(mxn)).toFixed(2)} MXN/gal`); }
 
-  set('log-wti-val', `$${wtiN.toFixed(2)}/bbl`);
-  if (mxn) { set('log-wti-mxn', `≈ $${(wtiN * parseFloat(mxn)).toFixed(0)} MXN/bbl`); }
 
-  const contUSD = Math.round(1800 + bdiEst * 0.15);
-  set('cont-usd', `~$${contUSD.toLocaleString()} USD <span style="font-size:.55rem;color:var(--muted)">(REF.)</span>`);
-  const contEl = document.getElementById('cont-usd');
-  if (contEl) contEl.innerHTML = `~$${contUSD.toLocaleString()} USD <span style="font-size:.55rem;color:var(--muted)">(REF.)</span>`;
-  if (mxn) { const e = document.getElementById('cont-mxn'); if (e) e.textContent = `≈ $${(contUSD * parseFloat(mxn)).toFixed(0)} MXN`; }
-
-  const aereoKg = (wtiN * 0.064 + 1.20).toFixed(2);
-  set('aereo-usd', `~$${aereoKg}/kg (REF.)`);
-  if (mxn) { const e = document.getElementById('aereo-mxn'); if (e) e.textContent = `≈ $${(parseFloat(aereoKg) * parseFloat(mxn)).toFixed(2)} MXN/kg`; }
-
-  const logCtx = document.getElementById('log-context');
-  if (logCtx) logCtx.innerHTML = `<i class="fas fa-robot"></i> <span>WTI ${wtiN > 75 ? 'sobre $75/bbl — presión alta en fletes.' : wtiN > 65 ? '$65–$75/bbl — costo logístico moderado.' : 'bajo $65/bbl — ventana favorable para contratar fletes.'} Diesel $${dieselG.toFixed(2)}/gal${p.wti_real ? ' (tiempo real)' : ' (ref.)'}. Flete terrestre est.: ${fleteMX} MXN/ton·100km.</span>`;
-}
-
-function renderCalendario() {
-  const container = document.getElementById('mkt-calendar-events');
-  if (!container) return;
-  const today = new Date(); today.setHours(0,0,0,0);
-
-  function rel(d) {
-    const diff = Math.round((d - today) / 864e5);
-    if (diff < 0)   return { txt: 'Publicado', cls: 'cb-past' };
-    if (diff === 0) return { txt: '⚡ HOY',    cls: 'cb-today' };
-    if (diff === 1) return { txt: 'Mañana',    cls: 'cb-soon' };
-    if (diff <= 7)  return { txt: `en ${diff} días`, cls: 'cb-soon' };
-    return { txt: d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}).toUpperCase(), cls: 'cb-past' };
-  }
-
-  const events = [
-    { icon:'📊', title:'WASDE USDA · Julio 2026', desc:'Oferta y demanda mundial de granos y oleaginosas. Impacto alto en maíz, soja, trigo y sorgo.', date: new Date(2026,6,11), imp:'high' },
-    { icon:'🛢', title:'Inventarios EIA · Petróleo', desc:'Stocks semanales de crudo y destilados. Mueve WTI y diesel. Cada miércoles 10:30 EST.', date: new Date(), imp:'med' },
-    { icon:'🌾', title:'Crop Progress USDA · Semanal', desc:'Estado del cultivo en EE.UU. — maíz y soya. Señal temprana de cosecha y calidad.', date: (() => { const d = new Date(today); const dm = (8 - d.getDay()) % 7 || 7; d.setDate(d.getDate() + dm); return d; })(), imp:'med' },
-    { icon:'🚢', title:'Export Sales USDA · Granos', desc:'Ventas semanales de exportación de granos. Indica demanda de China y México.', date: (() => { const d = new Date(today); const dt = 4 - d.getDay(); d.setDate(d.getDate() + (dt <= 0 ? dt + 7 : dt)); return d; })(), imp:'med' },
-    { icon:'🏦', title:'Banxico · Decisión de Tasas', desc:'Tasa TIIE de referencia MX. Impacta USD/MXN y costo de importación de insumos.', date: new Date(2026,7,6), imp:'high' },
-    { icon:'🏛', title:'FOMC Fed · Política Monetaria', desc:'Tasa de fondos federales EUA. Mueve el dólar y el costo de coberturas en commodities.', date: new Date(2026,6,28), imp:'high' },
-    { icon:'🛢', title:'OPEP+ · Reunión de Producción', desc:'Cuotas de producción de crudo. Mueve WTI y precio del diesel agropecuario.', date: new Date(2026,7,6), imp:'med' },
-    { icon:'📋', title:'IPC México · INEGI', desc:'Inflación general y subyacente MX. Referencia para contratos agropecuarios indexados.', date: new Date(2026,7,10), imp:'low' },
-  ];
-
-  container.innerHTML = events.map(ev => {
-    const r = rel(ev.date);
-    return `<div class="cal-card ${ev.imp}">
-      <div class="cal-icon">${ev.icon}</div>
-      <div class="cal-body">
-        <div class="cal-title">${ev.title}</div>
-        <div class="cal-desc">${ev.desc}</div>
-        <div class="cal-badges">
-          <span class="cal-badge ${ev.imp === 'high' ? 'cb-high' : ev.imp === 'med' ? 'cb-med' : 'cb-low'}">${ev.imp === 'high' ? 'IMPACTO ALTO' : ev.imp === 'med' ? 'IMPACTO MEDIO' : 'IMPACTO BAJO'}</span>
-          <span class="cal-badge ${r.cls}">${r.txt}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderReportes() {
-  const rc = document.getElementById('reportesContainer');
-  if (!rc) return;
-  const today = new Date(); today.setHours(0,0,0,0);
-  function rel(d) {
-    const diff = Math.round((d - today) / 864e5);
-    if (diff < 0)   return { txt: 'PUBLICADO', cls: 'past' };
-    if (diff === 0) return { txt: 'HOY ⚡',    cls: 'today-tag' };
-    if (diff === 1) return { txt: 'MAÑANA',    cls: 'soon' };
-    if (diff <= 7)  return { txt: `EN ${diff} DÍAS`, cls: 'soon' };
-    return { txt: d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}).toUpperCase(), cls: 'past' };
-  }
-  const reportes = [
-    { icon:'fa-file-chart-column', name:'WASDE Report · USDA', desc:'Oferta/demanda mundial de granos y oleaginosas. Alto impacto en maíz, soja, trigo.', date: new Date(2026,6,11) },
-    { icon:'fa-building-columns',  name:'Minuta FOMC · Fed',   desc:'Decisión de tasas EUA. Mueve dólar, crédito agrícola y costo de coberturas.', date: new Date(2026,6,28) },
-    { icon:'fa-university',        name:'Banxico · Política Monetaria', desc:'Tasa de referencia MX. Impacta USD/MXN y costo de insumos importados.', date: new Date(2026,7,6) },
-    { icon:'fa-oil-well',          name:'Inventarios Petróleo · EIA', desc:'Stocks de crudo y destilados EUA. Mueve WTI y precio del diesel.', date: (() => { const d = new Date(today); const dw = 3 - d.getDay(); d.setDate(d.getDate() + (dw <= 0 ? dw + 7 : dw)); return d; })() },
-    { icon:'fa-wheat-awn',         name:'Crop Progress · USDA', desc:'Estado del cultivo semanal. Señal temprana de cosecha de maíz y soya EUA.', date: (() => { const d = new Date(today); const dm = (8 - d.getDay()) % 7 || 7; d.setDate(d.getDate() + dm); return d; })() },
-    { icon:'fa-ship',              name:'Export Sales · USDA Grains', desc:'Ventas semanales de exportación de granos. Indica demanda de China/México.', date: (() => { const d = new Date(today); const dt = 4 - d.getDay(); d.setDate(d.getDate() + (dt <= 0 ? dt + 7 : dt)); return d; })() },
-    { icon:'fa-chart-line',        name:'IPC México · INEGI', desc:'Inflación general y subyacente MX. Referencia para contratos indexados.', date: new Date(2026,7,10) },
-  ];
-  rc.innerHTML = reportes.map(r => {
-    const rv = rel(r.date);
-    return `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;padding:.7rem 0;border-bottom:1px solid rgba(0,0,0,.06);gap:.2rem 0">
-      <span style="color:var(--slate);font-weight:500;font-size:.76rem;flex:1 1 auto"><i class="fas ${r.icon}" style="color:var(--navy);margin-right:6px"></i>${r.name}</span>
-      <span style="font-size:.65rem;font-weight:700;white-space:nowrap;color:${rv.cls === 'soon' || rv.cls === 'today-tag' ? 'var(--red)' : 'var(--muted)'}">${rv.txt}</span>
-      <span style="flex:1 1 100%;font-size:.62rem;color:#64748b;line-height:1.35;padding-bottom:.15rem">${r.desc}</span>
-    </div>`;
-  }).join('');
-
-  const rCtx = document.getElementById('reportes-ctx-txt');
-  if (rCtx) {
-    const nw = reportes[0]; const rw = rel(nw.date);
-    rCtx.textContent = `Próximo WASDE: ${rCtx.cls === 'soon' ? '📊 ' + rw.txt + ' — preparar posiciones antes de la publicación USDA.' : rw.txt + ' — monitorear estimados previos al reporte.'}`;
-  }
-}
 
 const KW_MKT = {
   granos:   ['corn','maiz','soybean','soja','wheat','trigo','grain','grano','cbot','usda','wasde','harvest','cosecha','crop','feedlot','forraje','canola'],
@@ -2779,9 +2627,7 @@ function handleNewsImageError(containerId, index, imageEl) {
   imageEl?.remove();
 }
 
-function startNewsAutoScroll(vp, inner) {
-  // Desactivado temporalmente por preferencia de UI (Scroll manual)
-}
+
 
 function filterNews(cat, btn, pane) {
   const bar = btn.closest('.news-filter-bar');

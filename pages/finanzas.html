@@ -776,6 +776,7 @@
     <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=107">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
     <link rel="stylesheet" href="../assets/css/returns-pro.css?v=12">
+    <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
     <script src="../assets/js/finanzas-favro.js?v=101" defer></script>
 
 <style>
@@ -1360,11 +1361,11 @@ let patchInterval = setInterval(() => {
                 <label class="ff-supplement-market" id="ff-supplement-market-wrap" hidden>
                     <span>Bolsa</span>
                     <select id="ff-supplement-market" aria-label="Elegir la bolsa que se consulta">
-                        <option value="mx" selected>&#127474;&#127485; M&eacute;xico</option>
-                        <option value="us">&#127482;&#127480; Estados Unidos</option>
+                        <option value="us" selected>&#127482;&#127480; Estados Unidos</option>
                         <option value="gb">&#127468;&#127463; Reino Unido</option>
                         <option value="de">&#127465;&#127466; Alemania</option>
                         <option value="fr">&#127467;&#127479; Francia</option>
+                        <option value="es">&#127466;&#127480; Espa&ntilde;a</option>
                         <option value="jp">&#127471;&#127477; Jap&oacute;n</option>
                         <option value="br">&#127463;&#127479; Brasil</option>
                     </select>
@@ -1408,7 +1409,7 @@ let patchInterval = setInterval(() => {
     <div class="ff-news-detail-host" id="ff-news-detail-host" hidden>
         </div>
 
-    <!-- ── Pane: General — Hub de navegación ──────────────────────── -->
+      <!-- ── Pane: General — Hub de navegación ──────────────────────── -->
     <div id="pane-general" class="fin-tab-pane">
 
         <main class="favro-finance-shell" id="favro-finance" aria-labelledby="ff-page-title">
@@ -2285,6 +2286,49 @@ let patchInterval = setInterval(() => {
         </div>
     </template>
 
+    <!-- ── Renta variable global por sector ────────────────────────────────
+         Consolida todas las emisoras en una sola lista (sin separar por país),
+         las agrupa por sector económico y destaca los indicadores clave arriba.
+         Se alimenta de loadSectorBoard() y sólo se muestra en la vista Bolsa. -->
+    <section class="sb-panel" id="sectors-panel" aria-labelledby="sb-title">
+        <header class="sb-head">
+            <div>
+                <small>Renta variable global</small>
+                <h3 id="sb-title">Emisoras por sector</h3>
+                <p>Todas las acciones en una sola lista, agrupadas por sector económico y ordenadas por su variación de la sesión.</p>
+            </div>
+            <span class="sb-status" id="sb-status">Cargando…</span>
+        </header>
+
+        <div class="sb-kpis" id="sb-kpis"></div>
+
+        <div class="sb-section-title">
+            <span>Comportamiento por sector</span>
+            <small>Variación media de la sesión · barra sobre el cero</small>
+        </div>
+        <div class="sb-sectors" id="sb-sectors">
+            <div class="sb-skeleton"></div><div class="sb-skeleton"></div><div class="sb-skeleton"></div>
+        </div>
+
+        <div class="sb-filter" id="sb-filter"></div>
+
+        <div class="sb-columns">
+            <section class="sb-col gain">
+                <header><span><i class="fas fa-arrow-up" aria-hidden="true"></i> Mayores ganancias</span><small id="sb-gain-count">—</small></header>
+                <div id="sb-gainers"><div class="sb-skeleton"></div><div class="sb-skeleton"></div><div class="sb-skeleton"></div></div>
+            </section>
+            <section class="sb-col loss">
+                <header><span><i class="fas fa-arrow-down" aria-hidden="true"></i> Mayores pérdidas</span><small id="sb-loss-count">—</small></header>
+                <div id="sb-losers"><div class="sb-skeleton"></div><div class="sb-skeleton"></div><div class="sb-skeleton"></div></div>
+            </section>
+        </div>
+
+        <footer class="sb-foot">
+            <span><i class="fas fa-circle-info" aria-hidden="true"></i> El sector de cada emisora está definido en el propio código con la clasificación estándar del mercado: la API de cotizaciones no lo entrega. La variación por sector es la media simple de sus emisoras, no una media ponderada por capitalización.</span>
+            <small id="sb-source">Cotizaciones vía Yahoo Finance</small>
+        </footer>
+    </section>
+
     <div id="equity-lab-host" class="equity-lab-host"></div>
 
 
@@ -2381,26 +2425,8 @@ let patchInterval = setInterval(() => {
                     <span>Instrumento</span>
                     <span class="ff-market-field"><i class="fas fa-magnifying-glass-chart" aria-hidden="true"></i>
                 <select id="bmv-symbol" aria-label="Seleccionar instrumento financiero">
-                    <optgroup label="🇲🇽 México">
-                        <option value="GFNORTEO.MX" selected>Banorte</option>
-                        <option value="WALMEX.MX">Walmart México</option>
-                        <option value="AMXB.MX">América Móvil</option>    
-                        <option value="FEMSAUBD.MX">FEMSA</option>
-                        <option value="BIMBOA.MX">Bimbo</option>
-                        <option value="CEMEXCPO.MX">Cemex</option>
-                        <option value="GMEXICOB.MX">Grupo México</option>
-                        <option value="GRUMAB.MX">Gruma</option>
-                        <option value="AC.MX">Arca Continental</option>
-                        <option value="ALSEA.MX">Alsea</option>
-                        <option value="KOFUBL.MX">Coca-Cola FEMSA</option>
-                        <option value="ASURB.MX">ASUR</option>
-                        <option value="GAPB.MX">GAP Aeropuertos</option>
-                        <option value="OMAB.MX">OMA</option>
-                        <option value="GENTERA.MX">Gentera</option>
-                        <option value="TLEVISACPO.MX">Televisa</option>
-                    </optgroup>
                     <optgroup label="🇺🇸 Estados Unidos (NYSE / NASDAQ)">
-                        <option value="AAPL">Apple</option>
+                        <option value="AAPL" selected>Apple</option>
                         <option value="MSFT">Microsoft</option>
                         <option value="NVDA">NVIDIA</option>
                         <option value="AMZN">Amazon</option>
@@ -2537,6 +2563,7 @@ let patchInterval = setInterval(() => {
                         <button type="button" class="chart-int-btn" onclick="setFinInt('3y', this)" aria-pressed="false">3 a&ntilde;os</button>
                         <button type="button" class="chart-int-btn" onclick="setFinInt('5y', this)" aria-pressed="false">5 a&ntilde;os</button>
                         <button type="button" class="chart-int-btn" onclick="setFinInt('10y', this)" aria-pressed="false">10 a&ntilde;os</button>
+                        <button type="button" class="chart-int-btn" onclick="setFinInt('20y', this)" aria-pressed="false">20 a&ntilde;os</button>
                     </div>
                 </fieldset>
                 <label class="ff-market-control ff-market-control-search">
@@ -2603,7 +2630,10 @@ let patchInterval = setInterval(() => {
     (function(){
         let _chart = null, _series = null;
         let _currentFinInt = '1y';
-        let _currentTicker = 'GFNORTEO.MX';
+        // El grupo de la Bolsa Mexicana se retiró del selector de instrumentos,
+        // así que el ticker inicial ya no puede ser GFNORTEO.MX: apuntaría a una
+        // opción inexistente y el panel abriría con el selector desincronizado.
+        let _currentTicker = 'AAPL';
         let _lastCandles = [];
         let _loadController = null;
         let _loadSequence = 0;
@@ -2630,6 +2660,11 @@ let patchInterval = setInterval(() => {
             '3y':  { interval: '1wk', range: '3y'  },
             '5y':  { interval: '1wk', range: '5y'  },
             '10y': { interval: '1mo', range: '10y' },
+            // Yahoo no acepta range=20y (sus rangos son 1d/5d/1mo/3mo/6mo/1y/2y/
+            // 5y/10y/ytd/max), así que se pide el histórico completo y se acota
+            // por fecha en loadChart. Si la emisora cotiza desde hace menos de
+            // 20 años, se muestra todo lo disponible.
+            '20y': { interval: '1mo', range: 'max', sinceYears: 20 },
         };
 
         window.setFinInt = function(rangeKey, btn) {
@@ -2766,7 +2801,7 @@ let patchInterval = setInterval(() => {
         }
 
         async function loadChart(ticker, iv) {
-            const { interval, range, trim } = IV_PARAMS[iv] || IV_PARAMS['1y'];
+            const { interval, range, trim, sinceYears } = IV_PARAMS[iv] || IV_PARAMS['1y'];
             const requestId = ++_loadSequence;
             if (_loadController) _loadController.abort();
             _loadController = new AbortController();
@@ -2783,7 +2818,22 @@ let patchInterval = setInterval(() => {
                 if (requestId !== _loadSequence) return;
                 if (!allCandles?.length) throw new Error('Sin velas');
                 // 15min/1H: recortar a las últimas N velas de 1 minuto de la sesión más reciente.
-                const candles = trim ? allCandles.slice(-trim) : allCandles;
+                let candles = trim ? allCandles.slice(-trim) : allCandles;
+
+                // 20 años: Yahoo no tiene range=20y, así que se pide `max` y se
+                // recorta aquí. El recorte es POR FECHA, no por número de velas:
+                // en `max` el espaciado es irregular (trimestral en los años
+                // viejos, mensual en los recientes), de modo que contar velas
+                // daría un periodo equivocado.
+                if (sinceYears) {
+                    const cutoff = new Date();
+                    cutoff.setFullYear(cutoff.getFullYear() - sinceYears);
+                    const toDate = value => new Date(typeof value === 'number'
+                        ? (value < 1e11 ? value * 1000 : value)
+                        : value);
+                    const windowed = candles.filter(c => toDate(c.time) >= cutoff);
+                    if (windowed.length > 1) candles = windowed;
+                }
 
                 const price = meta.regularMarketPrice ?? candles[candles.length - 1]?.close;
                 const pct   = meta.regularMarketChangePercent;
@@ -6255,6 +6305,180 @@ async function loadEmergingFX() {
 
 let _moversChart = null;
 let _moversReportData = [];
+
+/* ── Renta variable global por sector ────────────────────────────────────────
+   El sector NO viene de la API: /api/stock-history usa el endpoint `chart` de
+   Yahoo, que devuelve símbolo, precio, máximo, mínimo y variación, pero no la
+   clasificación sectorial (esa vive en `quoteSummary`, otro endpoint que exige
+   cookie+crumb y es inestable). Se resuelve con este mapa fijo, que además no
+   cuesta ninguna petición extra: los sectores no cambian de un día a otro. */
+const SECTOR_UNIVERSE = [
+    { t: 'AAPL',        n: 'Apple',              s: 'Tecnología',     f: '🇺🇸' },
+    { t: 'MSFT',        n: 'Microsoft',          s: 'Tecnología',     f: '🇺🇸' },
+    { t: 'NVDA',        n: 'NVIDIA',             s: 'Tecnología',     f: '🇺🇸' },
+    { t: 'SAP.DE',      n: 'SAP',                s: 'Tecnología',     f: '🇩🇪' },
+    { t: '005930.KS',   n: 'Samsung Electronics',s: 'Tecnología',     f: '🇰🇷' },
+    { t: '6758.T',      n: 'Sony',               s: 'Tecnología',     f: '🇯🇵' },
+
+    { t: 'GOOGL',       n: 'Alphabet',           s: 'Comunicaciones', f: '🇺🇸' },
+    { t: 'META',        n: 'Meta',               s: 'Comunicaciones', f: '🇺🇸' },
+    { t: '0700.HK',     n: 'Tencent',            s: 'Comunicaciones', f: '🇭🇰' },
+    { t: '9432.T',      n: 'NTT',                s: 'Comunicaciones', f: '🇯🇵' },
+
+    { t: 'UNH',         n: 'UnitedHealth',       s: 'Salud',          f: '🇺🇸' },
+    { t: 'JNJ',         n: 'Johnson & Johnson',  s: 'Salud',          f: '🇺🇸' },
+    { t: 'AZN.L',       n: 'AstraZeneca',        s: 'Salud',          f: '🇬🇧' },
+    { t: 'SAN.PA',      n: 'Sanofi',             s: 'Salud',          f: '🇫🇷' },
+    { t: 'ROG.SW',      n: 'Roche',              s: 'Salud',          f: '🇨🇭' },
+
+    { t: 'JPM',         n: 'JPMorgan Chase',     s: 'Finanzas',       f: '🇺🇸' },
+    { t: 'V',           n: 'Visa',               s: 'Finanzas',       f: '🇺🇸' },
+    { t: 'BAC',         n: 'Bank of America',    s: 'Finanzas',       f: '🇺🇸' },
+    { t: 'HSBA.L',      n: 'HSBC',               s: 'Finanzas',       f: '🇬🇧' },
+    { t: 'BNP.PA',      n: 'BNP Paribas',        s: 'Finanzas',       f: '🇫🇷' },
+
+    { t: 'AMZN',        n: 'Amazon',             s: 'Consumo',        f: '🇺🇸' },
+    { t: 'TSLA',        n: 'Tesla',              s: 'Consumo',        f: '🇺🇸' },
+    { t: 'WMT',         n: 'Walmart',            s: 'Consumo',        f: '🇺🇸' },
+    { t: 'KO',          n: 'Coca-Cola',          s: 'Consumo',        f: '🇺🇸' },
+    { t: 'MC.PA',       n: 'LVMH',               s: 'Consumo',        f: '🇫🇷' },
+    { t: 'NESN.SW',     n: 'Nestlé',             s: 'Consumo',        f: '🇨🇭' },
+    { t: '7203.T',      n: 'Toyota',             s: 'Consumo',        f: '🇯🇵' },
+
+    { t: 'SIE.DE',      n: 'Siemens',            s: 'Industria',      f: '🇩🇪' },
+    { t: 'AIR.PA',      n: 'Airbus',             s: 'Industria',      f: '🇫🇷' },
+    { t: '6501.T',      n: 'Hitachi',            s: 'Industria',      f: '🇯🇵' },
+
+    { t: 'XOM',         n: 'ExxonMobil',         s: 'Energía',        f: '🇺🇸' },
+    { t: 'SHEL.L',      n: 'Shell',              s: 'Energía',        f: '🇬🇧' },
+    { t: 'TTE.PA',      n: 'TotalEnergies',      s: 'Energía',        f: '🇫🇷' },
+    { t: 'RELIANCE.NS', n: 'Reliance',           s: 'Energía',        f: '🇮🇳' },
+
+    { t: 'RIO.L',       n: 'Rio Tinto',          s: 'Materiales',     f: '🇬🇧' },
+    { t: 'VALE3.SA',    n: 'Vale',               s: 'Materiales',     f: '🇧🇷' },
+];
+
+let _sectorRows = [];
+let _sectorFilter = 'all';
+
+function setSectorFilter(sector) {
+    _sectorFilter = sector;
+    paintSectorBoard();
+}
+
+/* Abre la emisora en el laboratorio reutilizando el campo de ticker libre, que
+   acepta cualquier símbolo aunque no esté en el selector. */
+function openTickerInLab(ticker) {
+    const custom = document.getElementById('bmv-custom');
+    if (custom) custom.value = ticker;
+    document.getElementById('bmv-custom-btn')?.click();
+    document.getElementById('bvmx-panel')?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+    });
+}
+
+async function loadSectorBoard() {
+    if (!document.getElementById('sectors-panel')) return;
+    const results = await Promise.allSettled(SECTOR_UNIVERSE.map(a => fetchAssetData(a.t)));
+    _sectorRows = SECTOR_UNIVERSE.map((a, i) => {
+        const data = results[i].status === 'fulfilled' ? results[i].value : null;
+        const pct = data?.meta?.regularMarketChangePercent;
+        return typeof pct === 'number' ? { ...a, pct } : null;
+    }).filter(Boolean);
+    paintSectorBoard();
+}
+
+function paintSectorBoard() {
+    const rows = _sectorRows;
+    const statusEl = document.getElementById('sb-status');
+    const setHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+    const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
+    if (!rows.length) {
+        if (statusEl) { statusEl.textContent = 'Sin datos'; statusEl.className = 'sb-status is-off'; }
+        setHTML('sb-sectors', '<div class="sb-empty">No se pudieron obtener cotizaciones en este momento.</div>');
+        setHTML('sb-gainers', '<div class="sb-empty">Sin datos</div>');
+        setHTML('sb-losers', '<div class="sb-empty">Sin datos</div>');
+        return;
+    }
+
+    // ── Agregado por sector: media simple de las emisoras del grupo ──────────
+    const bySector = {};
+    rows.forEach(r => { (bySector[r.s] = bySector[r.s] || []).push(r); });
+    const sectors = Object.entries(bySector).map(([name, items]) => ({
+        name,
+        n: items.length,
+        avg: items.reduce((sum, it) => sum + it.pct, 0) / items.length,
+    })).sort((a, b) => b.avg - a.avg);
+
+    // ── 1. Indicadores clave ────────────────────────────────────────────────
+    const up = rows.filter(r => r.pct > 0).length;
+    const breadth = Math.round(up / rows.length * 100);
+    const best = sectors[0];
+    const worst = sectors[sectors.length - 1];
+    const sorted = [...rows].sort((a, b) => b.pct - a.pct);
+    const dispersion = sorted[0].pct - sorted[sorted.length - 1].pct;
+    const tone = v => v > 0.05 ? 'up' : v < -0.05 ? 'down' : 'flat';
+    const sign = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+
+    setHTML('sb-kpis', `
+        <div class="sb-kpi ${breadth >= 60 ? 'up' : breadth <= 40 ? 'down' : 'flat'}">
+            <span>Amplitud</span><strong>${breadth}%</strong><small>${up} de ${rows.length} emisoras al alza</small></div>
+        <div class="sb-kpi ${tone(best.avg)}">
+            <span>Sector líder</span><strong>${best.name}</strong><small>${sign(best.avg)} · ${best.n} emisoras</small></div>
+        <div class="sb-kpi ${tone(worst.avg)}">
+            <span>Sector rezagado</span><strong>${worst.name}</strong><small>${sign(worst.avg)} · ${worst.n} emisoras</small></div>
+        <div class="sb-kpi flat">
+            <span>Dispersión</span><strong>${dispersion.toFixed(2)} pp</strong><small>${sorted[0].n} frente a ${sorted[sorted.length - 1].n}</small></div>`);
+
+    if (statusEl) {
+        statusEl.textContent = `${rows.length} emisoras · ${sectors.length} sectores`;
+        statusEl.className = 'sb-status ' + (breadth >= 60 ? 'is-on' : breadth <= 40 ? 'is-off' : '');
+    }
+
+    // ── 2. Sectores. La barra crece desde el cero, no desde el mínimo, para
+    //      que el signo y la magnitud se lean sin traducir. ──────────────────
+    const maxAbs = Math.max(...sectors.map(s => Math.abs(s.avg)), 0.01);
+    setHTML('sb-sectors', sectors.map(s => {
+        const width = Math.max(2, Math.abs(s.avg) / maxAbs * 50);
+        const dir = s.avg >= 0 ? 'up' : 'down';
+        return `<div class="sb-sector ${tone(s.avg)}${_sectorFilter === s.name ? ' is-active' : ''}"
+                     role="button" tabindex="0"
+                     onclick="setSectorFilter('${_sectorFilter === s.name ? 'all' : s.name}')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSectorFilter('${_sectorFilter === s.name ? 'all' : s.name}')}">
+            <span class="sb-sector-name">${s.name}</span>
+            <span class="sb-sector-track"><i class="${dir}" style="width:${width.toFixed(2)}%"></i></span>
+            <span class="sb-sector-pct">${sign(s.avg)}</span>
+            <span class="sb-sector-count">${s.n} emis.</span>
+        </div>`;
+    }).join(''));
+
+    // ── Filtro ──────────────────────────────────────────────────────────────
+    setHTML('sb-filter', [{ name: 'all', label: 'Todos' }, ...sectors.map(s => ({ name: s.name, label: s.name }))]
+        .map(f => `<button type="button" class="${_sectorFilter === f.name ? 'is-active' : ''}" onclick="setSectorFilter('${f.name}')">${f.label}</button>`)
+        .join(''));
+
+    // ── 3. Consolidado, ya sin separar por país ─────────────────────────────
+    const visible = _sectorFilter === 'all' ? sorted : sorted.filter(r => r.s === _sectorFilter);
+    const gainers = visible.filter(r => r.pct > 0).slice(0, 6);
+    const losers = visible.filter(r => r.pct < 0).slice(-6).reverse();
+
+    const renderRows = (items, dir) => items.length
+        ? items.map((r, i) => `<div class="sb-row ${dir}" role="button" tabindex="0"
+                onclick="openTickerInLab('${r.t}')"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTickerInLab('${r.t}')}">
+            <span class="sb-row-pos">${i + 1}</span>
+            <span class="sb-row-co"><strong>${r.f} ${r.n}</strong><small>${r.s} · ${r.t}</small></span>
+            <span class="sb-row-pct">${sign(r.pct)}</span>
+        </div>`).join('')
+        : `<div class="sb-empty">Sin emisoras ${dir === 'up' ? 'al alza' : 'a la baja'} en este filtro</div>`;
+
+    setHTML('sb-gainers', renderRows(gainers, 'up'));
+    setHTML('sb-losers', renderRows(losers, 'down'));
+    setText('sb-gain-count', `${visible.filter(r => r.pct > 0).length} al alza`);
+    setText('sb-loss-count', `${visible.filter(r => r.pct < 0).length} a la baja`);
+}
 
 async function loadTopMovers() {
     const GLOBAL_TICKERS = [

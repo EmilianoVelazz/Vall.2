@@ -3990,8 +3990,10 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
    El fondo era rgba(1,17,27,.22) con borde blanco —pensado para el panel
    oscuro—, que sobre blanco quedaba como una losa gris ajena al resto de
    campos. Ahora es un segmentado claro a juego con los demás controles. */
+/* Ocho periodos (…10 años, 20 años). La rejilla estaba fijada en 7 columnas, de
+   modo que el octavo botón caía solo a una segunda fila y rompía el segmentado. */
 #bvmx-panel .market-chart-controls .chart-intervals {
-    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
     gap: 4px !important;
     padding: 4px !important;
     border: 1px solid #dbe6ec !important;
@@ -4089,7 +4091,9 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     #bvmx-panel .ff-market-control-period { grid-area: 4 / 1 !important; }
 }
 
-@media (max-width: 720px) {
+/* Antes de que ocho columnas se estrechen demasiado, se pasa a 4×2: con ocho
+   periodos son dos filas exactas, sin ningún botón suelto. */
+@media (max-width: 1180px) {
     #bvmx-panel .market-chart-controls .chart-intervals {
         grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     }

@@ -36,7 +36,7 @@ body.ff-detail-bolsa {
 .fin-tabs-nav { display: none !important; }
 .energy-scenario-lab, .energy-drivers { display: none !important; }
 /* Hide legacy chrome (old tab nav, old hub sections) but keep content panels that finTab toggles */
-#pane-general > :not(.favro-finance-shell):not(#fin-layout-wrap):not(#equity-pro-panel):not(#bonds-panel):not(#news-pro-panel):not(#fx-pro-panel):not(#bvmx-panel):not(#watchlist-panel):not(#bolsa-news-panel):not(.fin-exec-strip):not(.hub-grid):not(.hub-hero):not(#equity-lab-host):not(#fin-bottom-grid):not(#fin-section-status):not(script):not(#bvmx-panel-anchor):not(#calendar-panel-main) { display: none !important; }
+#pane-general > :not(.favro-finance-shell):not(#fin-layout-wrap):not(#equity-pro-panel):not(#bonds-panel):not(#news-pro-panel):not(#fx-pro-panel):not(#bvmx-panel):not(#watchlist-panel):not(#bolsa-news-panel):not(.fin-exec-strip):not(.hub-grid):not(.hub-hero):not(#equity-lab-host):not(#fin-bottom-grid):not(#fin-section-status):not(script):not(#bvmx-panel-anchor):not(#calendar-panel-main):not(#sectors-panel) { display: none !important; }
 .favro-finance-shell { color: var(--ff-ink); display: grid; gap: 16px; padding-bottom: 40px; }
 .favro-finance-shell *, .favro-finance-shell *::before, .favro-finance-shell *::after { box-sizing: border-box; }
 .favro-finance-shell button, .favro-finance-shell input, .favro-finance-shell select { font: inherit; }
@@ -281,7 +281,8 @@ body #vn-cw-btn { width: 82px !important; height: 98px !important; }
     border-radius: 11px;
     background: rgba(1,17,27,.22);
     display: grid;
-    grid-template-columns: repeat(7,minmax(0,1fr));
+    /* Ocho periodos: 15m, 1h, 1mes, 1a, 3a, 5a, 10a, 20a. */
+    grid-template-columns: repeat(8,minmax(0,1fr));
     gap: 3px;
 }
 .ff-bolsa-chart-host .market-chart-controls .chart-int-btn {

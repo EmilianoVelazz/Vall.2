@@ -1,0 +1,136 @@
+/* ── Renta variable global por sector ────────────────────────────────────────
+   Panel de la seccion Bolsa. Responde a tres necesidades:
+     1. Indicadores clave destacados arriba, no solo el desglose.
+     2. Clasificacion por sector economico en vez de por pais.
+     3. Consolidado unico de emisoras separado por ganancias y perdidas.
+
+   Usa la misma paleta que el resto de Finanzas: superficies blancas sobre un
+   plano neutro, tinta #0f2436, y verde/rojo solo para direccion de precio.
+   Aqui subir es bueno (accion), al reves que en bonos (rendimiento). */
+
+#sectors-panel { display: none; }
+body.ff-detail-bolsa #sectors-panel { display: block; }
+
+.sb-panel {
+    margin: 0 0 1.2rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(7, 28, 44, .06);
+    border-radius: 24px;
+    background: #ffffff;
+    box-shadow: 0 12px 40px rgba(7, 28, 44, .03), 0 1px 3px rgba(7, 28, 44, .02);
+    font-family: 'Inter', sans-serif;
+}
+
+.sb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.sb-head small { display: block; color: #1f56c9; font: 800 .6rem/1 'Inter', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.sb-head h3 { margin: .35rem 0 0; color: #0f2436; font: 800 1.1rem/1.2 'Inter', sans-serif; letter-spacing: -.02em; }
+.sb-head p { margin: .3rem 0 0; max-width: 64ch; color: #6b7f8f; font: 500 .72rem/1.55 'Inter', sans-serif; }
+.sb-status { flex: 0 0 auto; padding: .32rem .7rem; border: 1px solid #dfe6ec; border-radius: 99px; background: #f6f8fa; color: #566b7c; font: 800 .64rem/1 'Inter', sans-serif; }
+.sb-status.is-on  { border-color: #b9e5cf; background: #edfbf4; color: #0b6e4f; }
+.sb-status.is-off { border-color: #f3c9c7; background: #fdeeed; color: #b3261e; }
+
+/* ── 1. Indicadores clave ───────────────────────────────────────────────── */
+.sb-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .7rem; margin: 1.1rem 0; }
+.sb-kpi { position: relative; overflow: hidden; padding: .85rem .95rem; border: 1px solid #eaeff4; border-radius: 14px; background: #fafbfc; }
+.sb-kpi::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--sb-tone, #898781); }
+.sb-kpi.up   { --sb-tone: #0b6e4f; }
+.sb-kpi.down { --sb-tone: #b3261e; }
+.sb-kpi.flat { --sb-tone: #898781; }
+.sb-kpi > span { display: block; color: #8394a3; font: 800 .57rem/1 'Inter', sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.sb-kpi > strong { display: block; margin: .3rem 0 .15rem; color: #0f2436; font: 800 1.35rem/1 'Inter', sans-serif; letter-spacing: -.03em; }
+.sb-kpi > small { display: block; color: #7b8b99; font: 600 .63rem/1.35 'Inter', sans-serif; }
+
+/* ── 2. Sectores ────────────────────────────────────────────────────────── */
+.sb-section-title { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; margin: 1.3rem 0 .6rem; }
+.sb-section-title span { color: #0f2436; font: 800 .82rem/1.2 'Inter', sans-serif; }
+.sb-section-title small { color: #8394a3; font: 600 .64rem/1 'Inter', sans-serif; }
+
+.sb-sectors { display: flex; flex-direction: column; }
+.sb-sector {
+    display: grid;
+    grid-template-columns: 132px minmax(120px, 1fr) 74px 66px;
+    align-items: center;
+    gap: .7rem;
+    padding: .48rem .5rem;
+    border-bottom: 1px solid #f0f3f6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+.sb-sector:last-child { border-bottom: 0; }
+.sb-sector:hover { background: #f4f7fa; }
+.sb-sector.is-active { background: #eef4fc; }
+.sb-sector-name { overflow: hidden; color: #33465a; font: 700 .74rem/1.25 'Inter', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Barra divergente sobre linea cero: a la derecha si sube, a la izquierda si
+   baja. La linea central es el 0 %, no la media, para no falsear el signo. */
+.sb-sector-track { position: relative; height: 10px; border-radius: 3px; background: #eef1f4; }
+.sb-sector-track::after { content: ''; position: absolute; top: 50%; left: 50%; width: 1px; height: 18px; transform: translateY(-50%); background: #b9c4ce; }
+.sb-sector-track i { position: absolute; top: 0; height: 100%; background: var(--sb-tone, #898781); }
+.sb-sector-track i.up   { left: 50%; border-radius: 0 4px 4px 0; }
+.sb-sector-track i.down { right: 50%; border-radius: 4px 0 0 4px; }
+.sb-sector.up   { --sb-tone: #0b6e4f; }
+.sb-sector.down { --sb-tone: #b3261e; }
+.sb-sector.flat { --sb-tone: #898781; }
+.sb-sector-pct { color: #0f2436; font: 800 .76rem/1 'Inter', sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
+.sb-sector-count { color: #8394a3; font: 600 .62rem/1 'Inter', sans-serif; text-align: right; }
+
+/* ── Filtro ─────────────────────────────────────────────────────────────── */
+.sb-filter { display: flex; flex-wrap: wrap; gap: .3rem; margin: 1rem 0 .7rem; }
+.sb-filter button {
+    padding: .32rem .7rem;
+    border: 1px solid #e2e8ee;
+    border-radius: 99px;
+    background: #ffffff;
+    color: #5c7180;
+    font: 700 .66rem/1 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+.sb-filter button:hover { border-color: #b9cde8; color: #1f56c9; }
+.sb-filter button.is-active { border-color: #2a78d6; background: #2a78d6; color: #ffffff; }
+
+/* ── 3. Consolidado de emisoras ─────────────────────────────────────────── */
+.sb-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.sb-col > header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .4rem; padding-bottom: .4rem; border-bottom: 1px solid #e6ebf0; }
+.sb-col > header span { display: inline-flex; align-items: center; gap: .35rem; font: 800 .68rem/1 'Inter', sans-serif; }
+.sb-col.gain > header span { color: #0b6e4f; }
+.sb-col.loss > header span { color: #b3261e; }
+.sb-col > header small { color: #8394a3; font: 600 .6rem/1 'Inter', sans-serif; }
+
+.sb-row {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) 66px;
+    align-items: center;
+    gap: .55rem;
+    padding: .45rem .4rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+.sb-row:hover { background: #f4f7fa; }
+.sb-row-pos { color: #a0aebb; font: 800 .64rem/1 'Inter', sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
+.sb-row-co { min-width: 0; }
+.sb-row-co strong { display: block; overflow: hidden; color: #0f2436; font: 700 .74rem/1.25 'Inter', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.sb-row-co small { display: block; overflow: hidden; color: #8394a3; font: 600 .6rem/1.3 'Inter', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.sb-row-pct { font: 800 .76rem/1 'Inter', sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
+.sb-row.up .sb-row-pct   { color: #0b6e4f; }
+.sb-row.down .sb-row-pct { color: #b3261e; }
+
+.sb-empty { padding: 1rem; border: 1px dashed #dfe6ec; border-radius: 12px; color: #8394a3; font: 600 .68rem/1.4 'Inter', sans-serif; text-align: center; }
+.sb-skeleton { height: 34px; margin-bottom: .35rem; border-radius: 8px; background: linear-gradient(90deg, #f2f5f8 25%, #e9eef3 50%, #f2f5f8 75%); background-size: 200% 100%; animation: sb-shimmer 1.3s infinite; }
+@keyframes sb-shimmer { to { background-position: -200% 0; } }
+
+.sb-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: .8rem; border-top: 1px solid #f0f3f6; flex-wrap: wrap; }
+.sb-foot span { max-width: 76ch; color: #7b8b99; font: 500 .65rem/1.55 'Inter', sans-serif; }
+.sb-foot span i { margin-right: .25rem; color: #b9c4ce; }
+.sb-foot small { flex: 0 0 auto; color: #a0aebb; font: 600 .62rem/1.4 'Inter', sans-serif; }
+
+@media (max-width: 900px) {
+    .sb-columns { grid-template-columns: 1fr; }
+    .sb-sector { grid-template-columns: 96px minmax(80px, 1fr) 62px; }
+    .sb-sector-count { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sb-skeleton { animation: none; }
+}

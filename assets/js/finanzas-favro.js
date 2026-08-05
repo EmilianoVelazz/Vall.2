@@ -48,7 +48,7 @@
         newsOffset: 0,
         exchangeRanges: {},              // símbolo -> clave de periodo elegida en su tarjeta
         exchangeRangeLoading: new Set(), // peticiones en vuelo, para no duplicarlas
-        supplementMarket: 'mx',          // bolsa elegida en "Lectura verificable de Bolsa"
+        supplementMarket: 'us',          // bolsa elegida en "Lectura verificable de Bolsa"
     };
 
     /* Periodos por tarjeta de bolsa. Mismo criterio que el laboratorio de gráficas
@@ -71,8 +71,10 @@
        a /api/stock-history y se cachean: ~7-10 peticiones la primera vez que se
        elige esa bolsa, ninguna después. Por eso las listas son cortas y de
        emisoras representativas, no índices completos. */
+    /* México se retiró del selector a petición del área: la Bolsa Mexicana ya no
+       aparece como opción. La rama `native` de loadSupplementMarket se conserva
+       porque no estorba y deja el camino abierto si se decide reincorporarla. */
     const SUPPLEMENT_MARKETS = {
-        mx: { label: 'México', market: 'Bolsa Mexicana', currency: 'MXN', native: true },
         us: { label: 'Estados Unidos', market: 'NYSE / Nasdaq', currency: 'USD', tickers: [
             ['AAPL', 'Apple'], ['MSFT', 'Microsoft'], ['NVDA', 'NVIDIA'], ['AMZN', 'Amazon'],
             ['GOOGL', 'Alphabet'], ['META', 'Meta'], ['TSLA', 'Tesla'], ['JPM', 'JPMorgan'],
@@ -86,6 +88,10 @@
         fr: { label: 'Francia', market: 'Euronext París', currency: 'EUR', tickers: [
             ['MC.PA', 'LVMH'], ['OR.PA', "L'Oréal"], ['TTE.PA', 'TotalEnergies'], ['AIR.PA', 'Airbus'],
             ['BNP.PA', 'BNP Paribas'], ['SAN.PA', 'Sanofi'] ] },
+        es: { label: 'España', market: 'BME · Madrid', currency: 'EUR', tickers: [
+            ['SAN.MC', 'Banco Santander'], ['IBE.MC', 'Iberdrola'], ['ITX.MC', 'Inditex'],
+            ['BBVA.MC', 'BBVA'], ['TEF.MC', 'Telefónica'], ['REP.MC', 'Repsol'],
+            ['FER.MC', 'Ferrovial'], ['AMS.MC', 'Amadeus'] ] },
         jp: { label: 'Japón', market: 'Tokyo Stock Exchange', currency: 'JPY', tickers: [
             ['7203.T', 'Toyota'], ['6758.T', 'Sony'], ['9984.T', 'SoftBank'], ['6501.T', 'Hitachi'],
             ['7974.T', 'Nintendo'], ['9432.T', 'NTT'] ] },
@@ -117,7 +123,7 @@
 
     /* Devuelve las emisoras de la bolsa elegida, normalizadas. */
     async function loadSupplementMarket(key) {
-        const cfg = SUPPLEMENT_MARKETS[key] || SUPPLEMENT_MARKETS.mx;
+        const cfg = SUPPLEMENT_MARKETS[key] || SUPPLEMENT_MARKETS.us;
         if (cfg.native) {
             return state.bmvData
                 .filter(item => item.type === 'stock' && isNumeric(item.change_pct))
@@ -195,6 +201,7 @@
         { slug: 'nasdaq', symbol: '^NDX', name: 'Nasdaq 100', region: 'Estados Unidos', market: 'Tecnolog\u00eda' },
         { slug: 'ftse', symbol: '^FTSE', name: 'FTSE 100', region: 'Reino Unido', market: 'London Stock Exchange' },
         { slug: 'dax', symbol: '^GDAXI', name: 'DAX 40', region: 'Alemania', market: 'Frankfurt' },
+        { slug: 'ibex', symbol: '^IBEX', name: 'IBEX 35', region: 'Espa\u00f1a', market: 'BME \u00b7 Madrid' },
         { slug: 'nikkei', symbol: '^N225', name: 'Nikkei 225', region: 'Jap\u00f3n', market: 'Tokyo Stock Exchange' },
         { slug: 'hangseng', symbol: '^HSI', name: 'Hang Seng', region: 'Hong Kong', market: 'HKEX' },
         { slug: 'bovespa', symbol: '^BVSP', name: 'Ibovespa', region: 'Brasil', market: 'B3' },
@@ -2050,6 +2057,9 @@
             finTab(cfg.legacySection, legacyButton, true, true);
         }
         if (name === 'bolsa') prepareBolsaTopLayout();
+        // El tablero por sector vive en el script en línea de finanzas.html, así
+        // que se invoca desde el objeto global y sólo si ya está definido.
+        if (name === 'bolsa' && typeof window.loadSectorBoard === 'function') window.loadSectorBoard();
         if (isNews) {
             const legacyNews = $('news-pro-panel');
             if (legacyNews) legacyNews.style.display = 'none';
@@ -2252,8 +2262,8 @@
     let _supplementReq = 0;
 
     async function renderBolsaSupplement() {
-        const key = state.supplementMarket || 'mx';
-        const cfg = SUPPLEMENT_MARKETS[key] || SUPPLEMENT_MARKETS.mx;
+        const key = state.supplementMarket || 'us';
+        const cfg = SUPPLEMENT_MARKETS[key] || SUPPLEMENT_MARKETS.us;
         const reqId = ++_supplementReq;
         const select = $('ff-supplement-market');
         if (select) select.disabled = true;
@@ -3237,7 +3247,15 @@
         refresh?.classList.add('is-loading');
         state.quotesLoading = true;
         try {
-            const quoteSymbols = ['^GSPC','^NDX','^MXX','^VIX','^MOVE','^FTSE','^GDAXI','^N225','^HSI','^BVSP'];
+            /* Se deriva de exchangeConfig en vez de repetir los símbolos a mano:
+               las tarjetas se dibujaban desde una lista y el dato se pedía desde
+               otra, así que añadir una bolsa dejaba su tarjeta en "Sin datos"
+               hasta que alguien recordara actualizar también este arreglo.
+               Los tres extra no son bolsas: alimentan otros indicadores. */
+            const quoteSymbols = [...new Set([
+                ...exchangeConfig.map(exchange => exchange.symbol),
+                '^MXX', '^VIX', '^MOVE',
+            ])];
             const [bonds, mxRates, spSeries, quotes, bmv] = await Promise.allSettled([
                 fetchJson('/api/bond-yields'),
                 fetchJson('/api/mx-rates'),

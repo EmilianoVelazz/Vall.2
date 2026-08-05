@@ -331,20 +331,17 @@
     let isSending = false;
     let _lastUserText = null;
 
-    /* ── Image sources ──────────────────────────────── */
-    const script       = document.querySelector('script[src*="chat-widget"]');
-    const _defaultFull = script?.dataset.mascota || '/assets/img/mascota1.png';
-    const _defaultPeek = _defaultFull.replace('mascota1', 'mascota');
-
-    function _safeSrc(key, fallback) {
-        try {
-            const v = localStorage.getItem(key);
-            if (v && /^[^:]*$/.test(v) && !/[<>"']/.test(v)) return v;
-        } catch(e) {}
-        return fallback;
-    }
-    const mascotaFull = _safeSrc('vn_mascot_hover_src',  _defaultFull);
-    const mascotaPeek = _safeSrc('vn_mascot_widget_src', _defaultPeek);
+    /* ── Identidad visual del asistente ─────────────────────────────────────
+       Antes había siete mascotas intercambiables, elegidas en Configuración y
+       guardadas en localStorage (vn_mascot_hover_src / vn_mascot_widget_src),
+       de modo que cada usuario veía un personaje distinto. Ahora es un único
+       robot para toda la plataforma: un solo SVG, sin variantes ni preferencia
+       almacenada. Se conserva data-mascota como anulación opcional para no
+       romper las páginas que aún lo declaran. */
+    const script = document.querySelector('script[src*="chat-widget"]');
+    const ROBOT  = script?.dataset.mascota || '/assets/img/robot.svg';
+    const mascotaFull = ROBOT;
+    const mascotaPeek = ROBOT;
 
     /* ── System Prompt ─────────────────────────────── */
     const SYSTEM_PROMPT = `Eres VALL-AI, un analista financiero institucional de élite integrado en la plataforma VALLNews — Inteligencia Económica.
@@ -921,9 +918,11 @@ REGLAS:
 }
 
 /* ── Mascot button ── */
+/* La caja era 112x136, proporción de una mascota de cuerpo entero. El robot es
+   cuadrado, así que se ajusta para que no quede aire alrededor. */
 #vn-cw-btn {
-    width: 112px; height: 136px; cursor: pointer;
-    transform: translateX(36px);
+    width: 96px; height: 96px; cursor: pointer;
+    transform: translateX(30px);
     transition: transform .4s cubic-bezier(.34,1.56,.64,1);
     filter: drop-shadow(-5px 3px 10px rgba(0,0,0,.28));
     position: relative; background: none; border: none; padding: 0;
@@ -931,12 +930,15 @@ REGLAS:
 #vn-cw-btn:hover, #vn-cw-btn.open { transform: translateX(0); }
 #vn-cw-btn img {
     width: 100%; height: 100%; object-fit: contain; display: block;
-    position: absolute; top: 0; left: 0; transition: opacity .25s ease; pointer-events: none;
+    position: absolute; top: 0; left: 0; pointer-events: none;
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1);
 }
-#vn-cw-img-normal { opacity: 1; }
-#vn-cw-img-hover  { opacity: 0; }
-#vn-cw-btn:hover #vn-cw-img-normal, #vn-cw-btn.open #vn-cw-img-normal { opacity: 0; }
-#vn-cw-btn:hover #vn-cw-img-hover,  #vn-cw-btn.open #vn-cw-img-hover  { opacity: 1; }
+/* Las dos capas apuntaban a mascotas distintas y se cruzaban en hover. Con un
+   solo robot ese cruce no comunica nada: la segunda capa se oculta y la
+   realimentación pasa a ser un cambio de escala. */
+#vn-cw-img-hover { display: none; }
+#vn-cw-btn:hover #vn-cw-img-normal,
+#vn-cw-btn.open  #vn-cw-img-normal { transform: scale(1.08); }
 
 /* Indicador de mensajes guardados */
 #vn-cw-badge {
@@ -1193,34 +1195,38 @@ REGLAS:
 .vn-rich-image figcaption { margin-top:.3rem; color:#64748b; font-size:.66rem; text-align:center; }
 .vn-rich-download { align-self:flex-start; border:0; border-radius:8px; padding:.48rem .7rem; background:#00213a; color:#fff; cursor:pointer; font-weight:700; }
 
-/* ── Mobile ── */
+/* ── Tablet ──
+   El robot es cuadrado, así que todos los escalones conservan proporción 1:1.
+   Antes el móvil usaba 86x104, heredado de la mascota de cuerpo entero. */
+@media (max-width:1024px) and (min-width:769px) {
+    #vn-cw-btn { width:84px; height:84px; transform:translateX(22px); }
+    #vn-cw-box { width:min(420px, calc(100vw - 130px)); }
+}
+
+/* ── Móvil ── */
 @media (max-width:768px) {
     #vn-cw { bottom:8px; right:0; }
-    #vn-cw-btn { width:86px; height:104px; transform:translateX(0); }
+    #vn-cw-btn { width:72px; height:72px; transform:translateX(0); }
     #vn-cw-btn:hover, #vn-cw-btn.open { transform:translateX(0); }
-    #vn-cw-box { left:8px; right:8px; width:auto; top:58px; bottom:112px; max-height:none; border-radius:14px; }
+    #vn-cw-box { left:8px; right:8px; width:auto; top:58px; bottom:88px; max-height:none; border-radius:14px; }
+}
+
+/* Pantallas muy estrechas: el botón no debe comerse la esquina útil. */
+@media (max-width:400px) {
+    #vn-cw-btn { width:60px; height:60px; }
+    #vn-cw-box { bottom:76px; }
+}
+
+/* Si el usuario pide menos movimiento, el rebote del botón se desactiva. */
+@media (prefers-reduced-motion: reduce) {
+    #vn-cw-btn, #vn-cw-btn img { transition: none; }
 }
 `;
         document.head.appendChild(style);
 
-        /* ── Custom translateX override ── */
-        const _CSS_VAL = /^-?\d+(\.\d+)?(px|%)$/;
-        try {
-            const _tx  = localStorage.getItem('vn_mascot_translate');
-            const _txM = localStorage.getItem('vn_mascot_translate_m');
-            if (_tx && _CSS_VAL.test(_tx.trim())) {
-                const txS  = _tx.trim();
-                const txMS = (_txM && _CSS_VAL.test(_txM.trim())) ? _txM.trim() : txS;
-                const st = document.createElement('style');
-                st.id = 'vn-mascot-tx';
-                st.textContent =
-                    `#vn-cw-btn{transform:translateX(${txS}) !important;}` +
-                    `#vn-cw-btn:hover,#vn-cw-btn.open{transform:translateX(0) !important;}` +
-                    `@media(max-width:768px){#vn-cw-btn{transform:translateX(${txMS}) !important;}` +
-                    `#vn-cw-btn:hover,#vn-cw-btn.open{transform:translateX(0) !important;}}`;
-                document.head.appendChild(st);
-            }
-        } catch(e) {}
+        /* Aquí se leía vn_mascot_translate para reencuadrar el botón según la
+           mascota elegida: cada personaje necesitaba su propio desplazamiento.
+           Con un único robot el encuadre es fijo y ese ajuste sobra. */
 
         /* ── HTML ── */
         const curPage = detectPage();

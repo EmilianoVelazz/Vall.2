@@ -376,7 +376,7 @@
         const row = document.createElement('article');
         row.className = 'vai-message ' + (message.role === 'user' ? 'user' : 'assistant');
         const avatar = document.createElement('div'); avatar.className = 'vai-avatar';
-        avatar.innerHTML = message.role === 'user' ? '<i class="fas fa-user"></i>' : '<img src="/assets/img/mascota1.png" alt="VALL AI">';
+        avatar.innerHTML = message.role === 'user' ? '<i class="fas fa-user"></i>' : '<img src="/assets/img/robot.svg" alt="VALL AI">';
         const bubble = document.createElement('div'); bubble.className = 'vai-bubble';
         if (options.thinking) bubble.innerHTML = '<span class="vai-thinking">Analizando <i></i><i></i><i></i></span>';
         else renderRich(bubble, message.rich, message.text || '');

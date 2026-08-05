@@ -29,6 +29,35 @@
     
     --font-sans:  'Inter', system-ui, sans-serif;
     --font-serif: 'Playfair Display', Georgia, serif;
+
+    /* ── Paleta de secciones ─────────────────────────────────────────────────
+       Antes Finanzas y Mercados compartían el mismo azul #1d4ed8, y Mercado
+       Proteínas (#059669) con México (#15803d) eran dos verdes casi idénticos:
+       cinco secciones con tres tonos distinguibles. Estos seis hues están
+       validados para distinguirse entre sí sobre fondo blanco, incluida visión
+       con deficiencia de color. El orden es el de la retícula, que es el que
+       determina qué pares quedan uno junto a otro.
+
+       Cada familia trae dos niveles. El tono pinta superficies grandes (el filo
+       de la tarjeta), donde basta 3:1. El nivel -ink pinta la insignia, que
+       lleva texto blanco a ~10px y por tanto exige 4.5:1: en aqua daba 2.82 y
+       en ámbar 2.17, ilegibles. Todos los -ink quedan por encima de 4.9:1. */
+    --sec-finanzas:  #2a78d6;  --sec-finanzas-ink:  #1f56c9;
+    --sec-mercados:  #eb6834;  --sec-mercados-ink:  #b8471f;
+    --sec-geo:       #4a3aa7;  --sec-geo-ink:       #4a3aa7;
+    --sec-proteinas: #1baf7a;  --sec-proteinas-ink: #0e7a56;
+    --sec-mexico:    #008300;  --sec-mexico-ink:    #008300;
+    --sec-ai:        #eda100;  --sec-ai-ink:        #8a6100;
+
+    /* ── Planos y tinta ──────────────────────────────────────────────────────
+       El plano pasa del azul frío #ccd9e3 a un neutro claro: el azul teñía
+       todas las tarjetas blancas y competía con el color de sección. */
+    --plane:      #f4f6f8;
+    --surface:    #ffffff;
+    --ink:        #0f2436;
+    --ink-2:      #566b7c;
+    --ink-3:      #8394a3;
+    --hairline:   rgba(7, 28, 44, 0.08);
 }
 
 html {

@@ -85,6 +85,24 @@
         .form-hint {
             font-size: 0.72rem; color: #94a3b8; margin-top: 0.3rem;
         }
+        /* Identidad única del asistente (sustituye al selector de mascotas). */
+        .assistant-identity {
+            display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap;
+        }
+        .assistant-avatar {
+            flex: 0 0 auto; width: 86px; height: 86px;
+            display: grid; place-items: center;
+            border: 1px solid rgba(7,28,44,.08); border-radius: 18px;
+            background: linear-gradient(145deg, #f4f7fa, #e9eff5);
+        }
+        .assistant-avatar img { width: 66px; height: 66px; object-fit: contain; display: block; }
+        .assistant-identity strong { display: block; color: #0f2436; font-size: .95rem; font-weight: 800; }
+        .assistant-identity p { margin: .25rem 0 0; max-width: 52ch; color: #64748b; font-size: .78rem; line-height: 1.55; }
+        @media (max-width: 520px) {
+            .assistant-avatar { width: 68px; height: 68px; }
+            .assistant-avatar img { width: 52px; height: 52px; }
+        }
+
         .mascot-selector-wrap {
             display: flex; gap: 1.6rem; align-items: flex-start;
         }
@@ -279,7 +297,7 @@
         <div class="section-lbl"><i class="fas fa-user"></i> Perfil</div>
         <div class="profile-header">
             <div class="profile-avatar">
-                <img id="avatar-preview" src="/assets/img/mascota1.png" alt="Mascota">
+                <img id="avatar-preview" src="/assets/img/robot.svg" alt="Asistente VALL-AI">
             </div>
             <div class="profile-info">
                 <h2 id="display-name-label">Usuario</h2>
@@ -299,68 +317,21 @@
             <i class="fas fa-floppy-disk"></i> Guardar perfil
         </button>
     </div>
+    <!-- Aquí vivía un selector de siete mascotas (Atlas, Vega, Luna, Apex, Nova,
+         Titan, Zenith) que se guardaba por usuario en localStorage, de modo que
+         cada cuenta veía un personaje distinto. La identidad del asistente pasa
+         a ser única en toda la plataforma, así que no hay nada que elegir. -->
     <div class="panel">
-        <div class="section-lbl"><i class="fas fa-robot"></i> Mascota VALL-AI</div>
-        <p style="font-size:.82rem;color:#64748b;margin-bottom:1.4rem;">
-            Elige el asistente que aparece en tu burbuja de chat y en el perfil.
-        </p>
-        <div class="mascot-selector-wrap">
-            <div class="mascot-preview-col">
-                <div class="mascot-preview-frame">
-                    <img id="mascot-preview-large" src="/assets/img/mascota1.png" alt="Vista previa mascota">
-                    <span class="mascot-preview-name" id="mascot-preview-name">Atlas</span>
-                    <span class="mascot-preview-tag">VALL-AI</span>
-                </div>
-                <p class="mascot-preview-hint">Pasa el cursor para previsualizar</p>
+        <div class="section-lbl"><i class="fas fa-robot"></i> Asistente VALL-AI</div>
+        <div class="assistant-identity">
+            <div class="assistant-avatar">
+                <img src="/assets/img/robot.svg" alt="Asistente VALL-AI">
             </div>
-            <div class="mascot-options-col">
-                <div class="mascot-option" data-mascot="1" onclick="selectMascot('1')" onmouseenter="hoverMascot('1')" onmouseleave="restoreMascot()">
-                    <div class="mo-check"><i class="fas fa-check"></i></div>
-                    <img src="/assets/img/mascota.png" alt="Atlas">
-                    <div class="mo-name">Atlas</div>
-                    <span class="mo-badge">Por defecto</span>
-                </div>
-                <div class="mascot-option" data-mascot="2" onclick="selectMascot('2')" onmouseenter="hoverMascot('2')" onmouseleave="restoreMascot()">
-                    <div class="mo-check"><i class="fas fa-check"></i></div>
-                    <img src="/assets/img/mascota2.1.png" alt="Vega">
-                    <div class="mo-name">Vega</div>
-                    <span class="mo-badge">VALL-AI</span>
-                </div>
-                <div class="mascot-option" data-mascot="3" onclick="selectMascot('3')" onmouseenter="hoverMascot('3')" onmouseleave="restoreMascot()">
-                    <div class="mo-check"><i class="fas fa-check"></i></div>
-                    <img src="/assets/img/mascota3.1.png" alt="Luna">
-                    <div class="mo-name">Luna</div>
-                    <span class="mo-badge">VALL-AI</span>
-                </div>
-                <div class="mascot-option" data-mascot="4" onclick="selectMascot('4')" onmouseenter="hoverMascot('4')" onmouseleave="restoreMascot()">
-                    <div class="mo-check"><i class="fas fa-check"></i></div>
-                    <img src="/assets/img/mascota4.1.png" alt="Apex">
-                    <div class="mo-name">Apex</div>
-                    <span class="mo-badge">VALL-AI</span>
-                </div>
-                <div class="mascot-option" data-mascot="5" onclick="selectMascot('5')" onmouseenter="hoverMascot('5')" onmouseleave="restoreMascot()">
-                    <div class="mo-check"><i class="fas fa-check"></i></div>
-                    <img src="/assets/img/mascota5.1.png" alt="Nova">
-                    <div class="mo-name">Nova</div>
-                    <span class="mo-badge">VALL-AI</span>
-                </div>
-                <div class="mascot-option" data-mascot="6" onclick="selectMascot('6')" onmouseenter="hoverMascot('6')" onmouseleave="restoreMascot()">
-                    <div class="mo-check"><i class="fas fa-check"></i></div>
-                    <img src="/assets/img/mascota6.1.png" alt="Titan">
-                    <div class="mo-name">Titan</div>
-                    <span class="mo-badge">VALL-AI</span>
-                </div>
-                <div class="mascot-option" data-mascot="7" onclick="selectMascot('7')" onmouseenter="hoverMascot('7')" onmouseleave="restoreMascot()">
-                    <div class="mo-check"><i class="fas fa-check"></i></div>
-                    <img src="/assets/img/mascota7.1.png" alt="Zenith">
-                    <div class="mo-name">Zenith</div>
-                    <span class="mo-badge">VALL-AI</span>
-                </div>
+            <div>
+                <strong>VALL-AI</strong>
+                <p>Un único asistente para toda la plataforma. Aparece en la burbuja de chat de cada sección y en la página de análisis.</p>
             </div>
         </div>
-        <button class="btn btn-primary" id="btn-save-mascot" style="margin-top:1.2rem;">
-            <i class="fas fa-floppy-disk"></i> Guardar mascota
-        </button>
     </div>
     <div class="panel">
         <div class="section-lbl"><i class="fas fa-lock"></i> Seguridad</div>
@@ -400,7 +371,7 @@
 <div id="vn-toast"></div>
 <script src="/assets/js/api-keys.js?v=5"></script>
 <script src="/assets/js/data-service.js?v=22"></script>
-<script src="/assets/js/chat-widget.js?v=31" data-mascota="/assets/img/mascota1.png"></script>
+<script src="/assets/js/chat-widget.js?v=32" data-mascota="/assets/img/robot.svg"></script>
 <script>
 (function () {
     var toast = document.getElementById('vn-toast');
@@ -411,94 +382,29 @@
         toast.className = 'show ' + (type === 'ok' ? 'toast-ok' : type === 'err' ? 'toast-err' : '');
         _toastTimer = setTimeout(function () { toast.className = ''; }, 3200);
     }
-    var MASCOTS = {
-        '1': { preview: '/assets/img/mascota1.png',   widget: '/assets/img/mascota.png',    name: 'Atlas'   },
-        '2': { preview: '/assets/img/mascota2.png',   widget: '/assets/img/mascota2.1.png', name: 'Vega'    },
-        '3': { preview: '/assets/img/mascota3.png',   widget: '/assets/img/mascota3.1.png', name: 'Luna'    },
-        '4': { preview: '/assets/img/mascota4.png',   widget: '/assets/img/mascota4.1.png', name: 'Apex'    },
-        '5': { preview: '/assets/img/mascota5.png',   widget: '/assets/img/mascota5.1.png', name: 'Nova'    },
-        '6': { preview: '/assets/img/mascota6.png',   widget: '/assets/img/mascota6.1.png', name: 'Titan',   widgetObjPos: '0% 0%', widgetTranslate: '16px', widgetTranslateMobile: '10px' },
-        '7': { preview: '/assets/img/mascota7.png',   widget: '/assets/img/mascota7.1.png', name: 'Zenith'  },
-    };
-    window.selectMascot = function (key, silent) {
-        var m = MASCOTS[key] || MASCOTS['1'];
-        document.querySelectorAll('.mascot-option').forEach(function (el) {
-            el.classList.toggle('selected', el.dataset.mascot === key);
-        });
-        document.getElementById('avatar-preview').src = m.preview;
-        var lg = document.getElementById('mascot-preview-large');
-        if (lg) lg.src = m.preview;
-        var nm = document.getElementById('mascot-preview-name');
-        if (nm) nm.textContent = m.name;
-        if (!silent) window._pendingMascot = key;
-    };
-    window.hoverMascot = function (key) {
-        var m = MASCOTS[key] || MASCOTS['1'];
-        var lg = document.getElementById('mascot-preview-large');
-        if (lg) lg.src = m.preview;
-        var nm = document.getElementById('mascot-preview-name');
-        if (nm) nm.textContent = m.name;
-    };
-    window.restoreMascot = function () {
-        var key = window._pendingMascot || '1';
-        var m = MASCOTS[key] || MASCOTS['1'];
-        var lg = document.getElementById('mascot-preview-large');
-        if (lg) lg.src = m.preview;
-        var nm = document.getElementById('mascot-preview-name');
-        if (nm) nm.textContent = m.name;
-    };
+    /* Se retiraron MASCOTS, selectMascot, hoverMascot y restoreMascot junto con
+       el selector. Además se limpian las claves que dejó guardadas: el widget ya
+       no las lee, pero si se quedaran ahí y alguien reintrodujera la lectura,
+       volverían a aparecer mascotas viejas por usuario. */
     try {
-        var savedMascot = localStorage.getItem('vn_mascot_choice') || '1';
-        var savedName   = localStorage.getItem('vn_display_name') || '';
-        window._pendingMascot = savedMascot;
+        ['vn_mascot_choice', 'vn_mascot_widget_src', 'vn_mascot_hover_src',
+         'vn_mascot_obj_pos', 'vn_mascot_translate', 'vn_mascot_translate_m']
+            .forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
+
+    try {
+        var savedName = localStorage.getItem('vn_display_name') || '';
         var email = sessionStorage.getItem('vn_user') || localStorage.getItem('vn_user') || '';
         document.getElementById('input-email').value = email;
         document.getElementById('email-label').textContent = email || 'Usuario';
         document.getElementById('input-name').value = savedName;
         document.getElementById('display-name-label').textContent = savedName || 'Usuario';
-        selectMascot(savedMascot, true);
 
         document.getElementById('btn-save-profile').addEventListener('click', function () {
             var name = document.getElementById('input-name').value.trim();
             localStorage.setItem('vn_display_name', name);
             document.getElementById('display-name-label').textContent = name || 'Usuario';
             showToast('Perfil guardado', 'ok');
-        });
-
-        document.getElementById('btn-save-mascot').addEventListener('click', function () {
-            var key    = window._pendingMascot || '1';
-            var m      = MASCOTS[key] || MASCOTS['1'];
-            var objPos = m.widgetObjPos || '';
-            localStorage.setItem('vn_mascot_choice',     key);
-            localStorage.setItem('vn_mascot_widget_src', m.widget);
-            localStorage.setItem('vn_mascot_hover_src',  m.preview);
-            localStorage.setItem('vn_mascot_obj_pos',    objPos);
-            localStorage.setItem('vn_mascot_translate',  m.widgetTranslate       || '');
-            localStorage.setItem('vn_mascot_translate_m', m.widgetTranslateMobile || '');
-            // Actualizar el widget en vivo sin recargar la página
-            var cwNormal = document.getElementById('vn-cw-img-normal');
-            var cwHover  = document.getElementById('vn-cw-img-hover');
-            var cwHdrImg = document.querySelector('#vn-cw-hdr img');
-            if (cwNormal) {
-                cwNormal.src = m.widget;
-                cwNormal.style.objectFit      = objPos ? 'cover'   : 'contain';
-                cwNormal.style.objectPosition = objPos ? objPos     : 'center';
-            }
-            if (cwHover)  cwHover.src  = m.preview;
-            if (cwHdrImg) cwHdrImg.src = m.preview;
-            var _oldTx = document.getElementById('vn-mascot-tx');
-            if (_oldTx) _oldTx.remove();
-            if (m.widgetTranslate) {
-                var _newTx = document.createElement('style');
-                _newTx.id  = 'vn-mascot-tx';
-                _newTx.textContent =
-                    '#vn-cw-btn{transform:translateX(' + m.widgetTranslate + ') !important;}' +
-                    '#vn-cw-btn:hover,#vn-cw-btn.open{transform:translateX(0) !important;}' +
-                    '@media(max-width:768px){#vn-cw-btn{transform:translateX(' + (m.widgetTranslateMobile||m.widgetTranslate) + ') !important;}' +
-                    '#vn-cw-btn:hover,#vn-cw-btn.open{transform:translateX(0) !important;}}';
-                document.head.appendChild(_newTx);
-            }
-            showToast('Mascota actualizada', 'ok');
         });
 
         document.getElementById('btn-save-pass').addEventListener('click', async function () {

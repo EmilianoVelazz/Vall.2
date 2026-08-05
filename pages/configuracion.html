@@ -103,76 +103,6 @@
             .assistant-avatar img { width: 52px; height: 52px; }
         }
 
-        .mascot-selector-wrap {
-            display: flex; gap: 1.6rem; align-items: flex-start;
-        }
-        .mascot-preview-col {
-            flex-shrink: 0; display: flex; flex-direction: column;
-            align-items: center; gap: 0.5rem;
-        }
-        .mascot-preview-frame {
-            width: 108px;
-            background: linear-gradient(145deg, #f0f4f8, #e8eef5);
-            border-radius: 20px; padding: 1.1rem 0.8rem 0.8rem;
-            display: flex; flex-direction: column; align-items: center;
-            border: 2px solid rgba(0,33,58,0.1);
-            box-shadow: 0 4px 18px rgba(0,33,58,0.10);
-            transition: box-shadow 0.2s;
-        }
-        .mascot-preview-name {
-            font-size: 0.72rem; font-weight: 700; color: #1e293b;
-        }
-        .mascot-preview-tag {
-            margin-top: 0.2rem; font-size: 0.56rem; font-weight: 800;
-            letter-spacing: 0.08em; background: #00213a; color: #fff;
-            padding: 2px 7px; border-radius: 10px; display: inline-block;
-        }
-        .mascot-preview-hint {
-            font-size: 0.63rem; color: #94a3b8; text-align: center;
-        }
-        .mascot-preview-frame img {
-            width: 78px; height: 116px; object-fit: contain;
-            display: block; margin-bottom: 0.55rem;
-            transition: transform 0.28s cubic-bezier(.34,1.56,.64,1);
-        }
-        .mascot-options-col {
-            flex: 1; display: grid;
-            grid-template-columns: repeat(4, 1fr); gap: 0.65rem;
-        }
-        .mascot-option {
-            position: relative;
-            border: 2px solid rgba(0,33,58,0.12);
-            border-radius: 14px; padding: 0.8rem 0.5rem 0.7rem;
-            cursor: pointer; text-align: center;
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-            background: #fafbfc;
-        }
-        .mascot-option:hover {
-            border-color: #00213a;
-            box-shadow: 0 4px 14px rgba(0,33,58,0.10);
-        }
-        .mascot-option.selected {
-            border-color: #00213a; background: #f0f4f8;
-            box-shadow: 0 4px 14px rgba(0,33,58,0.14);
-        }
-        .mascot-option img {
-            width: 52px; height: 72px; object-fit: contain;
-            display: block; margin: 0 auto 0.4rem;
-            transition: transform 0.2s;
-        }
-        .mascot-option:hover img { transform: scale(1.08); }
-        .mascot-option .mo-name {
-            font-size: 0.7rem; font-weight: 600; color: #1e293b;
-        }
-        .mascot-option .mo-badge {
-            display: inline-block; margin-top: 0.22rem;
-            font-size: 0.55rem; font-weight: 700; letter-spacing: 0.05em;
-            padding: 2px 6px; border-radius: 10px;
-            background: rgba(0,33,58,0.08); color: #00213a;
-            transition: background 0.2s, color 0.2s;
-            white-space: nowrap;
-        }
-        .mascot-option.selected .mo-badge { background: #00213a; color: #fff; }
         .mo-check {
             position: absolute; top: 0.45rem; right: 0.45rem;
             width: 18px; height: 18px; border-radius: 50%;
@@ -182,40 +112,13 @@
             transform: scale(0.6);
             transition: opacity 0.2s, transform 0.2s cubic-bezier(.34,1.56,.64,1);
         }
-        .mascot-option.selected .mo-check { opacity: 1; transform: scale(1); }
-        .mascot-option[data-mascot="6"] img {
-            object-fit: cover;
-            object-position: 0% 0%;
-        }
         @media (max-width: 640px) {
-            .mascot-options-col { grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
-            .mascot-option img  { width: 44px; height: 62px; }
         }
         @media (max-width: 520px) {
-            .mascot-selector-wrap  { flex-direction: column; align-items: stretch; gap: 1rem; }
-            .mascot-preview-col    { flex-direction: row; align-items: center; gap: 1rem;
-                                     padding: 0.75rem 1rem;
-                                     background: linear-gradient(145deg,#f0f4f8,#e8eef5);
-                                     border-radius: 14px; border: 2px solid rgba(0,33,58,.1); }
-            .mascot-preview-frame  { background: none; border: none; box-shadow: none;
-                                     padding: 0; width: auto; flex-direction: row;
-                                     align-items: center; gap: 0.9rem; }
-            .mascot-preview-frame img { width: 60px; height: 88px; margin-bottom: 0; }
-            .mascot-preview-hint   { display: none; }
-            .mascot-options-col    { width: 100%; grid-template-columns: repeat(4, 1fr); gap: 0.45rem; }
-            .mascot-option         { padding: 0.6rem 0.3rem 0.5rem; }
-            .mascot-option img     { width: 40px; height: 56px; }
-            .mascot-option .mo-name  { font-size: 0.6rem; }
-            .mascot-option .mo-badge { display: none; }
         }
         @media (max-width: 420px) {
-            .mascot-options-col { grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
-            .mascot-option      { padding: 0.5rem 0.25rem 0.45rem; border-radius: 10px; }
-            .mascot-option img  { width: 34px; height: 48px; }
         }
         @media (max-width: 375px) {
-            .mascot-options-col { grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
-            .mascot-option img  { width: 38px; height: 54px; }
         }
         .btn {
             display: inline-flex; align-items: center; gap: 0.45rem;

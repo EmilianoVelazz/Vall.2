@@ -207,10 +207,15 @@ router.get('/stock-history', async (req, res) => {
             const o = quote.open?.[i], h = quote.high?.[i],
                   l = quote.low?.[i],  c = quote.close?.[i];
             if (o == null || h == null || l == null || c == null) return null;
-            if (isIntraday) return { time: t, open: o, high: h, low: l, close: c };
+            // Yahoo entrega el volumen junto al resto de la vela y hasta ahora se
+            // descartaba, de modo que el cliente no tenía forma de mostrarlo.
+            // Puede venir nulo (es habitual en algunos índices): se deja como null
+            // para que la vista lo marque como no disponible en vez de inventarlo.
+            const v = quote.volume?.[i] ?? null;
+            if (isIntraday) return { time: t, open: o, high: h, low: l, close: c, volume: v };
             const d  = new Date(t * 1000);
             const ds = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-            return { time: ds, open: o, high: h, low: l, close: c };
+            return { time: ds, open: o, high: h, low: l, close: c, volume: v };
         }).filter(Boolean);
 
         const meta    = result.meta || {};

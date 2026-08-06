@@ -124,10 +124,12 @@ app.use((req, res, next) => {
 // Solo aplica en Express local (desarrollo). En Vercel los estáticos van por CDN.
 // Protege GET de archivos .html específicos sin tocar ninguna ruta /api/*.
 
+// El process.exit condicional anterior solo corría al ejecutar este archivo
+// directamente. Cargado como módulo desde api/index.js (Vercel) no se aplicaba,
+// y el servidor arrancaba igual sin secreto. Lanzar aborta en ambos casos.
 const _JWT_SECRET_STATIC = process.env.JWT_SECRET;
 if (!_JWT_SECRET_STATIC) {
-    console.error('  [FATAL] JWT_SECRET no está configurado en backend/.env — el servidor no puede arrancar de forma segura.');
-    if (require.main === module) process.exit(1);
+    throw new Error('JWT_SECRET no está configurado en backend/.env — el servidor no puede arrancar de forma segura.');
 }
 
 // Nombres exactos de páginas protegidas

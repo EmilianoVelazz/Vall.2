@@ -19,7 +19,16 @@ const loginLimiter = rateLimit({
     message: { success: false, error: 'Demasiados intentos de login. Espera 15 minutos.' },
 });
 
-const JWT_SECRET  = process.env.JWT_SECRET || 'cambia_este_secreto_jwt_ahora';
+// Sin secreto no hay forma segura de firmar ni verificar tokens: un valor por
+// defecto permitiría a cualquiera que lo conozca forjar una sesión válida. Se
+// aborta la carga del módulo en lugar de continuar con un secreto público.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error(
+        'JWT_SECRET no está configurado. Defínelo en backend/.env (local) o en las ' +
+        'variables de entorno del despliegue antes de arrancar.'
+    );
+}
 const JWT_EXPIRES = '8h';
 const ENV_PATH    = path.join(__dirname, '..', '.env');
 
@@ -45,7 +54,13 @@ let _envWriting = false;
 
 /** Actualiza USER_PASSWORD en el .env y en process.env */
 function updateEnvPassword(newValue) {
-    if (_envWriting) return;
+    // Salir en silencio dejaba que quien llamara respondiera "éxito" sin haber
+    // escrito nada: el usuario creía haber cambiado su contraseña y no era así.
+    if (_envWriting) {
+        const err = new Error('Otra actualización de contraseña está en curso. Intenta de nuevo en unos segundos.');
+        err.code = 'ENV_WRITE_BUSY';
+        throw err;
+    }
     _envWriting = true;
     try {
         let envContent = '';
@@ -174,6 +189,8 @@ router.post('/change-password', verifyToken, async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error('/api/change-password error:', err.message);
+        if (err.code === 'ENV_WRITE_BUSY')
+            return res.status(409).json({ success: false, error: err.message });
         res.status(500).json({ success: false, error: 'Error interno al cambiar la contraseña.' });
     }
 });

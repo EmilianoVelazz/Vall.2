@@ -40,10 +40,25 @@ const IMG_EXCLUDE = new Set([
 // ── 1. Compilar React ─────────────────────────────────────────────────────────
 // Se invoca el binario de Vite directamente: en Windows, spawn de npm.cmd falla
 // con EINVAL en las versiones recientes de Node.
+// frontend/node_modules está en .gitignore, así que en un clon limpio —y en el
+// contenedor de Vercel— no existe. Sin esta instalación el build se detenía ahí:
+// en local pasaba desapercibido porque la carpeta ya estaba.
 const viteBin = path.join(FRONT, 'node_modules', 'vite', 'bin', 'vite.js');
 if (!existsSync(viteBin)) {
-    console.error('[build-dist] Falta frontend/node_modules. Ejecuta: npm install --prefix frontend');
-    process.exit(1);
+    console.log('[build-dist] Instalando dependencias de frontend/…');
+    // En Windows, spawn de npm.cmd sin shell falla con EINVAL en Node reciente,
+    // así que se lanza a través del shell. El comando va como una sola cadena:
+    // combinar shell con un array de argumentos está deprecado en Node.
+    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const install = spawnSync(`${npmCmd} install --include=dev --no-audit --no-fund`, {
+        cwd: FRONT,
+        stdio: 'inherit',
+        shell: true,
+    });
+    if (install.status !== 0 || !existsSync(viteBin)) {
+        console.error('[build-dist] No se pudieron instalar las dependencias de frontend/.');
+        process.exit(install.status || 1);
+    }
 }
 
 console.log('[build-dist] Compilando el frontend de React…');

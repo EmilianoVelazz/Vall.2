@@ -751,10 +751,10 @@
     .sparkline-path-down { stroke: #dc2626; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
     </style>
-    <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.7">
+    <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.8">
     <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=3.0">
-    <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=69">
-    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=110">
+    <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=70">
+    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=111">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
     <link rel="stylesheet" href="../assets/css/returns-pro.css?v=12">
     <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
@@ -2067,33 +2067,7 @@ let patchInterval = setInterval(() => {
         </section>
 
         <div class="debt-main-grid">
-            <article class="debt-block debt-structure-block debt-report-source report-card" role="button" tabindex="0" title="Abrir reporte del régimen de curva" onclick="openDebtSectionReport('regime')" onkeydown="reportCardKey(event,()=>openDebtSectionReport('regime'))">
-                <div class="debt-block-head">
-                    <div><small>Señal macro de referencia</small><h3>Régimen de curva y ciclo</h3></div>
-                    <span class="debt-regime-badge" id="debt-regime-badge">Calculando señal</span>
-                </div>
-                <div class="debt-regime-source"><i class="fas fa-wave-square"></i><span>Curva del Tesoro de EE. UU.</span><small>Indicador del ciclo financiero global</small></div>
-                <div class="debt-curve-readout debt-regime-hero">
-                    <div class="debt-curve-orbit"><span id="debt-curve-spread">—</span><small>30Y − 5Y</small></div>
-                    <div><span class="debt-regime-kicker">Lectura actual</span><strong id="debt-curve-label">Esperando datos</strong><p id="debt-curve-copy">La pendiente ayuda a interpretar expectativas de crecimiento, inflación y prima por plazo.</p></div>
-                </div>
-                <div class="debt-regime-scale" aria-label="Escala del régimen de curva">
-                    <div class="debt-regime-scale-track"><span id="debt-regime-marker"></span></div>
-                    <div><small>Invertida</small><small>Plana</small><small>Positiva</small></div>
-                </div>
-                <div class="debt-signal-grid">
-                    <div><span><i class="fas fa-stopwatch"></i> Tramo frontal</span><strong id="debt-signal-front">—</strong><small>5Y − 3M</small></div>
-                    <div><span><i class="fas fa-hourglass-half"></i> Prima larga</span><strong id="debt-signal-long">—</strong><small>30Y − 10Y</small></div>
-                    <div><span><i class="fas fa-peso-sign"></i> Prima México</span><strong id="debt-signal-mx">—</strong><small>MX − US 10Y</small></div>
-                    <div><span><i class="fas fa-arrow-trend-up"></i> Movimiento 10Y</span><strong id="debt-signal-us10">—</strong><small>Variación diaria</small></div>
-                </div>
-                <div class="debt-regime-implications">
-                    <div class="debt-regime-implications-head"><span>Implicaciones para el mercado</span><small>Lectura orientativa</small></div>
-                    <div><i class="fas fa-chart-area"></i><span><small>Duración</small><strong id="debt-impact-duration">Esperando señal</strong></span></div>
-                    <div><i class="fas fa-chart-line"></i><span><small>Activos de riesgo</small><strong id="debt-impact-risk">Esperando señal</strong></span></div>
-                    <div><i class="fas fa-earth-americas"></i><span><small>México y carry</small><strong id="debt-impact-mx">Esperando señal</strong></span></div>
-                </div>
-            </article>
+
 
             <article class="debt-block debt-global-block">
                 <div class="debt-block-head sovereign-board-hero">
@@ -2147,37 +2121,7 @@ let patchInterval = setInterval(() => {
             </article>
 
             
-            <article class="debt-block debt-credit-block">
-                <div class="debt-block-head">
-                    <div><small>Espectro de Riesgo</small><h3>Monitor de Crédito Corporativo</h3></div>
-                    <span id="credit-status-badge" style="color: #059669; background: rgba(16, 185, 129, 0.1); padding: 0.2rem 0.6rem; border-radius: 99px; font-weight: 800; font-size: 0.75rem;">Apetito Sólido</span>
-                </div>
-                <div style="margin-top: 1.2rem; display: flex; flex-direction: column; gap: 1rem;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-radius: 16px; background: rgba(36,107,254,0.03); border: 1px solid rgba(36,107,254,0.1);">
-                        <div style="display:flex; align-items:center; gap:1rem;">
-                            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(36,107,254,0.1); color: #246bfe; display: grid; place-items:center; font-size:1.1rem;"><i class="fas fa-flag-usa"></i></div>
-                            <div><strong style="display:block; color:#0f172a; font-size:1.1rem;">Soberano (Libre de riesgo)</strong><small style="color:#64748b;">US Treasury 10Y</small></div>
-                        </div>
-                        <div style="text-align:right;"><strong id="credit-sov-yield" style="font-size:1.4rem; color:#0f172a; font-weight:800;">—</strong><small style="display:block; color:#94a3b8;">Base</small></div>
-                    </div>
-                    
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-radius: 16px; background: rgba(99,102,241,0.03); border: 1px solid rgba(99,102,241,0.1);">
-                        <div style="display:flex; align-items:center; gap:1rem;">
-                            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(99,102,241,0.1); color: #6366f1; display: grid; place-items:center; font-size:1.1rem;"><i class="fas fa-city"></i></div>
-                            <div><strong style="display:block; color:#0f172a; font-size:1.1rem;">Grado de Inversión (IG)</strong><small style="color:#64748b;">LQD ETF Proxy</small></div>
-                        </div>
-                        <div style="text-align:right;"><strong id="credit-ig-yield" style="font-size:1.4rem; color:#0f172a; font-weight:800;">—</strong><small id="credit-ig-spread" style="display:block; color:#6366f1; font-weight:700;">+ — bps</small></div>
-                    </div>
-                    
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-radius: 16px; background: rgba(244,63,94,0.03); border: 1px solid rgba(244,63,94,0.1);">
-                        <div style="display:flex; align-items:center; gap:1rem;">
-                            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(244,63,94,0.1); color: #f43f5e; display: grid; place-items:center; font-size:1.1rem;"><i class="fas fa-building-circle-exclamation"></i></div>
-                            <div><strong style="display:block; color:#0f172a; font-size:1.1rem;">Alto Rendimiento (HY)</strong><small style="color:#64748b;">HYG ETF Proxy</small></div>
-                        </div>
-                        <div style="text-align:right;"><strong id="credit-hy-yield" style="font-size:1.4rem; color:#0f172a; font-weight:800;">—</strong><small id="credit-hy-spread" style="display:block; color:#f43f5e; font-weight:700;">+ — bps</small></div>
-                    </div>
-                </div>
-            </article>
+
 
         </div>
 
@@ -5433,17 +5377,10 @@ function updateDebtDashboard(data, isRef) {
     
     set('debt-kpi-tiie', rate(tiie?.yield)); set('debt-kpi-tiie-chg', change(tiie));
 
-    // Update Credit Monitor Block
-    set('credit-sov-yield', rate(us10?.yield));
-    set('credit-ig-yield', rate(usig?.yield));
-    set('credit-ig-spread', spreadText(usig?.yield - us10?.yield));
-    set('credit-hy-yield', rate(ushy?.yield));
-    set('credit-hy-spread', spreadText(ushy?.yield - us10?.yield));
 
     const curve = us30?.yield != null && us5?.yield != null ? us30.yield - us5.yield : null;
     const front = us5?.yield != null && us3m?.yield != null ? us5.yield - us3m.yield : null;
     const longPremium = us30?.yield != null && us10?.yield != null ? us30.yield - us10.yield : null;
-    const us10Move = us10?.yield != null && us10?.prev != null ? us10.yield - us10.prev : null;
     const curveText = spreadText(curve);
 
     set('debt-kpi-curve', curveText);
@@ -5457,7 +5394,6 @@ function updateDebtDashboard(data, isRef) {
     set('debt-ctx-30y', rate(us30?.yield));
     set('debt-ctx-tiie', rate(tiie?.yield));
     set('debt-ctx-carry', spreadText(carry));
-    set('debt-curve-spread', curveText);
     set('debt-snapshot-front', front == null ? 'Pendiente' : spreadText(front));
     set('debt-snapshot-long', longPremium == null ? 'Pendiente' : spreadText(longPremium));
     set('debt-snapshot-mx', carry == null ? 'Pendiente' : spreadText(carry));
@@ -5465,64 +5401,7 @@ function updateDebtDashboard(data, isRef) {
     set('debt-snapshot-long-note', longPremium == null ? 'Riesgo de duración' : longPremium > .2 ? 'Prima exigente' : 'Prima contenida');
     set('debt-snapshot-mx-note', carry == null ? 'Carry relativo' : carry >= 2 ? 'Diferencial atractivo' : 'Prima moderada');
 
-    setSignal('debt-signal-front', spreadText(front), front == null ? '' : front >= 0 ? 'up' : 'down');
-    setSignal('debt-signal-long', spreadText(longPremium), longPremium == null ? '' : longPremium >= 0 ? 'up' : 'down');
-    setSignal('debt-signal-mx', spreadText(carry), carry == null ? '' : carry >= 2 ? 'up' : 'warn');
-    setSignal('debt-signal-us10', us10Move == null ? (isRef ? 'Dato de referencia' : '—') : `${us10Move > 0 ? '▲ +' : us10Move < 0 ? '▼ ' : ''}${Math.abs(us10Move).toFixed(2)} pp`, us10Move == null ? '' : us10Move > 0.005 ? 'down' : us10Move < -0.005 ? 'up' : '');
 
-    let curveLabel = 'Esperando datos';
-    let curveCopy = 'La pendiente ayuda a interpretar expectativas de crecimiento, inflación y prima por plazo.';
-    let curveColor = '#94a3b8';
-    if (curve != null) {
-        if (curve < 0) {
-            curveLabel = 'Curva invertida';
-            curveCopy = 'El tramo intermedio rinde más que el largo; el mercado descuenta desaceleración o relajamiento monetario futuro.';
-            curveColor = '#dc2626';
-        } else if (curve < 0.35) {
-            curveLabel = 'Curva prácticamente plana';
-            curveCopy = 'La prima por plazo es reducida y refleja una transición entre restricción monetaria y normalización.';
-            curveColor = '#d97706';
-        } else {
-            curveLabel = 'Curva con pendiente positiva';
-            curveCopy = 'El tramo largo incorpora una prima superior por inflación, crecimiento y duración.';
-            curveColor = '#059669';
-        }
-    }
-    set('debt-curve-label', curveLabel);
-    set('debt-curve-copy', curveCopy);
-    const orbit = document.querySelector('.debt-curve-orbit');
-    if (orbit) {
-        const arc = curve == null ? 24 : Math.max(18, Math.min(90, 42 + Math.abs(curve) * 45));
-        orbit.style.background = `conic-gradient(${curveColor} 0 ${arc}%,#edf1f5 ${arc}% 100%)`;
-    }
-    const regimeBlock = document.querySelector('.debt-structure-block');
-    const regime = curve == null ? 'waiting' : curve < 0 ? 'inverted' : curve < .35 ? 'flat' : 'positive';
-    if (regimeBlock) regimeBlock.dataset.regime = regime;
-    set('debt-regime-badge', curve == null ? 'Calculando señal' : regime === 'inverted' ? 'Señal defensiva' : regime === 'flat' ? 'Transición' : 'Expansión moderada');
-    const regimeMarker = document.getElementById('debt-regime-marker');
-    if (regimeMarker) {
-        const markerPosition = curve == null ? 50 : Math.max(5, Math.min(95, ((curve + 1.25) / 2.5) * 100));
-        regimeMarker.style.left = markerPosition.toFixed(1) + '%';
-    }
-
-    let durationImpact = 'Esperando señal de pendiente';
-    let riskImpact = 'Esperando señal de ciclo';
-    if (curve != null) {
-        if (regime === 'inverted') {
-            durationImpact = 'Priorizar tramos cortos y medios';
-            riskImpact = 'Mayor cautela en activos cíclicos';
-        } else if (regime === 'flat') {
-            durationImpact = 'Mantener duración equilibrada';
-            riskImpact = 'Mercado en transición monetaria';
-        } else {
-            durationImpact = 'El largo plazo exige mayor prima';
-            riskImpact = 'Compatible con crecimiento moderado';
-        }
-    }
-    const mxImpact = carry == null ? 'Diferencial todavía pendiente' : carry >= 2 ? `Carry MXN atractivo: ${spreadText(carry)}` : `Prima MXN moderada: ${spreadText(carry)}`;
-    set('debt-impact-duration', durationImpact);
-    set('debt-impact-risk', riskImpact);
-    set('debt-impact-mx', mxImpact);
 }
 
 async function loadBonds() {

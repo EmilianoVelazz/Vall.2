@@ -637,8 +637,6 @@ p, span, small {
     font: 650 .47rem/1.15 "Inter", sans-serif !important;
 }
 
-
-
 .ff-badge {
     background: rgba(15, 23, 42, 0.05) !important;
     padding: 0.3rem 0.6rem !important;
@@ -649,8 +647,6 @@ p, span, small {
     font-family: 'JetBrains Mono', monospace !important;
     font-style: normal !important;
 }
-
-
 
 /* Era 1.8rem (~29px): dominaba la tarjeta por encima de la propia gráfica. */
 .ff-exchange-card-quote strong {
@@ -678,8 +674,6 @@ p, span, small {
     background: rgba(220, 38, 38, 0.1) !important;
     color: var(--fin-accent-red) !important;
 }
-
-
 
 .ff-chart-glow {
     position: absolute !important;
@@ -2284,7 +2278,6 @@ body.ff-detail-bolsa .eq-thesis {
 }
 
 /* End Additional Polish */
-
 
 /* =========================================================================
    GENERAL DASHBOARD - INSTITUTIONAL LIGHT OVERRIDE
@@ -4065,19 +4058,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #bonds-panel .sovereign-board-footnote small { color: #55697a !important; font-size: .72rem !important; }
 #bonds-panel .sovereign-board-empty strong { font-size: .95rem !important; }
 #bonds-panel .sovereign-board-empty span { color: #55697a !important; font-size: .75rem !important; }
-
-/* --- Bloque de régimen de curva ------------------------------------------ */
-#bonds-panel .debt-regime-source > span { font-size: .85rem !important; }
-#bonds-panel .debt-regime-source > small { color: #55697a !important; font-size: .72rem !important; }
-#bonds-panel .debt-regime-kicker { color: #55697a !important; font-size: .72rem !important; }
 #bonds-panel #debt-curve-copy { color: #46596b !important; font-size: .78rem !important; }
-/* Rótulos de la escala Invertida · Plana · Positiva. */
-#bonds-panel .debt-regime-scale small { color: #55697a !important; font-size: .72rem !important; }
-#bonds-panel .debt-signal-grid > div > span,
-#bonds-panel .debt-signal-grid > div > small { color: #55697a !important; font-size: .7rem !important; }
-#bonds-panel .debt-signal-grid strong { font-size: .85rem !important; }
-#bonds-panel .debt-signal-grid strong.up   { color: #b3261e !important; }
-#bonds-panel .debt-signal-grid strong.down { color: #0b6e4f !important; }
 
 /* ── Diferenciales soberanos a 10 años ─────────────────────────────────────── */
 

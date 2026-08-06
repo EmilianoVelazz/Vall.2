@@ -966,7 +966,6 @@ body.ff-detail-tasas #calendar-panel-main {
     box-shadow: 0 10px 30px rgba(7,28,44,.06);
 }
 body.ff-detail-rendimientos #bonds-panel .debt-global-block { order: 2; }
-body.ff-detail-rendimientos #bonds-panel .debt-structure-block { order: 1; }
 
 .ff-hero {
     min-height: 190px; padding: 34px 38px; border-radius: var(--ff-radius-lg); overflow: hidden;

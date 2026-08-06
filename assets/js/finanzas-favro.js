@@ -2681,51 +2681,12 @@
         }
 
         if (name === 'tasas') {
-            const rates = getReferenceRateItems();
-            const mx = rates.find(item => item.key === 'mx');
-            const us10 = bond('us', '10Y');
-            const cetes91 = state.mxRates?.cetes?.find(item => item.label === '91D');
-            const instruments = getBondInstrumentItems();
-            setCopy(
-                'Política monetaria y deuda',
-                'Mapa conjunto de tasas y bonos',
-                'Integra tasas de referencia, condiciones monetarias, CETES, UDIBONOS y bonos soberanos sin mezclar sus definiciones.',
-                `${rates.length} tasas · ${instruments.length} instrumentos`,
-                'Nivel actual',
-                'Tasas y referencias monetarias',
-                '% anual',
-                'Tasas e instrumentos disponibles',
-                `Treasury 3M es un proxy de mercado, no la tasa oficial de la Fed. Zona Euro 10Y es un bono soberano, no tasa del BCE. ${isNumeric(state.inflation) ? `Inflación México disponible: ${formatYield(state.inflation)}.` : 'La inflación de México no está disponible; no se calcula una tasa real con un supuesto.'} Los datos indicativos no equivalen a cotizaciones en vivo.`,
-            );
-            renderSupplementKpis([
-                { label: 'TIIE 28D', value: formatYield(mx?.yield), note: 'Interbancaria México' },
-                { label: 'Treasury 10Y', value: formatYield(us10?.yield), note: 'Bono soberano EUA' },
-                { label: 'CETES 91D', value: formatYield(cetes91?.yield), note: 'Gobierno de México' },
-                { label: 'Instrumentos', value: String(instruments.length), note: 'Nominales y reales' },
-            ]);
-            renderSupplementChart('bar', rates.map(item => item.key.toUpperCase()), [{
-                label: 'Nivel actual',
-                data: rates.map(item => item.yield),
-                backgroundColor: rates.map(item => item.type.includes('Política') ? colors.blue : item.key === 'mx' ? colors.green : colors.cyan),
-                borderRadius: 5,
-            }], 'Tasa / rendimiento %');
-            renderSupplementTable(
-                ['Tasa o instrumento', 'Rendimiento', 'Cambio', 'Tipo'],
-                [
-                    ...rates.filter(item => !['us','eu'].includes(item.key)).map(item => [
-                        `${item.country} · ${item.label}`,
-                        formatYield(item.yield),
-                        isNumeric(item.prev) ? `${(item.yield - item.prev) * 100 >= 0 ? '+' : ''}${((item.yield - item.prev) * 100).toFixed(1)} pb` : '—',
-                        item.type,
-                    ]),
-                    ...instruments.map(item => [
-                        item.label,
-                        formatYield(item.yield),
-                        isNumeric(item.prev) ? `${(item.yield - item.prev) * 100 >= 0 ? '+' : ''}${((item.yield - item.prev) * 100).toFixed(1)} pb` : '—',
-                        item.type,
-                    ]),
-                ],
-            );
+            // El bloque "Mapa conjunto de tasas y bonos" (indicadores, grafica y
+            // tabla de instrumentos) se retiro a peticion del usuario.
+            // Este contenedor lo comparten Bolsa, Bonos y Rendimientos, asi que no
+            // se elimina: se oculta solo para este modulo, que conserva sus propios
+            // paneles y la tabla de diferenciales soberanos a 10 anos.
+            section.hidden = true;
             return;
         }
 

@@ -1,0 +1,265 @@
+/* Estilos de la página de configuración.
+   Vienen del <style> que estaba embebido en pages/configuracion.html; aquí son
+   un archivo propio que Vite empaqueta junto al componente.
+   Se retiraron las reglas muertas que quedaron del selector de mascotas
+   (.mo-check) y cuatro @media vacíos. */
+
+.cfg-container {
+    max-width: 820px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.cfg-page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 1.6rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid rgba(0, 33, 58, 0.15);
+}
+
+.cfg-page-title i {
+    color: #00213a;
+    font-size: 1.2rem;
+}
+
+.cfg-section-lbl {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #00213a;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cfg-section-lbl::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.cfg-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.6rem 1.8rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.4rem;
+}
+
+.cfg-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+    margin-bottom: 1.4rem;
+}
+
+.cfg-profile-avatar {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(0, 33, 58, 0.15);
+    background: #f1f5f9;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cfg-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.cfg-profile-info h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.2rem;
+}
+
+.cfg-profile-info p {
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.cfg-form-group {
+    margin-bottom: 1.1rem;
+}
+
+.cfg-form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.38rem;
+}
+
+.cfg-form-group input {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid rgba(0, 33, 58, 0.2);
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    color: #0f172a;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cfg-form-group input:focus {
+    border-color: #00213a;
+    box-shadow: 0 0 0 3px rgba(0, 33, 58, 0.08);
+}
+
+.cfg-form-group input:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+.cfg-form-hint {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 0.3rem;
+}
+
+/* Identidad única del asistente (sustituye al antiguo selector de mascotas). */
+.cfg-assistant-identity {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    flex-wrap: wrap;
+}
+
+.cfg-assistant-avatar {
+    flex: 0 0 auto;
+    width: 86px;
+    height: 86px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(7, 28, 44, 0.08);
+    border-radius: 18px;
+    background: linear-gradient(145deg, #f4f7fa, #e9eff5);
+}
+
+.cfg-assistant-avatar img {
+    width: 66px;
+    height: 66px;
+    object-fit: contain;
+    display: block;
+}
+
+.cfg-assistant-identity strong {
+    display: block;
+    color: #0f2436;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.cfg-assistant-identity p {
+    margin: 0.25rem 0 0;
+    max-width: 52ch;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.55;
+}
+
+.cfg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.58rem 1.3rem;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.cfg-btn:active {
+    transform: scale(0.97);
+}
+
+.cfg-btn-primary {
+    background: #00213a;
+    color: #fff;
+}
+
+.cfg-btn-primary:hover {
+    background: #003a6e;
+}
+
+.cfg-btn-primary:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cfg-toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 0.65rem 1.4rem;
+    border-radius: 50px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 9999;
+}
+
+.cfg-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.cfg-toast.toast-ok {
+    background: #15803d;
+}
+
+.cfg-toast.toast-err {
+    background: #dc2626;
+}
+
+@media (max-width: 768px) {
+    .cfg-container { padding: 0 1.4rem; }
+    .cfg-page-title { font-size: 1.25rem; }
+}
+
+@media (max-width: 640px) {
+    .cfg-container { padding: 0 0.9rem; }
+    .cfg-panel { padding: 1.2rem 1.1rem; }
+    .cfg-page-title { font-size: 1.1rem; margin-bottom: 1.1rem; }
+    .cfg-profile-header { flex-direction: column; text-align: center; }
+    .cfg-profile-avatar { margin: 0 auto; }
+    .cfg-btn { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 520px) {
+    .cfg-assistant-avatar { width: 68px; height: 68px; }
+    .cfg-assistant-avatar img { width: 52px; height: 52px; }
+}
+
+@media (max-width: 380px) {
+    .cfg-panel { padding: 1rem 0.85rem; }
+}

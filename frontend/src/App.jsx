@@ -1,6 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LegacyPage from './components/LegacyPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import Login from './pages/Login.jsx';
+import Configuracion from './pages/Configuracion.jsx';
+import Mexico from './pages/Mexico.jsx';
 
 /*
  * Fase 1 de la migración: React se queda con el enrutado, la sesión y el shell.
@@ -20,18 +23,25 @@ const SECCIONES = [
   { ruta: '/finanzas',          html: '/pages/finanzas.html' },
   { ruta: '/mercados',          html: '/pages/mercados.html' },
   { ruta: '/geopolitica',       html: '/pages/geopolitica.html' },
-  { ruta: '/mexico',            html: '/pages/mexico.html' },
   { ruta: '/mercado-proteinas', html: '/pages/mercadoproteinas.html' },
-  { ruta: '/configuracion',     html: '/pages/configuracion.html' },
   { ruta: '/vall-ai',           html: '/pages/vall-ai.html' },
 ];
 
 export default function App() {
   return (
     <Routes>
-      {/* El acceso usa el index.html actual, sin rediseñar. */}
-      <Route path="/" element={<LegacyPage src="/index.html" />} />
+      {/* Migrada a React idiomático: ya no pasa por LegacyPage. */}
+      <Route path="/" element={<Login />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
+
+      <Route
+        path="/configuracion"
+        element={<ProtectedRoute><Configuracion /></ProtectedRoute>}
+      />
+      <Route
+        path="/mexico"
+        element={<ProtectedRoute><Mexico /></ProtectedRoute>}
+      />
 
       {SECCIONES.map(({ ruta, html }) => (
         <Route

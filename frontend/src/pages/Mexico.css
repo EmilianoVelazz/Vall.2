@@ -1,0 +1,210 @@
+/* Estilos de la sección México.
+   Vienen del <style> embebido en pages/mexico.html. Las clases van con prefijo
+   `mx-` porque las originales (.panel, .container, .up, .down, .fpill) son
+   nombres genéricos que chocaban con base.css y con otras secciones. */
+
+.mx-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.mx-page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid rgba(0, 33, 58, 0.15);
+}
+
+.mx-page-title i { color: #00213a; font-size: 1.2rem; }
+
+.mx-filter-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+
+.mx-fpill {
+    background: #fff;
+    border: 1px solid rgba(0, 33, 58, 0.18);
+    color: #44546a;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.mx-fpill:hover { border-color: #00213a; color: #00213a; }
+.mx-fpill.active { background: #00213a; color: #fff; border-color: #00213a; }
+
+.mx-section-lbl {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #00213a;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mx-section-lbl::after { content: ""; flex: 1; height: 1px; background: rgba(0, 0, 0, 0.1); }
+
+.mx-news-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+    margin-bottom: 1.8rem;
+}
+
+.mx-news-card {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: transform .25s, box-shadow .25s;
+}
+
+.mx-news-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13); }
+
+.mx-nc-img { width: 100%; height: 150px; object-fit: cover; display: block; }
+.mx-nc-body { padding: 1rem 1.1rem 1.1rem; }
+
+.mx-nc-cat {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1.5px; color: #00213a; margin-bottom: 0.25rem; display: block;
+}
+
+.mx-nc-title {
+    font-family: 'Playfair Display', serif; font-size: 0.98rem; font-weight: 700;
+    color: #0f172a; line-height: 1.35; margin-bottom: 0.5rem;
+}
+
+.mx-nc-desc {
+    font-size: 0.77rem; color: #555; line-height: 1.55; margin-bottom: 0.85rem;
+    display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5;
+    -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.mx-nc-foot { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+
+.mx-tag-src  { font-size: 0.6rem; font-weight: 700; background: #00213a; color: #fff; padding: 2px 8px; border-radius: 3px; }
+.mx-tag-high { font-size: 0.6rem; font-weight: 700; background: rgba(239, 68, 68, 0.12); color: #dc2626; padding: 2px 8px; border-radius: 3px; }
+.mx-tag-med  { font-size: 0.6rem; font-weight: 700; background: rgba(245, 158, 11, 0.12); color: #d97706; padding: 2px 8px; border-radius: 3px; }
+.mx-tag-low  { font-size: 0.6rem; font-weight: 700; background: rgba(22, 163, 74, 0.12); color: #16a34a; padding: 2px 8px; border-radius: 3px; }
+
+.mx-bottom-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+.mx-left-col, .mx-right-col { display: flex; flex-direction: column; gap: 1.2rem; }
+
+.mx-panel {
+    background: #fff; border-radius: 10px; padding: 1.4rem 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08); border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mx-indicator-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.9rem 0.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.mx-indicator-row:last-child { border-bottom: none; }
+.mx-ind-name { font-size: 0.84rem; color: #334155; font-weight: 500; }
+.mx-ind-val { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; color: #0f172a; }
+.mx-up { color: #16a34a; }
+.mx-down { color: #dc2626; }
+
+.mx-ia-note {
+    background: rgba(0, 33, 58, 0.05); border-radius: 6px;
+    padding: 0.8rem 1rem; margin-top: 1rem;
+    font-size: 0.74rem; color: #334155; line-height: 1.5;
+}
+
+.mx-ia-note b { color: #00213a; }
+
+.mx-ia-insight {
+    background: rgba(0, 33, 58, 0.05); border-radius: 6px;
+    padding: 0.8rem 1rem; font-size: 0.74rem; color: #334155; line-height: 1.5;
+}
+
+.mx-ia-insight b { color: #00213a; }
+
+.mx-trade-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1rem;
+}
+
+.mx-trade-lbl { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.mx-trade-val { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #0f172a; }
+.mx-trade-val.accent { color: #d97706; }
+
+.mx-export-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.8rem; padding: 0.55rem 0.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.mx-export-row:last-child { border-bottom: none; }
+.mx-export-pct { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #00213a; }
+
+.mx-fx-card {
+    background: linear-gradient(135deg, #00213a 0%, #003d6b 100%);
+    border-radius: 10px; padding: 1.4rem 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+.mx-fx-lbl { font-size: 0.6rem; font-weight: 700; letter-spacing: 2px; color: rgba(255, 255, 255, 0.55); text-transform: uppercase; margin-bottom: 0.4rem; }
+.mx-fx-val { font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 0.25rem; }
+.mx-fx-chg { font-size: 0.82rem; font-weight: 700; color: #f87171; margin-bottom: 0.8rem; }
+.mx-fx-body { font-size: 0.74rem; color: rgba(255, 255, 255, 0.7); line-height: 1.55; }
+.mx-fx-body b { color: #fbbf24; }
+
+.mx-fx-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.8rem; }
+.mx-fx-meta-item { font-size: 0.68rem; color: rgba(255, 255, 255, 0.55); }
+.mx-fx-meta-item b { color: rgba(255, 255, 255, 0.85); display: block; font-size: 0.75rem; }
+
+.mx-dep-row-head { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
+.mx-dep-row-head span:first-child { font-weight: 600; color: #334155; }
+.mx-dep-row-head span:last-child { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.mx-dep-origin { font-size: 0.62rem; color: #888; margin-top: 3px; }
+.mx-dep-bar { width: 100%; height: 4px; background: rgba(0, 0, 0, 0.08); border-radius: 2px; margin-top: 0.6rem; overflow: hidden; }
+.mx-dep-fill { height: 100%; border-radius: 2px; background: #dc2626; }
+
+.mx-risk-note {
+    background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.18);
+    border-radius: 8px; padding: 0.85rem 1rem; margin-top: 1rem;
+    font-size: 0.74rem; color: #334155; line-height: 1.5;
+    display: flex; gap: 0.6rem; align-items: flex-start;
+}
+
+.mx-risk-note i { color: #dc2626; flex-shrink: 0; margin-top: 2px; }
+
+.mx-charts-grid {
+    display: grid; grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 2rem; align-items: center;
+}
+
+.mx-charts-grid > div { min-width: 0; overflow: hidden; }
+.mx-charts-grid canvas { display: block; width: 100% !important; max-width: 100% !important; }
+
+.mx-chart-title {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.8px; color: #00213a; margin-bottom: 0.9rem;
+}
+
+@media (max-width: 1024px) {
+    .mx-news-grid { grid-template-columns: repeat(2, 1fr); }
+    .mx-bottom-grid { grid-template-columns: 1fr; }
+    .mx-charts-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+    .mx-news-grid { grid-template-columns: 1fr; }
+    .mx-container { width: 100%; margin: 1.2rem auto; padding: 0 .75rem; }
+    .mx-charts-grid { grid-template-columns: 1fr; }
+    .mx-charts-grid > div { width: 100%; }
+    .mx-fpill { min-height: 36px; padding: 6px 11px; touch-action: manipulation; }
+}

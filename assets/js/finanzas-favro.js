@@ -1635,6 +1635,34 @@
             fragment.append(row);
         });
         grid.append(fragment);
+
+        /* Los recuadros piden sus datos en cuanto existen, sin esperar a las
+           cotizaciones de las tarjetas: son series distintas y hacerlos depender
+           de aquéllas retrasaba (o impedía) que se llenaran. */
+        exchangeConfig.forEach(exchange => renderExchangeDataBox(exchange, state.quotes[exchange.symbol], true));
+        startExchangeDataBoxAutoRefresh();
+    }
+
+    /* Refresco automático de los recuadros.
+       Sin esto las cifras se quedaban congeladas en la sesión que se cargó al
+       abrir la página. El backend cachea /api/stock-history 15 minutos, así que
+       este sondeo no golpea a Yahoo: sirve para recoger la sesión nueva en
+       cuanto esa caché expira. Se detiene si la pestaña no está a la vista o si
+       el panel de bolsas está oculto. */
+    const EXCHANGE_DATABOX_REFRESH_MS = 60 * 1000;
+    let _dataBoxTimer = null;
+    function startExchangeDataBoxAutoRefresh() {
+        if (_dataBoxTimer) return;
+        _dataBoxTimer = window.setInterval(() => {
+            if (document.hidden) return;
+            const board = $('ff-exchange-board');
+            if (!board || board.hidden || !board.isConnected) return;
+            exchangeConfig.forEach(exchange => {
+                // Se invalida la serie cacheada para que la próxima lectura sea nueva.
+                state.marketSeries.delete(`daybox:${exchange.symbol}`);
+                renderExchangeDataBox(exchange, state.quotes[exchange.symbol], false);
+            });
+        }, EXCHANGE_DATABOX_REFRESH_MS);
     }
 
     async function applyExchangeRange(exchange, key, selectEl) {
@@ -1699,11 +1727,13 @@
                     card.classList.add('is-loading');
                     value.textContent = 'Cargando\u2026';
                     delta.textContent = 'Consultando mercado';
+                    renderExchangeDataBox(exchange, null, true);
                     return;
                 }
                 card.classList.add('is-unavailable');
                 value.textContent = 'Sin datos';
                 delta.textContent = 'Selecciona para reintentar';
+                renderExchangeDataBox(exchange, null, false);
                 if (state.miniCharts[chartId]) {
                     state.miniCharts[chartId].destroy();
                     delete state.miniCharts[chartId];
@@ -1716,6 +1746,7 @@
             value.textContent = formatNumber(quote.price, 2);
             delta.textContent = isNumeric(quote.change) ? `${isUp ? '\u2197' : '\u2198'} ${formatPercent(quote.change)}` : 'Sin cambio comparable';
             card.setAttribute('aria-label', `${exchange.name}: ${value.textContent}, ${delta.textContent}. Abrir en Finanzas y gr\u00e1ficas`);
+            renderExchangeDataBox(exchange, quote, false);
             /* Respeta el periodo elegido en la tarjeta: renderExchangeBoard() se
                vuelve a llamar al cambiar de tipo de gráfica o al refrescar, y sin
                esto la selección se perdería. Mientras su serie no está en caché
@@ -1743,6 +1774,114 @@
                     ? `${available} de ${exchangeConfig.length} mercados \u00b7 consulta ${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
                     : 'Mercados no disponibles \u00b7 puedes reintentar';
         }
+    }
+
+    /* Volumen en notación corta: los mercados devuelven cifras de nueve o diez
+       dígitos que, escritas enteras, desbordan la fila del recuadro. */
+    function formatCompactVolume(value) {
+        if (!isNumeric(value) || +value <= 0) return null;
+        const n = +value;
+        const escalas = [[1e12, 'B'], [1e9, 'MM'], [1e6, 'M'], [1e3, 'K']];
+        for (const [umbral, sufijo] of escalas) {
+            if (n >= umbral) return `${formatNumber(n / umbral, n / umbral >= 100 ? 0 : 1)} ${sufijo}`;
+        }
+        return formatNumber(n, 0);
+    }
+
+    /* Última vela DIARIA de un índice, para el recuadro de datos.
+       No sirve la serie de state.quotes: fetchQuote() pide velas de 15 minutos,
+       y en una vela de ese tamaño apertura, máximo, mínimo y cierre suelen
+       coincidir. Aquí hace falta la sesión completa, así que se pide con
+       interval=1d igual que hace fetchDailyQuote() para el suplemento. */
+    function fetchExchangeDailyCandles(symbol) {
+        const cacheKey = `daybox:${symbol}`;
+        if (state.marketSeries.has(cacheKey)) return state.marketSeries.get(cacheKey);
+        const promesa = fetchJson(`/api/stock-history?ticker=${encodeURIComponent(symbol)}&range=5d&interval=1d`)
+            .then(data => (Array.isArray(data?.candles) ? data.candles : []).filter(c => Number.isFinite(+c.close)))
+            .catch(error => {
+                console.warn(`Recuadro de ${symbol}:`, error.message);
+                state.marketSeries.delete(cacheKey); // permite reintentar
+                return [];
+            });
+        state.marketSeries.set(cacheKey, promesa);
+        return promesa;
+    }
+
+    /* Recuadro de datos a la derecha de cada tarjeta de bolsa.
+       ensureExchangeCards() creaba estos campos con un guion de marcador, pero
+       nunca se escribió el código que los rellenaba: por eso Región y Mercado
+       (que se pintan directo del config) mostraban valor y las seis filas
+       restantes se quedaban vacías para siempre. */
+    function renderExchangeDataBox(exchange, quote, cargando) {
+        const campo = sufijo => $(`ff-ext-${sufijo}-${exchange.slug}`);
+        const marcador = cargando ? '…' : '–';
+        const poner = (sufijo, texto, clase) => {
+            const el = campo(sufijo);
+            if (!el) return;
+            el.textContent = texto == null ? marcador : texto;
+            el.classList.remove('ff-positive-text', 'ff-negative-text');
+            if (clase && texto != null) el.classList.add(clase);
+        };
+
+        /* El recuadro NO depende de que la cotización de la tarjeta haya llegado:
+           sus cifras salen de su propia serie diaria. Antes se limpiaba a guiones
+           mientras `quote` no estuviera lista, así que si esa petición tardaba o
+           fallaba el recuadro se quedaba vacío pese a haber datos disponibles.
+           `quote` solo se usa como respaldo para la variación. */
+
+        /* En la primera carga se marcan como "en curso"; en los refrescos
+           automáticos no se tocan, para no parpadear a guiones cada minuto. */
+        if (cargando) ['close', 'delta', 'open', 'high', 'low', 'vol'].forEach(s => poner(s, null));
+
+        fetchExchangeDailyCandles(exchange.symbol).then(velas => {
+            const ultima = velas.length ? velas[velas.length - 1] : null;
+            if (!ultima) {
+                ['close', 'delta', 'open', 'high', 'low', 'vol'].forEach(s => poner(s, null));
+                return;
+            }
+
+            /* Las cinco filas salen de la MISMA vela diaria, así que todas
+               describen la misma sesión. Se prefiere el cierre de la vela al
+               precio en vivo por esa coherencia. */
+            poner('close', isNumeric(ultima.close) ? formatNumber(ultima.close, 2) : null);
+            poner('open',  isNumeric(ultima.open)  ? formatNumber(ultima.open, 2)  : null);
+            poner('high',  isNumeric(ultima.high)  ? formatNumber(ultima.high, 2)  : null);
+            poner('low',   isNumeric(ultima.low)   ? formatNumber(ultima.low, 2)   : null);
+
+            /* Volumen: varios índices (FTSE, DAX, Hang Seng, Ibovespa) traen 0 en
+               la vela del día en curso y solo lo publican al cerrar la sesión.
+               Dejar un guion daría la impresión de que el recuadro está roto, así
+               que se muestra el último volumen realmente publicado y se indica en
+               el title de qué sesión procede: el dato es real y trazable, no una
+               estimación. */
+            const conVolumen = [...velas].reverse().find(c => isNumeric(c.volume) && +c.volume > 0);
+            poner('vol', conVolumen ? formatCompactVolume(conVolumen.volume) : null);
+            const elVol = campo('vol');
+            if (elVol) {
+                elVol.removeAttribute('title');
+                if (conVolumen && conVolumen !== ultima) {
+                    elVol.title = `Último volumen publicado (sesión del ${conVolumen.time}). `
+                        + 'Este mercado aún no reporta volumen para la sesión en curso.';
+                } else if (conVolumen) {
+                    elVol.title = `Volumen de la sesión del ${conVolumen.time}.`;
+                }
+            }
+
+            /* Variación de la sesión: cierre de hoy contra el cierre anterior.
+               Si no hay vela previa se deja vacío en vez de estimarla. */
+            let cambio = null;
+            const previa = velas.length >= 2 ? velas[velas.length - 2] : null;
+            if (isNumeric(previa?.close) && +previa.close !== 0) {
+                cambio = (+ultima.close / +previa.close - 1) * 100;
+            } else if (isNumeric(quote?.change)) {
+                cambio = +quote.change;
+            }
+            poner(
+                'delta',
+                cambio == null ? null : formatPercent(cambio),
+                cambio == null ? null : (cambio >= 0 ? 'ff-positive-text' : 'ff-negative-text'),
+            );
+        });
     }
 
     function sourceValue(sourceId, targetId, fallback = '—') {
@@ -2183,7 +2322,14 @@
 
     function renderSupplementChart(type, labels, datasets, axisLabel) {
         lastSuppChartData = { labels, datasets, axisLabel };
-        
+
+        /* Se trabaja sobre una copia. Los ajustes de abajo (colores del anillo,
+           relleno de la línea) modificaban los objetos recibidos, que son los
+           mismos que guarda lastSuppChartData; al volver a barras, los colores
+           del anillo seguían puestos y las alzas se pintaban de morado o amarillo
+           en vez de verde. En datos financieros el verde/rojo es semántico. */
+        datasets = datasets.map(d => ({ ...d }));
+
         let actualType = state.suppChartType || type;
         let isHorizontal = actualType === 'horizontalBar';
         if (isHorizontal) actualType = 'bar';
@@ -2246,6 +2392,38 @@
         }
         
         state.supplementChart = new Chart(canvas, { type: actualType, data: { labels, datasets }, options });
+        observeSupplementChartSize(canvas);
+    }
+
+    /* La gráfica se crea mientras #ff-detail-supplement todavía está cambiando de
+       tamaño: la sección arranca con hidden y se muestra en el mismo ciclo en que
+       Chart.js mide el contenedor. Con maintainAspectRatio:false eso deja el lienzo
+       con el ancho equivocado, y el resultado eran barras desplazadas respecto a
+       sus etiquetas (las últimas emisoras se salían del área visible) o, si medía
+       cero, una tarjeta en blanco.
+
+       Chart.js solo se re-mide ante un resize de ventana, que aquí nunca ocurre,
+       así que se vigila el contenedor y se le pide recalcular cuando cambia. */
+    let _supplementResizeObserver = null;
+    function observeSupplementChartSize(canvas) {
+        const contenedor = canvas.parentElement;
+        if (!contenedor || typeof ResizeObserver === 'undefined') return;
+
+        _supplementResizeObserver?.disconnect();
+        _supplementResizeObserver = new ResizeObserver(() => {
+            const chart = state.supplementChart;
+            // Un contenedor de alto o ancho cero significa que la sección aún está
+            // oculta; redimensionar ahí volvería a fijar un lienzo inservible.
+            if (!chart || !contenedor.clientWidth || !contenedor.clientHeight) return;
+            chart.resize();
+        });
+        _supplementResizeObserver.observe(contenedor);
+
+        // Primer ajuste tras el pintado inicial, por si el contenedor ya alcanzó
+        // su tamaño definitivo antes de que el observador entre en acción.
+        requestAnimationFrame(() => {
+            if (state.supplementChart && contenedor.clientWidth) state.supplementChart.resize();
+        });
     }
 
     function maturityInYears(value) {

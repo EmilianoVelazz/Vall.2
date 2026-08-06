@@ -535,6 +535,14 @@ p, span, small {
     color: var(--ff-ink, #0c2d44) !important;
 }
 
+/* La fila de variación conserva su color semántico (verde alza / rojo baja).
+   La regla de arriba fija el color de TODAS las filas con !important y empataba
+   en especificidad con .ff-positive-text / .ff-negative-text de
+   finanzas-favro.css, así que ganaba por orden de carga y el porcentaje salía
+   del mismo color que el resto. Estos selectores suman una clase para desempatar. */
+.ff-data-value.ff-positive-text { color: var(--ff-positive, #16825d) !important; }
+.ff-data-value.ff-negative-text { color: var(--ff-negative, #c94a56) !important; }
+
 /* ── Card internals ── */
 .ff-exchange-card-head {
     display: flex !important;

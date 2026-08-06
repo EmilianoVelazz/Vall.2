@@ -753,18 +753,18 @@
     </style>
     <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.8">
     <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=3.0">
-    <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=70">
+    <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=71">
     <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=112">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
     <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
-    <script src="../assets/js/finanzas-favro.js?v=106" defer></script>
+    <script src="../assets/js/finanzas-favro.js?v=107" defer></script>
 
 <style>
 /* PREMIUM INTERMEDIATE PALETTE (Favro 2.0) */
 /* Workspaces background */
-body.ff-detail-rendimientos .ff-workspace,
+body.ff-detail-rentafija .ff-workspace,
 body.ff-detail-bonos .ff-workspace,
-body.ff-detail-rendimientos .ff-workspace {
+body.ff-detail-rentafija .ff-workspace {
     background: linear-gradient(135deg, #8ba3b5 0%, #647a8d 100%) !important;
     border: 1px solid #dfe7ed !important;
     border-radius: 22px !important;
@@ -790,12 +790,12 @@ body.ff-detail-rendimientos .ff-workspace {
 }
 
 /* Workspace titles (white text on dark background) */
-body.ff-detail-rendimientos .ff-workspace-title,
+body.ff-detail-rentafija .ff-workspace-title,
 body.ff-detail-bonos .ff-workspace-title,
-body.ff-detail-rendimientos .ff-workspace-title,
-body.ff-detail-rendimientos .ff-workspace-description,
+body.ff-detail-rentafija .ff-workspace-title,
+body.ff-detail-rentafija .ff-workspace-description,
 body.ff-detail-bonos .ff-workspace-description,
-body.ff-detail-rendimientos .ff-workspace-description {
+body.ff-detail-rentafija .ff-workspace-description {
     color: #ffffff !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 }
@@ -807,20 +807,20 @@ body.ff-detail-rendimientos .ff-workspace-description {
 .debt-pro-eyebrow { color: #1f56c9 !important; text-shadow: none !important; }
 
 /* CARDS AND BOXES: Unified Favro Design */
-body.ff-detail-rendimientos .ff-table-card,
-body.ff-detail-rendimientos .ff-explainer,
-body.ff-detail-rendimientos .ff-newsroom,
-body.ff-detail-rendimientos .ff-analysis-card,
-body.ff-detail-rendimientos .ff-insight-card,
-body.ff-detail-rendimientos .ff-auto-conclusion,
-body.ff-detail-rendimientos .ff-spark-card,
-body.ff-detail-rendimientos .ff-supplement-kpi,
-body.ff-detail-rendimientos .ff-supplement-table-card,
-body.ff-detail-rendimientos .ff-detail-supplement,
+body.ff-detail-rentafija .ff-table-card,
+body.ff-detail-rentafija .ff-explainer,
+body.ff-detail-rentafija .ff-newsroom,
+body.ff-detail-rentafija .ff-analysis-card,
+body.ff-detail-rentafija .ff-insight-card,
+body.ff-detail-rentafija .ff-auto-conclusion,
+body.ff-detail-rentafija .ff-spark-card,
+body.ff-detail-rentafija .ff-supplement-kpi,
+body.ff-detail-rentafija .ff-supplement-table-card,
+body.ff-detail-rentafija .ff-detail-supplement,
 body.ff-detail-bonos .debt-block,
-body.ff-detail-rendimientos .debt-block,
+body.ff-detail-rentafija .debt-block,
 body.ff-detail-bonos .ff-table-card,
-body.ff-detail-rendimientos .ff-table-card {
+body.ff-detail-rentafija .ff-table-card {
     background: #ffffff !important;
     backdrop-filter: none !important;
     border: 1px solid #dfe7ed !important; /* Favro Line */
@@ -831,9 +831,9 @@ body.ff-detail-rendimientos .ff-table-card {
 
 /* Base text inside debt-block is dark (including normal headers) */
 body.ff-detail-bonos .debt-block,
-body.ff-detail-rendimientos .debt-block,
+body.ff-detail-rentafija .debt-block,
 body.ff-detail-bonos .debt-block *,
-body.ff-detail-rendimientos .debt-block * {
+body.ff-detail-rentafija .debt-block * {
     color: #10202e !important;
     text-shadow: none !important;
 }
@@ -857,16 +857,16 @@ body.ff-detail-rendimientos .debt-block * {
 }
 
 /* Ensure ALL text in Rendimientos is dark */
-body.ff-detail-rendimientos .ff-table-card *,
-body.ff-detail-rendimientos .ff-explainer *,
-body.ff-detail-rendimientos .ff-newsroom *,
-body.ff-detail-rendimientos .ff-analysis-card *,
-body.ff-detail-rendimientos .ff-insight-card *,
-body.ff-detail-rendimientos .ff-auto-conclusion *,
-body.ff-detail-rendimientos .ff-spark-card *,
-body.ff-detail-rendimientos .ff-supplement-kpi *,
-body.ff-detail-rendimientos .ff-supplement-table-card *,
-body.ff-detail-rendimientos .ff-detail-supplement * {
+body.ff-detail-rentafija .ff-table-card *,
+body.ff-detail-rentafija .ff-explainer *,
+body.ff-detail-rentafija .ff-newsroom *,
+body.ff-detail-rentafija .ff-analysis-card *,
+body.ff-detail-rentafija .ff-insight-card *,
+body.ff-detail-rentafija .ff-auto-conclusion *,
+body.ff-detail-rentafija .ff-spark-card *,
+body.ff-detail-rentafija .ff-supplement-kpi *,
+body.ff-detail-rentafija .ff-supplement-table-card *,
+body.ff-detail-rentafija .ff-detail-supplement * {
     color: #10202e !important;
     text-shadow: none !important;
 }
@@ -1284,7 +1284,8 @@ let patchInterval = setInterval(() => {
         </div>
         <nav class="ff-detail-tabs" aria-label="Apartados de Finanzas">
             <button type="button" data-detail-module="bolsa"><i class="fas fa-chart-line"></i><span>Bolsa</span></button>
-            <button type="button" data-detail-module="rendimientos"><i class="fas fa-landmark"></i><span>Rendimientos</span></button>
+            <button type="button" data-detail-module="tasas"><i class="fas fa-landmark"></i><span>Tasas y bonos</span></button>
+            <button type="button" data-detail-module="rendimientos"><i class="fas fa-wave-square"></i><span>Rendimientos</span></button>
             <button type="button" data-detail-module="noticias"><i class="fas fa-newspaper"></i><span>Daily News</span></button>
         </nav>
     </section>
@@ -1423,6 +1424,18 @@ let patchInterval = setInterval(() => {
                         <div class="ffm-foot">
                             <button class="ff-module-link" type="button" data-open-module="bolsa">Explorar Bolsa <i class="fas fa-arrow-right"></i></button>
                             <span class="ffm-stat"><em>S&amp;P 500</em><strong id="ff-tile-bolsa">—</strong><i id="ff-tile-bolsa-delta"></i></span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="ff-module ffm-card" data-module="tasas" tabindex="0">
+                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-tasas"></canvas></div>
+                    <div class="ffm-body">
+                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Tasas y bonos</h2></div></header>
+                        <div class="ffm-foot">
+                            <button class="ff-module-link" type="button" data-open-module="tasas">Abrir tasas y bonos <i class="fas fa-arrow-right"></i></button>
+                            <span class="ffm-stat"><em>TIIE 28D</em><strong id="ff-tile-tasas">—</strong></span>
                         </div>
                     </div>
                 </article>

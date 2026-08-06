@@ -547,7 +547,7 @@
             } else {
                 const us = state.bondData.find(item => item.key === 'us');
                 const current = [], previous = [];
-                if (state.module === 'rendimientos') {
+                if (esRentaFija(state.module)) {
                     const rateItems = getReferenceRateItems();
                     labels = rateItems.map(item => item.country);
                     current.push(...rateItems.map(item => +item.yield));
@@ -1246,6 +1246,8 @@
         const tiieApi = state.mxRates?.tiie?.find(item => item.label === '28D')?.yield;
         const tiie = isNumeric(tiieApi) ? +tiieApi : state.bondData.find(item => item.key === 'mx')?.bonds?.[0]?.yield;
 
+        if (isNumeric(tiie)) put('ff-tile-tasas', (+tiie).toFixed(2) + '%');
+
         const us10 = bond('us', '10Y')?.yield;
         if (isNumeric(us10)) put('ff-tile-rendimientos', (+us10).toFixed(2) + '%');
 
@@ -1282,6 +1284,7 @@
         if ($('ff-card-us10y-delta')) $('ff-card-us10y-delta').textContent = dailyText;
         if ($('ff-q-us10y-delta')) $('ff-q-us10y-delta').textContent = dailyText;
         renderMiniChart('ff-spark-bonos', [us5, us10, us30].map(item => +item?.yield).filter(Number.isFinite), colors.gold);
+        renderMiniChart('ff-spark-tasas', getReferenceRateItems().map(item => item.yield), colors.cyan);
         renderMiniChart('ff-spark-rendimientos', (state.bondData.find(item => item.key === 'us')?.bonds || []).map(item => +item.yield).filter(Number.isFinite), colors.green);
         updateModuleTiles();   // TIIE y US 10 años de las baldosas de la portada
     }
@@ -1323,10 +1326,17 @@
             description: 'Índices, acciones, factores, amplitud y el laboratorio histórico multiactivo en una vista completa.',
             legacySection: 'mercados',
         },
-        // "Tasas y bonos" se fusionó con Rendimientos: ahora hay una sola sección
-        // de renta fija, con el contenido que antes vivía en aquélla.
-        rendimientos: {
+        /* Tasas y bonos y Rendimientos muestran el mismo contenido de renta fija.
+           Se mantienen como dos secciones separadas a propósito; lo único que
+           cambia entre ellas es el encabezado. Ver MODULOS_RENTA_FIJA. */
+        tasas: {
             eyebrow: 'Política monetaria y renta fija',
+            title: 'Tasas y bonos',
+            description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
+            legacySection: 'bonos',
+        },
+        rendimientos: {
+            eyebrow: 'Renta fija · análisis de curva',
             title: 'Rendimientos',
             description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
             legacySection: 'bonos',
@@ -1340,6 +1350,12 @@
     };
 
     const detailClasses = Object.keys(detailConfig).map(name => `ff-detail-${name}`);
+
+    /* Las dos secciones de renta fija comparten contenido y comportamiento. Se
+       agrupan aquí para no repetir la condición en cada sitio y para que añadir
+       o quitar una de ellas sea un solo cambio. */
+    const MODULOS_RENTA_FIJA = ['tasas', 'rendimientos'];
+    const esRentaFija = nombre => MODULOS_RENTA_FIJA.includes(nombre);
 
     function updateDetailNavigation(name) {
         const cfg = detailConfig[name];
@@ -1400,7 +1416,7 @@
             // Rendimientos hereda el comportamiento de la antigua sección "Tasas y
             // bonos", así que abre con la vista de columnas. La variante de línea
             // pertenecía al panel de curvas propio, que ya no existe.
-            if (name === 'rendimientos' && typeof setBondChartType === 'function') {
+            if (esRentaFija(name) && typeof setBondChartType === 'function') {
                 const button = document.querySelector('[data-bond-chart="columns"]');
                 setBondChartType('columns', button);
             }
@@ -1467,8 +1483,12 @@
             });
         }
         document.body.classList.add('ff-detail-mode');
-        document.body.classList.remove(...detailClasses);
+        document.body.classList.remove(...detailClasses, 'ff-detail-rentafija');
         document.body.classList.add(`ff-detail-${name}`);
+        /* Tasas y bonos y Rendimientos comparten toda su presentación. En vez de
+           duplicar los treinta selectores de cada estilo, ambos reciben esta clase
+           común y el CSS se escribe una sola vez contra ella. */
+        if (esRentaFija(name)) document.body.classList.add('ff-detail-rentafija');
         updateDetailNavigation(name);
 
         const navigation = $('ff-detail-navigation');
@@ -1946,7 +1966,7 @@
         /* La tabla de diferenciales solo tiene sentido donde se habla de deuda. */
         const spreadsBoard = $('ff-spreads-board');
         if (spreadsBoard) {
-            const procede = name === 'bonos' || name === 'rendimientos';
+            const procede = name === 'bonos' || esRentaFija(name);
             spreadsBoard.hidden = !procede;
             if (procede) renderSpreadsBoard();
         }
@@ -1962,7 +1982,7 @@
             return;
         }
 
-        if (name === 'rendimientos') {
+        if (esRentaFija(name)) {
             // El bloque "Mapa conjunto de tasas y bonos" (indicadores, grafica y
             // tabla de instrumentos) se retiro a peticion del usuario.
             // Este contenedor lo comparte con Bolsa y Bonos, asi que no se elimina:
@@ -2057,7 +2077,7 @@
             const stocks = state.bmvData.filter(item => item.type === 'stock').map(item => ({ name: item.name || item.symbol, value: +item.price, displayValue: formatNumber(item.price, 2), change: +item.change_pct, reading: `BMV · ${item.symbol}` }));
             return [...indexes, ...stocks];
         }
-        if (state.module === 'rendimientos') {
+        if (esRentaFija(state.module)) {
             return getReferenceRateItems().map(rate => ({
                 name: rate.country,
                 value: rate.yield,
@@ -2137,7 +2157,7 @@
             labels = stocks.map(item => item.symbol);
             datasets = [{ label: 'Variación diaria', data: stocks.map(item => +item.change_pct), backgroundColor: stocks.map(item => +item.change_pct >= 0 ? colors.green : colors.red), borderRadius: 5 }];
             kicker = 'Emisoras'; title = 'Pulso de acciones mexicanas'; badge = 'Sesión'; note = 'Variación diaria de las emisoras disponibles; verde indica avance y rojo retroceso.';
-        } else if (state.module === 'rendimientos') {
+        } else if (esRentaFija(state.module)) {
             const rates = getReferenceRateItems();
             labels = rates.map(item => item.key.toUpperCase());
             datasets = [{ label: 'Referencia actual', data: rates.map(item => item.yield), backgroundColor: `${colors.cyan}cc`, borderRadius: 5 }];
@@ -2194,7 +2214,7 @@
                 text = `El promedio de los índices seguidos es ${formatPercent(average)}. ${Number.isFinite(vix) ? `El VIX se ubica en ${formatNumber(vix,1)}, por lo que la volatilidad debe leerse junto con la dirección.` : 'La volatilidad aún no está disponible.'}`;
                 risk = Number.isFinite(vix) ? (vix < 15 ? 'Bajo' : vix < 25 ? 'Moderado' : 'Elevado') : 'Moderado';
             }
-        } else if (state.module === 'rendimientos') {
+        } else if (esRentaFija(state.module)) {
             const mx = state.bondData.find(item => item.key === 'mx')?.bonds?.[0]?.yield;
             const us = state.bondData.find(item => item.key === 'us')?.bonds?.[0]?.yield;
             const real = isNumeric(mx) && isNumeric(state.inflation) ? +mx - +state.inflation : null;

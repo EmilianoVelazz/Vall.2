@@ -1,29 +1,62 @@
-// Genera dist/ copiando los archivos estáticos del sitio (no hay bundler: es HTML/CSS/JS
-// plano). El proyecto en Vercel tiene "Output Directory" fijado a "dist" desde la época de
-// Vite; en vez de depender de que se cambie ese ajuste en el dashboard, generamos ese
-// directorio nosotros mismos en cada build. api/ y backend/ NO se copian aquí: Vercel las
-// detecta como función serverless desde la raíz del repo, independiente de este directorio.
+// Genera dist/ para el despliegue.
+//
+// La versión anterior de este script daba por hecho que el sitio era "HTML/CSS/JS
+// plano" y NO compilaba el frontend de React: dist/ salía sin bundle y con el
+// index.html legacy en la raíz, así que el despliegue servía el sitio HTML
+// antiguo por mucho que el trabajo estuviera hecho en React.
+//
+// Ahora dist/ es la app de React, más los estáticos heredados que las secciones
+// todavía no migradas necesitan (LegacyPage las trae por fetch en runtime).
+//
+// api/ y backend/ NO se copian: Vercel las detecta como función serverless desde
+// la raíz del repo, independientemente de este directorio.
 import { existsSync, rmSync, cpSync, copyFileSync, readdirSync, unlinkSync } from 'fs';
+import { spawnSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
+const FRONT = path.join(ROOT, 'frontend');
+const FRONT_DIST = path.join(FRONT, 'dist');
 
+// Estáticos heredados. `pages` y `inicio.html` siguen aquí porque las secciones
+// que aún no son React se cargan desde esos archivos; se podrán retirar cuando
+// no quede ninguna ruta usando LegacyPage.
 const DIRS = ['assets', 'pages'];
-const FILES = ['index.html', 'inicio.html'];
+const FILES = ['inicio.html'];
 
-// Imágenes pesadas que ya tienen versión .webp optimizada — no necesitan ir al build.
-// Esto reduce ~27 MB del directorio dist/.
+// Imágenes pesadas que ya tienen versión .webp optimizada — no necesitan ir al
+// build. Esto reduce ~27 MB del directorio dist/.
 const IMG_EXCLUDE = new Set([
-    'finanzas.jpg',  // 6.3 MB → finanzas.webp (67 KB)
-    'geo.jpg',       // 2.4 MB → geo.webp (176 KB)
-    'mercadoP.jpg',  // 85 KB  → mercadoP.webp (96 KB)
-    'mercados.jpg',  // 242 KB → mercados.webp (115 KB)
+    'finanzas.jpg',  // 6.3 MB  → finanzas.webp (67 KB)
+    'geo.jpg',       // 2.4 MB  → geo.webp (176 KB)
+    'mercadoP.jpg',  // 85 KB   → mercadoP.webp (96 KB)
+    'mercados.jpg',  // 242 KB  → mercados.webp (115 KB)
     'mexico.jpg',    // 15.6 MB → mexico.webp (238 KB)
-    'mexico2.png',   // 2.5 MB → mexico2.webp (220 KB)
+    'mexico2.png',   // 2.5 MB  → mexico2.webp (220 KB)
 ]);
 
+// ── 1. Compilar React ─────────────────────────────────────────────────────────
+// Se invoca el binario de Vite directamente: en Windows, spawn de npm.cmd falla
+// con EINVAL en las versiones recientes de Node.
+const viteBin = path.join(FRONT, 'node_modules', 'vite', 'bin', 'vite.js');
+if (!existsSync(viteBin)) {
+    console.error('[build-dist] Falta frontend/node_modules. Ejecuta: npm install --prefix frontend');
+    process.exit(1);
+}
+
+console.log('[build-dist] Compilando el frontend de React…');
+const build = spawnSync(process.execPath, [viteBin, 'build'], {
+    cwd: FRONT,
+    stdio: 'inherit',
+});
+if (build.status !== 0) {
+    console.error('[build-dist] La compilación de React falló; no se genera dist/.');
+    process.exit(build.status || 1);
+}
+
+// ── 2. Ensamblar dist/ ────────────────────────────────────────────────────────
 if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
 
 for (const dir of DIRS) {
@@ -35,7 +68,16 @@ for (const file of FILES) {
     if (existsSync(src)) copyFileSync(src, path.join(DIST, file));
 }
 
-// Limpiar imágenes pesadas que no se usan (ya fueron copiadas por cpSync)
+// La app de React va al final para que su index.html sea el que responde en "/".
+// El index.html legacy (el login en HTML) se queda fuera a propósito: ese login
+// ahora es un componente React y servirlo duplicaría la pantalla de acceso.
+if (!existsSync(FRONT_DIST)) {
+    console.error('[build-dist] vite build no produjo frontend/dist.');
+    process.exit(1);
+}
+cpSync(FRONT_DIST, DIST, { recursive: true });
+
+// ── 3. Podar imágenes pesadas ─────────────────────────────────────────────────
 const imgDist = path.join(DIST, 'assets', 'img');
 let removed = 0;
 if (existsSync(imgDist)) {
@@ -47,5 +89,6 @@ if (existsSync(imgDist)) {
     }
 }
 
-console.log(`[build-dist] dist/ generado con ${DIRS.length} carpetas y ${FILES.length} archivos.`);
+const bundle = path.join(DIST, 'vn-app');
+console.log(`\n[build-dist] dist/ listo: React${existsSync(bundle) ? ' (vn-app/)' : ''} + estáticos heredados.`);
 if (removed) console.log(`[build-dist] ${removed} imágenes pesadas excluidas (~27 MB ahorrados).`);

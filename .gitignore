@@ -93,6 +93,15 @@ temp_old_finanzas.html
 pages/finanzas_broken.html
 pages/temp_check.js
 
+# Logs del lanzador de desarrollo (scripts/dev.mjs)
+/_dev.log
+/_dev.err
+
+# Scripts y capturas de diagnostico de un solo uso.
+# scripts/verify-page.mjs SI se versiona: es la herramienta reutilizable que
+# comprueba una ruta renderizada en el navegador.
+scripts/_verify/
+
 # Logs locales del backend
 backend/server-current.log
 backend/server-current-error.log

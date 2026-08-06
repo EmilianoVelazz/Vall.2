@@ -15,6 +15,13 @@ import react from '@vitejs/plugin-react';
  */
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Por defecto Vite emite a dist/assets, que es justo el nombre de la carpeta
+    // de estáticos del sitio legacy (assets/css, assets/img, assets/js). Hoy no
+    // chocarían porque el legacy solo tiene subcarpetas, pero mezclar el bundle
+    // de React con los assets heredados hace imposible distinguirlos en dist/.
+    assetsDir: 'vn-app',
+  },
   server: {
     port: 5173,
     proxy: {

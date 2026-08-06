@@ -754,18 +754,17 @@
     <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.8">
     <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=3.0">
     <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=70">
-    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=111">
+    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=112">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
-    <link rel="stylesheet" href="../assets/css/returns-pro.css?v=12">
     <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
-    <script src="../assets/js/finanzas-favro.js?v=105" defer></script>
+    <script src="../assets/js/finanzas-favro.js?v=106" defer></script>
 
 <style>
 /* PREMIUM INTERMEDIATE PALETTE (Favro 2.0) */
 /* Workspaces background */
 body.ff-detail-rendimientos .ff-workspace,
 body.ff-detail-bonos .ff-workspace,
-body.ff-detail-tasas .ff-workspace {
+body.ff-detail-rendimientos .ff-workspace {
     background: linear-gradient(135deg, #8ba3b5 0%, #647a8d 100%) !important;
     border: 1px solid #dfe7ed !important;
     border-radius: 22px !important;
@@ -793,10 +792,10 @@ body.ff-detail-tasas .ff-workspace {
 /* Workspace titles (white text on dark background) */
 body.ff-detail-rendimientos .ff-workspace-title,
 body.ff-detail-bonos .ff-workspace-title,
-body.ff-detail-tasas .ff-workspace-title,
+body.ff-detail-rendimientos .ff-workspace-title,
 body.ff-detail-rendimientos .ff-workspace-description,
 body.ff-detail-bonos .ff-workspace-description,
-body.ff-detail-tasas .ff-workspace-description {
+body.ff-detail-rendimientos .ff-workspace-description {
     color: #ffffff !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 }
@@ -819,9 +818,9 @@ body.ff-detail-rendimientos .ff-supplement-kpi,
 body.ff-detail-rendimientos .ff-supplement-table-card,
 body.ff-detail-rendimientos .ff-detail-supplement,
 body.ff-detail-bonos .debt-block,
-body.ff-detail-tasas .debt-block,
+body.ff-detail-rendimientos .debt-block,
 body.ff-detail-bonos .ff-table-card,
-body.ff-detail-tasas .ff-table-card {
+body.ff-detail-rendimientos .ff-table-card {
     background: #ffffff !important;
     backdrop-filter: none !important;
     border: 1px solid #dfe7ed !important; /* Favro Line */
@@ -832,9 +831,9 @@ body.ff-detail-tasas .ff-table-card {
 
 /* Base text inside debt-block is dark (including normal headers) */
 body.ff-detail-bonos .debt-block,
-body.ff-detail-tasas .debt-block,
+body.ff-detail-rendimientos .debt-block,
 body.ff-detail-bonos .debt-block *,
-body.ff-detail-tasas .debt-block * {
+body.ff-detail-rendimientos .debt-block * {
     color: #10202e !important;
     text-shadow: none !important;
 }
@@ -1285,8 +1284,7 @@ let patchInterval = setInterval(() => {
         </div>
         <nav class="ff-detail-tabs" aria-label="Apartados de Finanzas">
             <button type="button" data-detail-module="bolsa"><i class="fas fa-chart-line"></i><span>Bolsa</span></button>
-            <button type="button" data-detail-module="tasas"><i class="fas fa-landmark"></i><span>Tasas y bonos</span></button>
-            <button type="button" data-detail-module="rendimientos"><i class="fas fa-wave-square"></i><span>Rendimientos</span></button>
+            <button type="button" data-detail-module="rendimientos"><i class="fas fa-landmark"></i><span>Rendimientos</span></button>
             <button type="button" data-detail-module="noticias"><i class="fas fa-newspaper"></i><span>Daily News</span></button>
         </nav>
     </section>
@@ -1429,18 +1427,6 @@ let patchInterval = setInterval(() => {
                     </div>
                 </article>
 
-                <article class="ff-module ffm-card" data-module="tasas" tabindex="0">
-                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
-                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-tasas"></canvas></div>
-                    <div class="ffm-body">
-                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Tasas y bonos</h2></div></header>
-                        <div class="ffm-foot">
-                            <button class="ff-module-link" type="button" data-open-module="tasas">Abrir tasas y bonos <i class="fas fa-arrow-right"></i></button>
-                            <span class="ffm-stat"><em>TIIE 28D</em><strong id="ff-tile-tasas">—</strong></span>
-                        </div>
-                    </div>
-                </article>
-
                 <article class="ff-module ff-module-news ffm-card" data-module="noticias" tabindex="0">
                     <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
                     <div class="ffm-body">
@@ -1456,9 +1442,9 @@ let patchInterval = setInterval(() => {
                     <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
                     <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-rendimientos"></canvas></div>
                     <div class="ffm-body">
-                        <header><span class="ff-module-icon"><i class="fas fa-wave-square"></i></span><div><small>Riesgo y retorno</small><h2>Rendimientos de bonos</h2></div></header>
+                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Rendimientos</h2></div></header>
                         <div class="ffm-foot">
-                            <button class="ff-module-link" type="button" data-open-module="rendimientos">Ver curva completa <i class="fas fa-arrow-right"></i></button>
+                            <button class="ff-module-link" type="button" data-open-module="rendimientos">Abrir rendimientos <i class="fas fa-arrow-right"></i></button>
                             <span class="ffm-stat"><em>US 10 años</em><strong id="ff-tile-rendimientos">—</strong></span>
                         </div>
                     </div>
@@ -1773,114 +1759,7 @@ let patchInterval = setInterval(() => {
         </div>
     </div>
 
-        <section class="returns-pro" id="returns-panel" aria-labelledby="returns-title">
-            <header class="returns-hero">
-                <div class="returns-hero-copy">
-                    <span class="returns-eyebrow"><i class="fas fa-wave-square" aria-hidden="true"></i> Monitor profesional de curva</span>
-                    <h2 id="returns-title">Rendimientos soberanos</h2>
-                    <p>Analiza cuánto exige el mercado por cada plazo, cómo cambió la curva y dónde se concentra el movimiento.</p>
-                </div>
-                <div class="returns-live" aria-live="polite"><i></i><span>Datos conectados</span><small id="returns-updated">Esperando actualización</small></div>
-            </header>
-
-            <nav class="returns-section-nav" aria-label="Secciones de Rendimientos">
-                <button type="button" data-returns-jump="returns-global-section"><i class="fas fa-earth-americas"></i> Mundo</button>
-                <button type="button" data-returns-jump="returns-curve-section"><i class="fas fa-wave-square"></i> Curva</button>
-                <button type="button" data-returns-jump="returns-history-section"><i class="fas fa-clock-rotate-left"></i> Histórico</button>
-                <button type="button" data-returns-jump="returns-movement-section"><i class="fas fa-table-cells-large"></i> Movimientos</button>
-                <button type="button" data-returns-jump="returns-data-section"><i class="fas fa-list"></i> Datos</button>
-            </nav>
-
-            <section class="returns-global" id="returns-global-section" aria-labelledby="returns-global-title">
-                <header class="returns-global-head">
-                    <div><span><i class="fas fa-earth-americas"></i> ATLAS DE RENDIMIENTOS</span><h3 id="returns-global-title">Panorama internacional</h3><p>Compara países sin confundir rendimientos soberanos con tasas de política monetaria.</p></div>
-                    <div class="returns-global-switch" role="group" aria-label="Tipo de referencia internacional">
-                        <button class="is-active" type="button" data-returns-global-mode="sovereign" aria-pressed="true">Soberanos 10A</button>
-                        <button type="button" data-returns-global-mode="anchors" aria-pressed="false">Anclas monetarias</button>
-                    </div>
-                </header>
-                <div class="returns-global-summary">
-                    <div><span>Mercados cubiertos</span><strong id="returns-global-count">—</strong><small id="returns-global-count-note">Países con dato</small></div>
-                    <div><span>Mediana</span><strong id="returns-global-median">—</strong><small>Nivel del conjunto</small></div>
-                    <div><span>Mayor nivel</span><strong id="returns-global-high">—</strong><small id="returns-global-high-note">Mercado</small></div>
-                    <div><span>Amplitud</span><strong id="returns-global-breadth">—</strong><small id="returns-global-breadth-note">Movimientos al alza</small></div>
-                </div>
-                <div class="returns-global-body">
-                    <article class="returns-global-chart-card">
-                        <div class="returns-global-card-head"><div><span>CLASIFICACIÓN INTERNACIONAL</span><h4 id="returns-global-chart-title">Rendimiento soberano a 10 años</h4></div><small id="returns-global-unit">% anual</small></div>
-                        <div><canvas id="returns-global-chart" aria-label="Comparación internacional de rendimientos"></canvas></div>
-                    </article>
-                    <aside class="returns-country-board">
-                        <div class="returns-global-card-head"><div><span>LECTURA PAÍS POR PAÍS</span><h4>Radar internacional</h4></div><small id="returns-global-region-count">—</small></div>
-                        <div class="returns-country-grid" id="returns-country-grid" aria-live="polite"></div>
-                    </aside>
-                </div>
-                <div class="returns-global-state" id="returns-global-state"><span></span><p>Conectando mercados soberanos…</p></div>
-                <footer><span id="returns-global-source">BCE · US Treasury · bancos centrales</span><p id="returns-global-note">Los soberanos se comparan a 10 años. Las anclas monetarias se presentan aparte porque no son bonos ni tienen el mismo plazo.</p></footer>
-            </section>
-
-            <div class="returns-main-grid" id="returns-curve-section">
-                <article class="returns-card returns-chart-card">
-                    <header><div><span>COMPARADOR INTERNACIONAL DE CURVAS</span><h3 id="returns-chart-title">Curva frente a referencia soberana</h3></div><div class="returns-chart-controls"><label class="returns-reference-field"><span id="returns-reference-label">Comparar EE. UU. contra</span><select id="returns-reference-country" aria-label="Seleccionar país para comparar contra Estados Unidos"><option value="">Cargando países…</option></select></label><label class="returns-reference-field returns-mode-field"><span>Tipo de gráfica</span><select id="returns-chart-mode" aria-label="Seleccionar tipo de gráfica"><option value="level">Curva de rendimientos</option><option value="change">Cambio diario · barras</option></select></label></div></header>
-                    <div class="returns-chart-wrap"><canvas id="returns-curve-chart" aria-label="Gráfica interactiva de rendimientos por vencimiento"></canvas><div class="returns-empty" id="returns-chart-empty" hidden><i class="fas fa-chart-line"></i><strong>Curva no disponible</strong><span>No hay suficientes vencimientos conectados.</span></div></div>
-                    <footer><div class="returns-legend" id="returns-legend"><span><i class="is-current"></i><b id="returns-base-legend">EE. UU.</b></span><span><i class="is-previous"></i> Lectura anterior</span><span id="returns-reference-legend" hidden><i class="is-reference"></i><b id="returns-reference-legend-label">País 10A</b></span></div><strong id="returns-chart-unit">Rendimiento anual %</strong></footer>
-                </article>
-
-                <aside class="returns-card returns-reading" aria-live="polite">
-                    <span class="returns-reading-label">LECTURA DE LA CURVA</span>
-                    <div class="returns-shape"><div><small>Forma actual</small><strong id="returns-shape-title">Calculando</strong></div><span id="returns-shape-badge">—</span></div>
-                    <p id="returns-shape-copy">La interpretación aparecerá cuando se reciban al menos dos vencimientos comparables.</p>
-                    <div class="returns-reading-facts">
-                        <div><span>Mayor rendimiento</span><strong id="returns-high-point">—</strong></div>
-                        <div><span>Menor rendimiento</span><strong id="returns-low-point">—</strong></div>
-                        <div><span>Mayor movimiento</span><strong id="returns-biggest-move">—</strong></div>
-                    </div>
-                    <div class="returns-reading-note"><i class="fas fa-shield-halved"></i><span id="returns-nature-note">Los niveles nominales incorporan inflación esperada; no equivalen a rendimiento real.</span></div>
-                </aside>
-            </div>
-
-            <article class="returns-card returns-history-card" id="returns-history-section">
-                <header>
-                    <div><span>LABORATORIO HISTÓRICO INTERNACIONAL</span><h3 id="returns-history-title">Selecciona un país</h3><p id="returns-history-subtitle">Compara la evolución del rendimiento con la serie oficial disponible en cada mercado.</p></div>
-                    <div class="returns-history-controls">
-                        <label><span>País</span><select id="returns-history-country" aria-label="País de la serie histórica"></select></label>
-                        <label><span>Vencimiento</span><select id="returns-history-series" aria-label="Serie histórica"></select></label>
-                        <div class="returns-history-periods" role="group" aria-label="Periodo histórico">
-                            <button type="button" data-returns-years="1">1A</button><button class="is-active" type="button" data-returns-years="3">3A</button><button type="button" data-returns-years="5">5A</button><button type="button" data-returns-years="10">10A</button>
-                        </div>
-                    </div>
-                </header>
-                <div class="returns-history-stats">
-                    <div><span>Último</span><strong id="returns-history-last">—</strong><small id="returns-history-last-date">Fecha</small></div>
-                    <div><span>Máximo</span><strong id="returns-history-high">—</strong><small id="returns-history-high-date">Periodo</small></div>
-                    <div><span>Mínimo</span><strong id="returns-history-low">—</strong><small id="returns-history-low-date">Periodo</small></div>
-                    <div><span>Cambio del periodo</span><strong id="returns-history-change">—</strong><small id="returns-history-observations">Observaciones</small></div>
-                    <div class="returns-history-position"><span>Posición en el rango</span><strong id="returns-history-position">—</strong><div><i id="returns-history-position-bar"></i></div></div>
-                </div>
-                <div class="returns-history-chart-wrap"><canvas id="returns-history-chart" aria-label="Evolución histórica del rendimiento"></canvas><div class="returns-history-state" id="returns-history-state"><span></span><p>Cargando serie histórica…</p></div></div>
-                <footer><span id="returns-history-source">Fuente conectada</span><small>La frecuencia depende de la publicación de cada fuente.</small></footer>
-            </article>
-
-            <div class="returns-secondary-grid" id="returns-movement-section">
-                <article class="returns-card returns-heatmap-card">
-                    <header><div><span>MOVIMIENTO POR TRAMO</span><h3>Mapa de cambios</h3></div><small>Puntos base</small></header>
-                    <div class="returns-heatmap" id="returns-heatmap" aria-live="polite"></div>
-                </article>
-                <article class="returns-card returns-compare-card">
-                    <header><div><span>LECTURA CRUZADA</span><h3>Referencias de las curvas</h3></div><small>Niveles actuales</small></header>
-                    <div class="returns-comparison" id="returns-comparison" aria-live="polite"></div>
-                    <p>Las curvas nominales y reales se muestran juntas para contexto; su diferencia no debe interpretarse automáticamente como una prima.</p>
-                </article>
-            </div>
-
-            <article class="returns-card returns-table-card" id="returns-data-section">
-                <header><div><span>DATOS DUROS · MATRIZ CUANTITATIVA</span><h3>Detalle por vencimiento</h3><p id="returns-table-insight">Analizando niveles, dispersión y movimientos por tramo.</p></div><div class="returns-table-header-tools"><label><span>Ordenar por</span><select id="returns-table-sort" aria-label="Ordenar detalle por vencimiento"><option value="maturity">Vencimiento</option><option value="yield-desc">Mayor rendimiento</option><option value="move-desc">Mayor movimiento</option></select></label><small id="returns-table-source">Fuente financiera conectada</small></div></header>
-                <div class="returns-table-summary"><div><span>Tramos</span><strong id="returns-table-count">—</strong></div><div><span>Promedio</span><strong id="returns-table-average">—</strong></div><div><span>Mediana</span><strong id="returns-table-median">—</strong></div><div><span>Rango</span><strong id="returns-table-range">—</strong></div><div><span>Desv. entre tramos</span><strong id="returns-table-deviation">—</strong></div><div><span>Movimiento máximo</span><strong id="returns-table-max-move">—</strong></div><p><i class="fas fa-circle-info"></i> Los diferenciales se expresan en puntos base. La posición indica el nivel relativo dentro de la curva observada.</p></div>
-                <div class="returns-table-wrap"><table><thead><tr><th>Vencimiento</th><th>Segmento</th><th>Actual</th><th>Anterior</th><th>Cambio diario</th><th>Vs. 10 años</th><th>Vs. promedio</th><th>Posición</th><th>Lectura de mercado</th></tr></thead><tbody id="returns-table-body"><tr><td colspan="9">Esperando datos…</td></tr></tbody></table></div>
-            </article>
-
-            <footer class="returns-foot"><div><i class="fas fa-book-open"></i><p><strong>Cómo leerlo:</strong> el rendimiento es la tasa anual exigida por el mercado. Cuando sube, el precio de un bono existente normalmente baja; el efecto suele ser mayor en plazos largos.</p></div><span>Información educativa · no constituye recomendación de inversión</span></footer>
-        </section>
+        
 
         <section class="debt-pro" id="bonds-panel" style="display:none">
 

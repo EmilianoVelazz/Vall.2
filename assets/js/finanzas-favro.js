@@ -301,57 +301,9 @@
         return country?.bonds?.find(item => item.maturity === maturity || item.label === maturity) || null;
     }
 
-    function returnsMaturityYears(value) {
-        const label = String(value || '').trim().toUpperCase();
-        const amount = Number.parseFloat(label.replace(',', '.'));
-        if (!Number.isFinite(amount)) return null;
-        if (/D|DÍA/.test(label)) return amount / 365;
-        if (/M|MES/.test(label) && !/AÑO/.test(label)) return amount / 12;
-        if (/Y|A|AÑO/.test(label)) return amount;
-        return amount;
-    }
 
-    function getReturnsCurves() {
-        const usEntry = state.bondData.find(item => item.key === 'us');
-        const normalize = (items, config) => (Array.isArray(items) ? items : []).map(item => {
-            const candidates = [item.maturity, item.label].filter(Boolean);
-            const maturityLabel = candidates.find(candidate => Number.isFinite(returnsMaturityYears(candidate)));
-            const label = maturityLabel || item.label || item.maturity || '—';
-            const value = item[config.valueKey];
-            return {
-                label,
-                x: returnsMaturityYears(maturityLabel),
-                y: isNumeric(value) ? +value : null,
-                prev: isNumeric(item.prev) ? +item.prev : null,
-            };
-        }).filter(item => Number.isFinite(item.x) && Number.isFinite(item.y)).sort((a, b) => a.x - b.x);
-        return {
-            us: {
-                key: 'us',
-                title: 'Treasury nominal de EE. UU.',
-                short: 'Treasury',
-                nature: 'Nominal',
-                source: usEntry?.source || 'US Treasury · fuente conectada',
-                points: normalize(usEntry?.bonds, { valueKey: 'yield' }),
-            },
-            cetes: {
-                key: 'cetes',
-                title: 'CETES nominal de México',
-                short: 'CETES',
-                nature: 'Nominal',
-                source: state.mxRates?.source === 'banxico' ? 'Banxico SIE' : 'Fuente México conectada',
-                points: normalize(state.mxRates?.cetes, { valueKey: 'yield' }),
-            },
-            udibonos: {
-                key: 'udibonos',
-                title: 'UDIBONOS reales de México',
-                short: 'UDIBONOS',
-                nature: 'Real',
-                source: state.mxRates?.source === 'banxico' ? 'Banxico SIE' : 'Fuente México conectada',
-                points: normalize(state.mxRates?.udibonos, { valueKey: 'realYield' }),
-            },
-        };
-    }
+
+
 
     const RETURNS_HISTORY_SERIES = {
         us: [
@@ -387,717 +339,55 @@
         }])),
     };
 
-    function syncReturnsHistoryCountryOptions() {
-        const select = $('returns-history-country');
-        if (!select) return;
-        const fragment = document.createDocumentFragment();
-        ['América', 'Europa'].forEach(region => {
-            const group = document.createElement('optgroup'); group.label = region;
-            Object.entries(RETURNS_HISTORY_COUNTRIES).filter(([, config]) => config.region === region).forEach(([key, config]) => {
-                group.append(new Option(`${config.flag} ${config.label}`, key));
-            });
-            fragment.append(group);
-        });
-        select.replaceChildren(fragment);
-        if (!RETURNS_HISTORY_COUNTRIES[state.returnsHistoryCountry]) state.returnsHistoryCountry = 'us';
-        select.value = state.returnsHistoryCountry;
-    }
 
-    function setReturnsGlobalState(message, loading = false) {
-        const host = $('returns-global-state');
-        if (!host) return;
-        host.classList.toggle('is-hidden', !message);
-        host.classList.toggle('is-loading', loading);
-        const copy = host.querySelector('p'); if (copy) copy.textContent = message || '';
-    }
 
-    function syncReturnsReferenceOptions() {
-        const select = $('returns-reference-country');
-        if (!select) return;
-        const references = state.returnsGlobalData.filter(item => item.key !== 'US');
-        if (!references.length) {
-            select.replaceChildren(new Option('Cargando países…', ''));
-            select.disabled = true;
-            return;
-        }
-        const fragment = document.createDocumentFragment();
-        fragment.append(new Option('Sin referencia internacional', ''));
-        references.forEach(item => fragment.append(new Option(`${item.flag} ${item.country} · 10A`, item.key)));
-        select.replaceChildren(fragment);
-        if (state.returnsReferenceCountry && !references.some(item => item.key === state.returnsReferenceCountry)) {
-            state.returnsReferenceCountry = references.find(item => item.key === 'DE')?.key || references[0]?.key || '';
-        }
-        select.value = state.returnsReferenceCountry;
-        select.disabled = !references.length;
-    }
 
-    function getReturnsReference() {
-        return state.returnsGlobalData.find(item => item.key === state.returnsReferenceCountry) || null;
-    }
 
-    async function loadReturnsGlobalData() {
-        if (state.returnsGlobalData.length) { renderReturnsGlobal(); return; }
-        if (state.returnsGlobalPromise) return state.returnsGlobalPromise;
-        setReturnsGlobalState('Conectando mercados soberanos…', true);
-        state.returnsGlobalPromise = (async () => {
-            const us10 = bond('us', '10Y');
-            const base = isNumeric(us10?.yield) ? [{
-                key: 'US', country: 'Estados Unidos', flag: '🇺🇸', region: 'América',
-                label: 'Treasury 10A', value: +us10.yield, prev: isNumeric(us10.prev) ? +us10.prev : null, source: 'US Treasury',
-            }] : [];
-            const results = await Promise.allSettled(RETURNS_GLOBAL_SOVEREIGNS.map(async market => {
-                const data = await fetchJson(`/api/ecb/${market.area}/history?years=1`, 22000);
-                const points = Array.isArray(data?.points) ? data.points.filter(point => isNumeric(point.value)) : [];
-                if (!points.length) throw new Error('Sin observaciones');
-                const last = points.at(-1), previous = points.length > 1 ? points.at(-2) : null;
-                return { key: market.area, country: market.country, flag: market.flag, region: market.region, label: 'Soberano 10A', value: +last.value, prev: previous ? +previous.value : null, source: 'Banco Central Europeo' };
-            }));
-            state.returnsGlobalData = [...base, ...results.filter(result => result.status === 'fulfilled').map(result => result.value)];
-            state.returnsGlobalPromise = null;
-            syncReturnsReferenceOptions();
-            renderReturnsGlobal();
-            const activeCurve = getReturnsCurves()[state.returnsCurve];
-            if (activeCurve) renderReturnsChart(activeCurve);
-            if (state.returnsGlobalData.length) setReturnsGlobalState('', false);
-            else setReturnsGlobalState('No fue posible obtener referencias soberanas internacionales.', false);
-        })().catch(() => {
-            state.returnsGlobalPromise = null;
-            setReturnsGlobalState('No fue posible obtener referencias soberanas internacionales.', false);
-        });
-        return state.returnsGlobalPromise;
-    }
 
-    function getReturnsGlobalAnchors() {
-        const region = { us: 'América', mx: 'América', br: 'América', ca: 'América', gb: 'Europa', jp: 'Asia', cn: 'Asia' };
-        const type = {
-            us: 'Treasury 3M · proxy monetario', mx: 'TIIE 28D · interbancaria', br: 'SELIC · política', ca: 'Objetivo · política',
-            gb: 'Tasa base · política', jp: 'Objetivo · política', cn: 'LPR 1A · crédito',
-        };
-        return state.bondData.filter(entry => region[entry.key]).map(entry => {
-            const item = entry.key === 'us' ? entry.bonds?.find(rate => rate.maturity === '3M') : entry.bonds?.[0];
-            if (!item || !isNumeric(item.yield)) return null;
-            return {
-                key: entry.key.toUpperCase(), country: entry.country, flag: entry.flag || '•', region: region[entry.key],
-                label: type[entry.key], value: +item.yield, prev: isNumeric(item.prev) ? +item.prev : null, source: entry.source,
-            };
-        }).filter(Boolean);
-    }
 
-    function renderReturnsGlobalChart(items) {
-        const canvas = $('returns-global-chart');
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (state.returnsGlobalChart) { state.returnsGlobalChart.destroy(); state.returnsGlobalChart = null; }
-        if (!items.length) return;
-        const ordered = [...items].sort((a, b) => a.value - b.value);
-        const tones = { 'América': '#9b2945', 'Europa': '#bd8b3d', 'Asia': '#6f8979' };
 
-        /* El pais elegido en "Comparar EE. UU. contra" se resalta aqui tambien:
-           antes solo destacaba EE. UU., y era por casualidad — es el unico de
-           America, asi que llevaba el burdeos mientras el resto de Europa
-           compartia el mismo oro.
 
-           El enfasis se hace con PESO (opacidad plena, borde grueso y barra mas
-           alta), no con un color nuevo: meter un cuarto hue romperia el codigo
-           por region, que es lo que la leyenda de arriba promete. */
-        const resaltado = state.returnsReferenceCountry;
-        const esResaltado = item => item.key === resaltado;
-        const tono = item => tones[item.region] || '#898781';
 
-        state.returnsGlobalChart = new Chart(canvas, {
-            type: 'bar',
-            data: { labels: ordered.map(item => item.country), datasets: [{
-                data: ordered.map(item => item.value),
-                backgroundColor: ordered.map(item => (esResaltado(item) ? tono(item) : `${tono(item)}d9`)),
-                borderColor: ordered.map(item => (esResaltado(item) ? '#2f3a48' : tono(item))),
-                borderWidth: ordered.map(item => (esResaltado(item) ? 2.5 : 1)),
-                borderRadius: 6, borderSkipped: false,
-                barThickness: items.length > 10 ? 12 : 18,
-            }] },
-            options: {
-                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                animation: { duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 760, easing: 'easeOutQuart' },
-                plugins: { legend: { display: false }, tooltip: {
-                    backgroundColor: '#071722', padding: 10, displayColors: false,
-                    callbacks: { label: context => `${context.parsed.x.toFixed(2)}% anual` },
-                } },
-                scales: {
-                    x: { grid: { color: 'rgba(23,39,55,.08)' }, border: { display: false }, ticks: { color: '#657787', callback: value => `${value}%`, font: { family: 'JetBrains Mono', size: 9 } } },
-                    y: { grid: { display: false }, border: { display: false }, ticks: { color: '#304759', font: { family: 'Inter', size: 9, weight: '700' } } },
-                },
-            },
-        });
-    }
 
-    function renderReturnsCountryGrid(items) {
-        const host = $('returns-country-grid');
-        if (!host) return;
-        host.replaceChildren();
-        items.forEach((item, index) => {
-            const change = Number.isFinite(item.prev) ? (item.value - item.prev) * 100 : null;
-            const card = document.createElement('article'); card.className = 'returns-country-card'; card.style.setProperty('--delay', `${Math.min(index, 12) * .035}s`);
-            const flag = document.createElement('i'); flag.textContent = item.flag;
-            const copy = document.createElement('div'); const country = document.createElement('span'); country.textContent = item.country; const label = document.createElement('small'); label.textContent = item.label; copy.append(country, label);
-            const value = document.createElement('strong'); value.append(document.createTextNode(`${item.value.toFixed(2)}%`));
-            const delta = document.createElement('em'); delta.className = change === null || Math.abs(change) < .05 ? 'is-flat' : change > 0 ? 'is-up' : 'is-down'; delta.textContent = change === null ? 'Sin previo' : `${change >= 0 ? '+' : ''}${change.toFixed(1)} pb`; value.append(delta);
-            card.append(flag, copy, value); host.append(card);
-        });
-    }
 
-    function renderReturnsGlobal() {
-        const mode = state.returnsGlobalMode;
-        const items = mode === 'sovereign' ? state.returnsGlobalData : getReturnsGlobalAnchors();
-        document.querySelectorAll('[data-returns-global-mode]').forEach(button => {
-            const active = button.dataset.returnsGlobalMode === mode; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
-        });
-        if (!items.length) {
-            if (mode === 'sovereign' && state.returnsGlobalPromise) setReturnsGlobalState('Conectando mercados soberanos…', true);
-            return;
-        }
-        const values = items.map(item => item.value).sort((a, b) => a - b);
-        const middle = Math.floor(values.length / 2);
-        const median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
-        const highest = items.reduce((best, item) => item.value > best.value ? item : best, items[0]);
-        const changes = items.filter(item => Number.isFinite(item.prev)).map(item => item.value - item.prev);
-        const rising = changes.filter(value => value > 0).length;
-        if ($('returns-global-count')) $('returns-global-count').textContent = String(items.length);
-        if ($('returns-global-count-note')) $('returns-global-count-note').textContent = `${new Set(items.map(item => item.region)).size} regiones representadas`;
-        if ($('returns-global-median')) $('returns-global-median').textContent = `${median.toFixed(2)}%`;
-        if ($('returns-global-high')) $('returns-global-high').textContent = `${highest.value.toFixed(2)}%`;
-        if ($('returns-global-high-note')) $('returns-global-high-note').textContent = highest.country;
-        if ($('returns-global-breadth')) $('returns-global-breadth').textContent = changes.length ? `${Math.round(rising / changes.length * 100)}%` : '—';
-        if ($('returns-global-breadth-note')) $('returns-global-breadth-note').textContent = changes.length ? `${rising} de ${changes.length} al alza` : 'Sin lectura previa';
-        if ($('returns-global-chart-title')) $('returns-global-chart-title').textContent = mode === 'sovereign' ? 'Rendimiento soberano a 10 años' : 'Tasas que anclan cada mercado';
-        if ($('returns-global-region-count')) $('returns-global-region-count').textContent = `${items.length} mercados`;
-        if ($('returns-global-source')) $('returns-global-source').textContent = mode === 'sovereign' ? 'BCE · US Treasury' : 'Bancos centrales · Banxico · mercado monetario';
-        if ($('returns-global-note')) $('returns-global-note').textContent = mode === 'sovereign'
-            ? 'Comparación homogénea de referencias soberanas a 10 años; el cambio europeo corresponde a la última publicación mensual.'
-            : 'Las anclas monetarias no son bonos: se muestran aparte para explicar el entorno que condiciona las curvas de cada región.';
-        renderReturnsGlobalChart(items);
-        renderReturnsCountryGrid([...items].sort((a, b) => a.region.localeCompare(b.region) || b.value - a.value));
-        setReturnsGlobalState('', false);
-    }
 
-    function setReturnsSpread(id, value, noteId = null) {
-        const element = $(id);
-        if (!element) return;
-        element.classList.remove('is-ascending', 'is-inverted', 'is-flat');
-        if (!Number.isFinite(value)) { element.textContent = '—'; if (noteId && $(noteId)) $(noteId).textContent = 'Sin tramos comparables'; return; }
-        element.textContent = `${value >= 0 ? '+' : ''}${value.toFixed(2)} pp`;
-        element.classList.add(value > .35 ? 'is-ascending' : value < -.35 ? 'is-inverted' : 'is-flat');
-        if (noteId && $(noteId)) $(noteId).textContent = value > .35 ? 'Curva ascendente' : value < -.35 ? 'Curva invertida' : 'Curva plana';
-    }
 
-    function renderReturnsSpreads(curves) {
-        const spread = points => points.length > 1 ? points.at(-1).y - points[0].y : null;
-        const us = curves.us.points;
-        const us5 = nearestReturnsPoint(us, 5);
-        const us30 = nearestReturnsPoint(us, 30);
-        setReturnsSpread('returns-spread-us', spread(us), 'returns-spread-us-note');
-        setReturnsSpread('returns-spread-us-duration', us5 && us30 ? us30.y - us5.y : null);
-        setReturnsSpread('returns-spread-cetes', spread(curves.cetes.points));
-        setReturnsSpread('returns-spread-udi', spread(curves.udibonos.points));
-    }
 
-    function syncReturnsHistorySeries() {
-        const select = $('returns-history-series');
-        if (!select) return null;
-        const available = RETURNS_HISTORY_COUNTRIES[state.returnsHistoryCountry]?.series || [];
-        const previous = state.returnsHistorySeries;
-        select.replaceChildren(...available.map(item => new Option(item.label, item.id)));
-        const selected = available.find(item => item.id === previous) || available.find(item => item.preferred) || available[0] || null;
-        state.returnsHistorySeries = selected?.id || '';
-        select.value = state.returnsHistorySeries;
-        select.disabled = !available.length;
-        return selected;
-    }
 
-    function setReturnsHistoryState(message, loading = false) {
-        const host = $('returns-history-state');
-        if (!host) return;
-        host.classList.toggle('is-hidden', !message);
-        host.classList.toggle('is-loading', loading);
-        const copy = host.querySelector('p'); if (copy) copy.textContent = message || '';
-    }
 
-    function parseReturnsBanxicoDate(value) {
-        const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(value || '').trim());
-        return match ? new Date(+match[3], +match[2] - 1, +match[1]) : null;
-    }
 
-    async function fetchReturnsHistory(countryKey, seriesId, years) {
-        const country = RETURNS_HISTORY_COUNTRIES[countryKey];
-        const cacheKey = `returns-history:${countryKey}:${seriesId}:${years}`;
-        if (state.marketSeries.has(cacheKey)) return state.marketSeries.get(cacheKey);
-        let points = [];
-        if (country?.kind === 'yahoo') {
-            const range = years <= 1 ? '1y' : years <= 3 ? '3y' : years <= 5 ? '5y' : '10y';
-            const interval = years <= 1 ? '1d' : '1wk';
-            const data = await fetchJson(`/api/stock-history?ticker=${encodeURIComponent(seriesId)}&range=${range}&interval=${interval}`, 18000);
-            points = (Array.isArray(data?.candles) ? data.candles : []).map(item => ({
-                date: new Date(typeof item.time === 'number' ? item.time * 1000 : `${item.time}T00:00:00`),
-                value: +item.close,
-            })).filter(item => !Number.isNaN(item.date.getTime()) && Number.isFinite(item.value));
-        } else if (country?.kind === 'banxico') {
-            const end = new Date(); const start = new Date(end.getFullYear() - years, end.getMonth(), end.getDate());
-            const iso = date => date.toISOString().slice(0, 10);
-            const data = await fetchJson(`/api/banxico/${encodeURIComponent(seriesId)}/history?start=${iso(start)}&end=${iso(end)}`, 18000);
-            points = (data?.bmx?.series?.[0]?.datos || []).map(item => ({ date: parseReturnsBanxicoDate(item.fecha), value: Number.parseFloat(item.dato) }))
-                .filter(item => item.date && Number.isFinite(item.value));
-        } else if (country?.kind === 'ecb') {
-            const data = await fetchJson(`/api/ecb/${encodeURIComponent(seriesId)}/history?years=${years}`, 22000);
-            points = (Array.isArray(data?.points) ? data.points : []).map(item => ({
-                date: new Date(`${item.date}-01T00:00:00`), value: +item.value,
-            })).filter(item => !Number.isNaN(item.date.getTime()) && Number.isFinite(item.value));
-        }
-        points.sort((a, b) => a.date - b.date);
-        state.marketSeries.set(cacheKey, points);
-        return points;
-    }
 
-    function formatReturnsHistoryDate(date) {
-        return date instanceof Date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-    }
 
-    function renderReturnsHistoryChart(points, meta) {
-        const canvas = $('returns-history-chart');
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (state.returnsHistoryChart) { state.returnsHistoryChart.destroy(); state.returnsHistoryChart = null; }
-        const maximumPoints = 520;
-        const step = Math.max(1, Math.ceil(points.length / maximumPoints));
-        const sampled = points.filter((_, index) => index % step === 0 || index === points.length - 1);
-        const values = sampled.map(point => point.value);
-        const lastValue = points.at(-1)?.value;
-        const currentLine = {
-            id: 'returnsCurrentLine',
-            afterDatasetsDraw(chart) {
-                if (!Number.isFinite(lastValue) || !chart.chartArea) return;
-                const y = chart.scales.y.getPixelForValue(lastValue); const { left, right } = chart.chartArea; const ctx = chart.ctx;
-                ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(153,111,47,.55)'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke(); ctx.restore();
-            },
-        };
-        state.returnsHistoryChart = new Chart(canvas, {
-            type: 'line', plugins: [currentLine],
-            data: { labels: sampled.map(point => point.date.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })), datasets: [{
-                label: meta.label, data: values, borderColor: '#9b2945', borderWidth: 2.4, pointRadius: 0, pointHoverRadius: 5,
-                pointHoverBackgroundColor: '#9b2945', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2,
-                backgroundColor: context => {
-                    const area = context.chart.chartArea; if (!area) return 'rgba(153,111,47,.14)';
-                    const gradient = context.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-                    gradient.addColorStop(0, 'rgba(153,111,47,.3)'); gradient.addColorStop(1, 'rgba(153,111,47,.015)'); return gradient;
-                }, fill: true, tension: .22,
-            }] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                animation: { duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 720, easing: 'easeOutQuart' },
-                interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { display: false }, tooltip: {
-                    backgroundColor: '#142536', padding: 10, displayColors: false,
-                    callbacks: { title: items => formatReturnsHistoryDate(sampled[items[0].dataIndex].date), label: item => `${item.parsed.y.toFixed(2)}%` },
-                } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#667989', maxTicksLimit: 8, maxRotation: 0, font: { size: 9, weight: '600' } } },
-                    y: { position: 'right', grid: { color: 'rgba(23,39,55,.07)' }, ticks: { color: '#667989', callback: value => `${Number(value).toFixed(1)}%`, font: { family: 'JetBrains Mono', size: 9 } } },
-                },
-            },
-        });
-    }
 
-    async function loadReturnsHistory() {
-        const countryKey = state.returnsHistoryCountry;
-        const country = RETURNS_HISTORY_COUNTRIES[countryKey];
-        const series = (country?.series || []).find(item => item.id === state.returnsHistorySeries);
-        const request = ++state.returnsHistoryRequest;
-        const ids = ['returns-history-last','returns-history-high','returns-history-low','returns-history-change'];
-        const clearStats = () => {
-            ids.forEach(id => { if ($(id)) { $(id).textContent = '—'; $(id).className = ''; } });
-            ['returns-history-last-date','returns-history-high-date','returns-history-low-date'].forEach(id => { if ($(id)) $(id).textContent = 'Periodo'; });
-            if ($('returns-history-observations')) $('returns-history-observations').textContent = 'Sin observaciones';
-            if ($('returns-history-position')) $('returns-history-position').textContent = '—';
-            if ($('returns-history-position-bar')) $('returns-history-position-bar').style.setProperty('--position', '0%');
-        };
-        if (!series) {
-            clearStats();
-            if ($('returns-history-title')) $('returns-history-title').textContent = 'Serie histórica no conectada';
-            if ($('returns-history-subtitle')) $('returns-history-subtitle').textContent = 'La fuente actual no publica una serie histórica utilizable para este instrumento.';
-            setReturnsHistoryState('No hay una serie histórica conectada para esta curva. La fotografía actual permanece disponible arriba.', false);
-            if (state.returnsHistoryChart) { state.returnsHistoryChart.destroy(); state.returnsHistoryChart = null; }
-            return;
-        }
-        if ($('returns-history-title')) $('returns-history-title').textContent = `${country.flag} ${country.label} · ${series.label}`;
-        if ($('returns-history-subtitle')) $('returns-history-subtitle').textContent = `Evolución del rendimiento de ${country.label} durante ${state.returnsHistoryYears} ${state.returnsHistoryYears === 1 ? 'año' : 'años'}.`;
-        if ($('returns-history-source')) $('returns-history-source').textContent = series.source;
-        clearStats();
-        setReturnsHistoryState('Cargando serie histórica…', true);
-        try {
-            const points = await fetchReturnsHistory(countryKey, series.id, state.returnsHistoryYears);
-            if (request !== state.returnsHistoryRequest) return;
-            if (points.length < 2) throw new Error('Serie insuficiente');
-            const first = points[0], last = points.at(-1);
-            const high = points.reduce((best, point) => point.value > best.value ? point : best, points[0]);
-            const low = points.reduce((best, point) => point.value < best.value ? point : best, points[0]);
-            const change = last.value - first.value;
-            const position = high.value === low.value ? 50 : (last.value - low.value) / (high.value - low.value) * 100;
-            if ($('returns-history-last')) $('returns-history-last').textContent = `${last.value.toFixed(2)}%`;
-            if ($('returns-history-last-date')) $('returns-history-last-date').textContent = formatReturnsHistoryDate(last.date);
-            if ($('returns-history-high')) $('returns-history-high').textContent = `${high.value.toFixed(2)}%`;
-            if ($('returns-history-high-date')) $('returns-history-high-date').textContent = formatReturnsHistoryDate(high.date);
-            if ($('returns-history-low')) $('returns-history-low').textContent = `${low.value.toFixed(2)}%`;
-            if ($('returns-history-low-date')) $('returns-history-low-date').textContent = formatReturnsHistoryDate(low.date);
-            if ($('returns-history-change')) { $('returns-history-change').textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} pp`; $('returns-history-change').className = change > 0 ? 'returns-change-up' : change < 0 ? 'returns-change-down' : 'returns-change-flat'; }
-            if ($('returns-history-observations')) $('returns-history-observations').textContent = `${points.length.toLocaleString('es-MX')} observaciones`;
-            if ($('returns-history-position')) $('returns-history-position').textContent = `${position.toFixed(0)}%`;
-            if ($('returns-history-position-bar')) $('returns-history-position-bar').style.setProperty('--position', `${Math.max(0, Math.min(100, position))}%`);
-            renderReturnsHistoryChart(points, series);
-            setReturnsHistoryState('', false);
-        } catch (error) {
-            if (request !== state.returnsHistoryRequest) return;
-            setReturnsHistoryState('No fue posible cargar esta serie histórica. Conservamos la curva actual disponible.', false);
-        }
-    }
 
-    function nearestReturnsPoint(points, years) {
-        return points.reduce((best, point) => !best || Math.abs(point.x - years) < Math.abs(best.x - years) ? point : best, null);
-    }
 
-    function setReturnsMetric(id, value, { digits = 2, suffix = '', signed = false } = {}) {
-        const element = $(id);
-        if (!element) return;
-        if (!Number.isFinite(value)) { element.textContent = '—'; return; }
-        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const format = number => `${signed && number > 0 ? '+' : ''}${number.toFixed(digits)}${suffix}`;
-        if (reduced) { element.textContent = format(value); return; }
-        const token = `${Date.now()}-${Math.random()}`;
-        element.dataset.returnsAnimation = token;
-        const start = performance.now();
-        const duration = 520;
-        const tick = now => {
-            if (element.dataset.returnsAnimation !== token) return;
-            const progress = Math.min(1, (now - start) / duration);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            element.textContent = format(value * eased);
-            if (progress < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-    }
 
-    function renderReturnsChart(curve) {
-        const canvas = $('returns-curve-chart');
-        const empty = $('returns-chart-empty');
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (state.returnsChart) { state.returnsChart.destroy(); state.returnsChart = null; }
-        if (curve.points.length < 2) {
-            canvas.hidden = true;
-            if (empty) empty.hidden = false;
-            return;
-        }
-        canvas.hidden = false;
-        if (empty) empty.hidden = true;
-        const isChange = state.returnsMode === 'change';
-        const reference = curve.nature === 'Nominal' ? getReturnsReference() : null;
-        const hasPrevious = curve.points.some(point => Number.isFinite(point.prev));
-        const labels = curve.points.map(point => point.label);
-        const current = curve.points.map(point => point.y);
-        const previous = curve.points.map(point => point.prev);
-        const changes = curve.points.map(point => Number.isFinite(point.prev) ? (point.y - point.prev) * 100 : 0);
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const chartGuides = {
-            id: 'returnsChartGuides',
-            beforeTooltipDraw(chart) {
-                const active = chart.tooltip?.getActiveElements?.() || [];
-                if (!active.length) return;
-                const x = active[0].element.x;
-                const { ctx, chartArea } = chart;
-                ctx.save();
-                ctx.beginPath(); ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(35,60,79,.28)';
-                ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke(); ctx.restore();
-            },
-            afterDatasetsDraw(chart) {
-                if (isChange) return;
-                const { ctx, chartArea } = chart;
-                chart.data.datasets.forEach((dataset, datasetIndex) => {
-                    if (datasetIndex === 1 && dataset.label === 'Anterior') return;
-                    const meta = chart.getDatasetMeta(datasetIndex);
-                    const point = meta.data.at(-1);
-                    const value = dataset.data.at(-1);
-                    if (!point || !Number.isFinite(value)) return;
-                    const text = `${value.toFixed(2)}%`;
-                    ctx.save(); ctx.font = "700 10px 'JetBrains Mono', monospace";
-                    const width = ctx.measureText(text).width + 14;
-                    const x = Math.min(point.x - width - 7, chartArea.right - width - 3);
-                    const y = Math.max(chartArea.top + 3, Math.min(point.y - 13, chartArea.bottom - 25));
-                    const radius = 6;
-                    ctx.beginPath(); ctx.roundRect(x, y, width, 22, radius);
-                    ctx.fillStyle = datasetIndex === 0 ? '#7d1f38' : '#b88635'; ctx.fill();
-                    ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + 7, y + 11); ctx.restore();
-                });
-            },
-        };
-        const datasets = isChange ? [{
-            label: 'Cambio', data: changes,
-            backgroundColor: changes.map(value => value > .25 ? 'rgba(180,58,74,.84)' : value < -.25 ? 'rgba(8,116,86,.84)' : 'rgba(116,132,145,.72)'),
-            hoverBackgroundColor: changes.map(value => value > .25 ? '#b3261e' : value < -.25 ? '#0b6e4f' : '#898781'),
-            borderRadius: 9, borderSkipped: false, maxBarThickness: 38,
-        }] : [{
-            label: 'Actual', data: current, borderColor: '#8e213d',
-            backgroundColor: context => {
-                const area = context.chart.chartArea;
-                if (!area) return 'rgba(142,33,61,.12)';
-                const gradient = context.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-                gradient.addColorStop(0, 'rgba(142,33,61,.24)'); gradient.addColorStop(.58, 'rgba(184,134,53,.08)'); gradient.addColorStop(1, 'rgba(142,33,61,0)');
-                return gradient;
-            },
-            borderWidth: 3.5, pointRadius: 4.5, pointHoverRadius: 8, pointHitRadius: 16,
-            pointBackgroundColor: '#fff', pointBorderColor: '#8e213d', pointBorderWidth: 2.5,
-            fill: true, tension: .34, cubicInterpolationMode: 'monotone',
-        }, ...(hasPrevious ? [{
-            label: 'Anterior', data: previous, borderColor: '#898781', backgroundColor: 'transparent', borderDash: [6, 5],
-            borderWidth: 2, pointRadius: 2.5, pointHoverRadius: 5, pointHitRadius: 12, tension: .3,
-        }] : []), ...(reference ? [{
-            label: `${reference.country} 10A`, data: curve.points.map(() => reference.value),
-            borderColor: '#b88635', backgroundColor: 'transparent', borderDash: [4, 5],
-            borderWidth: 2.25, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 12, fill: false, tension: 0,
-        }] : [])];
-        state.returnsChart = new Chart(canvas, {
-            type: isChange ? 'bar' : 'line',
-            data: { labels, datasets },
-            plugins: [chartGuides],
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: { padding: { top: 14, right: 10, bottom: 4, left: 4 } },
-                animation: { duration: reducedMotion ? 0 : 1050, easing: 'easeOutQuart' },
-                transitions: { active: { animation: { duration: reducedMotion ? 0 : 260 } } },
-                interaction: { intersect: false, mode: 'index' },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(20,37,54,.96)', borderColor: 'rgba(255,255,255,.14)', borderWidth: 1,
-                        cornerRadius: 10, padding: 12, displayColors: true, usePointStyle: true,
-                        titleFont: { family: 'Inter', size: 11, weight: '700' }, bodyFont: { family: 'JetBrains Mono', size: 10, weight: '600' },
-                        callbacks: {
-                            title: items => `Vencimiento ${items[0]?.label || ''}`,
-                            label: context => `${context.dataset.label}: ${isChange ? `${context.parsed.y >= 0 ? '+' : ''}${context.parsed.y.toFixed(1)} pb` : `${context.parsed.y.toFixed(2)}%`}`,
-                            footer: items => {
-                                if (isChange || !reference || !items.length) return '';
-                                const spread = (current[items[0].dataIndex] - reference.value) * 100;
-                                return `Diferencial vs ${reference.country}: ${spread >= 0 ? '+' : ''}${spread.toFixed(1)} pb`;
-                            },
-                        },
-                    },
-                },
-                scales: {
-                    x: { border: { display: false }, grid: { display: false }, ticks: { color: '#536b7d', padding: 9, font: { family: 'Inter', size: 10, weight: '700' } } },
-                    y: {
-                        border: { display: false }, grid: { color: 'rgba(23,39,55,.075)', drawTicks: false },
-                        ticks: { color: '#637687', padding: 10, font: { family: 'JetBrains Mono', size: 9, weight: '600' }, callback: value => isChange ? `${value} pb` : `${value}%` },
-                        title: { display: true, text: isChange ? 'Cambio en puntos base' : 'Rendimiento anual %', color: '#637687', font: { size: 10, weight: '700' } },
-                    },
-                },
-            },
-        });
-        const legend = $('returns-legend');
-        if (legend) legend.hidden = isChange;
-        const referenceLegend = $('returns-reference-legend');
-        if (referenceLegend) referenceLegend.hidden = isChange || !reference;
-        if ($('returns-reference-legend-label')) $('returns-reference-legend-label').textContent = reference ? `${reference.flag} ${reference.country} 10A` : 'Referencia 10A';
-        if ($('returns-chart-title')) $('returns-chart-title').textContent = isChange
-            ? `Cambios por tramo · ${curve.title}`
-            : reference ? `${curve.title} frente a ${reference.country} 10A` : curve.title;
-        if ($('returns-chart-unit')) $('returns-chart-unit').textContent = isChange ? 'Cambio en puntos base' : 'Rendimiento anual %';
-    }
 
-    function renderReturnsHeatmap(curve) {
-        const host = $('returns-heatmap');
-        if (!host) return;
-        host.replaceChildren();
-        if (!curve.points.length) { const empty = document.createElement('span'); empty.textContent = 'Sin datos por tramo.'; host.append(empty); return; }
-        curve.points.forEach((point, index) => {
-            const change = Number.isFinite(point.prev) ? (point.y - point.prev) * 100 : null;
-            const tone = change === null || Math.abs(change) < .25 ? '#898781' : change > 0 ? '#b3261e' : '#0b6e4f';
-            const item = document.createElement('div'); item.className = 'returns-heatmap-item'; item.style.setProperty('--tone', tone); item.style.setProperty('--delay', `${index * .045}s`);
-            const label = document.createElement('span'); label.textContent = point.label;
-            const value = document.createElement('strong'); value.textContent = `${point.y.toFixed(2)}%`;
-            const delta = document.createElement('small'); delta.textContent = change === null ? 'Sin lectura previa' : `${change >= 0 ? '+' : ''}${change.toFixed(1)} pb`;
-            item.append(label, value, delta); host.append(item);
-        });
-    }
 
-    function renderReturnsComparison(curves) {
-        const host = $('returns-comparison');
-        if (!host) return;
-        const rows = Object.values(curves).map(curve => {
-            const target = curve.key === 'cetes' ? curve.points.at(-1) : nearestReturnsPoint(curve.points, 10);
-            return target ? { curve, target } : null;
-        }).filter(Boolean);
-        host.replaceChildren();
-        if (!rows.length) { const empty = document.createElement('span'); empty.textContent = 'Sin referencias comparables.'; host.append(empty); return; }
-        const maximum = Math.max(...rows.map(row => row.target.y), .01);
-        const tones = { us: '#9b2945', cetes: '#bd8b3d', udibonos: '#6f8979' };
-        rows.forEach((row, index) => {
-            const item = document.createElement('div'); item.className = 'returns-comparison-row'; item.style.setProperty('--tone', tones[row.curve.key]); item.style.setProperty('--delay', `${index * .09}s`);
-            const label = document.createElement('span'); label.textContent = `${row.curve.short} ${row.target.label}`;
-            const track = document.createElement('div'); track.className = 'returns-comparison-track';
-            const bar = document.createElement('i'); bar.style.setProperty('--width', `${Math.max(5, row.target.y / maximum * 100)}%`); track.append(bar);
-            const value = document.createElement('strong'); value.textContent = `${row.target.y.toFixed(2)}%`;
-            item.append(label, track, value); host.append(item);
-        });
-    }
 
-    function renderReturnsTable(curve) {
-        const body = $('returns-table-body');
-        if (!body) return;
-        body.replaceChildren();
-        if (!curve.points.length) {
-            const row = document.createElement('tr'); const cell = document.createElement('td'); cell.colSpan = 9; cell.textContent = 'No hay vencimientos disponibles para esta curva.'; row.append(cell); body.append(row); return;
-        }
-        const values = curve.points.map(point => point.y);
-        const minimum = Math.min(...values), maximum = Math.max(...values);
-        const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-        const orderedValues = [...values].sort((a, b) => a - b);
-        const middle = Math.floor(orderedValues.length / 2);
-        const median = orderedValues.length % 2 ? orderedValues[middle] : (orderedValues[middle - 1] + orderedValues[middle]) / 2;
-        const deviation = Math.sqrt(values.reduce((sum, value) => sum + ((value - average) ** 2), 0) / values.length);
-        const benchmark = nearestReturnsPoint(curve.points, 10) || curve.points.at(-1);
-        const slope = curve.points.at(-1).y - curve.points[0].y;
-        const biggest = curve.points.filter(point => Number.isFinite(point.prev)).reduce((best, point) => {
-            if (!best) return point;
-            return Math.abs(point.y - point.prev) > Math.abs(best.y - best.prev) ? point : best;
-        }, null);
-        if ($('returns-table-count')) $('returns-table-count').textContent = `${curve.points.length} tramos`;
-        if ($('returns-table-average')) $('returns-table-average').textContent = `${average.toFixed(2)}%`;
-        if ($('returns-table-median')) $('returns-table-median').textContent = `${median.toFixed(2)}%`;
-        if ($('returns-table-range')) $('returns-table-range').textContent = `${(maximum - minimum).toFixed(2)} pp`;
-        if ($('returns-table-deviation')) $('returns-table-deviation').textContent = `${deviation.toFixed(2)} pp`;
-        if ($('returns-table-max-move')) {
-            const move = biggest ? (biggest.y - biggest.prev) * 100 : null;
-            $('returns-table-max-move').textContent = biggest ? `${biggest.label} · ${move >= 0 ? '+' : ''}${move.toFixed(1)} pb` : 'Sin previo';
-        }
-        if ($('returns-table-insight')) {
-            const high = curve.points.reduce((best, point) => point.y > best.y ? point : best, curve.points[0]);
-            const low = curve.points.reduce((best, point) => point.y < best.y ? point : best, curve.points[0]);
-            const shape = slope > .35 ? 'ascendente' : slope < -.35 ? 'invertida' : 'prácticamente plana';
-            $('returns-table-insight').textContent = `Curva ${shape}: máximo en ${high.label} (${high.y.toFixed(2)}%) y mínimo en ${low.label} (${low.y.toFixed(2)}%).`;
-        }
-        const maturityIndex = new Map(curve.points.map((point, index) => [point, index]));
-        const rows = [...curve.points].sort((a, b) => {
-            if (state.returnsTableSort === 'yield-desc') return b.y - a.y;
-            if (state.returnsTableSort === 'move-desc') return Math.abs((b.y - (b.prev ?? b.y)) * 100) - Math.abs((a.y - (a.prev ?? a.y)) * 100);
-            return maturityIndex.get(a) - maturityIndex.get(b);
-        });
-        const segmentFor = point => {
-            const match = String(point.label).toUpperCase().match(/([\d.]+)\s*(D|M|Y|A)/);
-            if (!match) return 'Referencia';
-            const value = +match[1], unit = match[2];
-            const years = unit === 'D' ? value / 365 : unit === 'M' ? value / 12 : value;
-            return years <= 1 ? 'Corto plazo' : years <= 10 ? 'Tramo medio' : 'Largo plazo';
-        };
-        rows.forEach((point, rowIndex) => {
-            const change = Number.isFinite(point.prev) ? (point.y - point.prev) * 100 : null;
-            const spreadBenchmark = (point.y - benchmark.y) * 100;
-            const spreadAverage = (point.y - average) * 100;
-            const row = document.createElement('tr'); row.style.setProperty('--delay', `${rowIndex * .045}s`);
-            if (point === benchmark) row.classList.add('is-benchmark');
-            const reading = change === null ? 'Nivel actual sin lectura previa'
-                : change > 1 ? 'Rendimiento sube · precio bajo presión'
-                : change < -1 ? 'Rendimiento baja · precio favorecido'
-                : 'Sin desplazamiento relevante';
-            const maturity = document.createElement('td');
-            const maturityLabel = document.createElement('strong'); maturityLabel.textContent = point.label; maturity.append(maturityLabel);
-            if (point === benchmark) { const tag = document.createElement('small'); tag.textContent = 'REFERENCIA'; maturity.append(tag); }
-            const segment = document.createElement('td');
-            const segmentPill = document.createElement('span'); segmentPill.className = 'returns-nature-pill'; segmentPill.textContent = segmentFor(point); segment.append(segmentPill);
-            const currentCell = document.createElement('td'); currentCell.textContent = `${point.y.toFixed(2)}%`;
-            const previousCell = document.createElement('td'); previousCell.textContent = Number.isFinite(point.prev) ? `${point.prev.toFixed(2)}%` : '—';
-            const changeCell = document.createElement('td'); changeCell.textContent = change === null ? '—' : `${change >= 0 ? '+' : ''}${change.toFixed(1)} pb`;
-            changeCell.className = change === null || Math.abs(change) <= 1 ? 'returns-change-flat' : change > 0 ? 'returns-change-up' : 'returns-change-down';
-            const benchmarkCell = document.createElement('td'); benchmarkCell.textContent = `${spreadBenchmark >= 0 ? '+' : ''}${spreadBenchmark.toFixed(1)} pb`; benchmarkCell.className = Math.abs(spreadBenchmark) < .05 ? 'returns-change-flat' : spreadBenchmark > 0 ? 'returns-spread-positive' : 'returns-spread-negative';
-            const averageCell = document.createElement('td'); averageCell.textContent = `${spreadAverage >= 0 ? '+' : ''}${spreadAverage.toFixed(1)} pb`; averageCell.className = spreadAverage >= 0 ? 'returns-spread-positive' : 'returns-spread-negative';
-            const positionCell = document.createElement('td'); positionCell.className = 'returns-position-cell';
-            const position = maximum === minimum ? 50 : ((point.y - minimum) / (maximum - minimum)) * 100;
-            const positionLabel = document.createElement('span'); positionLabel.textContent = `${position.toFixed(0)}%`;
-            const positionTrack = document.createElement('span'); positionTrack.className = 'returns-position-track';
-            const positionBar = document.createElement('i'); positionBar.style.setProperty('--position', `${Math.max(4, position)}%`); positionTrack.append(positionBar);
-            const positionWrap = document.createElement('div'); positionWrap.append(positionLabel, positionTrack); positionCell.append(positionWrap);
-            const readingCell = document.createElement('td'); readingCell.textContent = reading;
-            row.append(maturity, segment, currentCell, previousCell, changeCell, benchmarkCell, averageCell, positionCell, readingCell);
-            body.append(row);
-        });
-    }
 
-    function renderReturnsPanel() {
-        const panel = $('returns-panel');
-        if (!panel) return;
-        const curves = getReturnsCurves();
-        let curve = curves[state.returnsCurve];
-        if (!curve?.points.length) curve = Object.values(curves).find(item => item.points.length) || curve;
-        if (!curve) return;
-        state.returnsCurve = curve.key;
-        syncReturnsHistoryCountryOptions();
-        syncReturnsHistorySeries();
-        syncReturnsReferenceOptions();
-        const referenceSelect = $('returns-reference-country');
-        if (referenceSelect) referenceSelect.disabled = curve.nature !== 'Nominal' || !state.returnsGlobalData.some(item => item.key !== 'US');
-        if ($('returns-reference-label')) $('returns-reference-label').textContent = curve.nature === 'Nominal'
-            ? `Comparar ${curve.key === 'us' ? 'EE. UU.' : 'México'} contra`
-            : 'No comparable con curva real';
-        if ($('returns-base-legend')) $('returns-base-legend').textContent = curve.key === 'us' ? 'EE. UU.' : curve.key === 'cetes' ? 'México' : 'México real';
-        document.querySelectorAll('[data-returns-curve]').forEach(button => {
-            const active = button.dataset.returnsCurve === curve.key;
-            button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
-            button.disabled = !curves[button.dataset.returnsCurve]?.points.length;
-        });
-        document.querySelectorAll('[data-returns-mode]').forEach(button => {
-            const active = button.dataset.returnsMode === state.returnsMode;
-            button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
-        });
-        if ($('returns-chart-mode')) $('returns-chart-mode').value = state.returnsMode;
-        const points = curve.points;
-        const first = points[0], last = points.at(-1);
-        const benchmark = curve.key === 'cetes' ? last : nearestReturnsPoint(points, 10);
-        const slope = first && last && first !== last ? last.y - first.y : null;
-        const moves = points.filter(point => Number.isFinite(point.prev)).map(point => (point.y - point.prev) * 100);
-        const averageMove = moves.length ? moves.reduce((sum, value) => sum + value, 0) / moves.length : null;
-        const range = points.length ? Math.max(...points.map(point => point.y)) - Math.min(...points.map(point => point.y)) : null;
-        setReturnsMetric('returns-kpi-benchmark', benchmark?.y, { suffix: '%' });
-        setReturnsMetric('returns-kpi-slope', slope, { suffix: ' pp', signed: true });
-        setReturnsMetric('returns-kpi-move', averageMove, { digits: 1, suffix: ' pb', signed: true });
-        setReturnsMetric('returns-kpi-range', range, { suffix: ' pp' });
-        if ($('returns-kpi-benchmark-note')) $('returns-kpi-benchmark-note').textContent = benchmark ? `${curve.short} ${benchmark.label}` : 'Sin referencia';
-        if ($('returns-kpi-slope-note')) $('returns-kpi-slope-note').textContent = first && last ? `${last.label} menos ${first.label}` : 'Se requieren dos plazos';
-        if ($('returns-kpi-move-note')) $('returns-kpi-move-note').textContent = moves.length ? `${moves.length} tramos con lectura previa` : 'Sin lectura anterior';
-        if ($('returns-kpi-range-note')) $('returns-kpi-range-note').textContent = points.length ? `${points.length} vencimientos observados` : 'Sin vencimientos';
-        if ($('returns-chart-title')) $('returns-chart-title').textContent = curve.title;
-        if ($('returns-table-source')) $('returns-table-source').textContent = curve.source;
-        if ($('returns-updated')) $('returns-updated').textContent = `Actualizado ${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`;
 
-        const shape = !Number.isFinite(slope) ? { title: 'Sin clasificar', badge: '—', copy: 'Se requieren al menos dos vencimientos para interpretar la forma de la curva.' }
-            : slope > .35 ? { title: 'Curva ascendente', badge: `+${slope.toFixed(2)} pp`, copy: 'El tramo largo ofrece mayor rendimiento que el corto. Esto puede reflejar compensación por plazo, inflación esperada y prima de riesgo.' }
-            : slope < -.35 ? { title: 'Curva invertida', badge: `${slope.toFixed(2)} pp`, copy: 'El tramo corto rinde más que el largo. La inversión suele asociarse con política restrictiva y expectativas de menor crecimiento o inflación.' }
-            : { title: 'Curva plana', badge: `${slope >= 0 ? '+' : ''}${slope.toFixed(2)} pp`, copy: 'La diferencia entre extremos es reducida. El mercado ofrece poca compensación adicional por extender el vencimiento.' };
-        if ($('returns-shape-title')) $('returns-shape-title').textContent = shape.title;
-        if ($('returns-shape-badge')) $('returns-shape-badge').textContent = shape.badge;
-        if ($('returns-shape-copy')) $('returns-shape-copy').textContent = shape.copy;
-        const high = points.reduce((best, point) => !best || point.y > best.y ? point : best, null);
-        const low = points.reduce((best, point) => !best || point.y < best.y ? point : best, null);
-        const biggest = points.filter(point => Number.isFinite(point.prev)).reduce((best, point) => !best || Math.abs(point.y - point.prev) > Math.abs(best.y - best.prev) ? point : best, null);
-        if ($('returns-high-point')) $('returns-high-point').textContent = high ? `${high.label} · ${high.y.toFixed(2)}%` : '—';
-        if ($('returns-low-point')) $('returns-low-point').textContent = low ? `${low.label} · ${low.y.toFixed(2)}%` : '—';
-        if ($('returns-biggest-move')) $('returns-biggest-move').textContent = biggest ? `${biggest.label} · ${((biggest.y - biggest.prev) * 100) >= 0 ? '+' : ''}${((biggest.y - biggest.prev) * 100).toFixed(1)} pb` : 'Sin lectura previa';
-        if ($('returns-nature-note')) $('returns-nature-note').textContent = curve.nature === 'Real'
-            ? 'Esta curva expresa rendimiento real sobre inflación; no debe compararse directamente con una tasa nominal.'
-            : 'Esta curva es nominal: incorpora inflación esperada y no equivale a rendimiento real.';
-        renderReturnsChart(curve);
-        renderReturnsSpreads(curves);
-        renderReturnsHeatmap(curve);
-        renderReturnsComparison(curves);
-        renderReturnsTable(curve);
-        renderReturnsGlobal();
-        if (document.body.classList.contains('ff-detail-rendimientos')) {
-            loadReturnsHistory();
-            loadReturnsGlobalData();
-        }
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     async function fetchJson(url, timeout = 12000) {
         const controller = new AbortController();
@@ -1257,7 +547,7 @@
             } else {
                 const us = state.bondData.find(item => item.key === 'us');
                 const current = [], previous = [];
-                if (state.module === 'tasas') {
+                if (state.module === 'rendimientos') {
                     const rateItems = getReferenceRateItems();
                     labels = rateItems.map(item => item.country);
                     current.push(...rateItems.map(item => +item.yield));
@@ -1955,7 +1245,6 @@
 
         const tiieApi = state.mxRates?.tiie?.find(item => item.label === '28D')?.yield;
         const tiie = isNumeric(tiieApi) ? +tiieApi : state.bondData.find(item => item.key === 'mx')?.bonds?.[0]?.yield;
-        if (isNumeric(tiie)) put('ff-tile-tasas', (+tiie).toFixed(2) + '%');
 
         const us10 = bond('us', '10Y')?.yield;
         if (isNumeric(us10)) put('ff-tile-rendimientos', (+us10).toFixed(2) + '%');
@@ -1992,7 +1281,6 @@
         const dailyText = Number.isFinite(daily) ? `${daily >= 0 ? '+' : ''}${daily.toFixed(2)} pp vs. anterior` : 'Rendimiento actual';
         if ($('ff-card-us10y-delta')) $('ff-card-us10y-delta').textContent = dailyText;
         if ($('ff-q-us10y-delta')) $('ff-q-us10y-delta').textContent = dailyText;
-        renderMiniChart('ff-spark-tasas', getReferenceRateItems().map(item => item.yield), colors.cyan);
         renderMiniChart('ff-spark-bonos', [us5, us10, us30].map(item => +item?.yield).filter(Number.isFinite), colors.gold);
         renderMiniChart('ff-spark-rendimientos', (state.bondData.find(item => item.key === 'us')?.bonds || []).map(item => +item.yield).filter(Number.isFinite), colors.green);
         updateModuleTiles();   // TIIE y US 10 años de las baldosas de la portada
@@ -2035,16 +1323,12 @@
             description: 'Índices, acciones, factores, amplitud y el laboratorio histórico multiactivo en una vista completa.',
             legacySection: 'mercados',
         },
-        tasas: {
-            eyebrow: 'Política monetaria y renta fija',
-            title: 'Tasas y bonos',
-            description: 'Tasas monetarias, CETES, bonos soberanos, comparativos por plazo y agenda de próximas decisiones.',
-            legacySection: 'bonos',
-        },
+        // "Tasas y bonos" se fusionó con Rendimientos: ahora hay una sola sección
+        // de renta fija, con el contenido que antes vivía en aquélla.
         rendimientos: {
-            eyebrow: 'Renta fija · análisis de curva',
+            eyebrow: 'Política monetaria y renta fija',
             title: 'Rendimientos',
-            description: 'Niveles, cambios en puntos base, pendiente y lectura por vencimiento de curvas soberanas nominales y reales.',
+            description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
             legacySection: 'bonos',
         },
         noticias: {
@@ -2113,13 +1397,12 @@
                 const button = document.querySelector('[data-bond-chart="ranking"]');
                 setBondChartType('ranking', button);
             }
-            if (name === 'tasas' && typeof setBondChartType === 'function') {
+            // Rendimientos hereda el comportamiento de la antigua sección "Tasas y
+            // bonos", así que abre con la vista de columnas. La variante de línea
+            // pertenecía al panel de curvas propio, que ya no existe.
+            if (name === 'rendimientos' && typeof setBondChartType === 'function') {
                 const button = document.querySelector('[data-bond-chart="columns"]');
                 setBondChartType('columns', button);
-            }
-            if (name === 'rendimientos' && typeof setBondChartType === 'function') {
-                const button = document.querySelector('[data-bond-chart="line"]');
-                setBondChartType('line', button);
             }
             window.dispatchEvent(new Event('resize'));
         });
@@ -2193,10 +1476,9 @@
         const supplement = $('ff-detail-supplement');
         if (isNews) {
             if (supplement) supplement.hidden = true;
-        } else if (name === 'rendimientos') {
-            if (supplement) supplement.hidden = true;
-            renderReturnsPanel();
         } else {
+            // Rendimientos ya no tiene su propio panel de curvas: pasa por el mismo
+            // camino que el resto y muestra el contenido de renta fija.
             renderSupplement(name);
         }
 
@@ -2664,7 +1946,7 @@
         /* La tabla de diferenciales solo tiene sentido donde se habla de deuda. */
         const spreadsBoard = $('ff-spreads-board');
         if (spreadsBoard) {
-            const procede = name === 'bonos' || name === 'tasas';
+            const procede = name === 'bonos' || name === 'rendimientos';
             spreadsBoard.hidden = !procede;
             if (procede) renderSpreadsBoard();
         }
@@ -2680,12 +1962,12 @@
             return;
         }
 
-        if (name === 'tasas') {
+        if (name === 'rendimientos') {
             // El bloque "Mapa conjunto de tasas y bonos" (indicadores, grafica y
             // tabla de instrumentos) se retiro a peticion del usuario.
-            // Este contenedor lo comparten Bolsa, Bonos y Rendimientos, asi que no
-            // se elimina: se oculta solo para este modulo, que conserva sus propios
-            // paneles y la tabla de diferenciales soberanos a 10 anos.
+            // Este contenedor lo comparte con Bolsa y Bonos, asi que no se elimina:
+            // se oculta solo para este modulo, que conserva sus propios paneles y
+            // la tabla de diferenciales soberanos a 10 anos.
             section.hidden = true;
             return;
         }
@@ -2775,7 +2057,7 @@
             const stocks = state.bmvData.filter(item => item.type === 'stock').map(item => ({ name: item.name || item.symbol, value: +item.price, displayValue: formatNumber(item.price, 2), change: +item.change_pct, reading: `BMV · ${item.symbol}` }));
             return [...indexes, ...stocks];
         }
-        if (state.module === 'tasas') {
+        if (state.module === 'rendimientos') {
             return getReferenceRateItems().map(rate => ({
                 name: rate.country,
                 value: rate.yield,
@@ -2855,7 +2137,7 @@
             labels = stocks.map(item => item.symbol);
             datasets = [{ label: 'Variación diaria', data: stocks.map(item => +item.change_pct), backgroundColor: stocks.map(item => +item.change_pct >= 0 ? colors.green : colors.red), borderRadius: 5 }];
             kicker = 'Emisoras'; title = 'Pulso de acciones mexicanas'; badge = 'Sesión'; note = 'Variación diaria de las emisoras disponibles; verde indica avance y rojo retroceso.';
-        } else if (state.module === 'tasas') {
+        } else if (state.module === 'rendimientos') {
             const rates = getReferenceRateItems();
             labels = rates.map(item => item.key.toUpperCase());
             datasets = [{ label: 'Referencia actual', data: rates.map(item => item.yield), backgroundColor: `${colors.cyan}cc`, borderRadius: 5 }];
@@ -2912,7 +2194,7 @@
                 text = `El promedio de los índices seguidos es ${formatPercent(average)}. ${Number.isFinite(vix) ? `El VIX se ubica en ${formatNumber(vix,1)}, por lo que la volatilidad debe leerse junto con la dirección.` : 'La volatilidad aún no está disponible.'}`;
                 risk = Number.isFinite(vix) ? (vix < 15 ? 'Bajo' : vix < 25 ? 'Moderado' : 'Elevado') : 'Moderado';
             }
-        } else if (state.module === 'tasas') {
+        } else if (state.module === 'rendimientos') {
             const mx = state.bondData.find(item => item.key === 'mx')?.bonds?.[0]?.yield;
             const us = state.bondData.find(item => item.key === 'us')?.bonds?.[0]?.yield;
             const real = isNumeric(mx) && isNumeric(state.inflation) ? +mx - +state.inflation : null;
@@ -3556,7 +2838,6 @@
             syncLegacyValues();
             updateMarketCards();
             updateBondCards();
-            renderReturnsPanel();
             renderBreakdown();
             renderDetailTable();
             renderInsights();

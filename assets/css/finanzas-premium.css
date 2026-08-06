@@ -1350,7 +1350,7 @@ body.ff-detail-bolsa .eq-kpi-grid {
     display: none !important;
 }
 
-/* Top Widgets (Sectors, Watchlist) */
+/* Top Widgets (Sectors) */
 body.ff-detail-bolsa .eq-top-widgets > section {
     background: #fff !important;
     border-radius: 28px !important;
@@ -1651,7 +1651,10 @@ body.ff-detail-bolsa .eq-context-list small {
 }nt;
 }
 
-/* --- REORDER LAYOUT TO PUT WATCHLIST ABOVE GRAPH --- */
+/* --- ORDEN DE LOS BLOQUES DE BOLSA ---
+   Estas reglas ordenaban el panel de watchlist por encima de la gráfica. Ese
+   panel se retiró; el resto del orden (resumen, widgets, laboratorio) se
+   conserva porque sigue aplicando. */
 body.ff-detail-bolsa #equity-pro-panel {
     display: flex !important;
     flex-direction: column !important;
@@ -1669,228 +1672,6 @@ body.ff-detail-bolsa .eq-top-widgets {
 
 body.ff-detail-bolsa .equity-lab-host {
     order: 3 !important;
-}
-
-/* --- WATCHLIST PREMIUM REDESIGN --- */
-
-/* Contenedor principal de la Watchlist */
-body.ff-detail-bolsa #watchlist-panel {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.95)) !important;
-    backdrop-filter: blur(25px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.8) !important;
-    border-radius: 28px !important;
-    padding: 24px !important;
-    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.04) !important;
-    margin-bottom: 24px !important;
-    position: relative !important;
-    overflow: hidden !important;
-}
-
-body.ff-detail-bolsa #watchlist-panel::before {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important; right: 0 !important; width: 300px !important; height: 100% !important;
-    background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.06), transparent 70%) !important;
-    pointer-events: none !important;
-}
-
-/* Titulo y Subtitulo */
-body.ff-detail-bolsa #watchlist-panel .section-lbl {
-    font-size: 1.15rem !important;
-    font-weight: 850 !important;
-    color: #0f172a !important;
-    letter-spacing: -0.02em !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-}
-
-body.ff-detail-bolsa #watchlist-panel > div:first-child > span {
-    font-size: 0.85rem !important;
-    color: #64748b !important;
-    font-weight: 500 !important;
-}
-
-/* Zona de Controles (Input y Botones) */
-body.ff-detail-bolsa #watchlist-panel > div:nth-child(2) {
-    background: #f8fafc !important;
-    padding: 16px !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(15, 23, 42, 0.03) !important;
-    box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.02) !important;
-    margin-bottom: 20px !important;
-    display: flex !important;
-    gap: 12px !important;
-}
-
-/* El Input de Ticker */
-body.ff-detail-bolsa #wl-input {
-    border: none !important;
-    background: #ffffff !important;
-    border-radius: 12px !important;
-    padding: 10px 16px !important;
-    font-size: 0.9rem !important;
-    color: #0f172a !important;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
-    transition: all 0.2s ease !important;
-}
-
-body.ff-detail-bolsa #wl-input:focus {
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
-    outline: none !important;
-}
-
-/* Botones de acción */
-body.ff-detail-bolsa #watchlist-panel button {
-    border-radius: 12px !important;
-    padding: 10px 20px !important;
-    font-weight: 700 !important;
-    font-size: 0.85rem !important;
-    transition: all 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-}
-
-body.ff-detail-bolsa #watchlist-panel button[onclick="wlAdd()"] {
-    background: linear-gradient(135deg, #0f172a, #1e293b) !important;
-    border: none !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15) !important;
-    color: white !important;
-}
-body.ff-detail-bolsa #watchlist-panel button[onclick="wlAdd()"]:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2) !important;
-}
-
-body.ff-detail-bolsa #watchlist-panel button[onclick="wlRefreshPrices()"] {
-    background: #ffffff !important;
-    border: 1px solid rgba(15, 23, 42, 0.1) !important;
-    color: #475569 !important;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
-}
-body.ff-detail-bolsa #watchlist-panel button[onclick="wlRefreshPrices()"]:hover {
-    background: #f1f5f9 !important;
-    transform: translateY(-2px) !important;
-}
-
-/* La Cuadrícula de Watchlist */
-body.ff-detail-bolsa #wl-list {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-    gap: 16px !important;
-}
-
-/* Las Tarjetas de Watchlist */
-body.ff-detail-bolsa .wl-item {
-    background: #ffffff !important;
-    border-radius: 20px !important;
-    border: 1px solid rgba(15, 23, 42, 0.04) !important;
-    padding: 20px !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.02) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    cursor: pointer !important;
-    position: relative !important;
-    overflow: hidden !important;
-}
-
-body.ff-detail-bolsa .wl-item:hover {
-    transform: translateY(-4px) !important;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06) !important;
-    border-color: rgba(37, 99, 235, 0.2) !important;
-}
-
-/* Fondo decorativo hover */
-body.ff-detail-bolsa .wl-item::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important; right: 0 !important; width: 60% !important; height: 100% !important;
-    background: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.8)) !important;
-    pointer-events: none !important;
-    opacity: 0 !important;
-    transition: opacity 0.3s !important;
-}
-body.ff-detail-bolsa .wl-item:hover::after {
-    opacity: 1 !important;
-}
-
-/* Ticker Name */
-body.ff-detail-bolsa .wl-ticker {
-    font-size: 1.1rem !important;
-    font-weight: 850 !important;
-    color: #0f172a !important;
-    font-family: 'Inter', sans-serif !important;
-    letter-spacing: -0.01em !important;
-}
-
-/* Company Name */
-body.ff-detail-bolsa .wl-name {
-    font-size: 0.78rem !important;
-    color: #64748b !important;
-    font-weight: 500 !important;
-    margin-top: 4px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    max-width: 140px !important;
-}
-
-/* Contenedor Derecho (Precios) */
-body.ff-detail-bolsa .wl-item > div:last-child {
-    align-items: flex-end !important;
-    z-index: 1 !important;
-}
-
-/* Price */
-body.ff-detail-bolsa .wl-price {
-    font-size: 1.25rem !important;
-    font-weight: 850 !important;
-    color: #0f172a !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    line-height: 1 !important;
-}
-
-/* Porcentaje (up/down) */
-body.ff-detail-bolsa .wl-pct {
-    font-size: 0.8rem !important;
-    font-weight: 750 !important;
-    padding: 3px 8px !important;
-    border-radius: 8px !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    margin-left: 6px !important;
-}
-body.ff-detail-bolsa .wl-pct.up {
-    background: rgba(16, 185, 129, 0.1) !important;
-    color: #059669 !important;
-}
-body.ff-detail-bolsa .wl-pct.down {
-    background: rgba(239, 68, 68, 0.1) !important;
-    color: #dc2626 !important;
-}
-
-/* Delete Button */
-body.ff-detail-bolsa .wl-rm {
-    background: #f1f5f9 !important;
-    border: none !important;
-    color: #94a3b8 !important;
-    border-radius: 6px !important;
-    width: 24px !important;
-    height: 24px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 1rem !important;
-    cursor: pointer !important;
-    transition: all 0.2s !important;
-    margin-left: 4px !important;
-    padding: 0 !important;
-}
-body.ff-detail-bolsa .wl-rm:hover {
-    background: #fee2e2 !important;
-    color: #dc2626 !important;
 }
 
 /* --- PULSO DEL MERCADO REDESIGN (PLATINUM LUXURY) --- */
@@ -2071,7 +1852,7 @@ body.ff-detail-bolsa #sector-grid > div::after {
 
 /* --- FIX EMPTY SPACE IN WIDGETS HOST --- */
 body.ff-detail-bolsa .eq-top-widgets {
-    display: block !important; /* Removes the 2-column grid since Watchlist was moved out */
+    display: block !important; /* Una sola columna: el bloque que ocupaba la otra ya no existe */
 }
 
 /* --- HIDE EQ-THESIS (Risk-on amplio) --- */

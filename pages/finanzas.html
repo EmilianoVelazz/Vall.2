@@ -316,7 +316,6 @@
         .fx-live-panel .fx-val { grid-column:1/-1; margin-top:.28rem; font-size:1rem; font-weight:800; color:#0f2940; }
         .fx-live-panel .fx-card > span[style*="font-size:.55rem"] { grid-column:1/-1; }
         .fx-live-panel .fx-note { grid-column:1/-1; font-size:.52rem; color:#8493a2; text-align:left; }
-        #watchlist-panel { clear:both; width:100%; }
         @media(max-width:620px){ .fx-live-head { flex-direction:column; } .fx-live-status { align-self:flex-start; } .fx-live-panel .fx-strip { grid-template-columns:repeat(2,minmax(0,1fr)); } }
         @media(max-width:390px){ .fx-live-panel .fx-strip { grid-template-columns:1fr; } }
         .sr-btn { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; padding: 4px 13px; border-radius: 6px; font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .18s; font-family: 'JetBrains Mono','Inter',monospace; letter-spacing: .04em; }
@@ -350,16 +349,6 @@
         .cal-upcoming-badge { font-size:.48rem; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(59,130,246,.1); color:#3b82f6; white-space:nowrap; }
         .cal-today-badge { font-size:.5rem; font-weight:900; padding:2px 6px; border-radius:4px; background:rgba(245,158,11,.18); color:#d97706; margin-left:.4rem; }
         .cal-card.cal-past { opacity:.72; }
-        .wl-item { display:flex; align-items:flex-start; gap:.6rem; padding:.52rem .65rem; border-radius:9px; background:#f8fafc; border:1px solid #e2e8f0; cursor:pointer; transition:all .18s; }
-        .wl-item:hover { box-shadow:0 3px 12px rgba(0,0,0,.09); border-color:rgba(0,33,58,.15); background:#fff; }
-        .wl-ticker { font-family:'JetBrains Mono','Inter',monospace; font-size:.8rem; font-weight:800; color:#00213a; }
-        .wl-name { font-size:.58rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:145px; }
-        .wl-price { font-family:'JetBrains Mono','Inter',monospace; font-size:.82rem; font-weight:700; color:#0f172a; }
-        .wl-pct { font-size:.7rem; font-weight:700; min-width:52px; text-align:right; }
-        .wl-alert-badge { font-size:.5rem; font-weight:800; padding:2px 5px; border-radius:4px; background:rgba(239,68,68,.13); color:#dc2626; white-space:nowrap; }
-        .wl-alert-ok { background:rgba(22,163,74,.15) !important; color:#16a34a !important; }
-        .wl-rm { background:none; border:none; color:#cbd5e1; cursor:pointer; font-size:.76rem; padding:0 .12rem; transition:color .15s; line-height:1; }
-        .wl-rm:hover { color:#dc2626; }
         .fg-comp { font-size:.54rem; font-weight:700; padding:2px 8px; border-radius:4px; }
         .gdp-bar { height:8px; border-radius:4px; background:linear-gradient(to right,#dc2626,#d97706,#16a34a); position:relative; }
         .gdp-marker { position:absolute; top:-4px; width:3px; height:16px; background:#0f172a; border-radius:2px; transform:translateX(-50%); transition:left .5s ease; }
@@ -394,10 +383,6 @@
             #sector-grid { grid-template-columns:repeat(2,1fr) !important; }
         }
         @media(max-width:480px){
-            #wl-list { grid-template-columns:1fr !important; }
-            .wl-name { max-width:none; }
-        }
-        @media(max-width:480px){
             .fx-card { min-width:72px !important; padding:.6rem .65rem !important; }
             .fx-val  { font-size:.9rem !important; }
             .fx-flag { font-size:1.2rem !important; }
@@ -413,10 +398,6 @@
             #fc-markets { grid-template-columns:1fr !important; }
         }
 
-        @media(max-width:440px){
-            #watchlist-panel > div:nth-child(2) { flex-direction:column; }
-            #wl-input { min-width:0 !important; }
-        }
         @media(max-width:1100px){
             #mkt-pulse   { grid-template-columns:repeat(2,1fr) !important; }
             #sector-grid { grid-template-columns:repeat(2,1fr) !important; }
@@ -770,14 +751,14 @@
     .sparkline-path-down { stroke: #dc2626; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
     </style>
-    <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.6">
+    <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.7">
     <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=3.0">
-    <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=68">
-    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=109">
+    <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=69">
+    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=110">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
     <link rel="stylesheet" href="../assets/css/returns-pro.css?v=12">
     <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
-    <script src="../assets/js/finanzas-favro.js?v=103" defer></script>
+    <script src="../assets/js/finanzas-favro.js?v=104" defer></script>
 
 <style>
 /* PREMIUM INTERMEDIATE PALETTE (Favro 2.0) */
@@ -2427,29 +2408,6 @@ let patchInterval = setInterval(() => {
         </div>
     </div>
     <div id="rds2-tip-el" class="rds2-tip"></div>
-    <div class="panel" id="watchlist-panel" style="margin-bottom:.7rem;">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.65rem;">
-            <div class="section-lbl" style="margin-bottom:0;">⭐ Mi Watchlist · Seguimiento Personalizado</div>
-            <span style="font-size:.54rem;color:#94a3b8;font-family:'Inter',sans-serif;">Clic en un ticker para cargarlo en el chart · alertas de precio guardadas localmente</span>
-        </div>
-        <div style="display:flex;gap:.45rem;margin-bottom:.65rem;flex-wrap:wrap;">
-            <input id="wl-input" type="text" placeholder="Ticker (ej: AAPL, GFNORTEO.MX, BTC-USD, USDMXN=X)" maxlength="20"
-                style="flex:1;min-width:200px;font-family:'JetBrains Mono','Inter',monospace;font-size:.72rem;font-weight:600;border:1px solid rgba(0,33,58,.18);border-radius:8px;padding:.38rem .8rem;color:#00213a;background:#fff;outline:none;"
-                onkeydown="if(event.key==='Enter')wlAdd()"/> 
-            <button onclick="wlAdd()" style="font-family:'Inter',sans-serif;font-size:.72rem;font-weight:700;border:none;border-radius:8px;padding:.38rem 1rem;background:#00213a;color:#fff;cursor:pointer;flex-shrink:0;">
-                <i class="fas fa-plus"></i> Agregar
-            </button>
-            <button onclick="wlRefreshPrices()" title="Actualizar precios" style="font-family:'Inter',sans-serif;font-size:.72rem;font-weight:600;border:1px solid rgba(0,33,58,.18);border-radius:8px;padding:.38rem .8rem;background:#fff;color:#44546a;cursor:pointer;flex-shrink:0;">
-                <i class="fas fa-rotate"></i>
-            </button>
-        </div>
-        <div id="wl-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:.45rem;">
-            <div style="color:#94a3b8;font-size:.74rem;grid-column:1/-1;text-align:center;padding:1rem;border:1px dashed #e2e8f0;border-radius:8px;line-height:1.7;">
-                Sin tickers. Agrega cualquier símbolo en el campo de arriba.<br>
-                <span style="font-size:.62rem;color:#c0ccd8;">Ej: <b>AAPL</b> &middot; <b>GFNORTEO.MX</b> (BMV) &middot; <b>BTC-USD</b> (cripto) &middot; <b>USDMXN=X</b> (divisa)</span>
-            </div>
-        </div>
-    </div>
    <div id="bvmx-panel-anchor" aria-hidden="true"></div>
    <div class="panel market-chart-lab ff-market-terminal" id="bvmx-panel">
         <div class="market-chart-lab-head">
@@ -6772,140 +6730,6 @@ function renderEconomicCalendar() {
     }
 }
 
-const WL_KEY = 'vn3_wl_v1';
-const WL_DEFAULTS = [
-    { ticker: 'SPY', alertPrice: null, alertDir: 'above' },
-    { ticker: 'QQQ', alertPrice: null, alertDir: 'above' },
-    { ticker: 'RSP', alertPrice: null, alertDir: 'above' },
-    { ticker: 'IWM', alertPrice: null, alertDir: 'above' },
-    { ticker: 'VTV', alertPrice: null, alertDir: 'above' },
-    { ticker: 'USMV', alertPrice: null, alertDir: 'above' },
-];
-function wlLoad() {
-    try {
-        const raw = localStorage.getItem(WL_KEY);
-        if (raw === null) return WL_DEFAULTS.map(item => ({ ...item }));
-        const saved = JSON.parse(raw);
-        return Array.isArray(saved) ? saved : WL_DEFAULTS.map(item => ({ ...item }));
-    } catch { return WL_DEFAULTS.map(item => ({ ...item })); }
-}
-function wlSave(arr) { localStorage.setItem(WL_KEY, JSON.stringify(arr)); }
-
-async function wlAdd() {
-    const input = document.getElementById('wl-input');
-    const ticker = (input?.value || '').trim().toUpperCase().replace(/[^A-Z0-9\-\^\.=]/g, '');
-    if (!ticker || ticker.length > 20) return;
-    const list = wlLoad();
-    if (list.find(i => i.ticker === ticker)) { if (input) input.value = ''; return; }
-    list.push({ ticker, alertPrice: null, alertDir: 'above' });
-    wlSave(list);
-    if (input) input.value = '';
-    await wlRender();
-}
-
-function wlRemove(idx) {
-    const list = wlLoad();
-    list.splice(idx, 1);
-    wlSave(list);
-    wlRender();
-}
-
-function wlSetAlert(idx, price, dir) {
-    const list = wlLoad();
-    if (!list[idx]) return;
-    list[idx].alertPrice = price ? parseFloat(price) : null;
-    list[idx].alertDir   = dir || 'above';
-    wlSave(list);
-    wlRender();
-}
-
-function wlLoadInChart(ticker) {
-    const customEl  = document.getElementById('bmv-custom');
-    const customBtn = document.getElementById('bmv-custom-btn');
-    if (customEl && customBtn) { customEl.value = ticker; customBtn.click(); }
-    document.getElementById('ch-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-async function wlRender() {
-    const list = wlLoad();
-    const el = document.getElementById('wl-list');
-    if (!el) return;
-    if (!list.length) {
-        el.innerHTML = '<div style="color:#94a3b8;font-size:.74rem;grid-column:1/-1;text-align:center;padding:1rem;border:1px dashed #e2e8f0;border-radius:8px;">Sin tickers. Agrega cualquier símbolo bursátil, divisa o cripto arriba.</div>';
-        return;
-    }
-
-    el.innerHTML = list.map(item =>
-        `<div class="wl-item" style="opacity:.55;pointer-events:none;">
-            <div style="flex:1;min-width:0;">
-                <span class="wl-ticker">${item.ticker}</span>
-                <div class="wl-name sk-line" style="height:7px;width:80px;margin-top:4px;border-radius:4px;background:#e2e8f0;"></div>
-            </div>
-            <div style="display:flex;gap:.3rem;align-items:center;">
-                <span class="wl-price sk-line" style="height:14px;width:48px;border-radius:4px;background:#e2e8f0;display:inline-block;"></span>
-            </div>
-        </div>`
-    ).join('');
-
-    const results = await Promise.allSettled(list.map(i => fetchAssetData(i.ticker)));
-
-    el.innerHTML = list.map((item, idx) => {
-        const d     = results[idx].status === 'fulfilled' ? results[idx].value : null;
-        const price = d?.meta?.regularMarketPrice;
-        const pct   = d?.meta?.regularMarketChangePercent;
-        const name  = d?.meta?.longName || '';
-        const isUp  = (pct ?? 0) >= 0;
-        const pctStr  = pct != null ? (isUp ? '+' : '') + pct.toFixed(2) + '%' : '—';
-        const priceStr = price != null
-            ? (price >= 10000 ? price.toLocaleString('es-MX', { maximumFractionDigits: 0 })
-             : price >= 1000  ? price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-             : price >= 10    ? price.toFixed(2)
-             : price.toFixed(4)) : '—';
-
-        const nameHtml = name
-            ? `<div class="wl-name">${name}</div>`
-            : (price == null ? `<div class="wl-name" style="color:#f59e0b;" title="Verifica el símbolo: usa GFNORTEO.MX para BMV, BTC-USD para cripto, USDMXN=X para divisas">⚠ símbolo no encontrado</div>` : '<div class="wl-name"></div>');
-
-        const triggered = item.alertPrice != null && price != null &&
-            (item.alertDir === 'above' ? price >= item.alertPrice : price <= item.alertPrice);
-        const alertBadge = triggered
-            ? `<span class="wl-alert-badge wl-alert-ok">🔔 ${item.alertDir === 'above' ? '▲' : '▼'} ${item.alertPrice}</span>`
-            : item.alertPrice != null
-                ? `<span class="wl-alert-badge">${item.alertDir === 'above' ? '▲' : '▼'} ${item.alertPrice}</span>`
-                : '';
-
-        return `<div class="wl-item" data-wl-idx="${idx}" onclick="wlLoadInChart('${item.ticker.replace(/'/g,"\\'")}')">
-            <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;">
-                    <span class="wl-ticker">${item.ticker}</span>${alertBadge}
-                </div>
-                ${nameHtml}
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.22rem;">
-                <div style="display:flex;gap:.3rem;align-items:center;">
-                    <span class="wl-price">${priceStr}</span>
-                    <span class="wl-pct ${price != null ? (isUp ? 'up' : 'down') : ''}">${pctStr}</span>
-                    <button class="wl-rm" data-wl-rm="${idx}" title="Eliminar" onclick="event.stopPropagation();wlRemove(${idx})">✕</button>
-                </div>
-                <div style="display:flex;gap:.2rem;align-items:center;" onclick="event.stopPropagation()">
-                    <select data-wl-dir="${idx}" style="font-size:.58rem;border:1px solid #e2e8f0;border-radius:4px;padding:1px 3px;outline:none;cursor:pointer;" onchange="wlSetAlert(${idx}, document.querySelector('[data-wl-price=\\'${idx}\\']')?.value, this.value)">
-                        <option value="above" ${item.alertDir !== 'below' ? 'selected' : ''}>▲ ≥</option>
-                        <option value="below" ${item.alertDir === 'below' ? 'selected' : ''}>▼ ≤</option>
-                    </select>
-                    <input data-wl-price="${idx}" type="number" placeholder="precio" step="any" value="${item.alertPrice ?? ''}"
-                        style="width:66px;font-size:.6rem;border:1px solid #e2e8f0;border-radius:4px;padding:2px 5px;outline:none;font-family:'JetBrains Mono',monospace;"
-                        onchange="wlSetAlert(${idx}, this.value, document.querySelector('[data-wl-dir=\\'${idx}\\']')?.value)"/>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-async function wlRefreshPrices() {
-    _assetDataCache.clear();
-    await wlRender();
-}
-
 const REFRESH_MS = 20 * 60 * 1000;  
 async function loadMacroMexico() {
     try {
@@ -7513,12 +7337,9 @@ function updateGeneralKPIs() {
 function restoreEquityLayout() {
     const anchor = document.getElementById('bvmx-panel-anchor');
     const chartPanel = document.getElementById('bvmx-panel');
-    const wlPanel = document.getElementById('watchlist-panel');
-    if (anchor && chartPanel) {
-        if (wlPanel) anchor.after(wlPanel);
-        if (wlPanel) wlPanel.after(chartPanel);
-        else anchor.after(chartPanel);
-    }
+    // Antes el panel de watchlist se intercalaba entre el ancla y la gráfica;
+    // retirado ese panel, la gráfica va directamente después del ancla.
+    if (anchor && chartPanel) anchor.after(chartPanel);
 }
 
 function finTab(name, btnEl, skipLoad, skipScroll) {
@@ -7538,7 +7359,7 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
     const bg = g('fin-bottom-grid');
 
     // Reset: hide all content blocks
-    ['fin-layout-wrap','fx-pro-panel','news-pro-panel','bvmx-panel','watchlist-panel','bolsa-news-panel','bonds-panel'].forEach(id => {
+    ['fin-layout-wrap','fx-pro-panel','news-pro-panel','bvmx-panel','bolsa-news-panel','bonds-panel'].forEach(id => {
         const el = g(id); if (el) el.style.display = 'none';
     });
     const pg = g('pane-general'); if (pg) pg.style.display = '';
@@ -7562,7 +7383,6 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
     } else if (name === 'mexico') {
         const legacyMarketLayout = g('fin-layout-wrap'); if (legacyMarketLayout) legacyMarketLayout.style.display = '';
         const chartPanel = g('bvmx-panel'); if (chartPanel) chartPanel.style.display = '';
-        const wlPanel = g('watchlist-panel'); if (wlPanel) wlPanel.style.display = '';
         const fxPanel = g('fx-pro-panel'); if (fxPanel) fxPanel.style.display = '';
         if (bg) bg.style.display = 'none';
         renderFxProfessionalDashboard(_fxData || []);
@@ -7570,7 +7390,7 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
 
     } else if (name === 'mercados') {
         const marketLayout = g('fin-layout-wrap'); if (marketLayout) marketLayout.style.display = '';
-        ['bvmx-panel','watchlist-panel','bolsa-news-panel'].forEach(id => {
+        ['bvmx-panel','bolsa-news-panel'].forEach(id => {
             const el = g(id); if (el) el.style.display = '';
         });
         if (bg) bg.style.display = 'none';
@@ -7613,7 +7433,6 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
     const startTab = ['general','mexico','mercados','bonos','noticias'].includes(requestedTab) ? requestedTab : 'general';
     finTab(startTab, document.querySelector(`.fin-tab-card[data-tab="${startTab}"]`), true);
     initCalendarSurprise();
-    wlRender();
     updateGeneralKPIs();
 
     // Permitir que el navegador pinte la información incluida en el HTML antes

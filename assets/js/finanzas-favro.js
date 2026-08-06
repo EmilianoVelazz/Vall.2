@@ -2146,15 +2146,12 @@
         const board = $('ff-exchange-board');
         const chartPanel = $('bvmx-panel');
         const fxPanel = $('fx-section');
-        const wlPanel = $('watchlist-panel');
         if (host && chartPanel) {
             host.hidden = false;
             if (fxPanel) host.append(fxPanel);
-            if (wlPanel) host.append(wlPanel);
             host.append(chartPanel);
             chartPanel.style.display = '';
             if (fxPanel && fxPanel.querySelector('#fxStrip')?.children.length) fxPanel.style.display = '';
-            if (wlPanel) wlPanel.style.display = '';
         }
         if (board) board.hidden = false;
         renderExchangeBoard();

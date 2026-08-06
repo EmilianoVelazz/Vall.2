@@ -120,7 +120,7 @@ body {
   padding: 0 !important;
 }
 
-#pane-general, #fin-layout-wrap, #watchlist-panel, #bonds-panel,
+#pane-general, #fin-layout-wrap, #bonds-panel,
 #petroleo-panel, #risk-panel, #credit-panel { scroll-margin-top: 165px; }
 
 .hub-hero {
@@ -686,10 +686,8 @@ body.energy-mode .ia-insight { border-color:#ead8c8 !important; background:#fff8
 .eq-score-block .eq-signal-list { flex: 1; justify-content: space-between; }
 .eq-context-list > div { display: flex; flex-direction: column; justify-content: center; }
 
-.eq-top-widgets #watchlist-panel,
 .eq-top-widgets #bolsa-news-panel,
 .eq-top-widgets #bvmx-panel { margin: 0 !important; padding: .9rem 1rem !important; border-radius: 15px !important; }
-.eq-top-widgets #wl-list { grid-template-columns: repeat(auto-fill,minmax(205px,1fr)) !important; gap: .42rem !important; }
 .eq-top-widgets #mkt-pulse { grid-template-columns: repeat(4,minmax(0,1fr)) !important; gap: .45rem !important; margin-bottom: .48rem !important; }
 .eq-top-widgets #sector-grid { grid-template-columns: repeat(6,minmax(0,1fr)) !important; gap: .42rem !important; }
 .eq-top-widgets #mkt-pulse > div,

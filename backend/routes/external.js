@@ -225,6 +225,107 @@ router.get('/bond-yields', async (req, res) => {
     }
 });
 
+// ── Diferenciales de deuda soberana a 10 años ────────────────────────────────
+//
+// Alimenta la tabla de spreads al estilo World Government Bonds. La fuente es el
+// portal de datos del BCE (dataflow IRS, "long-term interest rate for convergence
+// purposes"), que publica el rendimiento a 10 años de cada país de la UE sin
+// necesidad de clave. Todos los países europeos comparten el mismo corte, así que
+// los diferenciales entre ellos son exactos.
+//
+// Estados Unidos se añade desde Yahoo (^TNX) porque el BCE no lo cubre. Su corte
+// es diario, no mensual, y por eso viaja con su propio `period`: la vista debe
+// mostrarlo para no dar a entender que ambas cifras son de la misma fecha.
+const _spreadsCache = { ts: 0, data: null };
+const SPREADS_TTL   = 6 * 60 * 60 * 1000; // el BCE publica una vez al mes
+
+const SPREAD_COUNTRIES = [
+    ['DE', 'Alemania',     '🇩🇪'], ['FR', 'Francia',    '🇫🇷'], ['IT', 'Italia',     '🇮🇹'],
+    ['ES', 'España',       '🇪🇸'], ['NL', 'Países Bajos', '🇳🇱'], ['BE', 'Bélgica',   '🇧🇪'],
+    ['AT', 'Austria',      '🇦🇹'], ['PT', 'Portugal',   '🇵🇹'], ['IE', 'Irlanda',    '🇮🇪'],
+    ['FI', 'Finlandia',    '🇫🇮'], ['GR', 'Grecia',     '🇬🇷'], ['SK', 'Eslovaquia', '🇸🇰'],
+    ['SI', 'Eslovenia',    '🇸🇮'], ['LT', 'Lituania',   '🇱🇹'], ['LV', 'Letonia',    '🇱🇻'],
+    ['EE', 'Estonia',      '🇪🇪'], ['LU', 'Luxemburgo', '🇱🇺'], ['CY', 'Chipre',     '🇨🇾'],
+    ['MT', 'Malta',        '🇲🇹'], ['HR', 'Croacia',    '🇭🇷'], ['BG', 'Bulgaria',   '🇧🇬'],
+];
+
+async function fetchEcbCountryYield(code) {
+    const url = `https://data-api.ecb.europa.eu/service/data/IRS/M.${code}.L.L40.CI.0000.EUR.N.Z`
+        + '?format=jsondata&lastNObservations=2';
+    const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(12000) });
+    if (!r.ok) throw new Error(`ECB ${r.status}`);
+    const j = await r.json();
+    const series = j?.dataSets?.[0]?.series;
+    if (!series) throw new Error('sin series');
+    const obs = series[Object.keys(series)[0]]?.observations;
+    if (!obs) throw new Error('sin observaciones');
+    // Las claves de observación son índices en texto ("0", "1"): hay que
+    // ordenarlas numéricamente para no tomar la más antigua como la actual.
+    const valores = Object.keys(obs)
+        .sort((a, b) => Number(a) - Number(b))
+        .map(k => (Array.isArray(obs[k]) ? obs[k][0] : null))
+        .filter(v => Number.isFinite(v));
+    if (!valores.length) throw new Error('sin valores');
+    const periodos = j?.structure?.dimensions?.observation?.[0]?.values || [];
+    return {
+        yield: valores[valores.length - 1],
+        prev:  valores.length >= 2 ? valores[valores.length - 2] : null,
+        period: periodos[periodos.length - 1]?.id || null,
+    };
+}
+
+router.get('/bond-spreads', async (req, res) => {
+    if (_spreadsCache.data && Date.now() - _spreadsCache.ts < SPREADS_TTL)
+        return res.json(_spreadsCache.data);
+
+    try {
+        const europeos = await Promise.allSettled(
+            SPREAD_COUNTRIES.map(async ([code, name, flag]) => {
+                const d = await fetchEcbCountryYield(code);
+                return { code, name, flag, ...d, source: 'BCE · tasa de largo plazo (10 años)' };
+            })
+        );
+
+        const countries = europeos
+            .filter(r => r.status === 'fulfilled' && Number.isFinite(r.value.yield))
+            .map(r => r.value);
+
+        // Estados Unidos: corte diario, se etiqueta como tal.
+        try {
+            const us = await fetchYahooYield('^TNX');
+            if (Number.isFinite(us?.yield)) {
+                countries.push({
+                    code: 'US', name: 'Estados Unidos', flag: '🇺🇸',
+                    yield: us.yield, prev: us.prev,
+                    period: new Date().toISOString().slice(0, 10),
+                    source: 'Yahoo Finance · ^TNX (cierre diario)',
+                });
+            }
+        } catch (e) {
+            console.warn('/api/bond-spreads: sin ^TNX:', e.message);
+        }
+
+        if (!countries.length) throw new Error('ninguna fuente respondió');
+
+        countries.sort((a, b) => a.yield - b.yield);
+        const data = {
+            countries,
+            // Corte de los datos europeos, que son la mayoría de la tabla.
+            asOf: countries.find(c => c.code === 'DE')?.period || countries[0].period,
+            note: 'Los países europeos comparten el mismo corte mensual del BCE, '
+                + 'por lo que sus diferenciales son exactos. Estados Unidos usa cierre diario.',
+        };
+
+        _spreadsCache.ts   = Date.now();
+        _spreadsCache.data = data;
+        res.json(data);
+    } catch (err) {
+        console.error('/api/bond-spreads error:', err.message);
+        if (_spreadsCache.data) return res.json(_spreadsCache.data);
+        res.status(502).json({ error: 'No se pudieron obtener los diferenciales soberanos.' });
+    }
+});
+
 // ── Curva de Tasas México (TIIE + Cetes + UDIBONOS) ──────────────────────────
 const _mxRatesCache = { ts: 0, data: null };
 const MX_RATES_TTL  = 30 * 60 * 1000;

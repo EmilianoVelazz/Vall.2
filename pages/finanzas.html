@@ -773,11 +773,11 @@
     <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.6">
     <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=3.0">
     <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=68">
-    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=108">
+    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=109">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
     <link rel="stylesheet" href="../assets/css/returns-pro.css?v=12">
     <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
-    <script src="../assets/js/finanzas-favro.js?v=102" defer></script>
+    <script src="../assets/js/finanzas-favro.js?v=103" defer></script>
 
 <style>
 /* PREMIUM INTERMEDIATE PALETTE (Favro 2.0) */
@@ -1403,6 +1403,51 @@ let patchInterval = setInterval(() => {
         <aside class="ff-supplement-note" id="ff-supplement-note">
             <i class="fas fa-circle-info" aria-hidden="true"></i>
             <p>La plataforma mostrará claramente los campos que no estén disponibles en la fuente, sin completarlos con cifras estimadas.</p>
+        </aside>
+    </section>
+
+    <!-- Diferenciales soberanos a 10 años. Solo se muestra en los módulos Bonos y
+         Tasas; lo llena renderSpreadsBoard() desde /api/bond-spreads. -->
+    <section class="ff-spreads-board" id="ff-spreads-board" aria-labelledby="ff-spreads-title" hidden>
+        <header class="ff-spreads-header">
+            <div>
+                <span class="ff-kicker"><i class="fas fa-scale-balanced" aria-hidden="true"></i> Deuda soberana</span>
+                <h2 id="ff-spreads-title">Diferenciales a 10 años</h2>
+                <p>Rendimiento del bono a 10 años de cada país y su diferencia, en puntos base, frente a las referencias que elijas.</p>
+            </div>
+            <div class="ff-spreads-tools">
+                <label>
+                    <span>Comparar contra</span>
+                    <select id="ff-spreads-ref" aria-label="Elegir el país de referencia principal"></select>
+                </label>
+                <span class="ff-spreads-asof" id="ff-spreads-asof" aria-live="polite">Consultando…</span>
+            </div>
+        </header>
+        <div class="ff-spreads-table-wrap">
+            <table class="ff-spreads-table">
+                <thead>
+                    <tr>
+                        <th class="ff-sp-country"><button type="button" data-spread-sort="name">País</button></th>
+                        <th class="ff-sp-num"><button type="button" data-spread-sort="yield">Rend. 10A</button></th>
+                        <!-- "Var." a secas: para los países europeos es la variación
+                             respecto del mes anterior y para Estados Unidos respecto
+                             de la sesión previa, porque sus fuentes tienen cortes
+                             distintos. Cada celda lo aclara en su title. -->
+                        <th class="ff-sp-num"><button type="button" data-spread-sort="chg" title="Variación frente a la observación anterior de cada fuente">Var.</button></th>
+                        <th class="ff-sp-num" id="ff-sp-h1"></th>
+                        <th class="ff-sp-num" id="ff-sp-h2"></th>
+                        <th class="ff-sp-num" id="ff-sp-h3"></th>
+                        <th class="ff-sp-num" id="ff-sp-h4"></th>
+                    </tr>
+                </thead>
+                <tbody id="ff-spreads-body">
+                    <tr><td colspan="7">Cargando diferenciales…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <aside class="ff-spreads-note" id="ff-spreads-note">
+            <i class="fas fa-circle-info" aria-hidden="true"></i>
+            <p></p>
         </aside>
     </section>
 

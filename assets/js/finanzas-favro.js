@@ -2533,10 +2533,144 @@
         if (Number.isFinite(range)) $('ff-supplement-kpis')?.lastElementChild?.querySelector('em')?.setAttribute('title', `Rango de movimientos: ${range.toFixed(2)} pp`);
     }
 
+    /* ── Diferenciales soberanos a 10 años ────────────────────────────────────
+       Tabla al estilo World Government Bonds: el rendimiento a 10 años de cada
+       país y su distancia en puntos base frente a varias referencias.
+
+       Los datos vienen de /api/bond-spreads (portal del BCE para los países
+       europeos, Yahoo ^TNX para Estados Unidos). Los diferenciales se calculan
+       aquí porque son una resta: pedirlos al servidor obligaría a rehacer la
+       petición cada vez que se cambia de referencia. */
+    const SPREAD_REFS_POR_DEFECTO = ['DE', 'US', 'FR', 'IT'];
+    let _spreads = null;
+    let _spreadRef = 'DE';
+    let _spreadSort = { campo: 'yield', asc: true };
+
+    async function renderSpreadsBoard() {
+        const board = $('ff-spreads-board');
+        if (!board) return;
+
+        if (!_spreads) {
+            try {
+                const data = await fetchJson('/api/bond-spreads', 20000);
+                _spreads = Array.isArray(data?.countries) ? data : null;
+                if (_spreads) {
+                    const asOf = $('ff-spreads-asof');
+                    if (asOf) asOf.textContent = `Corte ${data.asOf || 'reciente'} · ${data.countries.length} países`;
+                    const nota = $('ff-spreads-note')?.querySelector('p');
+                    if (nota) nota.textContent = data.note || '';
+                    llenarSelectorReferencia();
+                }
+            } catch (error) {
+                console.warn('Diferenciales soberanos:', error.message);
+            }
+        }
+
+        const cuerpo = $('ff-spreads-body');
+        if (!cuerpo) return;
+        if (!_spreads) {
+            cuerpo.innerHTML = '<tr><td colspan="7">No se pudieron obtener los diferenciales ahora mismo.</td></tr>';
+            return;
+        }
+        pintarTablaSpreads();
+    }
+
+    function llenarSelectorReferencia() {
+        const sel = $('ff-spreads-ref');
+        if (!sel || sel.childElementCount) return;
+        sel.innerHTML = _spreads.countries
+            .map(c => `<option value="${c.code}"${c.code === _spreadRef ? ' selected' : ''}>${c.name}</option>`)
+            .join('');
+        sel.addEventListener('change', event => {
+            _spreadRef = event.target.value;
+            pintarTablaSpreads();
+        });
+        document.querySelectorAll('[data-spread-sort]').forEach(boton => {
+            boton.addEventListener('click', () => {
+                const campo = boton.dataset.spreadSort;
+                _spreadSort = { campo, asc: _spreadSort.campo === campo ? !_spreadSort.asc : true };
+                pintarTablaSpreads();
+            });
+        });
+    }
+
+    function pintarTablaSpreads() {
+        const cuerpo = $('ff-spreads-body');
+        if (!cuerpo || !_spreads) return;
+
+        const porCodigo = new Map(_spreads.countries.map(c => [c.code, c]));
+        const refPais = porCodigo.get(_spreadRef) || _spreads.countries[0];
+
+        /* Cuatro columnas: la referencia elegida primero y luego las habituales,
+           sin repetirla si ya está entre ellas. */
+        const refs = [_spreadRef, ...SPREAD_REFS_POR_DEFECTO.filter(c => c !== _spreadRef)]
+            .filter(c => porCodigo.has(c))
+            .slice(0, 4);
+
+        refs.forEach((codigo, i) => {
+            const th = $(`ff-sp-h${i + 1}`);
+            if (th) th.textContent = `vs ${porCodigo.get(codigo).name}`;
+        });
+        for (let i = refs.length; i < 4; i++) { const th = $(`ff-sp-h${i + 1}`); if (th) th.textContent = ''; }
+
+        const filas = [..._spreads.countries];
+        const { campo, asc } = _spreadSort;
+        filas.sort((a, b) => {
+            let d;
+            if (campo === 'name') d = a.name.localeCompare(b.name, 'es');
+            else if (campo === 'chg') d = variacion(a) - variacion(b);
+            else d = a.yield - b.yield;
+            return asc ? d : -d;
+        });
+
+        document.querySelectorAll('[data-spread-sort]').forEach(b =>
+            b.classList.toggle('is-sorted', b.dataset.spreadSort === campo));
+
+        cuerpo.innerHTML = filas.map(pais => {
+            const celdas = refs.map(codigo => celdaSpread(pais.yield - porCodigo.get(codigo).yield)).join('');
+            const relleno = '<td class="ff-sp-num"></td>'.repeat(4 - refs.length);
+            const chg = variacion(pais);
+            return `<tr class="${pais.code === refPais.code ? 'is-ref' : ''}" title="${escaparHtml(pais.source || '')}">
+                <td class="ff-sp-country"><span class="ff-sp-iso">${escaparHtml(pais.code)}</span>${escaparHtml(pais.name)}</td>
+                <td class="ff-sp-num">${pais.yield.toFixed(3)}%</td>
+                <td class="ff-sp-num ${chg == null ? 'ff-sp-zero' : chg >= 0 ? 'ff-sp-pos' : 'ff-sp-neg'}"
+                    title="${pais.code === 'US' ? 'Frente a la sesión anterior' : 'Frente al mes anterior'} · corte ${escaparHtml(pais.period || 's/d')}">${
+                    chg == null ? '—' : `${chg >= 0 ? '+' : ''}${(chg * 100).toFixed(1)} bp`}</td>
+                ${celdas}${relleno}
+            </tr>`;
+        }).join('');
+    }
+
+    /* Variación frente a la observación anterior, en puntos porcentuales. */
+    function variacion(pais) {
+        return isNumeric(pais.prev) ? pais.yield - pais.prev : null;
+    }
+
+    function celdaSpread(diferencia) {
+        const bp = diferencia * 100;
+        // Un diferencial positivo significa que ese país paga más que la
+        // referencia: se marca en rojo porque implica mayor prima de riesgo.
+        const clase = Math.abs(bp) < 0.05 ? 'ff-sp-zero' : bp > 0 ? 'ff-sp-pos' : 'ff-sp-neg';
+        const texto = Math.abs(bp) < 0.05 ? '0 bp' : `${bp > 0 ? '+' : ''}${bp.toFixed(1)} bp`;
+        return `<td class="ff-sp-num ${clase}">${texto}</td>`;
+    }
+
+    function escaparHtml(texto) {
+        return String(texto).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
     function renderSupplement(name) {
         const section = $('ff-detail-supplement');
         if (!section || !detailConfig[name]) return;
         section.hidden = false;
+
+        /* La tabla de diferenciales solo tiene sentido donde se habla de deuda. */
+        const spreadsBoard = $('ff-spreads-board');
+        if (spreadsBoard) {
+            const procede = name === 'bonos' || name === 'tasas';
+            spreadsBoard.hidden = !procede;
+            if (procede) renderSpreadsBoard();
+        }
 
         const setCopy = setSupplementCopy;
 

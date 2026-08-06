@@ -4297,3 +4297,185 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #bonds-panel .debt-signal-grid strong { font-size: .85rem !important; }
 #bonds-panel .debt-signal-grid strong.up   { color: #b3261e !important; }
 #bonds-panel .debt-signal-grid strong.down { color: #0b6e4f !important; }
+
+/* ── Diferenciales soberanos a 10 años ─────────────────────────────────────── */
+
+.ff-spreads-board {
+    background: var(--ff-surface, #fff);
+    border: 1px solid var(--ff-line, #dfe7ed);
+    border-radius: var(--ff-radius-lg, 22px);
+    box-shadow: var(--ff-shadow, 0 16px 45px rgba(7, 28, 44, .08));
+    padding: 1.6rem 1.8rem 1.4rem;
+    margin: 1.4rem 0;
+}
+
+.ff-spreads-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+.ff-spreads-header h2 {
+    font: 700 1.35rem/1.2 "Playfair Display", serif;
+    color: var(--ff-ink, #10202e);
+    margin: .35rem 0 .3rem;
+}
+
+.ff-spreads-header p {
+    font-size: .84rem;
+    color: var(--ff-muted, #687887);
+    max-width: 62ch;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.ff-spreads-tools {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .6rem;
+}
+
+.ff-spreads-tools label {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: rgba(15, 23, 42, .05);
+    padding: .4rem .8rem;
+    border-radius: 12px;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--ff-ink, #10202e);
+}
+
+.ff-spreads-tools select {
+    border: none;
+    background: transparent;
+    font: 700 .8rem "Inter", sans-serif;
+    color: var(--ff-ink, #10202e);
+    cursor: pointer;
+    outline: none;
+}
+
+.ff-spreads-asof {
+    font-size: .76rem;
+    font-weight: 600;
+    color: var(--ff-muted, #687887);
+}
+
+.ff-spreads-table-wrap {
+    /* La tabla tiene siete columnas: en pantallas estrechas debe desplazarse
+       ella sola, nunca empujar el ancho de la página. */
+    overflow-x: auto;
+    border: 1px solid var(--ff-line, #dfe7ed);
+    border-radius: var(--ff-radius-md, 16px);
+}
+
+.ff-spreads-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .84rem;
+    min-width: 720px;
+}
+
+.ff-spreads-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--ff-surface-soft, #f4f7f9);
+    border-bottom: 1px solid var(--ff-line, #dfe7ed);
+    padding: .7rem .9rem;
+    text-align: right;
+    font: 700 .7rem/1.2 "Inter", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ff-muted, #687887);
+    white-space: nowrap;
+}
+
+.ff-spreads-table thead th.ff-sp-country { text-align: left; }
+
+.ff-spreads-table thead button {
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    text-transform: inherit;
+    letter-spacing: inherit;
+}
+
+.ff-spreads-table thead button:hover { color: var(--ff-blue, #246bfe); }
+.ff-spreads-table thead button.is-sorted { color: var(--ff-blue, #246bfe); }
+
+.ff-spreads-table tbody td {
+    padding: .62rem .9rem;
+    border-bottom: 1px solid rgba(223, 231, 237, .7);
+    text-align: right;
+    font-family: "JetBrains Mono", monospace;
+    font-size: .82rem;
+    color: var(--ff-ink, #10202e);
+    white-space: nowrap;
+}
+
+.ff-spreads-table tbody tr:last-child td { border-bottom: none; }
+.ff-spreads-table tbody tr:hover td { background: rgba(36, 107, 254, .04); }
+
+.ff-spreads-table td.ff-sp-country {
+    text-align: left;
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+}
+
+/* Código ISO en lugar de la bandera emoji: Windows no incluye fuente para los
+   emoji de bandera, así que 🇩🇪 se dibujaba como un "DE" diminuto y suelto.
+   Una etiqueta con el código se ve igual en todos los sistemas. */
+.ff-sp-iso {
+    display: inline-block;
+    min-width: 2.1rem;
+    margin-right: .6rem;
+    padding: .12rem .3rem;
+    border-radius: 5px;
+    background: rgba(15, 23, 42, .07);
+    font: 700 .66rem/1.4 "JetBrains Mono", monospace;
+    letter-spacing: .04em;
+    text-align: center;
+    color: var(--ff-muted, #687887);
+    vertical-align: middle;
+}
+
+/* La fila de la referencia se distingue: su diferencial es cero por definición. */
+.ff-spreads-table tbody tr.is-ref td {
+    background: rgba(36, 107, 254, .07);
+    font-weight: 700;
+}
+
+/* Van calificadas con `tbody td` a propósito: la regla que da color a todas las
+   celdas tiene tres niveles de especificidad y ganaba a una clase suelta, así
+   que los diferenciales salían todos del mismo gris. Un diferencial positivo
+   significa que ese país paga más que la referencia, de ahí el rojo. */
+.ff-spreads-table tbody td.ff-sp-pos  { color: var(--ff-negative, #c94a56); }
+.ff-spreads-table tbody td.ff-sp-neg  { color: var(--ff-positive, #16825d); }
+.ff-spreads-table tbody td.ff-sp-zero { color: var(--ff-muted, #687887); }
+
+.ff-spreads-note {
+    display: flex;
+    gap: .6rem;
+    align-items: flex-start;
+    margin-top: 1rem;
+    padding: .8rem 1rem;
+    background: rgba(36, 107, 254, .05);
+    border-radius: var(--ff-radius-md, 16px);
+}
+
+.ff-spreads-note i { color: var(--ff-blue, #246bfe); margin-top: 2px; flex-shrink: 0; }
+.ff-spreads-note p { margin: 0; font-size: .76rem; line-height: 1.55; color: var(--ff-muted, #687887); }
+
+@media (max-width: 720px) {
+    .ff-spreads-board { padding: 1.2rem 1rem 1rem; }
+    .ff-spreads-header { flex-direction: column; }
+    .ff-spreads-tools { align-items: flex-start; }
+}

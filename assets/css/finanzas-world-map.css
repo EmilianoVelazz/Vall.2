@@ -1,0 +1,446 @@
+/*
+ * Mapa mundial de bolsas — apartado Bolsa de Finanzas.
+ * Acompaña a assets/js/finanzas-world-map.js.
+ *
+ * Reutiliza las variables de finanzas-favro.css (--ff-ink, --ff-muted, …) para
+ * no reabrir la paleta. Sin !important: este archivo carga después de los demás
+ * y sus clases (.ffwm-*) no colisionan con nada existente.
+ */
+
+.ff-world-map {
+    margin-bottom: 14px;
+    padding: 21px 22px 18px;
+    border: 1px solid rgba(7, 28, 44, .09);
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 0 0, rgba(64, 166, 199, .1), transparent 30%),
+        #fff;
+    box-shadow: 0 10px 30px rgba(7, 28, 44, .055);
+}
+
+.ff-world-map[hidden] { display: none; }
+
+/* ── Encabezado ─────────────────────────────────────────────────────────── */
+
+.ffwm-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.ffwm-head .ff-kicker { color: #2f7292; }
+
+.ffwm-head h2 {
+    margin: 6px 0 4px;
+    color: var(--ff-ink);
+    font: 750 1.2rem/1.15 "Inter", sans-serif;
+    letter-spacing: -.035em;
+}
+
+.ffwm-head p {
+    max-width: 720px;
+    margin: 0;
+    color: var(--ff-muted);
+    font: 500 .67rem/1.5 "Inter", sans-serif;
+}
+
+/* El selector es la ruta de teclado al mapa: los polígonos no reciben foco y
+   los marcadores son 50 paradas de tabulador. */
+.ffwm-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 7px 12px;
+    border: 1px solid var(--ff-line);
+    border-radius: 999px;
+    background: var(--ff-surface-soft);
+}
+
+.ffwm-select-wrap > i { color: #2f7292; font-size: .7rem; }
+
+.ffwm-select-wrap label {
+    color: var(--ff-muted);
+    font: 700 .55rem "Inter", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+#ffwm-select {
+    border: none;
+    background: transparent;
+    color: var(--ff-ink);
+    font: 700 .68rem "Inter", sans-serif;
+    cursor: pointer;
+    outline: none;
+    max-width: 190px;
+}
+
+/* ── Mapa a todo el ancho ───────────────────────────────────────────────── */
+
+/* position:relative ancla el flotante. Se posiciona dentro de esta caja en vez
+   de con position:fixed para no depender de si algún ancestro tiene transform. */
+.ffwm-map {
+    position: relative;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--ff-line);
+    border-radius: 16px;
+    background: linear-gradient(160deg, #f7fbfd, #eef4f8);
+}
+
+.ffwm-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* ── Países ─────────────────────────────────────────────────────────────── */
+
+.ffwm-pais {
+    fill: #dbe5ec;
+    stroke: #fff;
+    stroke-width: .5;
+    transition: fill .18s ease;
+}
+
+/* Con bolsa: más contraste y clicable. Sin bolsa: decorado inerte. */
+.ffwm-pais.is-mercado {
+    fill: #b4cbdb;
+    cursor: pointer;
+}
+
+.ffwm-pais.is-mercado:hover { fill: #7fa9c6; }
+
+/* El país ENTERO se rellena con la dirección de su mercado. Es la señal
+   principal del mapa; el punto solo marca dónde está la bolsa.
+
+   Tonos apagados a propósito: son 31 países coloreados a la vez y con verdes y
+   rojos saturados el mapa se volvía estridente. Se baja la saturación y se sube
+   la luminosidad, conservando el matiz para que verde y rojo sigan separándose
+   de un vistazo. El realce al pasar el cursor sí sube un punto de intensidad,
+   que es lo que distingue el país señalado del resto. */
+.ffwm-pais.is-alza { fill: #79bd9a; }
+.ffwm-pais.is-alza:hover { fill: #62ab86; }
+.ffwm-pais.is-baja { fill: #cf7f85; }
+.ffwm-pais.is-baja:hover { fill: #bf6a72; }
+.ffwm-pais.is-plano { fill: #9aa8b4; }
+
+/* La selección se marca con contorno, no con relleno: repintar el país borraría
+   justo el color que se quiere leer. */
+.ffwm-pais.is-activo {
+    stroke: #00213a;
+    stroke-width: 1.6;
+}
+
+/* Salvo cuando no hay color que preservar: un país sin cotización sí puede
+   teñirse al seleccionarlo, que es más visible que un contorno fino. El azul va
+   apagado al mismo nivel que el verde y el rojo —antes era #246bfe y saltaba a
+   la vista por encima de todo lo demás— pero un punto más oscuro que el relleno
+   normal del país, para que la selección se note. */
+.ffwm-pais.is-mercado.is-activo:not(.is-alza):not(.is-baja):not(.is-plano) {
+    fill: #6b97b8;
+}
+
+/* ── Marcadores ─────────────────────────────────────────────────────────── */
+
+.ffwm-marca {
+    cursor: pointer;
+    outline: none;
+}
+
+/* El COLOR del punto dice la dirección del mercado; la SELECCIÓN se indica con
+   el halo y un anillo. Son dos cosas distintas y no deben pisarse: si la
+   selección repintara el punto, se perdería el verde o el rojo justo en el país
+   que se está mirando. */
+.ffwm-marca-halo {
+    fill: rgba(110, 150, 180, .22);
+    transition: fill .18s ease;
+}
+
+.ffwm-marca-punto {
+    fill: #64748b;             /* neutro: país sin índice conectado */
+    stroke: #fff;
+    stroke-width: 1.2;
+    transition: fill .18s ease;
+}
+
+.ffwm-marca:hover .ffwm-marca-halo { fill: rgba(110, 150, 180, .4); }
+
+.ffwm-marca.is-activo .ffwm-marca-halo { fill: rgba(110, 150, 180, .52); }
+.ffwm-marca.is-activo .ffwm-marca-punto { stroke: #00213a; stroke-width: 2; }
+
+/* ── Dirección del mercado ──────────────────────────────────────────────────
+   Solo los países con índice conectado reciben color. Un país sin dato se
+   queda gris: no es un país plano, es un país del que no sabemos nada. */
+/* Los puntos van en un tono MÁS OSCURO que el relleno del país: sobre un país
+   ya teñido, un punto del mismo verde o rojo desaparecería. Al apagar los
+   rellenos estos también se suavizaron, pero conservan bastante contraste para
+   leerse tanto sobre su país como sobre el mar. */
+.ffwm-marca.is-alza .ffwm-marca-punto { fill: #2f7d58; }
+.ffwm-marca.is-baja .ffwm-marca-punto { fill: #a9525b; }
+.ffwm-marca.is-plano .ffwm-marca-punto { fill: #4a5a6a; }
+
+/* Por lo mismo, el halo de realce no puede ser del color del mercado: sería
+   invisible sobre su propio país. Se usa un velo oscuro neutro. */
+.ffwm-marca.is-alza .ffwm-marca-halo,
+.ffwm-marca.is-baja .ffwm-marca-halo,
+.ffwm-marca.is-plano .ffwm-marca-halo { fill: rgba(2, 26, 16, .16); }
+
+.ffwm-marca.is-alza:hover .ffwm-marca-halo,
+.ffwm-marca.is-baja:hover .ffwm-marca-halo,
+.ffwm-marca.is-plano:hover .ffwm-marca-halo { fill: rgba(2, 26, 16, .32); }
+
+.ffwm-marca.is-alza.is-activo .ffwm-marca-halo,
+.ffwm-marca.is-baja.is-activo .ffwm-marca-halo,
+.ffwm-marca.is-plano.is-activo .ffwm-marca-halo { fill: rgba(2, 26, 16, .44); }
+
+/* ── Leyenda ───────────────────────────────────────────────────────────────
+   El color no puede ser el único portador del mensaje: cada entrada lleva su
+   texto, y quien no distinga verde de rojo tiene el dato con signo en la ficha
+   del panel y en el tooltip del marcador. */
+.ffwm-leyenda {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--ff-line);
+    border-radius: 11px;
+    background: var(--ff-surface-soft);
+}
+
+.ffwm-leyenda li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ff-muted);
+    font: 600 .58rem "Inter", sans-serif;
+    list-style: none;
+}
+
+.ffwm-leyenda i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1.2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(7, 28, 44, .12);
+}
+
+/* Las muestras replican el relleno del PAÍS, que es la señal que se lee. */
+.ffwm-leyenda i { border-radius: 3px; width: 14px; height: 10px; }
+.ffwm-leyenda .lg-alza { background: #79bd9a; }
+.ffwm-leyenda .lg-baja { background: #cf7f85; }
+/* "Sin cambio" y "sin cotización" son estados DISTINTOS y por eso llevan dos
+   entradas: el primero es un mercado que cerró plano, el segundo un país del que
+   no tenemos dato. Faltaba la de "sin cambio" y Estados Unidos aparecía de un
+   gris que la leyenda no explicaba. */
+.ffwm-leyenda .lg-plano { background: #9aa8b4; }
+.ffwm-leyenda .lg-neutro { background: #b4cbdb; }
+
+/* Las cifras de cobertura se empujan al extremo: antes vivían en el estado
+   vacío del panel lateral, que ya no existe. */
+.ffwm-stats {
+    margin-left: auto;
+    font-family: "JetBrains Mono", monospace;
+    font-size: .55rem;
+}
+
+/* El foco se dibuja sobre el halo porque un outline rectangular sobre un <g>
+   de SVG queda desalineado con el círculo. */
+.ffwm-marca:focus-visible .ffwm-marca-halo {
+    fill: rgba(251, 191, 36, .55);
+    stroke: #00213a;
+    stroke-width: 1.5;
+}
+
+/* ── Flotante ───────────────────────────────────────────────────────────── */
+
+/* pointer-events:none es lo que hace que el flotante no se persiga a sí mismo:
+   sin eso, aparecer bajo el cursor dispararía un mouseover que lo haría
+   parpadear. Como es informativo, no necesita recibir clics. */
+.ffwm-tip {
+    position: absolute;
+    z-index: 5;
+    width: 300px;
+    max-width: calc(100% - 20px);
+    padding: 13px;
+    border: 1px solid rgba(7, 28, 44, .12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 16px 40px -12px rgba(7, 28, 44, .3);
+    pointer-events: none;
+    animation: ffwmTipIn .14s ease-out;
+}
+
+.ffwm-tip[hidden] { display: none; }
+
+@keyframes ffwmTipIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ffwm-tip-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--ff-line);
+}
+
+.ffwm-tip-head h3 {
+    margin: 0;
+    color: var(--ff-ink);
+    font: 750 .95rem "Inter", sans-serif;
+    letter-spacing: -.03em;
+}
+
+.ffwm-tip-head p {
+    margin: 2px 0 0;
+    color: var(--ff-muted);
+    font: 600 .58rem "Inter", sans-serif;
+}
+
+.ffwm-pais-head {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--ff-line);
+}
+
+/* Distintivo ISO, no emoji: ver codigoIso() en finanzas-world-map.js. */
+.ffwm-bandera {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(140deg, #00213a, #004876);
+    color: #fff;
+    font: 800 .74rem "JetBrains Mono", monospace;
+    letter-spacing: .06em;
+}
+
+.ffwm-pais-head h3 {
+    margin: 0;
+    color: var(--ff-ink);
+    font: 750 1.02rem "Inter", sans-serif;
+    letter-spacing: -.03em;
+}
+
+.ffwm-pais-head p {
+    margin: 2px 0 0;
+    color: var(--ff-muted);
+    font: 600 .6rem "Inter", sans-serif;
+}
+
+.ffwm-bolsas { display: grid; gap: 8px; }
+
+.ffwm-bolsa {
+    padding: 10px;
+    border: 1px solid var(--ff-line);
+    border-radius: 11px;
+    background: var(--ff-surface-soft);
+}
+
+.ffwm-bolsa.tiene-dato { border-color: rgba(110, 150, 180, .45); }
+
+.ffwm-bolsa > header { display: flex; align-items: flex-start; gap: 9px; }
+
+.ffwm-sigla {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    border-radius: 7px;
+    background: #00213a;
+    color: #fff;
+    font: 800 .53rem "Inter", sans-serif;
+    letter-spacing: .04em;
+}
+
+.ffwm-bolsa h4 {
+    margin: 0;
+    color: var(--ff-ink);
+    font: 700 .73rem/1.25 "Inter", sans-serif;
+}
+
+.ffwm-bolsa header p {
+    margin: 3px 0 0;
+    color: var(--ff-muted);
+    font: 500 .57rem "Inter", sans-serif;
+}
+
+.ffwm-mic { font-family: "JetBrains Mono", monospace; }
+
+.ffwm-bolsa-pie {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px dashed var(--ff-line);
+}
+
+.ffwm-indice {
+    color: var(--ff-ink);
+    font: 600 .63rem "Inter", sans-serif;
+}
+
+.ffwm-indice em {
+    display: block;
+    color: var(--ff-muted);
+    font: 700 .46rem "Inter", sans-serif;
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.ffwm-cotiza { text-align: right; }
+
+.ffwm-cotiza strong {
+    display: block;
+    color: var(--ff-ink);
+    font: 750 .88rem "JetBrains Mono", monospace;
+}
+
+.ffwm-cotiza span { font: 700 .58rem "Inter", sans-serif; }
+.ffwm-cotiza .is-up { color: var(--ff-positive); }
+.ffwm-cotiza .is-down { color: var(--ff-negative); }
+.ffwm-cotiza .is-flat { color: var(--ff-muted); }
+
+/* Sin fuente conectada: se dice, no se rellena con un número inventado. */
+.ffwm-cotiza.is-vacio span {
+    color: var(--ff-muted);
+    font: 500 .55rem "Inter", sans-serif;
+    font-style: italic;
+}
+
+/* ── Adaptable ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 620px) {
+    .ff-world-map { padding: 16px 14px 14px; }
+    .ffwm-head { gap: 12px; }
+    .ffwm-select-wrap { width: 100%; }
+    #ffwm-select { max-width: none; flex: 1; }
+    .ffwm-stats { margin-left: 0; width: 100%; }
+    /* En pantalla estrecha el flotante ocupa casi todo el mapa; sin esto se
+       saldría por los lados. */
+    .ffwm-tip { width: auto; left: 8px !important; right: 8px; }
+}
+
+/* Quien pide menos animación no necesita transiciones de relleno al pasar el
+   cursor sobre 176 países. */
+@media (prefers-reduced-motion: reduce) {
+    .ffwm-pais,
+    .ffwm-marca-halo,
+    .ffwm-marca-punto { transition: none; }
+    .ffwm-tip { animation: none; }
+}

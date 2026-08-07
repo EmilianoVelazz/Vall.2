@@ -205,6 +205,21 @@
         { slug: 'nikkei', symbol: '^N225', name: 'Nikkei 225', region: 'Jap\u00f3n', market: 'Tokyo Stock Exchange' },
         { slug: 'hangseng', symbol: '^HSI', name: 'Hang Seng', region: 'Hong Kong', market: 'HKEX' },
         { slug: 'bovespa', symbol: '^BVSP', name: 'Ibovespa', region: 'Brasil', market: 'B3' },
+        /* Sudamérica. De los cuatro, SOLO Argentina publica su índice en la
+           fuente: se probaron ocho variantes de ticker para el IPSA, el COLCAP y
+           el S&P/BVL y ninguna devuelve datos. Los otros tres se cubren con un
+           ETF y el pie de la tarjeta dice cuál es, para que nadie lea el número
+           como si fuera el índice del país.
+
+           Colombia va en pesos y cotiza en la propia bvc. Chile y Perú van con
+           ETF neoyorquinos en dólares: su variación diaria mezcla el movimiento
+           del mercado con el del tipo de cambio, así que NO son equivalentes al
+           IPSA ni al S&P/BVL. Por eso tampoco colorean esos países en el mapa
+           mundial; ver la nota de cobertura en assets/js/world-exchanges.js. */
+        { slug: 'merval', symbol: '^MERV', name: 'S&P Merval', region: 'Argentina', market: 'BYMA · Buenos Aires' },
+        { slug: 'colcap', symbol: 'ICOLCAP.CL', name: 'COLCAP', region: 'Colombia', market: 'ETF iShares en la bvc · en pesos colombianos' },
+        { slug: 'ipsa', symbol: 'ECH', name: 'MSCI Chile', region: 'Chile', market: 'ETF en Nueva York · en dólares, no es el IPSA' },
+        { slug: 'bvl', symbol: 'EPU', name: 'MSCI Perú', region: 'Perú', market: 'ETF en Nueva York · en dólares, no es el S&P/BVL' },
     ];
     const isNumeric = value => value !== null && value !== '' && Number.isFinite(Number(value));
     const formatNumber = (value, digits = 2) => isNumeric(value) ? (+value).toLocaleString('es-MX', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
@@ -1001,6 +1016,16 @@
         renderExchangeBoard();
     };
 
+    /* Puente de solo lectura hacia el mapa mundial (finanzas-world-map.js), que
+       vive fuera de este IIFE y necesita las cotizaciones ya descargadas.
+       Devuelve una copia plana: sin velas, y sin que nadie pueda escribir sobre
+       `state` desde fuera. Si el símbolo no está en exchangeConfig no habrá
+       entrada, y el mapa lo muestra como ficha sin cotización. */
+    window.VNBolsaCotizacion = function (symbol) {
+        const quote = state.quotes[symbol];
+        return quote ? { price: quote.price, change: quote.change } : null;
+    };
+
     function renderExchangeBoard() {
         ensureExchangeCards();
         let available = 0;
@@ -1225,6 +1250,10 @@
         if (sp?.candles?.length) renderMiniChart('ff-spark-bolsa', sp.candles.map(item => +item.close), sp.change >= 0 ? colors.green : colors.red);
         renderExchangeBoard();
         updateModuleTiles();
+        /* El mapa mundial pinta las cotizaciones del país seleccionado y no
+           tiene forma de saber cuándo llegan. Se avisa aquí, que es el punto
+           donde el resto de la vista ya se repintó con datos nuevos. */
+        window.dispatchEvent(new CustomEvent('vn:cotizaciones'));
     }
 
     /* Dato en vivo de cada recuadro de la portada. No consulta nada nuevo: lee el
@@ -1264,6 +1293,23 @@
         const premium = isNumeric(tiie) && isNumeric(us10?.yield) ? +tiie - +us10.yield : null;
         const real = isNumeric(tiie) && isNumeric(infl) ? +tiie - infl : null;
         const carry = isNumeric(tiie) && isNumeric(fed) ? +tiie - +fed : null;
+        /* Indicadores de la sección "Tasas y bonos". Se escriben aquí y no en el
+           script en línea de finanzas.html porque los datos de /api/mx-rates viven
+           en este estado. `tiie` ya prefiere la serie de Banxico sobre el valor de
+           respaldo de /api/bond-yields, que es fijo. */
+        const escribir = (id, texto) => { const el = $(id); if (el) el.textContent = texto; };
+        const cete = plazo => state.mxRates?.cetes?.find(item => item.label === plazo)?.yield;
+        const c28 = cete('28D'), c91 = cete('91D'), c364 = cete('364D');
+        escribir('debt-kpi-tiie', formatYield(tiie));
+        escribir('debt-kpi-cetes28', formatYield(c28));
+        escribir('debt-kpi-cetes91', formatYield(c91));
+        escribir('debt-kpi-cetes364', formatYield(c364));
+        const pendienteCetes = isNumeric(c364) && isNumeric(c28) ? +c364 - +c28 : null;
+        escribir('debt-kpi-cetes-curve', pendienteCetes == null ? '—'
+            : `${pendienteCetes >= 0 ? '+' : ''}${pendienteCetes.toFixed(2)} pp`);
+        escribir('debt-kpi-cetes-curve-state', pendienteCetes == null ? 'Pendiente sin dato'
+            : pendienteCetes >= 0 ? 'Mercado descuenta alzas' : 'Mercado descuenta recortes');
+
         if ($('ff-card-tiie')) $('ff-card-tiie').textContent = formatYield(tiie);
         if ($('ff-q-tiie')) $('ff-q-tiie').textContent = formatYield(tiie);
         if ($('ff-card-fed')) $('ff-card-fed').textContent = formatYield(fed);
@@ -1326,18 +1372,22 @@
             description: 'Índices, acciones, factores, amplitud y el laboratorio histórico multiactivo en una vista completa.',
             legacySection: 'mercados',
         },
-        /* Tasas y bonos y Rendimientos muestran el mismo contenido de renta fija.
-           Se mantienen como dos secciones separadas a propósito; lo único que
-           cambia entre ellas es el encabezado. Ver MODULOS_RENTA_FIJA. */
+        /* Tasas y Rendimientos comparten el mismo panel de renta fija y se
+           mantienen separadas a propósito. Tasas lo muestra entero; Rendimientos
+           deja fuera los recuadros de referencias monetarias (el reparto está en
+           finanzas-premium.css, con data-fin-scope). Ver MODULOS_RENTA_FIJA. */
         tasas: {
             eyebrow: 'Política monetaria y renta fija',
-            title: 'Tasas y bonos',
+            title: 'Tasas',
             description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
             legacySection: 'bonos',
         },
+        /* La clave sigue siendo "rendimientos" aunque la sección se llame Bonos:
+           ya existe un módulo heredado con la clave "bonos" (legacySection) y
+           renombrarla aquí haría que ambos colisionaran. */
         rendimientos: {
             eyebrow: 'Renta fija · análisis de curva',
-            title: 'Rendimientos',
+            title: 'Bonos',
             description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
             legacySection: 'bonos',
         },
@@ -1373,8 +1423,8 @@
     function updateDetailStatus(name) {
         const copy = {
             bolsa: ['Bolsa · Renta variable global', 'Índices, factores, emisoras y gráfica histórica multiactivo.'],
-            tasas: ['Tasas y bonos', 'Referencias monetarias, instrumentos de deuda, curvas soberanas y próximas decisiones.'],
-            rendimientos: ['Monitor de rendimientos', 'Curvas soberanas, cambios por tramo, pendiente y dispersión entre vencimientos.'],
+            tasas: ['Tasas', 'Referencias monetarias, instrumentos de deuda, curvas soberanas y próximas decisiones.'],
+            rendimientos: ['Monitor de bonos', 'Curvas soberanas, cambios por tramo, pendiente y dispersión entre vencimientos.'],
             noticias: ['Daily News', 'Última hora, noticia principal, impacto y mercados relacionados.'],
         }[name];
         if (!copy) return;
@@ -1386,13 +1436,13 @@
         const presentation = {
             tasas: {
                 eyebrow: 'Monitor monetario y de renta fija',
-                title: 'Tasas y bonos',
+                title: 'Tasas',
                 copy: 'Tasas de referencia, instrumentos soberanos, diferenciales, plazos y señales del ciclo financiero.',
                 chartTitle: 'Tasas y rendimientos soberanos',
             },
             rendimientos: {
                 eyebrow: 'Monitor de curvas y diferenciales',
-                title: 'Curvas y rendimientos',
+                title: 'Bonos',
                 copy: 'Pendiente de la curva, primas por plazo, rendimiento por vencimiento y señales del ciclo financiero.',
                 chartTitle: 'Estructura global de rendimientos',
             },
@@ -1453,6 +1503,8 @@
             if (fxPanel && fxPanel.querySelector('#fxStrip')?.children.length) fxPanel.style.display = '';
         }
         if (board) board.hidden = false;
+        const mapa = $('ff-world-map');
+        if (mapa) mapa.hidden = false;
         renderExchangeBoard();
         markExchangeSelection($('bmv-symbol')?.value || '');
         requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
@@ -1461,8 +1513,10 @@
     function restoreBolsaTopLayout() {
         const host = $('ff-bolsa-chart-host');
         const board = $('ff-exchange-board');
+        const mapa = $('ff-world-map');
         if (host) host.hidden = true;
         if (board) board.hidden = true;
+        if (mapa) mapa.hidden = true;
     }
 
     function openDetail(name, options = {}) {
@@ -1854,6 +1908,27 @@
                 const data = await fetchJson('/api/bond-spreads', 20000);
                 _spreads = Array.isArray(data?.countries) ? data : null;
                 if (_spreads) {
+                    /* El Bund alemán alimenta dos tarjetas del panel de indicadores.
+                       Se escriben aquí en lugar de pedir a updateDebtDashboard() que
+                       repinte: esa función recibe los datos por parámetro y llamarla
+                       sin ellos borraría el resto del panel. */
+                    const bund = data.countries.find(c => c.code === 'DE');
+                    if (bund && Number.isFinite(bund.yield)) {
+                        window.__vnBundYield = bund.yield;
+                        const elBund = $('debt-kpi-bund');
+                        if (elBund) elBund.textContent = `${bund.yield.toFixed(2)}%`;
+                        // El Treasury 10Y ya está pintado en su tarjeta; se lee de ahí
+                        // para no depender del orden en que terminan las dos peticiones.
+                        const us10Txt = $('debt-kpi-us10')?.textContent || '';
+                        const us10 = parseFloat(us10Txt);
+                        const elDif = $('debt-kpi-usbund');
+                        if (elDif && Number.isFinite(us10)) {
+                            const dif = us10 - bund.yield;
+                            elDif.textContent = `${dif >= 0 ? '+' : ''}${dif.toFixed(2)} pp`;
+                            const nota = $('debt-kpi-usbund-chg');
+                            if (nota) nota.textContent = dif > 0 ? 'EE.UU. paga más que Alemania' : 'Alemania paga más que EE.UU.';
+                        }
+                    }
                     const asOf = $('ff-spreads-asof');
                     if (asOf) asOf.textContent = `Corte ${data.asOf || 'reciente'} · ${data.countries.length} países`;
                     const nota = $('ff-spreads-note')?.querySelector('p');
@@ -3676,8 +3751,11 @@ async function loadFxStrip() {
         const usdmxnPct= baseMeta?.regularMarketChangePercent;
         if (!usdmxn) throw new Error('USD/MXN no disponible');
 
+        /* La tira "Tipo de Cambio · Tiempo Real" se retiró de Bolsa, así que
+           #fxStrip ya no existe. Antes había aquí un `return` que salía en ese
+           caso y dejaba sin pintar el tablero profesional de divisas
+           (#fx-pro-panel), que se arma más abajo con estos mismos datos. */
         const strip = document.getElementById('fxStrip');
-        if (!strip) return;
 
         const items = FX_PAIRS.map((p, i) => {
             const meta    = results[i].status === 'fulfilled' ? results[i].value?.meta    : null;
@@ -3711,7 +3789,7 @@ async function loadFxStrip() {
             </div>`;
         }).filter(Boolean);
 
-        if (cards.length) {
+        if (strip && cards.length) {
             strip.innerHTML = cards.join('');
             strip.style.display = 'flex';
             const fxSec = document.getElementById('fx-section');

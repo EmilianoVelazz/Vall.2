@@ -4060,6 +4060,19 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #bonds-panel .sovereign-board-empty span { color: #55697a !important; font-size: .75rem !important; }
 #bonds-panel #debt-curve-copy { color: #46596b !important; font-size: .78rem !important; }
 
+/* ── Reparto entre "Tasas y bonos" y "Rendimientos" ────────────────────────────
+   Las dos secciones comparten el mismo panel de renta fija y se diferencian por
+   lo que muestran. Cada bloque declara su ámbito con data-fin-scope y aquí se
+   oculta el que no corresponde, sin duplicar markup.
+
+   Rendimientos cubre solo deuda: plazos del Tesoro, crédito corporativo y
+   diferenciales soberanos.
+
+   Tasas y bonos cubre las dos cosas que nombra, así que no oculta nada: enseña
+   los mismos recuadros que Rendimientos y además los de tasas de referencia
+   (TIIE y CETES). Por eso no hay regla para ff-detail-tasas. */
+body.ff-detail-rendimientos [data-fin-scope="tasas"] { display: none !important; }
+
 /* ── Diferenciales soberanos a 10 años ─────────────────────────────────────── */
 
 .ff-spreads-board {

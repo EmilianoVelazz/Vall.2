@@ -257,6 +257,100 @@ router.get('/stock-history', async (req, res) => {
     }
 });
 
+// ── Índices mundiales para el mapa de bolsas ─────────────────────────────────
+//
+// El mapa de Finanzas › Bolsa colorea cada país según la variación de su índice.
+// Pedirlos uno por uno desde el navegador serían ~33 peticiones en cada carga;
+// aquí se traen todos de una vez y se cachean.
+//
+// La lista vive en el servidor y NO la manda el cliente: sería convertir la ruta
+// en un proxy abierto a Yahoo. Debe mantenerse en sincronía con el campo
+// `simbolo` de assets/js/world-exchanges.js.
+//
+// Cada ticker de esta lista está VERIFICADO: devolvió al menos dos velas diarias
+// en un rango de 5 días. Los índices que solo responden con rangos largos
+// (Grecia, Tailandia, Filipinas, Arabia Saudita) quedaron fuera a propósito: sus
+// velas están separadas por días, así que la "variación" no sería de sesión.
+
+const WORLD_INDEX_TICKERS = [
+    '^GSPC', '^NDX', '^VIX', '^GSPTSE', '^SPCDNX', '^MERV', '^BVSP',
+    '^FTSE', '^GDAXI', '^FCHI', '^IBEX', 'FTSEMIB.MI', '^AEX', '^SSMI',
+    '^OMX', 'OSEBX.OL', '^OMXC25', '^OMXH25', '^BFX', 'PSI20.LS', '^ATX',
+    '^ISEQ', 'XU100.IS',
+    '^N225', '^HSI', '000001.SS', '399001.SZ', '^KS11', '^TWII', '^NSEI', '^BSESN',
+    '^STI', '^JKSE', '^KLSE',
+    '^AXJO', '^NZ50', '^J203.JO', '^TA125.TA',
+];
+
+const WORLD_IDX_TTL = 10 * 60 * 1000;
+const _worldIdxCache = { ts: 0, data: null };
+let _worldIdxFetching = null;
+
+async function _fetchWorldIndex(ticker) {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;
+    const response = await yahooFetch(url, { headers: { 'User-Agent': YF_UA, 'Accept': 'application/json' } });
+    if (!response.ok) throw new Error(`${ticker}: Yahoo HTTP ${response.status}`);
+    const json = await response.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) throw new Error(`${ticker}: sin datos`);
+
+    const meta = result.meta || {};
+    const closes = (result.indicators?.quote?.[0]?.close || []).filter(Number.isFinite);
+    const price = meta.regularMarketPrice ?? closes[closes.length - 1];
+    if (!Number.isFinite(price)) throw new Error(`${ticker}: precio no disponible`);
+
+    // La variación es de SESIÓN: cierre más reciente contra el anterior.
+    //
+    // NO usar meta.chartPreviousClose: con range=5d es el cierre previo a toda
+    // la ventana, así que da el movimiento de cinco días. Con eso el S&P 500
+    // marcaba +3.31% en una sesión que había sido de -0.02%, y el mapa salía
+    // casi entero en verde.
+    //
+    // Se calcula igual que fetchQuote() de finanzas-favro.js para que las dos
+    // fuentes del mapa no se contradigan. Sin dos cierres, `change` va en null y
+    // el país se queda gris: sin variación conocida no se pinta.
+    const ultimo = closes[closes.length - 1];
+    const previo = closes[closes.length - 2];
+    const change = Number.isFinite(ultimo) && Number.isFinite(previo) && previo !== 0
+        ? ((ultimo - previo) / previo) * 100
+        : null;
+
+    return { ticker, price: Number(price.toFixed(2)), change: change == null ? null : Number(change.toFixed(2)) };
+}
+
+async function _refreshWorldIndices() {
+    if (_worldIdxFetching) return _worldIdxFetching;
+    _worldIdxFetching = (async () => {
+        const settled = await Promise.allSettled(WORLD_INDEX_TICKERS.map(_fetchWorldIndex));
+        const data = {};
+        let fallidos = 0;
+        settled.forEach((r, i) => {
+            if (r.status === 'fulfilled') data[r.value.ticker] = { price: r.value.price, change: r.value.change };
+            else { fallidos++; console.warn('[world-indices] omitido:', WORLD_INDEX_TICKERS[i], r.reason?.message || 'error'); }
+        });
+        if (!Object.keys(data).length) throw new Error('Ningún índice mundial disponible');
+        const payload = { ok: true, asOf: new Date().toISOString(), total: Object.keys(data).length, fallidos, data };
+        _worldIdxCache.data = payload;
+        _worldIdxCache.ts = Date.now();
+        return payload;
+    })().finally(() => { _worldIdxFetching = null; });
+    return _worldIdxFetching;
+}
+
+router.get('/world-indices', async (req, res) => {
+    const age = Date.now() - _worldIdxCache.ts;
+    if (_worldIdxCache.data && age < WORLD_IDX_TTL) return res.json(_worldIdxCache.data);
+    try {
+        res.json(await _refreshWorldIndices());
+    } catch (err) {
+        console.error('/api/world-indices error:', err.message);
+        // Servir caché vencida antes que nada: un mapa con datos de hace una
+        // hora es mejor que un mapa entero en gris.
+        if (_worldIdxCache.data) return res.json(_worldIdxCache.data);
+        res.status(502).json({ ok: false, error: err.message });
+    }
+});
+
 // ── Inicialización del commodity warmer ───────────────────────────────────────
 // Llamar desde server.js con initCommodityWarmer(require.main === module)
 

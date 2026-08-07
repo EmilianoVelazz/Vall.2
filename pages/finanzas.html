@@ -303,21 +303,11 @@
         .fx-pair { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; }
         .fx-val  { font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 700; color: #0f172a; }
         .fx-note { font-size: 0.58rem; color: #94a3b8; text-align: center; }
-        .fx-live-panel { clear:both; width:100%; margin:0 0 1rem!important; padding:1rem!important; overflow:hidden; border:1px solid #dce5ea!important; border-radius:15px!important; background:linear-gradient(135deg,#fff,#f6f9fa)!important; box-shadow:0 14px 32px -28px rgba(0,33,58,.55)!important; }
-        .fx-live-head { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:.8rem; }
-        .fx-live-head .section-lbl { margin-bottom:.22rem!important; }
-        .fx-live-head p { margin:0; color:#718294; font-size:.56rem; line-height:1.4; }
-        .fx-live-status { display:inline-flex; align-items:center; gap:.4rem; flex:none; padding:.38rem .58rem; border:1px solid #d8e4e0; border-radius:999px; background:#f4faf7; color:#3f695b; font-size:.48rem; font-weight:800; }
-        .fx-live-status i { width:7px; height:7px; border-radius:50%; background:#19a474; box-shadow:0 0 0 4px rgba(25,164,116,.1); }
-        .fx-live-panel .fx-strip { display:grid!important; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:.65rem; width:100%; }
-        .fx-live-panel .fx-card { min-width:0; background:#fff; border-radius:11px; padding:.8rem .72rem; box-shadow:0 8px 18px -18px rgba(0,33,58,.6); border:1px solid #e1e8ec; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:.18rem .55rem; transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease; }
-        .fx-live-panel .fx-card:hover { transform:translateY(-2px); box-shadow:0 12px 24px -18px rgba(0,33,58,.42); border-color:#b8cad5; }
-        .fx-live-panel .fx-pair { align-self:end; font-size:.54rem; letter-spacing:1px; }
-        .fx-live-panel .fx-val { grid-column:1/-1; margin-top:.28rem; font-size:1rem; font-weight:800; color:#0f2940; }
-        .fx-live-panel .fx-card > span[style*="font-size:.55rem"] { grid-column:1/-1; }
-        .fx-live-panel .fx-note { grid-column:1/-1; font-size:.52rem; color:#8493a2; text-align:left; }
-        @media(max-width:620px){ .fx-live-head { flex-direction:column; } .fx-live-status { align-self:flex-start; } .fx-live-panel .fx-strip { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media(max-width:390px){ .fx-live-panel .fx-strip { grid-template-columns:1fr; } }
+        /* Las reglas .fx-live-* se retiraron junto con el panel "Tipo de Cambio ·
+           Tiempo Real". Las .fx-flag/.fx-pair/.fx-val/.fx-note de arriba quedan sin
+           uso en esta página (solo las emitían las tarjetas de #fxStrip); se dejan
+           porque renderFxStrip todavía genera ese markup si alguien reintroduce el
+           contenedor. El tablero profesional de divisas no las usa. */
         .sr-btn { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; padding: 4px 13px; border-radius: 6px; font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .18s; font-family: 'JetBrains Mono','Inter',monospace; letter-spacing: .04em; }
         .sr-btn:hover  { border-color: #00213a; color: #00213a; background: #f0f4f8; }
         .sr-btn.active { background: #00213a; color: #fff; border-color: #00213a; }
@@ -754,10 +744,16 @@
     <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.8">
     <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=3.0">
     <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=71">
-    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=112">
+    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=114">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
     <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
-    <script src="../assets/js/finanzas-favro.js?v=107" defer></script>
+    <link rel="stylesheet" href="../assets/css/finanzas-world-map.css?v=7">
+    <script src="../assets/js/finanzas-favro.js?v=115" defer></script>
+    <!-- El orden importa: los datos y el catálogo deben existir antes que el
+         componente. Con defer se ejecutan en el orden en que están escritos. -->
+    <script src="../assets/js/world-map-data.js?v=1" defer></script>
+    <script src="../assets/js/world-exchanges.js?v=3" defer></script>
+    <script src="../assets/js/finanzas-world-map.js?v=6" defer></script>
 
 <style>
 /* PREMIUM INTERMEDIATE PALETTE (Favro 2.0) */
@@ -1046,150 +1042,7 @@ body.ff-detail-rentafija .ff-detail-supplement * {
     padding: 0 0 0 2rem !important;
 }
 </style>
-<script>
-// script to hydrate the new UI elements created by the user
 
-async function hydrateNewUI(name) {
-    if (name === 'bonos') {
-        // Hydrate Bonds (debt-kpi-us3m, etc.)
-        const setYld = (id, val, trend) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = val + '%';
-            
-            const card = el ? el.closest('.debt-kpi') : null;
-            if (card) {
-                card.classList.remove('trend-up', 'trend-down', 'trend-flat');
-                card.classList.add('trend-' + trend);
-            }
-        };
-
-        setYld('debt-kpi-us3m', '5.32', 'up');
-        setYld('debt-kpi-us2', '4.68', 'down');
-        setYld('debt-kpi-us10', '4.25', 'up');
-        setYld('debt-kpi-us30', '4.40', 'down');
-        setYld('debt-kpi-ig', '5.45', 'up');
-        setYld('debt-kpi-hy', '7.82', 'down');
-        setYld('debt-kpi-tips', '1.95', 'up');
-        setYld('debt-kpi-bk', '2.30', 'flat');
-
-        setYld('debt-kpi-tiie', '11.25', 'down');
-        setYld('debt-kpi-cetes28', '11.05', 'down');
-        setYld('debt-kpi-cetes364', '11.30', 'down');
-        setYld('debt-kpi-m3', '9.80', 'up');
-        setYld('debt-kpi-m10', '9.20', 'up');
-        setYld('debt-kpi-udibono', '4.50', 'flat');
-        setYld('debt-kpi-pemex', '10.50', 'down');
-    }
-
-    if (name === 'mercados') {
-        // Hydrate Equity (eq-ctx-tnx, etc.)
-        const setTxt = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = val;
-        };
-
-        setTxt('eq-ctx-tnx', '4.25%');
-        setTxt('eq-ctx-dxy', '104.15');
-        setTxt('eq-ctx-vix', '14.20');
-        setTxt('eq-ctx-gold', '$2,034');
-        setTxt('eq-ctx-fed', '5.25%');
-        setTxt('eq-ctx-tiie', '11.25%');
-        setTxt('eq-ctx-carry', '+6.00%');
-        setTxt('eq-ctx-breadth', '65%');
-    }
-
-    if (name === 'noticias') {
-        // Hydrate News (gmd-sub-nasdaq, etc.)
-        const setTxt = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = val;
-        };
-
-        setTxt('gmd-sub-nasdaq-val', '18,054.20 (+1.2%)');
-        setTxt('gmd-sub-dow-val', '38,720.50 (+0.4%)');
-        setTxt('gmd-sub-eur-val', '5,020.10 (+0.8%)');
-        setTxt('gmd-sub-vix-val', '14.20 (-5.1%)');
-
-        const ticker = document.getElementById('gmd-ticker-content');
-        if (ticker) {
-            ticker.innerHTML = `
-                <span class="tck-item up"><b>AAPL</b> 175.20 <i>+1.2%</i></span>
-                <span class="tck-item down"><b>MSFT</b> 402.10 <i>-0.5%</i></span>
-                <span class="tck-item up"><b>NVDA</b> 850.30 <i>+2.4%</i></span>
-                <span class="tck-item up"><b>TSLA</b> 195.40 <i>+0.8%</i></span>
-                <span class="tck-item down"><b>AMZN</b> 178.90 <i>-1.1%</i></span>
-            `;
-        }
-        
-        // Draw mock charts if LightweightCharts is available
-        if (window.LightweightCharts) {
-            const drawMockChart = (containerId, color, isUp) => {
-                const container = document.getElementById(containerId);
-                if (!container || container.innerHTML.trim() !== '') return; // already drawn
-                
-                const chart = LightweightCharts.createChart(container, {
-                    width: container.clientWidth,
-                    height: container.clientHeight || 120,
-                    layout: { background: { type: 'solid', color: 'transparent' }, textColor: 'transparent' },
-                    grid: { vertLines: { visible: false }, horzLines: { visible: false } },
-                    rightPriceScale: { visible: false },
-                    timeScale: { visible: false },
-                    handleScroll: false,
-                    handleScale: false
-                });
-                
-                const lineSeries = chart.addLineSeries({
-                    color: color,
-                    lineWidth: 2,
-                    crosshairMarkerVisible: false
-                });
-                
-                // Generate some dummy data
-                let val = 100;
-                const data = [];
-                for (let i = 0; i < 50; i++) {
-                    val += (Math.random() - (isUp ? 0.4 : 0.6)) * 2;
-                    data.push({ time: '2023-01-01', value: val }); // time format doesn't matter since hidden
-                }
-                // Fix times
-                data.forEach((d, i) => { d.time = '2024-01-' + String(i+1).padStart(2, '0'); });
-                
-                lineSeries.setData(data);
-                chart.timeScale().fitContent();
-            };
-            
-            setTimeout(() => {
-                drawMockChart('gmd-master-chart', '#0ea5e9', true);
-                drawMockChart('gmd-sub-nasdaq', '#2563eb', true);
-                drawMockChart('gmd-sub-dow', '#059669', true);
-                drawMockChart('gmd-sub-eur', '#ea580c', false);
-                drawMockChart('gmd-sub-vix', '#dc2626', false);
-            }, 100);
-        }
-    }
-}
-
-// Intercept finTab to call hydrateNewUI using a robust polling check
-let patchInterval = setInterval(() => {
-    if (window.finTab && !window._hydratePatched) {
-        const originalFinTab = window.finTab;
-        window.finTab = function(name, btnEl, skipLoad, skipScroll) {
-            originalFinTab(name, btnEl, skipLoad, skipScroll);
-            setTimeout(() => hydrateNewUI(name), 50); // slight delay to ensure original runs first
-        };
-        window._hydratePatched = true;
-        clearInterval(patchInterval);
-        console.log('finTab patched successfully!');
-        
-        // Hydrate currently active tab if any
-        const activeName = document.querySelector('.fin-tab-card.active')?.dataset?.tab;
-        if (activeName) {
-            hydrateNewUI(activeName);
-        }
-    }
-}, 100);
-
-</script>
 <link rel="stylesheet" href="../assets/css/finanzas-responsive-v3.css?v=1">
 </head>
 
@@ -1284,13 +1137,44 @@ let patchInterval = setInterval(() => {
         </div>
         <nav class="ff-detail-tabs" aria-label="Apartados de Finanzas">
             <button type="button" data-detail-module="bolsa"><i class="fas fa-chart-line"></i><span>Bolsa</span></button>
-            <button type="button" data-detail-module="tasas"><i class="fas fa-landmark"></i><span>Tasas y bonos</span></button>
-            <button type="button" data-detail-module="rendimientos"><i class="fas fa-wave-square"></i><span>Rendimientos</span></button>
+            <button type="button" data-detail-module="tasas"><i class="fas fa-landmark"></i><span>Tasas</span></button>
+            <button type="button" data-detail-module="rendimientos"><i class="fas fa-wave-square"></i><span>Bonos</span></button>
             <button type="button" data-detail-module="noticias"><i class="fas fa-newspaper"></i><span>Daily News</span></button>
         </nav>
     </section>
 
-    <div class="ff-bolsa-chart-host" id="ff-bolsa-chart-host" hidden></div>
+    <!-- ── Mapa mundial de bolsas ──────────────────────────────────────────
+         El SVG y las fichas los arma assets/js/finanzas-world-map.js a partir de
+         world-map-data.js (geometría generada) y world-exchanges.js (catálogo).
+         Aquí solo van los contenedores; el marcado real no se escribe a mano. -->
+    <section class="ff-world-map" id="ff-world-map" aria-labelledby="ffwm-title" hidden>
+        <header class="ffwm-head">
+            <div>
+                <span class="ff-kicker"><i class="fas fa-earth-americas" aria-hidden="true"></i> Mercados globales</span>
+                <h2 id="ffwm-title">Mapa mundial de bolsas</h2>
+                <p>Pasa el cursor sobre un pa&iacute;s para ver sus bolsas, su &iacute;ndice principal y la hora local del mercado. Haz clic para fijar la ficha.</p>
+            </div>
+            <div class="ffwm-select-wrap">
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <label for="ffwm-select">Ir a</label>
+                <select id="ffwm-select"><option value="">Elegir pa&iacute;s&hellip;</option></select>
+            </div>
+        </header>
+        <!-- El mapa ocupa todo el ancho: la ficha del país ya no vive en un panel
+             lateral fijo, sino en el flotante #ffwm-tip que se coloca sobre el
+             mapa al pasar el cursor. -->
+        <div class="ffwm-map" id="ffwm-map">
+            <div class="ffwm-lienzo"></div>
+            <div class="ffwm-tip" id="ffwm-tip" role="tooltip" aria-live="polite" hidden></div>
+        </div>
+        <ul class="ffwm-leyenda">
+            <li><i class="lg-alza" aria-hidden="true"></i> &Iacute;ndice al alza</li>
+            <li><i class="lg-baja" aria-hidden="true"></i> &Iacute;ndice a la baja</li>
+            <li><i class="lg-plano" aria-hidden="true"></i> Sin cambio</li>
+            <li><i class="lg-neutro" aria-hidden="true"></i> Sin cotizaci&oacute;n conectada</li>
+            <li class="ffwm-stats" id="ffwm-stats"></li>
+        </ul>
+    </section>
 
     <section class="ff-exchange-board" id="ff-exchange-board" aria-labelledby="ff-exchange-title" hidden>
         <header class="ff-exchange-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
@@ -1318,6 +1202,12 @@ let patchInterval = setInterval(() => {
         <div class="ff-exchange-grid" id="ff-exchange-grid" aria-label="Mini gr&aacute;ficas de bolsas internacionales"></div>
         <p class="ff-exchange-help"><i class="fas fa-arrow-pointer" aria-hidden="true"></i> Selecciona una bolsa para abrir su historial en Finanzas y gr&aacute;ficas.</p>
     </section>
+
+    <!-- Aquí aterriza #bvmx-panel ("Centro de análisis bursátil · Finanzas y
+         gráficas"): prepareBolsaTopLayout() lo mueve dentro al abrir Bolsa. Va
+         debajo del tablero de bolsas porque desde ahí se elige el índice que la
+         gráfica analiza; el orden de la página sigue al del flujo de uso. -->
+    <div class="ff-bolsa-chart-host" id="ff-bolsa-chart-host" hidden></div>
 
     <div class="fin-section-status" id="fin-section-status" data-section="" hidden>
         <span class="fin-section-status-icon"><i class="fas fa-arrows-rotate"></i></span>
@@ -1432,9 +1322,9 @@ let patchInterval = setInterval(() => {
                     <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
                     <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-tasas"></canvas></div>
                     <div class="ffm-body">
-                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Tasas y bonos</h2></div></header>
+                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Tasas</h2></div></header>
                         <div class="ffm-foot">
-                            <button class="ff-module-link" type="button" data-open-module="tasas">Abrir tasas y bonos <i class="fas fa-arrow-right"></i></button>
+                            <button class="ff-module-link" type="button" data-open-module="tasas">Abrir tasas <i class="fas fa-arrow-right"></i></button>
                             <span class="ffm-stat"><em>TIIE 28D</em><strong id="ff-tile-tasas">—</strong></span>
                         </div>
                     </div>
@@ -1455,9 +1345,9 @@ let patchInterval = setInterval(() => {
                     <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
                     <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-rendimientos"></canvas></div>
                     <div class="ffm-body">
-                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Rendimientos</h2></div></header>
+                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Bonos</h2></div></header>
                         <div class="ffm-foot">
-                            <button class="ff-module-link" type="button" data-open-module="rendimientos">Abrir rendimientos <i class="fas fa-arrow-right"></i></button>
+                            <button class="ff-module-link" type="button" data-open-module="rendimientos">Abrir bonos <i class="fas fa-arrow-right"></i></button>
                             <span class="ffm-stat"><em>US 10 años</em><strong id="ff-tile-rendimientos">—</strong></span>
                         </div>
                     </div>
@@ -1786,19 +1676,32 @@ let patchInterval = setInterval(() => {
         </header>
 
         <div class="debt-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.2rem;">
-            <article class="debt-kpi tone-front report-card" role="button" tabindex="0" onclick="openBondDetail('us','3 meses')"><span class="debt-kpi-icon"><i class="fas fa-stopwatch"></i></span><div><small>US Treasury 3M</small><strong id="debt-kpi-us3m">—</strong><span id="debt-kpi-us3m-chg">Tramo monetario</span></div></article>
-            <article class="debt-kpi tone-front report-card" role="button" tabindex="0" onclick="openBondDetail('us','5 años')"><span class="debt-kpi-icon"><i class="fas fa-bolt"></i></span><div><small>US Treasury 5Y</small><strong id="debt-kpi-us5">—</strong><span id="debt-kpi-us5-chg">Expectativa de tasas</span></div></article>
-            <article class="debt-kpi tone-us report-card" role="button" tabindex="0" onclick="openBondDetail('us','10 años')"><span class="debt-kpi-icon"><i class="fas fa-flag-usa"></i></span><div><small>US Treasury 10Y</small><strong id="debt-kpi-us10">—</strong><span id="debt-kpi-us10-chg">Referencia global</span></div></article>
-            <article class="debt-kpi tone-long report-card" role="button" tabindex="0" onclick="openBondDetail('us','30 años')"><span class="debt-kpi-icon"><i class="fas fa-hourglass-half"></i></span><div><small>US Treasury 30Y</small><strong id="debt-kpi-us30">—</strong><span id="debt-kpi-us30-chg">Duración larga</span></div></article>
+            <article class="debt-kpi tone-front report-card" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','3 meses')"><span class="debt-kpi-icon"><i class="fas fa-stopwatch"></i></span><div><small>US Treasury 3M</small><strong id="debt-kpi-us3m">—</strong><span id="debt-kpi-us3m-chg">Tramo monetario</span></div></article>
+            <article class="debt-kpi tone-front report-card" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','5 años')"><span class="debt-kpi-icon"><i class="fas fa-bolt"></i></span><div><small>US Treasury 5Y</small><strong id="debt-kpi-us5">—</strong><span id="debt-kpi-us5-chg">Expectativa de tasas</span></div></article>
+            <article class="debt-kpi tone-us report-card" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','10 años')"><span class="debt-kpi-icon"><i class="fas fa-flag-usa"></i></span><div><small>US Treasury 10Y</small><strong id="debt-kpi-us10">—</strong><span id="debt-kpi-us10-chg">Referencia global</span></div></article>
+            <article class="debt-kpi tone-long report-card" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','30 años')"><span class="debt-kpi-icon"><i class="fas fa-hourglass-half"></i></span><div><small>US Treasury 30Y</small><strong id="debt-kpi-us30">—</strong><span id="debt-kpi-us30-chg">Duración larga</span></div></article>
             <!-- updateDebtDashboard ya calculaba la pendiente y la escribía en
                  #debt-kpi-curve, pero esa tarjeta no existía: el dato se perdía. -->
-            <article class="debt-kpi tone-curve report-card" role="button" tabindex="0" onclick="openBondDetail('us','curva')"><span class="debt-kpi-icon"><i class="fas fa-wave-square"></i></span><div><small>Pendiente 30Y − 5Y</small><strong id="debt-kpi-curve">—</strong><span id="debt-kpi-curve-state">Estructura de plazos</span></div></article>
-            <article class="debt-kpi tone-credit report-card is-estimate" role="button" tabindex="0" onclick="openBondDetail('us','ig')"><span class="debt-kpi-icon"><i class="fas fa-city"></i></span><div><small>US IG Corp <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-ig">—</strong><span id="debt-kpi-ig-chg">Grado de Inversión</span></div></article>
-            <article class="debt-kpi tone-credit report-card is-estimate" role="button" tabindex="0" onclick="openBondDetail('us','high yield')"><span class="debt-kpi-icon"><i class="fas fa-building"></i></span><div><small>US High Yield <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-hy">—</strong><span id="debt-kpi-hy-chg">Riesgo crediticio</span></div></article>
-            <article class="debt-kpi tone-inflation report-card is-estimate" role="button" tabindex="0" onclick="openBondDetail('us','tips')"><span class="debt-kpi-icon"><i class="fas fa-leaf"></i></span><div><small>US 10Y TIPS <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-tips">—</strong><span id="debt-kpi-tips-chg">Tasa Real</span></div></article>
-            <article class="debt-kpi tone-inflation report-card is-estimate" role="button" tabindex="0" onclick="openBondDetail('us','breakeven')"><span class="debt-kpi-icon"><i class="fas fa-fire-flame-curved"></i></span><div><small>US 10Y Breakeven <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-bk">—</strong><span id="debt-kpi-bk-chg">Inflación esperada</span></div></article>
-            <article class="debt-kpi tone-mx report-card" role="button" tabindex="0" onclick="openBondDetail('mx','TIIE 28D')"><span class="debt-kpi-icon"><i class="fas fa-peso-sign"></i></span><div><small>TIIE México</small><strong id="debt-kpi-tiie">—</strong><span id="debt-kpi-tiie-chg">Referencia monetaria</span></div></article>
-            <article class="debt-kpi tone-carry report-card" role="button" tabindex="0" onclick="openBondDetail('mx','Prima')"><span class="debt-kpi-icon"><i class="fas fa-scale-balanced"></i></span><div><small>Prima México</small><strong id="debt-kpi-carry">—</strong><span id="debt-kpi-carry-state">Diferencial vs US10Y</span></div></article>
+            <article class="debt-kpi tone-curve report-card" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','curva')"><span class="debt-kpi-icon"><i class="fas fa-wave-square"></i></span><div><small>Pendiente 30Y − 5Y</small><strong id="debt-kpi-curve">—</strong><span id="debt-kpi-curve-state">Estructura de plazos</span></div></article>
+            <article class="debt-kpi tone-credit report-card is-estimate" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','ig')"><span class="debt-kpi-icon"><i class="fas fa-city"></i></span><div><small>US IG Corp <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-ig">—</strong><span id="debt-kpi-ig-chg">Grado de Inversión</span></div></article>
+            <article class="debt-kpi tone-credit report-card is-estimate" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','high yield')"><span class="debt-kpi-icon"><i class="fas fa-building"></i></span><div><small>US High Yield <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-hy">—</strong><span id="debt-kpi-hy-chg">Riesgo crediticio</span></div></article>
+            <article class="debt-kpi tone-inflation report-card is-estimate" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','tips')"><span class="debt-kpi-icon"><i class="fas fa-leaf"></i></span><div><small>US 10Y TIPS <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-tips">—</strong><span id="debt-kpi-tips-chg">Tasa Real</span></div></article>
+            <article class="debt-kpi tone-inflation report-card is-estimate" data-fin-scope="bonos" role="button" tabindex="0" onclick="openBondDetail('us','breakeven')"><span class="debt-kpi-icon"><i class="fas fa-fire-flame-curved"></i></span><div><small>US 10Y Breakeven <em class="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-bk">—</strong><span id="debt-kpi-bk-chg">Inflación esperada</span></div></article>
+            <!-- Bund alemán: referencia de la deuda europea, igual que el Treasury
+                 10Y lo es de la global. Sale de /api/bond-spreads (dato del BCE). -->
+            <article class="debt-kpi tone-us report-card" data-fin-scope="bonos"><span class="debt-kpi-icon"><i class="fas fa-landmark-dome"></i></span><div><small>Bund Alemania 10A</small><strong id="debt-kpi-bund">—</strong><span id="debt-kpi-bund-chg">Referencia europea</span></div></article>
+            <article class="debt-kpi tone-carry report-card" data-fin-scope="bonos"><span class="debt-kpi-icon"><i class="fas fa-arrows-left-right"></i></span><div><small>Diferencial US − Bund</small><strong id="debt-kpi-usbund">—</strong><span id="debt-kpi-usbund-chg">Prima transatlántica</span></div></article>
+
+            <!-- ── Indicadores de tasas de referencia ──────────────────────────
+                 Solo se muestran en "Tasas y bonos". Vienen de Banxico vía
+                 /api/mx-rates; no se incluyen tasas de otros bancos centrales
+                 porque las que hay en el backend son valores fijos, no datos. -->
+            <article class="debt-kpi tone-mx report-card" data-fin-scope="tasas" role="button" tabindex="0" onclick="openBondDetail('mx','TIIE 28D')"><span class="debt-kpi-icon"><i class="fas fa-peso-sign"></i></span><div><small>TIIE 28 días</small><strong id="debt-kpi-tiie">—</strong><span id="debt-kpi-tiie-chg">Interbancaria México</span></div></article>
+            <article class="debt-kpi tone-mx report-card" data-fin-scope="tasas"><span class="debt-kpi-icon"><i class="fas fa-calendar-day"></i></span><div><small>CETES 28 días</small><strong id="debt-kpi-cetes28">—</strong><span id="debt-kpi-cetes28-chg">Gobierno de México</span></div></article>
+            <article class="debt-kpi tone-mx report-card" data-fin-scope="tasas"><span class="debt-kpi-icon"><i class="fas fa-calendar-week"></i></span><div><small>CETES 91 días</small><strong id="debt-kpi-cetes91">—</strong><span id="debt-kpi-cetes91-chg">Gobierno de México</span></div></article>
+            <article class="debt-kpi tone-mx report-card" data-fin-scope="tasas"><span class="debt-kpi-icon"><i class="fas fa-calendar-days"></i></span><div><small>CETES 364 días</small><strong id="debt-kpi-cetes364">—</strong><span id="debt-kpi-cetes364-chg">Gobierno de México</span></div></article>
+            <article class="debt-kpi tone-front report-card" data-fin-scope="tasas"><span class="debt-kpi-icon"><i class="fas fa-chart-simple"></i></span><div><small>Pendiente CETES 364 − 28</small><strong id="debt-kpi-cetes-curve">—</strong><span id="debt-kpi-cetes-curve-state">Expectativa monetaria</span></div></article>
+            <article class="debt-kpi tone-carry report-card" data-fin-scope="tasas" role="button" tabindex="0" onclick="openBondDetail('mx','Prima')"><span class="debt-kpi-icon"><i class="fas fa-scale-balanced"></i></span><div><small>Prima México</small><strong id="debt-kpi-carry">—</strong><span id="debt-kpi-carry-state">TIIE vs US 10Y</span></div></article>
         </div>
 
         <!-- ── Línea del tiempo de tasas y bonos ──────────────────────────────
@@ -1869,7 +1772,7 @@ let patchInterval = setInterval(() => {
 
     <!-- Diferenciales soberanos a 10 años. Solo se muestra en los módulos Bonos y
          Tasas; lo llena renderSpreadsBoard() desde /api/bond-spreads. -->
-    <section class="ff-spreads-board" id="ff-spreads-board" aria-labelledby="ff-spreads-title" hidden>
+    <section class="ff-spreads-board" id="ff-spreads-board" data-fin-scope="bonos" aria-labelledby="ff-spreads-title" hidden>
         <header class="ff-spreads-header">
             <div>
                 <span class="ff-kicker"><i class="fas fa-scale-balanced" aria-hidden="true"></i> Deuda soberana</span>
@@ -1917,7 +1820,7 @@ let patchInterval = setInterval(() => {
              línea del tiempo. Aquí se exponen los números crudos del mercado
              que el usuario elija: qué instrumento es exactamente, su
              rendimiento, el cierre previo, la variación y la fuente. -->
-        <section class="cf-block" id="country-factsheet" aria-labelledby="cf-title">
+        <section class="cf-block" id="country-factsheet" data-fin-scope="bonos" aria-labelledby="cf-title">
             <header class="cf-head">
                 <div class="cf-copy">
                     <small>Datos duros por mercado</small>
@@ -1995,7 +1898,7 @@ let patchInterval = setInterval(() => {
                 <!-- Desagregación por región: no trae datos nuevos, agrega los
                      mismos 21 mercados de la tabla para responder qué bloque
                      paga más. Se calcula en renderGlobalBondBoard. -->
-                <div class="sov-regions" id="sov-regions" aria-label="Mediana de rendimiento por región"></div>
+                <div class="sov-regions" id="sov-regions" data-fin-scope="bonos" aria-label="Mediana de rendimiento por región"></div>
 
                 <div class="sov-table-head" aria-hidden="true">
                     <span class="sov-th-rank">#</span>
@@ -2199,10 +2102,6 @@ let patchInterval = setInterval(() => {
 
         <div class="main-col">
 
-            <div class="panel fx-live-panel" id="fx-section" style="display:none;">
-                <div class="fx-live-head"><div><div class="section-lbl" id="fxSectionLbl"><span class="live-dot"></span>Tipo de Cambio · Tiempo Real</div><p>Cotizaciones internacionales expresadas en pesos mexicanos.</p></div><span class="fx-live-status"><i></i> Actualización automática</span></div>
-                <div class="fx-strip" id="fxStrip"></div>
-            </div>
     <div class="panel finance-live-summary" id="rawDataPanel" style="margin-bottom:.6rem;padding:.85rem 1rem;">
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.45rem;margin-bottom:.6rem;">
             <div class="section-lbl" style="margin-bottom:0;flex:1;min-width:180px;">Resumen · Datos en Tiempo Real</div>
@@ -4102,9 +4001,12 @@ async function loadFxStrip() {
         const usdmxnPct= baseMeta?.regularMarketChangePercent;
         if (!usdmxn) throw new Error('USD/MXN no disponible');
 
+        /* La tira "Tipo de Cambio · Tiempo Real" se retiró de Bolsa, así que
+           #fxStrip ya no existe. Antes había aquí un `return` que salía en ese
+           caso y dejaba sin pintar el tablero profesional de divisas
+           (#fx-pro-panel), que se arma más abajo con estos mismos datos. */
         const strip = document.getElementById('fxStrip');
-        if (!strip) return;
-    
+
         const items = FX_PAIRS.map((p, i) => {
             const meta    = results[i].status === 'fulfilled' ? results[i].value?.meta    : null;
             const candles = results[i].status === 'fulfilled' ? results[i].value?.candles : null;
@@ -4137,7 +4039,7 @@ async function loadFxStrip() {
             </div>`;
         }).filter(Boolean);
 
-        if (cards.length) {
+        if (strip && cards.length) {
             strip.innerHTML = cards.join('');
             strip.style.display = 'grid';
             const fxSec = document.getElementById('fx-section');
@@ -5054,6 +4956,7 @@ function renderCountryFactsheet(data) {
 
     // Contexto: se compara contra su propia región, no sólo contra la mediana
     // global, que es la lectura que faltaba.
+    //colometria menor a los colores tna bribnates que se tienen en el//apartadp 
     const peers = universe.filter(item => (GLOBAL_BOND_REGIONS[item.key] || 'emerging') === regionKey);
     const liveCount = bonds.length - refCount;
 
@@ -5292,6 +5195,23 @@ function updateDebtDashboard(data, isRef) {
     set('debt-snapshot-front-note', front == null ? 'Política monetaria' : front < 0 ? 'Restricción en corto' : 'Normalización gradual');
     set('debt-snapshot-long-note', longPremium == null ? 'Riesgo de duración' : longPremium > .2 ? 'Prima exigente' : 'Prima contenida');
     set('debt-snapshot-mx-note', carry == null ? 'Carry relativo' : carry >= 2 ? 'Diferencial atractivo' : 'Prima moderada');
+
+    // Los indicadores de CETES y TIIE se escriben desde finanzas-favro.js: los
+    // datos de /api/mx-rates viven en el estado de ese módulo, no aquí.
+
+    // Bund alemán y su diferencial contra el Treasury. El dato lo publica la tabla
+    // de diferenciales en window.__vnBundYield, que puede llegar antes o después
+    // que este panel; por eso allí también se escriben ambas tarjetas.
+    // isNumeric() vive dentro del IIFE de finanzas-favro.js y no llega hasta aquí:
+    // usarla lanzaba un ReferenceError que abortaba el resto de loadBonds().
+    const bund = window.__vnBundYield;
+    if (Number.isFinite(bund)) {
+        set('debt-kpi-bund', rate(bund));
+        const usBund = us10?.yield != null ? +us10.yield - +bund : null;
+        set('debt-kpi-usbund', spreadText(usBund));
+        set('debt-kpi-usbund-chg', usBund == null ? 'Prima transatlántica'
+            : usBund > 0 ? 'EE.UU. paga más que Alemania' : 'Alemania paga más que EE.UU.');
+    }
 
 
 }

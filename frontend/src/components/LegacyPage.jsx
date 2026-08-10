@@ -121,12 +121,26 @@ export default function LegacyPage({ src }) {
       //    El head trae dependencias críticas (chart.js, api-keys, data-service
       //    → window.VDS) de las que dependen los scripts del cuerpo.
       const scriptsCabecera = Array.from(doc.head.querySelectorAll('script'));
-      const enOrden = [
+      const enDocumento = [
         ...scriptsCabecera.map((s) => ({ s, marca: null })),
         ...scriptsCuerpo.map((s, i) => ({
           s,
           marca: ref.current.querySelector(`[data-vn-script-slot="${i}"]`),
         })),
+      ];
+
+      // Orden de documento NO es orden de ejecución: el navegador corre primero
+      // los scripts normales, mientras analiza, y deja los `defer` para cuando
+      // ha terminado. Reproducirlo importa cuando un script defer depende de
+      // globales que define uno normal situado más abajo — es justo el caso de
+      // finanzas: finanzas-favro.js va con defer en la cabecera y necesita
+      // ocho globales (finTab, ensureFinanceSection, refreshAll…) de
+      // finanzas-page.js, que está casi al final del cuerpo. Inyectándolos en
+      // orden de documento, favro arrancaba primero y su init() no encontraba
+      // nada. Se conserva el orden relativo dentro de cada grupo.
+      const enOrden = [
+        ...enDocumento.filter(({ s }) => !s.hasAttribute('defer')),
+        ...enDocumento.filter(({ s }) => s.hasAttribute('defer')),
       ];
 
       try {

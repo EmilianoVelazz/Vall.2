@@ -812,10 +812,35 @@
         }
     }
 
-    // ── Init ───────────────────────────────────────────────────
+    // ── Init / stop ────────────────────────────────────────────
+    //
+    // Antes esto solo arrancaba, y los intervalos se limpiaban en 'beforeunload'.
+    // En la SPA de React no hay unload: al salir de Inicio los cuatro intervalos
+    // seguían vivos, pidiendo datos y escribiendo en ids que ya no existen. Y al
+    // volver no se reiniciaba nada, porque el <script> ya estaba cacheado y su
+    // auto-init solo corre una vez.
+    //
+    // Ahora el ciclo de vida es explícito: window.VNLive.init() / .stop(). El
+    // auto-init de abajo se mantiene para las páginas .html que aún no se migran.
     const _timers = [];
+    let _corriendo = false;
+    let _gen = 0;                       // invalida un init() que quedó a medias
+    let _rbEl = null, _rbFn = null, _vaiEl = null, _vaiFn = null;
+
+    function stop() {
+        _gen++;
+        _timers.splice(0).forEach(clearInterval);
+        if (_rbEl && _rbFn) _rbEl.removeEventListener('click', _rbFn);
+        if (_vaiEl && _vaiFn) _vaiEl.removeEventListener('click', _vaiFn);
+        _rbEl = _rbFn = _vaiEl = _vaiFn = null;
+        _corriendo = false;
+    }
 
     async function init() {
+        if (_corriendo) return;         // idempotente: mismo contrato al montar dos veces
+        _corriendo = true;
+        const gen = ++_gen;
+
         tickClock();
         _timers.push(setInterval(tickClock, T.clock));
 
@@ -845,22 +870,30 @@
 
         loadBackend();
 
+        // init() tiene awaits; si se salió de la página mientras tanto, stop() ya
+        // corrió y no debe quedar ningún intervalo nuevo detrás.
+        if (gen !== _gen) return;
+
         _timers.push(setInterval(rotateCards,    T.newsRotate));
         _timers.push(setInterval(loadNews,       T.newsFetch));
         _timers.push(setInterval(loadMarket,     T.market));
         _timers.push(setInterval(loadGlobalRisk, T.globalRisk));
 
-        const rb = $('refreshBtn');
-        if (rb) rb.addEventListener('click', forceRefresh);
+        _rbEl = $('refreshBtn');
+        if (_rbEl) { _rbFn = forceRefresh; _rbEl.addEventListener('click', _rbFn); }
 
-        const vaiSel = $('vaiSelect');
-        if (vaiSel) vaiSel.addEventListener('click', () => {
-            S.vaiView = S.vaiView === 'global' ? 'finanzas' : 'global';
-            applyVAIView();
-        });
+        _vaiEl = $('vaiSelect');
+        if (_vaiEl) {
+            _vaiFn = () => {
+                S.vaiView = S.vaiView === 'global' ? 'finanzas' : 'global';
+                applyVAIView();
+            };
+            _vaiEl.addEventListener('click', _vaiFn);
+        }
     }
 
-    window.addEventListener('beforeunload', () => _timers.forEach(clearInterval));
+    window.VNLive = { init, stop, get corriendo() { return _corriendo; } };
+    window.addEventListener('beforeunload', stop);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

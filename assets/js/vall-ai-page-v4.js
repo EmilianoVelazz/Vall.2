@@ -1,6 +1,23 @@
 (function () {
     'use strict';
 
+    /* Este script captura TODOS sus nodos en `els` al evaluarse, así que solo
+       funciona si el DOM ya existe cuando se carga. En la SPA de React eso
+       obliga a reejecutarlo en cada visita a /vall-ai: al volver, los nodos son
+       nuevos y los `els` de la ejecución anterior apuntan a un DOM desechado.
+
+       Reejecutar es barato (el navegador lo sirve de su caché), pero duplicaría
+       los listeners de `document` y `window`, que sobreviven al cambio de
+       página. Por eso cada ejecución desmonta la anterior antes de empezar y
+       publica su propio desmontar() en window.VNVallAi. */
+    window.VNVallAi?.desmontar?.();
+
+    const _globales = [];
+    const escucharGlobal = (destino, evento, fn) => {
+        destino.addEventListener(evento, fn);
+        _globales.push(() => destino.removeEventListener(evento, fn));
+    };
+
     const CONV_KEY = 'vn_chat_conversations_v1';
     const ACTIVE_KEY = 'vn_chat_active_id_v1';
     const SIDEBAR_KEY = 'vn_ai_sidebar_collapsed';
@@ -1077,12 +1094,12 @@
         event.preventDefault();
         document.execCommand('insertText', false, event.clipboardData?.getData('text/plain') || '');
     });
-    document.addEventListener('keydown', (event) => {
+    escucharGlobal(document, 'keydown', (event) => {
         if (event.key === 'Escape' && !els.reportStudio.hidden) closeReportStudio();
         if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'h') { event.preventDefault(); if (isMobileSidebar()) openSidebar(); else toggleSidebar(); }
     });
     document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventListener('click', () => sendMessage(button.dataset.prompt)));
-    window.addEventListener('resize', () => setSidebarCollapsed(localStorage.getItem(SIDEBAR_KEY) === '1', false));
+    escucharGlobal(window, 'resize', () => setSidebarCollapsed(localStorage.getItem(SIDEBAR_KEY) === '1', false));
 
     // Voice Input via Audio Attachment for Gemini
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && els.send) {
@@ -1248,6 +1265,22 @@
             }
         });
     }
+
+    /* Corta todo lo que sobreviviría al cambio de página en la SPA: listeners
+       globales, la petición en vuelo, el temporizador del reporte, el micrófono
+       y la voz. Sin esto, salir de /vall-ai en mitad de una respuesta dejaba el
+       fetch corriendo y al sintetizador hablando en otra sección. */
+    function desmontar() {
+        _globales.splice(0).forEach((quitar) => quitar());
+        try { controller?.abort(); } catch { /* ya terminó */ }
+        controller = null;
+        clearTimeout(reportRenderTimer);
+        continuousVoiceMode = false;
+        try { if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); } catch { /* sin voz */ }
+        if (window.VNVallAi?.desmontar === desmontar) delete window.VNVallAi;
+    }
+
+    window.VNVallAi = { desmontar };
 
     if (!activeConversation() && conversations.length) activeId = conversations[0].id;
     if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);

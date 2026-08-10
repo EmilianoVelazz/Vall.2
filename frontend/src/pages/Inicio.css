@@ -1,0 +1,64 @@
+/* Estilos propios de Inicio.
+   Vienen del <style> embebido en inicio.html. El grueso del diseño sigue en las
+   hojas compartidas (hero.css, grid.css, header.css, footer.css): aquí solo está
+   lo que el HTML tenía suelto.
+
+   NO se trae el bloque .live-ticker / .tk-*: ese carrusel de cotizaciones se
+   pinta dentro de #tickerInner, un contenedor que hoy NO existe en la página, así
+   que renderTicker() de live-engine.js sale por su `if (!inner) return` y el CSS
+   nunca se aplica. Se deja fuera para no arrastrar 12 reglas muertas; si algún
+   día se recupera el ticker hay que reponer el marcado Y estos estilos. */
+
+.lf-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    background: #ef4444;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+    animation: lf-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes lf-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .35; transform: scale(.65); }
+}
+
+.sh-upd { font-size: .62rem; color: #667788; white-space: nowrap; }
+
+.sh-badge {
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    padding: .12rem .5rem;
+    border-radius: 3px;
+    background: rgba(29, 78, 216, .15);
+    color: #6b7f9a;
+    white-space: nowrap;
+}
+
+.sh-badge.badge-ok { background: rgba(5, 150, 105, .2); color: #34d399; }
+
+.refresh-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid rgba(0, 33, 58, .2);
+    color: #667788;
+    border-radius: 4px;
+    width: 1.65rem;
+    height: 1.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: .68rem;
+    padding: 0;
+    transition: color .2s, border-color .2s;
+}
+
+.refresh-btn:hover    { color: #d97706; border-color: #d97706; }
+.refresh-btn:disabled { opacity: .45; cursor: not-allowed; }
+.refresh-btn.spinning i { animation: vn-spin .75s linear infinite; }
+
+@keyframes vn-spin { to { transform: rotate(360deg); } }

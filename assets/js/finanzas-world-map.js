@@ -343,14 +343,25 @@
 
         /* Al cambiar el tamaño, el flotante quedaría descolocado: se recoloca
            sobre su mismo país. */
-        window.addEventListener('resize', () => {
-            if (activo) colocar($('ffwm-tip'), nodoDe(activo));
-        });
-
+        alRedimensionar = () => { if (activo) colocar($('ffwm-tip'), nodoDe(activo)); };
+        window.addEventListener('resize', alRedimensionar);
         window.addEventListener('vn:cotizaciones', pintarTonos);
     }
 
-    window.VNMapaMundial = { init, mostrar: mostrarTip };
+    /* Los listeners del propio mapa mueren con su nodo, pero estos dos viven en
+       `window` y sobrevivirían al cambio de página en la SPA de React. `init()`
+       no se repite gracias a la marca data-listo del host; al desmontar, ese
+       nodo desaparece, así que la próxima visita vuelve a construir el mapa
+       desde cero y aquí solo hay que soltar lo global. */
+    let alRedimensionar = null;
+
+    function destruir() {
+        if (alRedimensionar) window.removeEventListener('resize', alRedimensionar);
+        window.removeEventListener('vn:cotizaciones', pintarTonos);
+        alRedimensionar = null;
+    }
+
+    window.VNMapaMundial = { init, destruir, mostrar: mostrarTip };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

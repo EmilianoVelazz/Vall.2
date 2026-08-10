@@ -10,6 +10,12 @@ import { NavLink, Link } from 'react-router-dom';
  * SPA, sin recargar el documento ni volver a descargar CSS y datos.
  */
 
+/*
+ * VALL AI va aquí como una sección más. En los .html no estaba en el marcado:
+ * lo inyectaba page-loader.js en cada página buscando `.nav-center` y metiendo
+ * un <a> a mano. Con una cabecera compartida eso sobra — la entrada se declara
+ * una vez y NavLink ya resuelve cuál está activa.
+ */
 const SECCIONES = [
   { a: '/inicio', icono: 'fa-house', texto: 'Inicio' },
   { a: '/finanzas', icono: 'fa-chart-line', texto: 'Finanzas' },
@@ -17,6 +23,7 @@ const SECCIONES = [
   { a: '/geopolitica', icono: 'fa-landmark', texto: 'Geopolítica' },
   { a: '/mercado-proteinas', icono: 'fa-leaf', texto: 'Proteínas' },
   { a: '/mexico', icono: 'fa-flag', texto: 'México' },
+  { a: '/vall-ai', icono: 'fa-wand-magic-sparkles', texto: 'VALL AI' },
 ];
 
 export default function Header() {

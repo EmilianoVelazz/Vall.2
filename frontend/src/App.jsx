@@ -4,6 +4,11 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Login from './pages/Login.jsx';
 import Configuracion from './pages/Configuracion.jsx';
 import Mexico from './pages/Mexico.jsx';
+import Inicio from './pages/Inicio.jsx';
+import VallAi from './pages/VallAi.jsx';
+import MercadoProteinas from './pages/MercadoProteinas.jsx';
+import Geopolitica from './pages/Geopolitica.jsx';
+import Mercados from './pages/Mercados.jsx';
 
 /*
  * Fase 1 de la migración: React se queda con el enrutado, la sesión y el shell.
@@ -19,12 +24,7 @@ import Mexico from './pages/Mexico.jsx';
  * entrada de esta tabla por un componente propio. El resto sigue funcionando.
  */
 const SECCIONES = [
-  { ruta: '/inicio',            html: '/inicio.html' },
   { ruta: '/finanzas',          html: '/pages/finanzas.html' },
-  { ruta: '/mercados',          html: '/pages/mercados.html' },
-  { ruta: '/geopolitica',       html: '/pages/geopolitica.html' },
-  { ruta: '/mercado-proteinas', html: '/pages/mercadoproteinas.html' },
-  { ruta: '/vall-ai',           html: '/pages/vall-ai.html' },
 ];
 
 export default function App() {
@@ -35,12 +35,32 @@ export default function App() {
       <Route path="/login" element={<Navigate to="/" replace />} />
 
       <Route
+        path="/inicio"
+        element={<ProtectedRoute><Inicio /></ProtectedRoute>}
+      />
+      <Route
         path="/configuracion"
         element={<ProtectedRoute><Configuracion /></ProtectedRoute>}
       />
       <Route
         path="/mexico"
         element={<ProtectedRoute><Mexico /></ProtectedRoute>}
+      />
+      <Route
+        path="/vall-ai"
+        element={<ProtectedRoute><VallAi /></ProtectedRoute>}
+      />
+      <Route
+        path="/mercado-proteinas"
+        element={<ProtectedRoute><MercadoProteinas /></ProtectedRoute>}
+      />
+      <Route
+        path="/geopolitica"
+        element={<ProtectedRoute><Geopolitica /></ProtectedRoute>}
+      />
+      <Route
+        path="/mercados"
+        element={<ProtectedRoute><Mercados /></ProtectedRoute>}
       />
 
       {SECCIONES.map(({ ruta, html }) => (

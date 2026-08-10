@@ -13,11 +13,15 @@ export default function Footer() {
         </div>
         <span className="footer-brand">VALLNews</span>
       </div>
+      {/* Las seis secciones, como en el pie de los .html. Faltaban Mercado
+          Proteínas y México, así que desde el pie no se llegaba a ellas. */}
       <nav className="footer-nav">
         <Link to="/inicio">Inicio</Link>
         <Link to="/finanzas">Finanzas</Link>
         <Link to="/mercados">Mercados</Link>
         <Link to="/geopolitica">Geopolítica</Link>
+        <Link to="/mercado-proteinas">Mercado Proteínas</Link>
+        <Link to="/mexico">México</Link>
       </nav>
       <p className="footer-copy">
         © {new Date().getFullYear()} VALLNews · Inteligencia económica

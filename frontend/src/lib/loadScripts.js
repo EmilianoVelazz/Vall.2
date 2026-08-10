@@ -40,6 +40,31 @@ export default async function loadScripts(fuentes) {
 }
 
 /**
+ * Carga un script REEJECUTÁNDOLO en cada llamada, y devuelve una función para
+ * retirarlo.
+ *
+ * Hace falta para los scripts de página que capturan sus nodos al evaluarse
+ * (`const els = { input: $('vaiInput'), … }`). Con el cacheado normal solo
+ * funcionarían la primera vez: al volver a la sección el DOM es nuevo y sus
+ * referencias apuntan a nodos ya desechados, así que la página queda inerte.
+ *
+ * El navegador sirve el archivo de su propia caché HTTP, así que reejecutar no
+ * implica volver a descargarlo. El script debe ser reentrante: limpiar lo que
+ * dejó la ejecución anterior (ver el desmontar() de vall-ai-page-v4.js).
+ */
+export function cargarCadaVez(src, marca) {
+  document.querySelector(`script[data-vn-page-js="${marca}"]`)?.remove();
+
+  const el = document.createElement('script');
+  el.src = src;
+  el.async = false;
+  el.dataset.vnPageJs = marca;
+  document.body.appendChild(el);
+
+  return () => el.remove();
+}
+
+/**
  * Lee una global declarada por un script clásico del sitio (VDS, VAPI, Chart…).
  *
  * OJO: `window.VDS` NO funciona. data-service.js hace `const VDS = ...` en el

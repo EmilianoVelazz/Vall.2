@@ -1,6 +1,39 @@
 (function () {
     'use strict';
 
+    /* ── Ciclo de vida en la SPA ───────────────────────────────────────────────
+       Este archivo nació para una página que se recargaba entera: nada de lo que
+       engancha se soltaba nunca, porque el navegador se llevaba todo por delante
+       al navegar. En React la sección se monta y se desmonta, así que cada
+       observador, intervalo y listener global tiene que poder retirarse.
+
+       Todo lo que sobrevive al nodo que lo originó —`window`, `document`,
+       MediaQueryList, ResizeObserver e intervalos— se registra aquí y se libera
+       en `desmontar()`. Los listeners colgados de nodos propios de la sección no
+       hacen falta: mueren con su nodo cuando React lo quita.
+
+       Una ejecución previa se desmonta antes de que arranque la nueva, para que
+       recargar el script no duplique nada. */
+    window.VNFavro?.desmontar?.();
+
+    const _limpieza = [];
+
+    const escuchar = (destino, evento, fn, opciones) => {
+        destino.addEventListener(evento, fn, opciones);
+        _limpieza.push(() => destino.removeEventListener(evento, fn, opciones));
+    };
+
+    const observar = (observador) => {
+        _limpieza.push(() => { try { observador.disconnect(); } catch { /* ya suelto */ } });
+        return observador;
+    };
+
+    const intervalo = (fn, ms) => {
+        const id = window.setInterval(fn, ms);
+        _limpieza.push(() => window.clearInterval(id));
+        return id;
+    };
+
     const $ = id => document.getElementById(id);
     const state = {
         module: 'bolsa',
@@ -834,7 +867,7 @@
 
             /* Safe observer: strictly updates LightweightCharts without touching CSS to avoid loops */
             if (window.ResizeObserver && chartWrapper) {
-                const ro = new ResizeObserver(entries => {
+                const ro = observar(new ResizeObserver(entries => {
                     for (const entry of entries) {
                         /* contentRect ya excluye el padding, así que sirve tal cual.
                            Ajustamos también el alto: las media queries lo cambian
@@ -852,7 +885,7 @@
                             }
                         }
                     }
-                });
+                }));
                 ro.observe(chartWrapper);
                 state.miniChartsObservers[id] = ro;
             }
@@ -958,7 +991,7 @@
     let _dataBoxTimer = null;
     function startExchangeDataBoxAutoRefresh() {
         if (_dataBoxTimer) return;
-        _dataBoxTimer = window.setInterval(() => {
+        _dataBoxTimer = intervalo(() => {
             if (document.hidden) return;
             const board = $('ff-exchange-board');
             if (!board || board.hidden || !board.isConnected) return;
@@ -1763,13 +1796,13 @@
         if (!contenedor || typeof ResizeObserver === 'undefined') return;
 
         _supplementResizeObserver?.disconnect();
-        _supplementResizeObserver = new ResizeObserver(() => {
+        _supplementResizeObserver = observar(new ResizeObserver(() => {
             const chart = state.supplementChart;
             // Un contenedor de alto o ancho cero significa que la sección aún está
             // oculta; redimensionar ahí volvería a fijar un lienzo inservible.
             if (!chart || !contenedor.clientWidth || !contenedor.clientHeight) return;
             chart.resize();
-        });
+        }));
         _supplementResizeObserver.observe(contenedor);
 
         // Primer ajuste tras el pintado inicial, por si el contenedor ya alcanzó
@@ -2981,10 +3014,10 @@
             });
         }));
         if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver(entries => {
+            const observer = observar(new IntersectionObserver(entries => {
                 const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
                 if (visible?.target?.id) activate(visible.target.id);
-            }, { rootMargin: '-24% 0px -62% 0px', threshold: [0, .15, .35] });
+            }, { rootMargin: '-24% 0px -62% 0px', threshold: [0, .15, .35] }));
             sections.forEach(item => observer.observe(item.section));
         }
         const updateProgress = () => {
@@ -2995,8 +3028,8 @@
             const value = Math.max(0, Math.min(1, -rect.top / distance));
             progress.style.width = `${(value * 100).toFixed(1)}%`;
         };
-        window.addEventListener('scroll', updateProgress, { passive: true });
-        window.addEventListener('resize', updateProgress, { passive: true });
+        escuchar(window, 'scroll', updateProgress, { passive: true });
+        escuchar(window, 'resize', updateProgress, { passive: true });
         updateProgress();
     }
 
@@ -3105,7 +3138,7 @@
                 || (hoverCapable.matches && !!shell?.matches(':hover'))
                 || !!shell?.contains(document.activeElement);
             shell?.classList.toggle('is-paused', shouldPause);
-            if (!shouldPause) autoTimer = window.setInterval(() => moveNewsCarousel(1, true), 6500);
+            if (!shouldPause) autoTimer = intervalo(() => moveNewsCarousel(1, true), 6500);
         };
         $('fnb-carousel-prev')?.addEventListener('click', () => { moveNewsCarousel(-1, true); startAuto(); });
         $('fnb-carousel-next')?.addEventListener('click', () => { moveNewsCarousel(1, true); startAuto(); });
@@ -3165,10 +3198,11 @@
         shell?.addEventListener('focusin', stopAuto);
         shell?.addEventListener('focusout', startAuto);
         shell?.addEventListener('pointerdown', stopAuto, { passive: true });
-        window.addEventListener('resize', syncNewsCarouselUI, { passive: true });
-        reducedMotion.addEventListener?.('change', startAuto);
-        hoverCapable.addEventListener?.('change', startAuto);
-        document.addEventListener('visibilitychange', () => document.hidden ? stopAuto() : startAuto());
+        escuchar(window, 'resize', syncNewsCarouselUI, { passive: true });
+        // Las MediaQueryList también sobreviven al desmontaje: van al registro.
+        if (reducedMotion.addEventListener) escuchar(reducedMotion, 'change', startAuto);
+        if (hoverCapable.addEventListener) escuchar(hoverCapable, 'change', startAuto);
+        escuchar(document, 'visibilitychange', () => (document.hidden ? stopAuto() : startAuto()));
         updateNewsCarouselUI();
         startAuto();
     }
@@ -3315,7 +3349,7 @@
             renderCurrentArchive();
             window.requestAnimationFrame(() => $('fnb-archive-more-button')?.focus({ preventScroll: true }));
         });
-        document.addEventListener('keydown', event => {
+        escuchar(document, 'keydown', event => {
             if (!(event.ctrlKey || event.metaKey) || event.key.toLocaleLowerCase('es') !== 'k') return;
             const search = $('fnb-archive-search');
             if (!search || !document.querySelector('.fnb-newsroom')) return;
@@ -3341,7 +3375,7 @@
         $('ff-open-news')?.addEventListener('click', loadNews);
         document.querySelectorAll('[data-definition]').forEach(button => button.setAttribute('title', button.querySelector('small')?.textContent || 'Definición financiera'));
         document.querySelectorAll('[data-close-news-reader]').forEach(button => button.addEventListener('click', closeNewsReader));
-        document.addEventListener('keydown', event => {
+        escuchar(document, 'keydown', event => {
             const reader = $('ff-news-reader');
             if (!reader || reader.hidden) return;
             if (event.key === 'Escape') { closeNewsReader(); return; }
@@ -3368,6 +3402,29 @@
         loadCoreData();
         loadNews();
     }
+
+    /* Suelta todo lo registrado y devuelve la sección a estado limpio. React lo
+       llama al desmontar /finanzas; también corre solo si el script se vuelve a
+       ejecutar (ver la llamada a VNFavro?.desmontar del principio).
+
+       Las gráficas se destruyen aparte: LightweightCharts y Chart.js reservan
+       lienzos y sus propios observadores, y dejarlos vivos retiene memoria del
+       tamaño de la serie. */
+    function desmontar() {
+        _limpieza.splice(0).forEach((soltar) => { try { soltar(); } catch { /* ya suelto */ } });
+
+        Object.values(state.miniCharts || {}).forEach((c) => { try { c.remove(); } catch { /* ya destruida */ } });
+        state.miniCharts = {};
+        ['mainChart', 'breakdownChart', 'contextChart', 'supplementChart',
+            'returnsChart', 'returnsHistoryChart', 'returnsGlobalChart'].forEach((clave) => {
+            try { state[clave]?.destroy?.(); } catch { /* ya destruida */ }
+            state[clave] = null;
+        });
+
+        if (window.VNFavro?.desmontar === desmontar) delete window.VNFavro;
+    }
+
+    window.VNFavro = { init, desmontar };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
     else init();
@@ -4084,3 +4141,14 @@ function buildFallback(tiieVal, rate, qqq, hora) {
           fuente: 'INEGI',   impacto: 'alto',  image: img(8), url: '', fecha: fd },
     ];
 }
+
+/* El carrusel de noticias del bloque de abajo guarda su intervalo en _ncTimer,
+   que declara el script en linea de finanzas.html y por tanto vive fuera del
+   IIFE: el registro de limpieza de arriba no lo alcanza. Se expone un freno
+   aparte para que React pueda detenerlo al desmontar la seccion. */
+window.VNFavroCarrusel = {
+    detener() {
+        try { if (typeof _ncTimer !== 'undefined' && _ncTimer) clearInterval(_ncTimer); }
+        catch (e) { /* el script en linea no esta cargado */ }
+    },
+};

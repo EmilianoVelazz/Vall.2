@@ -3173,26 +3173,17 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
    Daily News cierra a lo ancho porque su foto es la más editorial. Las alturas
    desiguales rompen la retícula sin perder alineación.
    ═══════════════════════════════════════════════════════════════════════════ */
-/* Mosaico de 3 columnas: cuatro piezas de proporciones distintas.
-
-       ┌───────────────────┬──────────┬─────────┐
-       │                   │  Tasas   │         │
-       │   BOLSA           ├──────────┤  DAILY  │
-       │   (2 filas)       │  Rendim. │  NEWS   │
-       └───────────────────┴──────────┴─────────┘
-
-   Ninguna pieza repite forma: una apaisada grande, dos pequeñas apiladas y una
-   vertical. Así el ojo recorre el bloque en vez de leer una retícula. */
+/* Cuadrícula principal: cuatro apartados equilibrados en un bloque 2 × 2. */
 #favro-finance .ff-modules {
     display: grid !important;
-    grid-template-columns: 1.5fr .95fr 1.05fr !important;
-    grid-template-rows: 176px 176px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, 220px) !important;
     gap: 14px !important;
 }
-#favro-finance .ff-module[data-module="bolsa"]        { grid-area: 1 / 1 / 3 / 2 !important; }
-#favro-finance .ff-module[data-module="tasas"]        { grid-area: 1 / 2 / 2 / 3 !important; }
-#favro-finance .ff-module[data-module="rendimientos"] { grid-area: 2 / 2 / 3 / 3 !important; }
-#favro-finance .ff-module[data-module="noticias"]     { grid-area: 1 / 3 / 3 / 4 !important; order: 0 !important; }
+#favro-finance .ff-modules > .ff-module {
+    grid-area: auto !important;
+    order: 0 !important;
+}
 
 /* ── Franja de dato en vivo ── */
 #favro-finance .ffm-foot {
@@ -3230,9 +3221,8 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #favro-finance .ffm-stat i.is-up   { color: #6ee7a8 !important; }
 #favro-finance .ffm-stat i.is-down { color: #ff9aa4 !important; }
 
-/* En las dos piezas pequeñas el botón y el dato no caben en una línea. */
-#favro-finance .ff-module[data-module="tasas"] .ffm-foot,
-#favro-finance .ff-module[data-module="rendimientos"] .ffm-foot {
+/* Conserva alineados el botón y el dato en las cuatro tarjetas. */
+#favro-finance .ff-module .ffm-foot {
     align-items: center !important;
 }
 
@@ -3282,8 +3272,8 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #favro-finance .ff-module.ffm-card:hover::after,
 #favro-finance .ff-module.ffm-card:focus-visible::after { transform: scaleX(1) !important; }
 #favro-finance .ff-module[data-module="bolsa"]        { --ffm-accent: #1d63b8; }
-#favro-finance .ff-module[data-module="tasas"]        { --ffm-accent: #08779a; }
 #favro-finance .ff-module[data-module="rendimientos"] { --ffm-accent: #c99745; }
+#favro-finance .ff-module[data-module="divisas"]      { --ffm-accent: #0c927d; }
 #favro-finance .ff-module[data-module="noticias"]     { --ffm-accent: #9b2a45; }
 
 /* ── Entrada escalonada ──
@@ -3294,8 +3284,8 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
    `opacity: 0` sin nadie que lo devuelva a 1 y las cuatro piezas quedarían
    invisibles. Solo se escalona el arranque de la que ya existe. */
 #favro-finance .ff-module[data-module="bolsa"]        { animation-delay: .04s !important; }
-#favro-finance .ff-module[data-module="tasas"]        { animation-delay: .12s !important; }
-#favro-finance .ff-module[data-module="rendimientos"] { animation-delay: .20s !important; }
+#favro-finance .ff-module[data-module="rendimientos"] { animation-delay: .12s !important; }
+#favro-finance .ff-module[data-module="divisas"]      { animation-delay: .20s !important; }
 #favro-finance .ff-module[data-module="noticias"]     { animation-delay: .28s !important; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3314,9 +3304,8 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     padding: 1.25rem 1.35rem !important;
 }
 
-/* La tarjeta grande y la ancha pueden permitirse más presencia tipográfica. */
-#favro-finance .ff-module[data-module="bolsa"] .ffm-body h2,
-#favro-finance .ff-module[data-module="noticias"] .ffm-body h2 {
+/* La jerarquía tipográfica es idéntica en las cuatro tarjetas. */
+#favro-finance .ff-module .ffm-body h2 {
     font-size: 1.85rem !important;
 }
 
@@ -3330,17 +3319,12 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     box-shadow: 0 22px 46px -20px rgba(7, 28, 44, .55) !important;
 }
 
-/* Entre 900 y 1180 el mosaico de 3 no respira: pasa a 2 columnas conservando
-   la jerarquía (Bolsa grande arriba, Daily News a lo ancho abajo). */
+/* En tablet conserva el bloque 2 × 2 con una altura algo más compacta. */
 @media (max-width: 1180px) {
     #favro-finance .ff-modules {
-        grid-template-columns: 1.3fr 1fr !important;
-        grid-template-rows: 168px 168px 200px !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-template-rows: repeat(2, 200px) !important;
     }
-    #favro-finance .ff-module[data-module="bolsa"]        { grid-area: 1 / 1 / 3 / 2 !important; }
-    #favro-finance .ff-module[data-module="tasas"]        { grid-area: 1 / 2 / 2 / 3 !important; }
-    #favro-finance .ff-module[data-module="rendimientos"] { grid-area: 2 / 2 / 3 / 3 !important; }
-    #favro-finance .ff-module[data-module="noticias"]     { grid-area: 3 / 1 / 4 / 3 !important; }
 }
 
 @media (max-width: 900px) {
@@ -3348,10 +3332,6 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
         grid-template-columns: 1fr !important;
         grid-template-rows: repeat(4, 178px) !important;
     }
-    #favro-finance .ff-module[data-module="bolsa"]        { grid-area: 1 / 1 !important; }
-    #favro-finance .ff-module[data-module="tasas"]        { grid-area: 2 / 1 !important; }
-    #favro-finance .ff-module[data-module="rendimientos"] { grid-area: 3 / 1 !important; }
-    #favro-finance .ff-module[data-module="noticias"]     { grid-area: 4 / 1 !important; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

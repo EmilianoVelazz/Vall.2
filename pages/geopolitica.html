@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-        <script src="/assets/js/page-loader.js?v=5"></script>
+        <script src="/assets/js/page-loader.js?v=6"></script>
     <script src="/assets/js/api-keys.js?v=5"></script>
     <script src="/assets/js/data-service.js?v=22"></script>
     <style>
@@ -27,7 +27,7 @@
 
         .container { max-width: 1380px; margin: 0.8rem auto; padding: 0 1.5rem; animation: fadeIn 0.8s ease-out; }
 
-        .page-title { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; padding:1.05rem 1.5rem; background:linear-gradient(135deg,#00121f 0%,#00213a 50%,#003457 100%); border-radius:18px; box-shadow:0 12px 35px rgba(0,33,58,.22),inset 0 1px 0 rgba(255,255,255,.1); position: relative; overflow: hidden; }
+        .page-title { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; padding:1.05rem 1.5rem; color:#fff; background:linear-gradient(135deg,#00121f 0%,#00213a 50%,#003457 100%); border-radius:18px; box-shadow:0 12px 35px rgba(0,33,58,.22),inset 0 1px 0 rgba(255,255,255,.1); position: relative; overflow: hidden; }
         .page-title::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%); opacity: 0; animation: shimmerBg 6s infinite alternate; pointer-events: none; }
         @keyframes shimmerBg { 0% { opacity: 0.3; transform: translate(0, 0); } 100% { opacity: 0.8; transform: translate(10%, 10%); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -351,6 +351,7 @@
             .acled-powered { display: none; }
         }
     </style>
+    <link rel="stylesheet" href="/assets/css/mobile-experience.css?v=4">
 </head>
 <body>
 

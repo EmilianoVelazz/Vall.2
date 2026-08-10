@@ -9,6 +9,7 @@ import VallAi from './pages/VallAi.jsx';
 import MercadoProteinas from './pages/MercadoProteinas.jsx';
 import Geopolitica from './pages/Geopolitica.jsx';
 import Mercados from './pages/Mercados.jsx';
+import Finanzas from './pages/Finanzas.jsx';
 
 /*
  * Fase 1 de la migración: React se queda con el enrutado, la sesión y el shell.
@@ -61,6 +62,10 @@ export default function App() {
       <Route
         path="/mercados"
         element={<ProtectedRoute><Mercados /></ProtectedRoute>}
+      />
+      <Route
+        path="/finanzas"
+        element={<ProtectedRoute><Finanzas /></ProtectedRoute>}
       />
 
       {SECCIONES.map(({ ruta, html }) => (

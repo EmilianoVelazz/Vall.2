@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="vn-dark-pilot">
 <head>
 <script>window._rpData = window._rpData || { wti: 75.2, brent: 79.5, mix: 70.1 };</script>
 
@@ -26,8 +26,9 @@
     <link rel="stylesheet" href="../assets/css/footer.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <script src="../assets/js/vendor/chart.umd.js?v=1"></script>
+    <script src="../assets/js/dark-pilot.js?v=4"></script>
     <script src="../assets/js/finanzas-visual.js?v=6"></script>
-        <script src="../assets/js/page-loader.js?v=5"></script>
+        <script src="../assets/js/page-loader.js?v=6"></script>
     <script src="../assets/js/api-keys.js?v=5"></script>
     <script src="../assets/js/data-service.js?v=22"></script>
     <style>
@@ -744,11 +745,11 @@
     <link rel="stylesheet" href="../assets/css/finanzas-redesign-v2.css?v=2.8">
     <link rel="stylesheet" href="../assets/css/finanzas-debt-premium.css?v=3.0">
     <link rel="stylesheet" href="../assets/css/finanzas-favro.css?v=71">
-    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=114">
+    <link rel="stylesheet" href="../assets/css/finanzas-premium.css?v=115">
     <link rel="stylesheet" href="../assets/css/daily-news-favro.css?v=22">
     <link rel="stylesheet" href="../assets/css/sectors-board.css?v=1">
     <link rel="stylesheet" href="../assets/css/finanzas-world-map.css?v=7">
-    <script src="../assets/js/finanzas-favro.js?v=115" defer></script>
+    <script src="../assets/js/finanzas-favro.js?v=118" defer></script>
     <!-- El orden importa: los datos y el catálogo deben existir antes que el
          componente. Con defer se ejecutan en el orden en que están escritos. -->
     <script src="../assets/js/world-map-data.js?v=1" defer></script>
@@ -1044,9 +1045,12 @@ body.ff-detail-rentafija .ff-detail-supplement * {
 </style>
 
 <link rel="stylesheet" href="../assets/css/finanzas-responsive-v3.css?v=1">
+<link rel="stylesheet" href="../assets/css/finanzas-fx-workspace.css?v=13">
+<link rel="stylesheet" href="../assets/css/dark-pilot.css?v=11">
+<link rel="stylesheet" href="../assets/css/mobile-experience.css?v=4">
 </head>
 
-<body>
+<body class="vn-dark-pilot vn-dark-finanzas">
 <header class="header">
     <div class="hdr-top">
         <a class="logo" href="/inicio.html">
@@ -1137,8 +1141,8 @@ body.ff-detail-rentafija .ff-detail-supplement * {
         </div>
         <nav class="ff-detail-tabs" aria-label="Apartados de Finanzas">
             <button type="button" data-detail-module="bolsa"><i class="fas fa-chart-line"></i><span>Bolsa</span></button>
-            <button type="button" data-detail-module="tasas"><i class="fas fa-landmark"></i><span>Tasas</span></button>
             <button type="button" data-detail-module="rendimientos"><i class="fas fa-wave-square"></i><span>Bonos</span></button>
+            <button type="button" data-detail-module="divisas"><i class="fas fa-money-bill-transfer"></i><span>Divisas</span></button>
             <button type="button" data-detail-module="noticias"><i class="fas fa-newspaper"></i><span>Daily News</span></button>
         </nav>
     </section>
@@ -1288,7 +1292,7 @@ body.ff-detail-rentafija .ff-detail-supplement * {
                 <div class="ff-hero-copy">
                     <span class="ff-eyebrow"><span class="ff-live-dot"></span> Centro financiero</span>
                     <h1 id="ff-page-title">Finanzas</h1>
-                    <p>Mercados, tasas y renta fija en una sola lectura. Compara el pulso de hoy, entiende qué cambió y profundiza sin perder contexto.</p>
+                    <p>Bolsa, bonos, divisas y noticias financieras en una sola lectura. Compara el pulso de hoy y profundiza sin perder contexto.</p>
                 </div>
                 <div class="ff-hero-actions">
                     <div class="ff-update" aria-live="polite">
@@ -1318,14 +1322,26 @@ body.ff-detail-rentafija .ff-detail-supplement * {
                     </div>
                 </article>
 
-                <article class="ff-module ffm-card" data-module="tasas" tabindex="0">
-                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
-                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-tasas"></canvas></div>
+                <article class="ff-module ffm-card" data-module="rendimientos" tabindex="0">
+                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-rendimientos"></canvas></div>
                     <div class="ffm-body">
-                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Tasas</h2></div></header>
+                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Bonos</h2></div></header>
                         <div class="ffm-foot">
-                            <button class="ff-module-link" type="button" data-open-module="tasas">Abrir tasas <i class="fas fa-arrow-right"></i></button>
-                            <span class="ffm-stat"><em>TIIE 28D</em><strong id="ff-tile-tasas">—</strong></span>
+                            <button class="ff-module-link" type="button" data-open-module="rendimientos">Abrir bonos <i class="fas fa-arrow-right"></i></button>
+                            <span class="ffm-stat"><em>US 10 años</em><strong id="ff-tile-rendimientos">—</strong></span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="ff-module ffm-card" data-module="divisas" tabindex="0">
+                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=1200&amp;q=78&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-divisas"></canvas></div>
+                    <div class="ffm-body">
+                        <header><span class="ff-module-icon"><i class="fas fa-money-bill-transfer"></i></span><div><small>Mercado cambiario global</small><h2>Divisas</h2></div></header>
+                        <div class="ffm-foot">
+                            <button class="ff-module-link" type="button" data-open-module="divisas">Explorar divisas <i class="fas fa-arrow-right"></i></button>
+                            <span class="ffm-stat"><em>EUR / USD</em><strong id="ff-tile-divisas">&mdash;</strong><i id="ff-tile-divisas-delta"></i></span>
                         </div>
                     </div>
                 </article>
@@ -1337,18 +1353,6 @@ body.ff-detail-rentafija .ff-detail-supplement * {
                         <div class="ffm-foot">
                             <button class="ff-module-link" type="button" data-open-module="noticias">Abrir Daily News <i class="fas fa-arrow-right"></i></button>
                             <span class="ffm-stat"><em>Titulares hoy</em><strong id="ff-tile-noticias">—</strong></span>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="ff-module ffm-card" data-module="rendimientos" tabindex="0">
-                    <div class="ffm-photo"><img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
-                    <div class="ffm-spark" aria-hidden="true"><canvas id="ff-spark-rendimientos"></canvas></div>
-                    <div class="ffm-body">
-                        <header><span class="ff-module-icon"><i class="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Bonos</h2></div></header>
-                        <div class="ffm-foot">
-                            <button class="ff-module-link" type="button" data-open-module="rendimientos">Abrir bonos <i class="fas fa-arrow-right"></i></button>
-                            <span class="ffm-stat"><em>US 10 años</em><strong id="ff-tile-rendimientos">—</strong></span>
                         </div>
                     </div>
                 </article>
@@ -1633,10 +1637,10 @@ body.ff-detail-rentafija .ff-detail-supplement * {
                     <em>Lectura en vivo</em>
                 </div>
                 <div class="finance-sidebar-pulse-grid">
-                    <div><small>USD / MXN</small><strong id="sidebar-pulse-usdmxn">—</strong><span id="sidebar-pulse-usdmxn-note">Tipo de cambio</span></div>
+                    <div><small>EUR / USD</small><strong id="sidebar-pulse-eurusd">—</strong><span id="sidebar-pulse-eurusd-note">Tipo de cambio</span></div>
                     <div><small>DXY</small><strong id="sidebar-pulse-dxy">—</strong><span id="sidebar-pulse-dxy-note">Dólar global</span></div>
                     <div><small>VIX</small><strong id="sidebar-pulse-vix">—</strong><span id="sidebar-pulse-vix-note">Volatilidad</span></div>
-                    <div><small>Carry MX</small><strong id="sidebar-pulse-carry">—</strong><span>Diferencial TIIE−Fed</span></div>
+                    <div><small>Amplitud USD</small><strong id="sidebar-pulse-carry">—</strong><span>Cruces favorables</span></div>
                 </div>
                 <p id="sidebar-pulse-reading"><i class="fas fa-circle-info"></i> El monitor conecta divisas, volatilidad y tasas para contextualizar la gráfica.</p>
             </aside>
@@ -2375,7 +2379,7 @@ body.ff-detail-rentafija .ff-detail-supplement * {
             <div class="fx-pro-hero-copy">
                 <span class="fx-pro-eyebrow"><i class="fas fa-money-bill-transfer"></i> Inteligencia cambiaria global</span>
                 <h2>Mercado <em>Cambiario</em></h2>
-                <p>Fortaleza del peso, cruces internacionales, dólar global y diferenciales de tasas en una sola mesa de análisis.</p>
+                <p>Fortaleza del dólar, cruces internacionales, liquidez global y diferenciales de tasas en una sola mesa de análisis.</p>
             </div>
             <div class="fx-pro-hero-side">
                 <span class="fx-session-status"><i></i> Mercado Forex</span>
@@ -2384,17 +2388,100 @@ body.ff-detail-rentafija .ff-detail-supplement * {
         </header>
 
         <div class="fx-pro-kpi-grid" id="fx-pro-kpi-grid">
-            <article class="fx-pro-kpi tone-mxn report-card" role="button" tabindex="0" onclick="openFxDetail(0)" onkeydown="reportCardKey(event,()=>openFxDetail(0))"><span><i class="fas fa-dollar-sign"></i></span><div><small>USD / MXN</small><strong id="fx-pro-usdmxn">—</strong><em id="fx-pro-usdmxn-chg">Peso mexicano</em></div></article>
-            <article class="fx-pro-kpi tone-eur report-card" role="button" tabindex="0" onclick="openFxDetail(1)" onkeydown="reportCardKey(event,()=>openFxDetail(1))"><span><i class="fas fa-euro-sign"></i></span><div><small>EUR / MXN</small><strong id="fx-pro-eurmxn">—</strong><em id="fx-pro-eurmxn-chg">Cruce europeo</em></div></article>
-            <article class="fx-pro-kpi tone-gbp report-card" role="button" tabindex="0" onclick="openFxDetail(2)" onkeydown="reportCardKey(event,()=>openFxDetail(2))"><span><i class="fas fa-sterling-sign"></i></span><div><small>GBP / MXN</small><strong id="fx-pro-gbpmxn">—</strong><em id="fx-pro-gbpmxn-chg">Libra esterlina</em></div></article>
+            <article class="fx-pro-kpi tone-eur report-card" role="button" tabindex="0" onclick="openFxDetail(0)" onkeydown="reportCardKey(event,()=>openFxDetail(0))"><span><i class="fas fa-euro-sign"></i></span><div><small>EUR / USD</small><strong id="fx-pro-eurusd">—</strong><em id="fx-pro-eurusd-chg">Euro frente al dólar</em></div></article>
+            <article class="fx-pro-kpi tone-gbp report-card" role="button" tabindex="0" onclick="openFxDetail(1)" onkeydown="reportCardKey(event,()=>openFxDetail(1))"><span><i class="fas fa-sterling-sign"></i></span><div><small>GBP / USD</small><strong id="fx-pro-gbpusd">—</strong><em id="fx-pro-gbpusd-chg">Libra frente al dólar</em></div></article>
+            <article class="fx-pro-kpi tone-dollar report-card" role="button" tabindex="0" onclick="openFxDetail(2)" onkeydown="reportCardKey(event,()=>openFxDetail(2))"><span><i class="fas fa-yen-sign"></i></span><div><small>USD / JPY</small><strong id="fx-pro-usdjpy">—</strong><em id="fx-pro-usdjpy-chg">Dólar frente al yen</em></div></article>
             <article class="fx-pro-kpi tone-dollar report-card" role="button" tabindex="0" onclick="openMacroDetail('dxy')" onkeydown="reportCardKey(event,()=>openMacroDetail('dxy'))"><span><i class="fas fa-chart-line"></i></span><div><small>Índice DXY</small><strong id="fx-pro-dxy">—</strong><em id="fx-pro-dxy-chg">Fortaleza del dólar</em></div></article>
-            <article class="fx-pro-kpi tone-carry report-card" role="button" tabindex="0" onclick="openRiskDetail('carry')" onkeydown="reportCardKey(event,()=>openRiskDetail('carry'))"><span><i class="fas fa-scale-balanced"></i></span><div><small>Carry México</small><strong id="fx-pro-carry">—</strong><em>TIIE − tasa Fed</em></div></article>
-            <article class="fx-pro-kpi tone-breadth report-card" role="button" tabindex="0" title="Abrir reporte de amplitud cambiaria" onclick="openFxSectionReport('breadth')" onkeydown="reportCardKey(event,()=>openFxSectionReport('breadth'))"><span><i class="fas fa-earth-americas"></i></span><div><small>Amplitud del peso</small><strong id="fx-pro-breadth">—</strong><em id="fx-pro-breadth-note">Cruces favorables</em></div></article>
+            <article class="fx-pro-kpi tone-carry report-card" role="button" tabindex="0" onclick="openFxDetail(4)" onkeydown="reportCardKey(event,()=>openFxDetail(4))"><span><i class="fas fa-shield-halved"></i></span><div><small>USD / CHF</small><strong id="fx-pro-usdchf">—</strong><em id="fx-pro-usdchf-chg">Dólar frente al franco</em></div></article>
+            <article class="fx-pro-kpi tone-breadth report-card" role="button" tabindex="0" title="Abrir reporte de amplitud cambiaria" onclick="openFxSectionReport('breadth')" onkeydown="reportCardKey(event,()=>openFxSectionReport('breadth'))"><span><i class="fas fa-earth-americas"></i></span><div><small>Amplitud del dólar</small><strong id="fx-pro-breadth">—</strong><em id="fx-pro-breadth-note">Cruces frente al USD</em></div></article>
         </div>
+
+        <section class="fx-history-lab" id="fx-history-lab" aria-labelledby="fx-history-title">
+            <header class="fx-history-head">
+                <div>
+                    <span class="fx-history-eyebrow"><i class="fas fa-chart-line" aria-hidden="true"></i> Hist&oacute;rico y comparador</span>
+                    <h3 id="fx-history-title">Evoluci&oacute;n de monedas internacionales</h3>
+                    <p>Selecciona un cruce, cambia el horizonte y comp&aacute;ralo contra otras monedas sobre una base com&uacute;n.</p>
+                </div>
+                <span class="fx-history-live" id="fx-history-updated"><i></i> Consultando mercado</span>
+            </header>
+
+            <div class="fx-history-toolbar">
+                <label class="fx-history-field">
+                    <span>Cruce principal</span>
+                    <select id="fx-history-primary" aria-label="Elegir cruce principal">
+                        <option value="EURUSD=X">EUR / USD</option>
+                        <option value="GBPUSD=X">GBP / USD</option>
+                        <option value="USDJPY=X">USD / JPY</option>
+                        <option value="USDCAD=X">USD / CAD</option>
+                        <option value="USDBRL=X">USD / BRL</option>
+                        <option value="USDCNY=X">USD / CNY</option>
+                        <option value="USDCHF=X">USD / CHF</option>
+                        <option value="AUDUSD=X">AUD / USD</option>
+                        <option value="NZDUSD=X">NZD / USD</option>
+                        <option value="USDINR=X">USD / INR</option>
+                    </select>
+                </label>
+                <fieldset class="fx-history-periods" id="fx-history-periods">
+                    <legend>Periodo</legend>
+                    <button type="button" data-fx-period="5d">5D</button>
+                    <button type="button" data-fx-period="1mo">1M</button>
+                    <button type="button" data-fx-period="3mo">3M</button>
+                    <button type="button" class="is-active" data-fx-period="1y">1A</button>
+                    <button type="button" data-fx-period="5y">5A</button>
+                </fieldset>
+                <fieldset class="fx-history-modes" id="fx-history-modes">
+                    <legend>Lectura</legend>
+                    <button type="button" data-fx-mode="quote">Cotizaci&oacute;n</button>
+                    <button type="button" class="is-active" data-fx-mode="relative">Base 100</button>
+                </fieldset>
+            </div>
+
+            <div class="fx-history-compare">
+                <div><span>Comparar con</span><small>Activa hasta tres cruces adicionales</small></div>
+                <div class="fx-history-chips" id="fx-history-chips" role="group" aria-label="Monedas para comparar">
+                    <button type="button" class="is-active" data-fx-compare="GBPUSD=X" aria-pressed="true">GBP / USD</button>
+                    <button type="button" class="is-active" data-fx-compare="USDJPY=X" aria-pressed="true">USD / JPY</button>
+                    <button type="button" data-fx-compare="USDBRL=X" aria-pressed="false">USD / BRL</button>
+                    <button type="button" data-fx-compare="USDCAD=X" aria-pressed="false">USD / CAD</button>
+                    <button type="button" data-fx-compare="USDCNY=X" aria-pressed="false">USD / CNY</button>
+                </div>
+            </div>
+            <p class="fx-history-mode-note" id="fx-history-mode-note" role="status" aria-live="polite">
+                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                Base 100 muestra el rendimiento relativo de todas las monedas desde un mismo punto de partida.
+            </p>
+
+            <div class="fx-history-stats" aria-label="Resumen del cruce principal">
+                <div><span>&Uacute;ltimo</span><strong id="fx-history-last">&mdash;</strong><small id="fx-history-last-label">EUR / USD</small></div>
+                <div><span>Variaci&oacute;n</span><strong id="fx-history-change">&mdash;</strong><small>En el periodo seleccionado</small></div>
+                <div><span>M&aacute;ximo</span><strong id="fx-history-high">&mdash;</strong><small>Mayor cierre observado</small></div>
+                <div><span>M&iacute;nimo</span><strong id="fx-history-low">&mdash;</strong><small>Menor cierre observado</small></div>
+                <div><span>Volatilidad</span><strong id="fx-history-vol">&mdash;</strong><small>Desviaci&oacute;n anualizada</small></div>
+            </div>
+
+            <div class="fx-history-chart-shell">
+                <canvas id="fx-history-chart" role="img" aria-label="Gr&aacute;fica hist&oacute;rica comparativa de divisas"></canvas>
+                <div class="fx-history-state" id="fx-history-state" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Cargando series cambiarias&hellip;</span></div>
+            </div>
+            <div class="fx-history-legend" id="fx-history-legend" aria-label="Series mostradas"></div>
+            <div class="fx-history-table-wrap">
+                <table>
+                    <thead><tr><th>Moneda</th><th>&Uacute;ltimo</th><th>Periodo</th><th>M&aacute;ximo</th><th>M&iacute;nimo</th><th>Observaciones</th></tr></thead>
+                    <tbody id="fx-history-table-body"><tr><td colspan="6">Esperando informaci&oacute;n de mercado&hellip;</td></tr></tbody>
+                </table>
+            </div>
+            <footer><span><i class="fas fa-shield-halved" aria-hidden="true"></i> Series del proveedor financiero conectado</span><span>Base 100 compara rendimiento relativo; no iguala el nivel nominal de cada moneda.</span></footer>
+        </section>
 
         <div class="fx-pro-main-grid">
             <article class="fx-pro-block fx-pro-board-block">
                 <div class="fx-pro-block-head"><div><small>Mesa global de divisas</small><h3>Cotizaciones internacionales</h3></div><span id="fx-pro-board-status">10 cruces globales</span></div>
+                <div class="fx-market-search" role="search" aria-label="Buscar monedas y cruces relevantes">
+                    <div class="fx-market-search-copy"><span><i class="fas fa-magnifying-glass" aria-hidden="true"></i></span><div><small>Explorador de monedas</small><strong>Busca por cruce, moneda o pa&iacute;s</strong><p>Universo curado de divisas l&iacute;quidas comparadas exclusivamente contra el d&oacute;lar estadounidense.</p></div></div>
+                    <div class="fx-market-search-control"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><input id="fx-market-search-input" type="search" autocomplete="off" placeholder="Ej. EUR/USD, Brasil, yen, franco&hellip;" aria-describedby="fx-market-search-status"><button id="fx-market-search-clear" type="button" aria-label="Limpiar b&uacute;squeda" hidden><i class="fas fa-xmark" aria-hidden="true"></i></button><kbd>/</kbd></div>
+                    <span class="fx-market-search-status" id="fx-market-search-status" aria-live="polite">Mostrando cruces prioritarios</span>
+                </div>
                 <div class="fx-pro-summary">
                     <div><span>Mayor movimiento</span><strong id="fx-pro-largest">—</strong><small>Variación absoluta diaria</small></div>
                     <div><span>Liderazgo global</span><strong id="fx-pro-pressure">—</strong><small>Divisa base con mayor avance</small></div>
@@ -2403,29 +2490,30 @@ body.ff-detail-rentafija .ff-detail-supplement * {
                 <div class="fx-pro-pair-grid" id="fx-pro-pair-grid">
                     <div class="sk-block" style="height:126px"></div><div class="sk-block" style="height:126px"></div><div class="sk-block" style="height:126px"></div>
                 </div>
+                <p class="fx-market-search-empty" id="fx-market-search-empty" hidden><i class="fas fa-magnifying-glass" aria-hidden="true"></i><strong>No encontramos ese cruce.</strong><span>Prueba con una moneda, un pa&iacute;s o una clave como USD, EUR, GBP o JPY.</span></p>
             </article>
 
             <article class="fx-pro-block fx-pro-regime-block report-card" id="fx-pro-regime-panel" role="button" tabindex="0" title="Abrir reporte del régimen cambiario" onclick="openFxSectionReport('regime')" onkeydown="reportCardKey(event,()=>openFxSectionReport('regime'))">
-                <div class="fx-pro-block-head"><div><small>Modelo de lectura</small><h3>Régimen del peso mexicano</h3></div><span id="fx-pro-regime-badge">Evaluando</span></div>
+                <div class="fx-pro-block-head"><div><small>Modelo de lectura</small><h3>Régimen global del dólar</h3></div><span id="fx-pro-regime-badge">Evaluando</span></div>
                 <div class="fx-regime-dashboard">
                     <div class="fx-regime-gauge"><div><small>Fortaleza</small><strong id="fx-pro-score">50</strong><span>/100</span></div></div>
-                    <div class="fx-regime-copy"><span>Lectura actual</span><strong id="fx-pro-regime-title">Mercado equilibrado</strong><p id="fx-pro-regime-copy">El comportamiento del peso se evaluará con el USD/MXN, el DXY y el diferencial de tasas.</p></div>
+                    <div class="fx-regime-copy"><span>Lectura actual</span><strong id="fx-pro-regime-title">Mercado equilibrado</strong><p id="fx-pro-regime-copy">El dólar se evaluará con el DXY, la amplitud global y el movimiento medio de sus principales cruces.</p></div>
                 </div>
                 <div class="fx-regime-scale"><i id="fx-pro-regime-marker"></i><div><span>Presión</span><span>Neutral</span><span>Fortaleza</span></div></div>
                 <div class="fx-regime-signals">
                     <div><i class="fas fa-dollar-sign"></i><span><small>Dólar global</small><strong id="fx-pro-signal-dollar">Pendiente</strong></span></div>
-                    <div><i class="fas fa-percent"></i><span><small>Diferencial</small><strong id="fx-pro-signal-carry">Pendiente</strong></span></div>
-                    <div><i class="fas fa-wave-square"></i><span><small>Sesión MXN</small><strong id="fx-pro-signal-session">Pendiente</strong></span></div>
+                    <div><i class="fas fa-percent"></i><span><small>Amplitud USD</small><strong id="fx-pro-signal-breadth">Pendiente</strong></span></div>
+                    <div><i class="fas fa-wave-square"></i><span><small>Sesión global</small><strong id="fx-pro-signal-session">Pendiente</strong></span></div>
                 </div>
             </article>
 
             <article class="fx-pro-block fx-pro-catalyst-block report-card" role="button" tabindex="0" title="Abrir reporte de catalizadores cambiarios" onclick="openFxSectionReport('catalysts')" onkeydown="reportCardKey(event,()=>openFxSectionReport('catalysts'))">
                 <div class="fx-pro-block-head"><div><small>Transmisión macro</small><h3>Catalizadores del mercado</h3></div><span>Qué vigilar</span></div>
                 <div class="fx-catalyst-list">
-                    <div><span class="fx-catalyst-icon fed"><i class="fas fa-landmark"></i></span><div><small>Fed y Banxico</small><strong id="fx-catalyst-rates">Diferencial de tasas pendiente</strong><p>El carry determina parte del atractivo relativo de los activos denominados en pesos.</p></div></div>
+                    <div><span class="fx-catalyst-icon fed"><i class="fas fa-landmark"></i></span><div><small>Fed y bancos centrales</small><strong id="fx-catalyst-rates">Diferenciales de tasas pendientes</strong><p>La distancia entre la tasa de la Fed y las tasas globales guía el atractivo relativo del dólar.</p></div></div>
                     <div><span class="fx-catalyst-icon dollar"><i class="fas fa-dollar-sign"></i></span><div><small>Dólar global</small><strong id="fx-catalyst-dollar">Esperando DXY</strong><p>Un dólar firme suele restringir liquidez y elevar presión sobre monedas emergentes.</p></div></div>
-                    <div><span class="fx-catalyst-icon oil"><i class="fas fa-oil-well"></i></span><div><small>Petróleo y flujos</small><strong>Soporte externo para México</strong><p>WTI, remesas, comercio e inversión extranjera influyen en la demanda estructural de MXN.</p></div></div>
-                    <div><span class="fx-catalyst-icon risk"><i class="fas fa-shield-halved"></i></span><div><small>Apetito de riesgo</small><strong id="fx-catalyst-risk">Volatilidad bajo observación</strong><p>La reducción global de posiciones de carry puede generar movimientos rápidos en el peso.</p></div></div>
+                    <div><span class="fx-catalyst-icon oil"><i class="fas fa-water"></i></span><div><small>Liquidez y flujos</small><strong>Demanda internacional de dólares</strong><p>Comercio, deuda, reservas y cobertura corporativa determinan la demanda estructural de USD.</p></div></div>
+                    <div><span class="fx-catalyst-icon risk"><i class="fas fa-shield-halved"></i></span><div><small>Apetito de riesgo</small><strong id="fx-catalyst-risk">Volatilidad bajo observación</strong><p>Los episodios de aversión al riesgo pueden acelerar la demanda de dólares como activo refugio.</p></div></div>
                 </div>
             </article>
 
@@ -2920,7 +3008,7 @@ body.ff-detail-rentafija .ff-detail-supplement * {
         Seguimiento de divisas, granos y energéticos
     </p>
 </footer>
-<script src="../assets/js/finanzas-page.js?v=1"></script>
+<script src="../assets/js/finanzas-page.js?v=5"></script>
 <script src="../assets/js/chat-widget.js?v=32" data-mascota="/assets/img/robot.svg"></script>
 <script src="../assets/js/flags-widget.js"></script>
 

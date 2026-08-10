@@ -1,0 +1,304 @@
+/* VALLNews mobile experience — shared by the complete application. */
+:root {
+    --vn-mobile-gutter: clamp(.75rem, 3vw, 1rem);
+    --vn-touch-size: 44px;
+}
+
+html {
+    max-width: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    max-width: 100%;
+    overscroll-behavior-x: none;
+}
+
+@supports (overflow: clip) {
+    body { overflow-x: clip; }
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+    max-width: 100%;
+}
+
+main,
+section,
+article,
+aside,
+nav,
+header,
+footer,
+div {
+    min-width: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+li,
+td,
+th {
+    overflow-wrap: anywhere;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:is(button, a, input, select, textarea, [role="button"]):focus-visible {
+    outline: 3px solid rgba(56, 189, 248, .48);
+    outline-offset: 3px;
+}
+
+pre {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (pointer: coarse) {
+    button,
+    select,
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    [role="button"],
+    .nav-link,
+    .fpill,
+    .acled-fbtn,
+    .acled-cbtn,
+    .news-fpill {
+        min-height: var(--vn-touch-size) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        width: 100%;
+        min-width: 0;
+    }
+
+    button,
+    select,
+    textarea,
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    [role="button"] {
+        min-height: var(--vn-touch-size) !important;
+    }
+
+    .hdr-top {
+        min-height: 58px;
+        padding-left: max(var(--vn-mobile-gutter), env(safe-area-inset-left)) !important;
+        padding-right: max(var(--vn-mobile-gutter), env(safe-area-inset-right)) !important;
+    }
+
+    .vn-hamburger {
+        width: var(--vn-touch-size) !important;
+        height: var(--vn-touch-size) !important;
+        padding: 10px !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+    }
+
+    .arrow,
+    .hero-arrow,
+    .carousel-arrow {
+        width: var(--vn-touch-size) !important;
+        height: var(--vn-touch-size) !important;
+    }
+
+    .hdr-nav {
+        width: 100%;
+        height: 100dvh;
+        padding: calc(64px + env(safe-area-inset-top)) var(--vn-mobile-gutter) calc(1rem + env(safe-area-inset-bottom));
+        justify-content: flex-start !important;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
+    }
+
+    .nav-center {
+        width: min(100%, 340px) !important;
+        max-height: calc(100dvh - 150px);
+        margin: auto 0 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+
+    .nav-link {
+        width: 100%;
+        min-height: 50px !important;
+        padding: .8rem 1.1rem !important;
+    }
+
+    .nav-user {
+        width: min(100%, 340px);
+        min-height: 48px;
+        margin: 1rem 0 auto !important;
+    }
+
+    .main,
+    .container,
+    .page-shell,
+    .page-container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .filter-bar,
+    .acled-filter-row,
+    .acled-cat-row,
+    .news-filter-bar,
+    .grain-view-switch,
+    .chart-intervals {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: .45rem !important;
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scroll-snap-type: inline proximity;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    :is(.filter-bar, .acled-filter-row, .acled-cat-row, .news-filter-bar, .grain-view-switch, .chart-intervals) > * {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+    }
+
+    :is(.filter-bar, .acled-filter-row, .acled-cat-row, .news-filter-bar, .grain-view-switch, .chart-intervals, .crisis-ticker) {
+        scrollbar-width: none !important;
+    }
+
+    :is(.filter-bar, .acled-filter-row, .acled-cat-row, .news-filter-bar, .grain-view-switch, .chart-intervals, .crisis-ticker)::-webkit-scrollbar {
+        display: none;
+    }
+
+    .mkt-ticker {
+        height: 40px !important;
+        overflow-x: auto !important;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mkt-ticker::-webkit-scrollbar { display: none; }
+
+    .mkt-ticker .ticker-inner {
+        width: max-content;
+        animation: none !important;
+        transform: none !important;
+    }
+
+    .mkt-ticker .tk-item {
+        flex: 0 0 auto;
+        min-width: max-content;
+        min-height: 40px;
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+
+    .fpill,
+    .acled-fbtn,
+    .acled-cbtn,
+    .news-fpill,
+    .grain-view-switch button,
+    .chart-intervals button {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--vn-touch-size) !important;
+        padding: .65rem .85rem !important;
+        line-height: 1.15 !important;
+        white-space: nowrap;
+    }
+
+    .grain-table-scroll,
+    .table-scroll,
+    .table-wrap,
+    .data-table-wrap,
+    [class*="table-scroll"],
+    [class*="table-wrap"] {
+        max-width: 100%;
+        overflow-x: auto !important;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    dialog,
+    [role="dialog"],
+    .modal,
+    .drawer,
+    #nm-panel,
+    .cm-panel {
+        max-width: 100vw !important;
+        max-height: 100dvh;
+    }
+
+    .vall-ai-body :is(pre, code) {
+        max-width: 100% !important;
+        white-space: pre-wrap !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word;
+    }
+
+    .vall-ai-body :is(.vai-message, .vai-message-content, .vai-answer, .vai-report-body, .vai-chat-main) {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    #vn-cw-btn,
+    #vn-cw-img-normal,
+    #vn-cw-img-hover {
+        width: 72px !important;
+        height: 72px !important;
+    }
+
+    #vn-cw-btn {
+        right: max(.5rem, env(safe-area-inset-right)) !important;
+        bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-text { font-size: 1.05rem !important; }
+
+    .main,
+    .container {
+        padding-right: max(.65rem, env(safe-area-inset-right)) !important;
+        padding-left: max(.65rem, env(safe-area-inset-left)) !important;
+    }
+
+    .panel,
+    .card,
+    [class$="-panel"],
+    [class$="-card"] {
+        max-width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}

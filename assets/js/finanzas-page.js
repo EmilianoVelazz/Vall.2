@@ -271,14 +271,19 @@ function _vnFinObservar(observador) {
                 const wrapper = document.getElementById('ch-wrapper');
                 const showTime = !['1d','1wk','1mo'].includes(interval);
                 if (!_chart) {
+                    const darkFinance = document.body.classList.contains('vn-dark-finanzas');
+                    const chartSurface = darkFinance ? '#0b1621' : '#fbfdfe';
+                    const chartText = darkFinance ? '#a7b8c5' : '#536675';
+                    const chartGrid = darkFinance ? 'rgba(167,184,197,.11)' : '#edf2f5';
+                    const chartBorder = darkFinance ? '#304354' : '#dce5ea';
                     _chart = LightweightCharts.createChart(wrapper, {
                         width:  wrapper.clientWidth,
                         height: wrapper.clientHeight || 440,
-                        layout: { background: { type: 'solid', color: '#fbfdfe' }, textColor: '#536675', fontFamily: 'Inter, sans-serif', fontSize: 11 },
-                        grid:   { vertLines: { color: '#edf2f5' }, horzLines: { color: '#edf2f5' } },
+                        layout: { background: { type: 'solid', color: chartSurface }, textColor: chartText, fontFamily: 'Inter, sans-serif', fontSize: 11 },
+                        grid:   { vertLines: { color: chartGrid }, horzLines: { color: chartGrid } },
                         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-                        rightPriceScale: { borderColor: '#dce5ea', scaleMargins: { top:.1, bottom:.12 } },
-                        timeScale: { borderColor: '#dce5ea', timeVisible: showTime, rightOffset: 3, barSpacing: 8 },
+                        rightPriceScale: { borderColor: chartBorder, scaleMargins: { top:.1, bottom:.12 } },
+                        timeScale: { borderColor: chartBorder, timeVisible: showTime, rightOffset: 3, barSpacing: 8 },
                     });
                     let _lastChartWidth = wrapper.clientWidth;
                     _vnFinObservar(new ResizeObserver(() => {
@@ -1114,20 +1119,19 @@ function renderFxStrip(fx) {
 }
 async function loadFxStrip() {
     const FX_PAIRS = [
-        { ticker: 'USDMXN=X', flag: '🇺🇸', label: 'USD/MXN', note: 'Dólar EUA',        mode: 'direct'    },
-        { ticker: 'EURUSD=X', flag: '🇪🇺', label: 'EUR/MXN', note: 'Euro',              mode: 'eur_cross' },
-        { ticker: 'GBPUSD=X', flag: '🇬🇧', label: 'GBP/MXN', note: 'Libra Esterlina',  mode: 'gbp_cross' },
-        { ticker: 'USDJPY=X', flag: '🇯🇵', label: 'JPY/MXN', note: 'Yen (×100)',        mode: 'jpy_cross' },
-        { ticker: 'USDBRL=X', flag: '🇧🇷', label: 'BRL/MXN', note: 'Real Brasileño',   mode: 'brl_cross' },
-        { ticker: 'USDCAD=X', flag: '🇨🇦', label: 'CAD/MXN', note: 'Dólar Canadiense', mode: 'cad_cross' },
-        { ticker: 'USDCNY=X', flag: '🇨🇳', label: 'CNY/MXN', note: 'Yuan Chino',        mode: 'cny_cross' },
+        { ticker: 'EURUSD=X', flag: '🇪🇺🇺🇸', label: 'EUR/USD', note: 'Euro frente al dólar', mode: 'direct' },
+        { ticker: 'GBPUSD=X', flag: '🇬🇧🇺🇸', label: 'GBP/USD', note: 'Libra frente al dólar', mode: 'direct' },
+        { ticker: 'USDJPY=X', flag: '🇺🇸🇯🇵', label: 'USD/JPY', note: 'Dólar frente al yen', mode: 'direct' },
+        { ticker: 'USDCAD=X', flag: '🇺🇸🇨🇦', label: 'USD/CAD', note: 'Dólar frente al canadiense', mode: 'direct' },
+        { ticker: 'USDCHF=X', flag: '🇺🇸🇨🇭', label: 'USD/CHF', note: 'Dólar frente al franco', mode: 'direct' },
+        { ticker: 'AUDUSD=X', flag: '🇦🇺🇺🇸', label: 'AUD/USD', note: 'Australiano frente al dólar', mode: 'direct' },
+        { ticker: 'NZDUSD=X', flag: '🇳🇿🇺🇸', label: 'NZD/USD', note: 'Neozelandés frente al dólar', mode: 'direct' },
+        { ticker: 'USDBRL=X', flag: '🇺🇸🇧🇷', label: 'USD/BRL', note: 'Dólar frente al real', mode: 'direct' },
+        { ticker: 'USDCNY=X', flag: '🇺🇸🇨🇳', label: 'USD/CNY', note: 'Dólar frente al yuan', mode: 'direct' },
+        { ticker: 'USDINR=X', flag: '🇺🇸🇮🇳', label: 'USD/INR', note: 'Dólar frente a la rupia', mode: 'direct' },
     ];
     try {
         const results  = await Promise.allSettled(FX_PAIRS.map(p => fetchAssetData(p.ticker)));
-        const baseMeta = results[0].status === 'fulfilled' ? results[0].value?.meta : null;
-        const usdmxn   = baseMeta?.regularMarketPrice;
-        const usdmxnPct= baseMeta?.regularMarketChangePercent;
-        if (!usdmxn) throw new Error('USD/MXN no disponible');
 
         /* La tira "Tipo de Cambio · Tiempo Real" se retiró de Bolsa, así que
            #fxStrip ya no existe. Antes había aquí un `return` que salía en ese
@@ -1140,12 +1144,8 @@ async function loadFxStrip() {
             const candles = results[i].status === 'fulfilled' ? results[i].value?.candles : null;
             const rawPx   = meta?.regularMarketPrice;
             const rawPct  = meta?.regularMarketChangePercent;
-            let price, pct;
-            if      (p.mode === 'direct')    { price = rawPx; pct = rawPct; }
-            else if (p.mode === 'eur_cross') { price = rawPx ? rawPx * usdmxn : null; pct = (rawPct != null && usdmxnPct != null) ? rawPct + usdmxnPct : null; }
-            else if (p.mode === 'gbp_cross') { price = rawPx ? rawPx * usdmxn : null; pct = (rawPct != null && usdmxnPct != null) ? rawPct + usdmxnPct : null; }
-            else if (p.mode === 'jpy_cross') { price = rawPx ? (usdmxn / rawPx) * 100 : null; pct = (rawPct != null && usdmxnPct != null) ? usdmxnPct - rawPct : null; }
-            else                             { price = rawPx ? usdmxn / rawPx : null; pct = (rawPct != null && usdmxnPct != null) ? usdmxnPct - rawPct : null; }
+            const price = rawPx;
+            const pct = rawPct;
             return { pair: p, meta, candles, price, pct, rawPx };
         });
 
@@ -1155,7 +1155,7 @@ async function loadFxStrip() {
             if (!it.price) return '';
             const { pair: p, price, pct } = it;
             const isUp  = (pct ?? 0) >= 0;
-            const disp  = p.mode === 'jpy_cross' ? price.toFixed(4) : price.toFixed(2);
+            const disp  = price >= 100 ? price.toFixed(2) : price.toFixed(4);
             const pctHtml = pct != null
                 ? `<span style="font-size:.55rem;font-weight:700;color:${isUp ? '#16a34a' : '#dc2626'};">${isUp ? '▲' : '▼'} ${Math.abs(pct).toFixed(2)}%</span>` : '';
             return `<div class="fx-card" onclick="openFxDetail(${i})" style="cursor:pointer">
@@ -1174,35 +1174,324 @@ async function loadFxStrip() {
             if (fxSec) fxSec.style.display = '';
         }
         renderFxProfessionalDashboard(items);
+        renderFxOverviewTile(items);
+        if (document.body.classList.contains('ff-detail-divisas')) loadFxHistoricalLab();
     } catch(e) {
         console.error('loadFxStrip error:', e);
         const references = [
-            {ticker:'USDMXN=X',flag:'🇺🇸',label:'USD/MXN',note:'Dólar EUA',mode:'direct',price:17.85,pct:0.12},
-            {ticker:'EURUSD=X',flag:'🇪🇺',label:'EUR/MXN',note:'Euro',mode:'eur_cross',price:20.91,pct:-0.08},
-            {ticker:'GBPUSD=X',flag:'🇬🇧',label:'GBP/MXN',note:'Libra Esterlina',mode:'gbp_cross',price:24.17,pct:0.16},
-            {ticker:'USDJPY=X',flag:'🇯🇵',label:'JPY/MXN',note:'Yen (×100)',mode:'jpy_cross',price:11.42,pct:-0.22},
-            {ticker:'USDBRL=X',flag:'🇧🇷',label:'BRL/MXN',note:'Real Brasileño',mode:'brl_cross',price:3.32,pct:0.05},
-            {ticker:'USDCAD=X',flag:'🇨🇦',label:'CAD/MXN',note:'Dólar Canadiense',mode:'cad_cross',price:13.02,pct:-0.04},
-            {ticker:'USDCNY=X',flag:'🇨🇳',label:'CNY/MXN',note:'Yuan Chino',mode:'cny_cross',price:2.46,pct:0.09}
+            {ticker:'EURUSD=X',flag:'🇪🇺🇺🇸',label:'EUR/USD',note:'Euro frente al dólar',mode:'direct',price:1.1684,pct:-0.08},
+            {ticker:'GBPUSD=X',flag:'🇬🇧🇺🇸',label:'GBP/USD',note:'Libra frente al dólar',mode:'direct',price:1.3539,pct:0.16},
+            {ticker:'USDJPY=X',flag:'🇺🇸🇯🇵',label:'USD/JPY',note:'Dólar frente al yen',mode:'direct',price:156.30,pct:0.22},
+            {ticker:'USDCAD=X',flag:'🇺🇸🇨🇦',label:'USD/CAD',note:'Dólar frente al canadiense',mode:'direct',price:1.3710,pct:0.04},
+            {ticker:'USDCHF=X',flag:'🇺🇸🇨🇭',label:'USD/CHF',note:'Dólar frente al franco',mode:'direct',price:0.8040,pct:-0.05},
+            {ticker:'AUDUSD=X',flag:'🇦🇺🇺🇸',label:'AUD/USD',note:'Australiano frente al dólar',mode:'direct',price:0.6510,pct:0.09},
+            {ticker:'NZDUSD=X',flag:'🇳🇿🇺🇸',label:'NZD/USD',note:'Neozelandés frente al dólar',mode:'direct',price:0.6030,pct:-0.03},
+            {ticker:'USDBRL=X',flag:'🇺🇸🇧🇷',label:'USD/BRL',note:'Dólar frente al real',mode:'direct',price:5.3765,pct:-0.05},
+            {ticker:'USDCNY=X',flag:'🇺🇸🇨🇳',label:'USD/CNY',note:'Dólar frente al yuan',mode:'direct',price:7.2561,pct:0.09},
+            {ticker:'USDINR=X',flag:'🇺🇸🇮🇳',label:'USD/INR',note:'Dólar frente a la rupia',mode:'direct',price:86.54,pct:0.07}
         ];
-        const indicativeRaw = {
-            'USDMXN=X':17.85,
-            'EURUSD=X':20.91/17.85,
-            'GBPUSD=X':24.17/17.85,
-            'USDJPY=X':17.85/(11.42/100),
-            'USDBRL=X':17.85/3.32,
-            'USDCAD=X':17.85/13.02,
-            'USDCNY=X':17.85/2.46
-        };
         const referencesWithMeta = references.map(ref => {
-            const rawPx = indicativeRaw[ref.ticker];
+            const rawPx = ref.price;
             return {pair:{ticker:ref.ticker,flag:ref.flag,label:ref.label,note:ref.note,mode:ref.mode},meta:{regularMarketPrice:rawPx,regularMarketChangePercent:ref.pct},candles:[],price:ref.price,pct:ref.pct,rawPx,indicative:true};
         });
         _fxData = referencesWithMeta;
         renderFxProfessionalDashboard(referencesWithMeta);
+        renderFxOverviewTile(referencesWithMeta);
+        if (document.body.classList.contains('ff-detail-divisas')) loadFxHistoricalLab();
         const upd = document.getElementById('fx-pro-updated');
         if (upd) upd.textContent = 'Datos de referencia · fuente en vivo no disponible';
     }
+}
+
+var FX_HISTORY_CONFIG = {
+    'EURUSD=X': { label:'EUR / USD', color:'#4d6478', decimals:4 },
+    'GBPUSD=X': { label:'GBP / USD', color:'#766087', decimals:4 },
+    'USDJPY=X': { label:'USD / JPY', color:'#ad7629', decimals:2 },
+    'USDCAD=X': { label:'USD / CAD', color:'#a34b55', decimals:4 },
+    'USDBRL=X': { label:'USD / BRL', color:'#527565', decimals:4 },
+    'USDCNY=X': { label:'USD / CNY', color:'#8a7045', decimals:4 },
+    'USDCHF=X': { label:'USD / CHF', color:'#68717d', decimals:4 },
+    'AUDUSD=X': { label:'AUD / USD', color:'#55757b', decimals:4 },
+    'NZDUSD=X': { label:'NZD / USD', color:'#687c5b', decimals:4 },
+    'USDINR=X': { label:'USD / INR', color:'#9a6b45', decimals:4 }
+};
+var FX_HISTORY_PERIODS = {
+    '5d':  { range:'5d',  interval:'1h' },
+    '1mo': { range:'1mo', interval:'1d' },
+    '3mo': { range:'3mo', interval:'1d' },
+    '1y':  { range:'1y',  interval:'1d' },
+    '5y':  { range:'5y',  interval:'1wk' }
+};
+var _fxHistoryChart = null;
+var _fxOverviewChart = null;
+var _fxHistoryRequest = 0;
+var _fxHistoryState = { primary:'EURUSD=X', comparisons:['GBPUSD=X','USDJPY=X'], period:'1y', mode:'relative' };
+
+function renderFxOverviewTile(items) {
+    const usd = Array.isArray(items) ? items.find(item => item?.pair?.ticker === 'EURUSD=X') : null;
+    const value = document.getElementById('ff-tile-divisas');
+    const delta = document.getElementById('ff-tile-divisas-delta');
+    if (value && Number.isFinite(+usd?.price)) value.textContent = Number(usd.price).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:4});
+    if (delta && Number.isFinite(+usd?.pct)) {
+        const pct = +usd.pct;
+        delta.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+        delta.className = pct >= 0 ? 'is-up' : 'is-down';
+    }
+    const canvas = document.getElementById('ff-spark-divisas');
+    const closes = (usd?.candles || []).map(item => Number(item.close)).filter(Number.isFinite).slice(-40);
+    if (!canvas || closes.length < 2 || typeof Chart === 'undefined') return;
+    if (_fxOverviewChart) _fxOverviewChart.destroy();
+    _fxOverviewChart = new Chart(canvas.getContext('2d'), {
+        type:'line',
+        data:{ labels:closes.map((_,i)=>i+1), datasets:[{ data:closes, borderColor:'#67e8c7', backgroundColor:'rgba(15,138,120,.2)', borderWidth:2, pointRadius:0, fill:true, tension:.28 }] },
+        options:{ responsive:true, maintainAspectRatio:false, animation:{duration:500}, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}} }
+    });
+}
+
+function fxHistoryTime(value) {
+    const parsed = typeof value === 'number' ? new Date(value < 1e11 ? value * 1000 : value) : new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function fxHistoryKey(value) {
+    const date = fxHistoryTime(value);
+    return date ? date.toISOString() : String(value);
+}
+
+function fxHistoryFormat(value, ticker) {
+    const cfg = FX_HISTORY_CONFIG[ticker] || { decimals:4 };
+    return Number.isFinite(+value)
+        ? Number(value).toLocaleString('es-MX',{minimumFractionDigits:cfg.decimals,maximumFractionDigits:cfg.decimals})
+        : '—';
+}
+
+function fxHistoryMetrics(candles) {
+    const closes = (candles || []).map(item => Number(item.close)).filter(value => Number.isFinite(value) && value > 0);
+    if (!closes.length) return { first:null,last:null,change:null,high:null,low:null,vol:null,count:0 };
+    const returns = closes.slice(1).map((value,index) => Math.log(value / closes[index])).filter(Number.isFinite);
+    const mean = returns.length ? returns.reduce((sum,value)=>sum+value,0) / returns.length : 0;
+    const variance = returns.length > 1 ? returns.reduce((sum,value)=>sum+Math.pow(value-mean,2),0)/(returns.length-1) : 0;
+    return {
+        first:closes[0], last:closes[closes.length-1],
+        change:closes[0] ? (closes[closes.length-1]/closes[0]-1)*100 : null,
+        high:Math.max(...closes), low:Math.min(...closes),
+        vol:returns.length > 1 ? Math.sqrt(variance) * Math.sqrt(_fxHistoryState.period === '5d' ? 24*252 : 252) * 100 : null,
+        count:closes.length
+    };
+}
+
+function setFxHistoryLoading(kind, message) {
+    const state = document.getElementById('fx-history-state');
+    const lab = document.getElementById('fx-history-lab');
+    if (lab) lab.setAttribute('aria-busy', String(kind === 'loading'));
+    if (!state) return;
+    state.classList.toggle('is-off', kind === 'ready');
+    state.classList.toggle('is-error', kind === 'error');
+    state.innerHTML = kind === 'error'
+        ? `<i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>${message || 'No se pudieron cargar las series cambiarias.'}</span>`
+        : `<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>${message || 'Cargando series cambiarias…'}</span>`;
+}
+
+let _fxHistoryNoteTimer = null;
+function updateFxHistoryModeNote(message, warning = false, temporary = false) {
+    const note = document.getElementById('fx-history-mode-note');
+    if (!note) return;
+    const fallback = _fxHistoryState.mode === 'quote'
+        ? 'Cotización muestra el nivel nominal del cruce principal. Activa Base 100 para comparar monedas distintas.'
+        : 'Base 100 muestra el rendimiento relativo de todas las monedas desde un mismo punto de partida.';
+    note.classList.toggle('is-warning', warning);
+    note.innerHTML = `<i class="fas ${warning ? 'fa-triangle-exclamation' : 'fa-circle-info'}" aria-hidden="true"></i>${message || fallback}`;
+    if (_fxHistoryNoteTimer) clearTimeout(_fxHistoryNoteTimer);
+    if (temporary) {
+        _fxHistoryNoteTimer = setTimeout(() => updateFxHistoryModeNote(), 2800);
+    }
+}
+
+async function fetchFxHistory(ticker) {
+    const params = FX_HISTORY_PERIODS[_fxHistoryState.period] || FX_HISTORY_PERIODS['1y'];
+    const response = await fetch(`/api/stock-history?ticker=${encodeURIComponent(ticker)}&range=${params.range}&interval=${params.interval}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const candles = Array.isArray(data?.candles) ? data.candles.filter(item => Number.isFinite(+item.close)) : [];
+    if (candles.length < 2) throw new Error('Serie insuficiente');
+    return { ticker, candles, meta:data?.meta || {}, metrics:fxHistoryMetrics(candles) };
+}
+
+function syncFxHistoryControls() {
+    const primary = document.getElementById('fx-history-primary');
+    if (primary) primary.value = _fxHistoryState.primary;
+    document.querySelectorAll('[data-fx-period]').forEach(button => {
+        const active = button.dataset.fxPeriod === _fxHistoryState.period;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+    document.querySelectorAll('[data-fx-mode]').forEach(button => {
+        const active = button.dataset.fxMode === _fxHistoryState.mode;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+    document.querySelectorAll('[data-fx-compare]').forEach(button => {
+        const ticker = button.dataset.fxCompare;
+        const active = _fxHistoryState.comparisons.includes(ticker);
+        button.disabled = ticker === _fxHistoryState.primary;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+    updateFxHistoryModeNote();
+}
+
+function bindFxHistoryLab() {
+    const lab = document.getElementById('fx-history-lab');
+    if (!lab || lab.dataset.bound === 'true') return;
+    lab.dataset.bound = 'true';
+    document.getElementById('fx-history-primary')?.addEventListener('change', event => {
+        _fxHistoryState.primary = event.target.value;
+        _fxHistoryState.comparisons = _fxHistoryState.comparisons.filter(ticker => ticker !== _fxHistoryState.primary);
+        syncFxHistoryControls();
+        loadFxHistoricalLab();
+    });
+    document.querySelectorAll('[data-fx-period]').forEach(button => button.addEventListener('click', () => {
+        _fxHistoryState.period = button.dataset.fxPeriod;
+        syncFxHistoryControls();
+        loadFxHistoricalLab();
+    }));
+    document.querySelectorAll('[data-fx-mode]').forEach(button => button.addEventListener('click', () => {
+        _fxHistoryState.mode = button.dataset.fxMode;
+        if (_fxHistoryState.mode === 'quote') _fxHistoryState.comparisons = [];
+        syncFxHistoryControls();
+        loadFxHistoricalLab();
+    }));
+    document.querySelectorAll('[data-fx-compare]').forEach(button => button.addEventListener('click', () => {
+        if (button.disabled) return;
+        const ticker = button.dataset.fxCompare;
+        if (_fxHistoryState.comparisons.includes(ticker)) {
+            _fxHistoryState.comparisons = _fxHistoryState.comparisons.filter(item => item !== ticker);
+        } else if (_fxHistoryState.comparisons.length < 3) {
+            _fxHistoryState.comparisons.push(ticker);
+            _fxHistoryState.mode = 'relative';
+        } else {
+            updateFxHistoryModeNote('Puedes comparar hasta tres cruces adicionales. Desactiva uno para elegir otra moneda.', true, true);
+            return;
+        }
+        syncFxHistoryControls();
+        loadFxHistoricalLab();
+    }));
+    syncFxHistoryControls();
+}
+
+function renderFxHistoryResults(series) {
+    const primary = series.find(item => item.ticker === _fxHistoryState.primary) || series[0];
+    if (!primary || typeof Chart === 'undefined') throw new Error('Gráfica no disponible');
+    const metric = primary.metrics;
+    const set = (id,value) => { const element=document.getElementById(id); if(element) element.textContent=value; };
+    set('fx-history-last', fxHistoryFormat(metric.last,primary.ticker));
+    set('fx-history-last-label', FX_HISTORY_CONFIG[primary.ticker]?.label || primary.ticker);
+    set('fx-history-change', Number.isFinite(metric.change) ? `${metric.change>=0?'+':''}${metric.change.toFixed(2)}%` : '—');
+    set('fx-history-high', fxHistoryFormat(metric.high,primary.ticker));
+    set('fx-history-low', fxHistoryFormat(metric.low,primary.ticker));
+    set('fx-history-vol', Number.isFinite(metric.vol) ? `${metric.vol.toFixed(2)}%` : '—');
+    const changeElement = document.getElementById('fx-history-change');
+    if (changeElement) changeElement.className = !Number.isFinite(metric.change) ? '' : metric.change >= 0 ? 'is-up' : 'is-down';
+
+    const allKeys = [...new Set(series.flatMap(item => item.candles.map(candle => fxHistoryKey(candle.time))))]
+        .sort((a,b) => new Date(a) - new Date(b));
+    const relative = _fxHistoryState.mode === 'relative' || series.length > 1;
+    const datasets = series.map(item => {
+        const cfg = FX_HISTORY_CONFIG[item.ticker] || { label:item.ticker,color:'#64748b' };
+        const values = new Map(item.candles.map(candle => [fxHistoryKey(candle.time),Number(candle.close)]));
+        const first = item.metrics.first;
+        return {
+            label:cfg.label,
+            data:allKeys.map(key => {
+                const value=values.get(key);
+                return Number.isFinite(value) ? (relative && first ? value/first*100 : value) : null;
+            }),
+            borderColor:cfg.color,
+            backgroundColor:`${cfg.color}18`,
+            borderWidth:item.ticker === _fxHistoryState.primary ? 2.6 : 1.8,
+            pointRadius:0,
+            pointHoverRadius:4,
+            spanGaps:true,
+            tension:.22,
+            fill:false
+        };
+    });
+    const labels = allKeys.map(key => {
+        const date = new Date(key);
+        return Number.isNaN(date.getTime()) ? key : date.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:_fxHistoryState.period==='5y'?'2-digit':undefined});
+    });
+    if (_fxHistoryChart) _fxHistoryChart.destroy();
+    const canvas = document.getElementById('fx-history-chart');
+    const darkFxTheme = document.body.classList.contains('vn-dark-finanzas');
+    const fxChartInk = darkFxTheme ? '#a9bac7' : '#71838a';
+    const fxChartGrid = darkFxTheme ? 'rgba(164,188,205,.11)' : 'rgba(16,45,55,.07)';
+    _fxHistoryChart = new Chart(canvas.getContext('2d'), {
+        type:'line', data:{labels,datasets},
+        options:{
+            responsive:true, maintainAspectRatio:false, animation:{duration:450}, normalized:true,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                legend:{display:false},
+                tooltip:{callbacks:{label:context => ` ${context.dataset.label}: ${relative ? Number(context.parsed.y).toFixed(2)+' base' : Number(context.parsed.y).toFixed(FX_HISTORY_CONFIG[series[context.datasetIndex].ticker]?.decimals || 4)}`}}
+            },
+            scales:{
+                x:{grid:{display:false},ticks:{color:fxChartInk,font:{size:10},maxTicksLimit:8,maxRotation:0}},
+                y:{grid:{color:fxChartGrid},border:{display:false},ticks:{color:fxChartInk,font:{size:10},callback:value=>relative?Number(value).toFixed(1):Number(value).toFixed(2)}}
+            }
+        }
+    });
+
+    const legend = document.getElementById('fx-history-legend');
+    if (legend) legend.innerHTML = series.map(item => `<span><i style="background:${FX_HISTORY_CONFIG[item.ticker]?.color || '#64748b'}"></i>${FX_HISTORY_CONFIG[item.ticker]?.label || item.ticker}</span>`).join('');
+    const body = document.getElementById('fx-history-table-body');
+    if (body) body.innerHTML = series.map(item => {
+        const m=item.metrics, change=Number.isFinite(m.change)?`${m.change>=0?'+':''}${m.change.toFixed(2)}%`:'—';
+        return `<tr><td>${FX_HISTORY_CONFIG[item.ticker]?.label || item.ticker}</td><td>${fxHistoryFormat(m.last,item.ticker)}</td><td class="${m.change>=0?'is-up':'is-down'}">${change}</td><td>${fxHistoryFormat(m.high,item.ticker)}</td><td>${fxHistoryFormat(m.low,item.ticker)}</td><td>${m.count.toLocaleString('es-MX')}</td></tr>`;
+    }).join('');
+    const updated = document.getElementById('fx-history-updated');
+    if (updated) updated.innerHTML = `<i></i> Actualizado ${new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
+    canvas.setAttribute('aria-label', `${relative ? 'Comparación base 100' : 'Cotización histórica'} de ${series.map(item=>FX_HISTORY_CONFIG[item.ticker]?.label || item.ticker).join(', ')}`);
+}
+
+async function loadFxHistoricalLab() {
+    const lab = document.getElementById('fx-history-lab');
+    if (!lab) return;
+    bindFxHistoryLab();
+    const requestId = ++_fxHistoryRequest;
+    const tickers = [_fxHistoryState.primary, ..._fxHistoryState.comparisons.filter(ticker=>ticker!==_fxHistoryState.primary)].slice(0,4);
+    setFxHistoryLoading('loading', `Cargando ${tickers.length} ${tickers.length===1?'serie':'series'} cambiarias…`);
+    try {
+        const results = await Promise.allSettled(tickers.map(fetchFxHistory));
+        if (requestId !== _fxHistoryRequest) return;
+        const series = results.filter(result=>result.status==='fulfilled').map(result=>result.value);
+        if (!series.some(item=>item.ticker===_fxHistoryState.primary)) throw new Error('El cruce principal no devolvió datos');
+        renderFxHistoryResults(series);
+        setFxHistoryLoading('ready');
+    } catch (error) {
+        if (requestId !== _fxHistoryRequest) return;
+        console.error('FX history:',error);
+        setFxHistoryLoading('error','No se pudieron cargar los históricos. Intenta otro periodo.');
+    }
+}
+
+function openFxDetail(index) {
+    const item = Array.isArray(_fxData) ? _fxData[index] : null;
+    if (!item) return;
+    openMktEntry({
+        asset:{label:item.pair.label,ticker:item.pair.ticker,sub:'TIPO DE CAMBIO INTERNACIONAL',metricLabel:'Cotización',context:`${item.pair.note}. Selecciona el cruce en el comparador histórico para estudiar su evolución.`},
+        meta:{regularMarketPrice:item.price,regularMarketChangePercent:item.pct},
+        candles:item.candles || []
+    });
+}
+
+function openInternationalFxReport(index) {
+    const item = Array.isArray(_internationalFxBoard) ? _internationalFxBoard[index] : null;
+    if (!item) return;
+    openMktEntry({
+        asset:{label:item.label,ticker:item.label.replace('/',''),sub:'MERCADO FOREX GLOBAL',metricLabel:'Cotización',context:item.context},
+        meta:{regularMarketPrice:item.price,regularMarketChangePercent:item.pct},
+        candles:item.candles || []
+    });
 }
 
 var _internationalFxBoard = [];
@@ -1217,29 +1506,73 @@ function buildInternationalFxBoard(items) {
             candles: item.candles || []
         } : null;
     };
-    const usdMxn = raw('USDMXN=X');
     const eurUsd = raw('EURUSD=X');
     const gbpUsd = raw('GBPUSD=X');
     const usdJpy = raw('USDJPY=X');
     const usdBrl = raw('USDBRL=X');
     const usdCad = raw('USDCAD=X');
     const usdCny = raw('USDCNY=X');
+    const usdChf = raw('USDCHF=X');
+    const audUsd = raw('AUDUSD=X');
+    const nzdUsd = raw('NZDUSD=X');
+    const usdInr = raw('USDINR=X');
     const valid = value => Number.isFinite(value) && value > 0;
-    const pctSum = (...values) => values.every(Number.isFinite) ? values.reduce((sum,value) => sum + value,0) : null;
-    const pctDiff = (a,b) => Number.isFinite(a) && Number.isFinite(b) ? a-b : null;
-    const pair = (label, flag, note, price, pct, decimals, source, context, candles) => ({label,flag,note,price,pct,decimals,source,context,candles:candles||[]});
+    const pair = (label, flag, note, price, pct, decimals, source, context, candles, search) => ({label,flag,note,price,pct,decimals,source,context,candles:candles||[],search:search||''});
     return [
-        pair('EUR/USD','🇪🇺🇺🇸','Euro frente al dólar',eurUsd?.price,eurUsd?.pct,4,'Yahoo Finance · EURUSD=X','Principal cruce mundial. Refleja el diferencial de crecimiento y política monetaria entre la zona euro y Estados Unidos.',eurUsd?.candles),
-        pair('GBP/USD','🇬🇧🇺🇸','Libra frente al dólar',gbpUsd?.price,gbpUsd?.pct,4,'Yahoo Finance · GBPUSD=X','Cruce sensible a las decisiones del Banco de Inglaterra, la Fed y las expectativas de crecimiento del Reino Unido.',gbpUsd?.candles),
-        pair('USD/JPY','🇺🇸🇯🇵','Dólar frente al yen',usdJpy?.price,usdJpy?.pct,2,'Yahoo Finance · USDJPY=X','Barómetro del diferencial de tasas entre la Fed y el Banco de Japón, además de la demanda global por activos refugio.',usdJpy?.candles),
-        pair('EUR/GBP','🇪🇺🇬🇧','Euro frente a la libra',valid(eurUsd?.price)&&valid(gbpUsd?.price)?eurUsd.price/gbpUsd.price:null,pctDiff(eurUsd?.pct,gbpUsd?.pct),4,'Cross-rate EUR/USD ÷ GBP/USD','Compara directamente las perspectivas monetarias y económicas de la zona euro y el Reino Unido.'),
-        pair('EUR/JPY','🇪🇺🇯🇵','Euro frente al yen',valid(eurUsd?.price)&&valid(usdJpy?.price)?eurUsd.price*usdJpy.price:null,pctSum(eurUsd?.pct,usdJpy?.pct),2,'Cross-rate EUR/USD × USD/JPY','Cruce de apetito por riesgo y diferencial de tasas entre Europa y Japón.'),
-        pair('GBP/JPY','🇬🇧🇯🇵','Libra frente al yen',valid(gbpUsd?.price)&&valid(usdJpy?.price)?gbpUsd.price*usdJpy.price:null,pctSum(gbpUsd?.pct,usdJpy?.pct),2,'Cross-rate GBP/USD × USD/JPY','Cruce de alta sensibilidad al riesgo global, las tasas británicas y la política monetaria japonesa.'),
-        pair('USD/CAD','🇺🇸🇨🇦','Dólar frente al canadiense',usdCad?.price,usdCad?.pct,4,'Yahoo Finance · USDCAD=X','Sensible al diferencial Fed–Banco de Canadá, al petróleo y al ciclo comercial norteamericano.',usdCad?.candles),
-        pair('USD/BRL','🇺🇸🇧🇷','Dólar frente al real',usdBrl?.price,usdBrl?.pct,4,'Yahoo Finance · USDBRL=X','Referencia de riesgo latinoamericano, tasas brasileñas, materias primas y flujos hacia mercados emergentes.',usdBrl?.candles),
-        pair('USD/CNY','🇺🇸🇨🇳','Dólar frente al yuan',usdCny?.price,usdCny?.pct,4,'Yahoo Finance · USDCNY=X','Indicador de la política cambiaria china, tensiones comerciales y competitividad manufacturera global.',usdCny?.candles),
-        pair('USD/MXN','🇺🇸🇲🇽','Dólar frente al peso',usdMxn?.price,usdMxn?.pct,4,'Yahoo Finance · USDMXN=X','Cruce mexicano dentro del tablero global. Reacciona al carry, la relación comercial con EE.UU. y el apetito por riesgo.',usdMxn?.candles)
+        pair('EUR/USD','🇪🇺🇺🇸','Euro frente al dólar',eurUsd?.price,eurUsd?.pct,4,'Yahoo Finance · EURUSD=X','Principal cruce mundial. Refleja el diferencial de crecimiento y política monetaria entre la zona euro y Estados Unidos.',eurUsd?.candles,'euro dolar estados unidos europa zona euro eur usd'),
+        pair('GBP/USD','🇬🇧🇺🇸','Libra frente al dólar',gbpUsd?.price,gbpUsd?.pct,4,'Yahoo Finance · GBPUSD=X','Cruce líquido sensible a las decisiones del Banco de Inglaterra y la Fed.',gbpUsd?.candles,'libra esterlina dolar reino unido inglaterra estados unidos gbp usd'),
+        pair('USD/JPY','🇺🇸🇯🇵','Dólar frente al yen',usdJpy?.price,usdJpy?.pct,2,'Yahoo Finance · USDJPY=X','Barómetro del diferencial de tasas entre la Fed y el Banco de Japón y de la demanda por refugio.',usdJpy?.candles,'dolar yen japon estados unidos usd jpy'),
+        pair('USD/CAD','🇺🇸🇨🇦','Dólar frente al canadiense',usdCad?.price,usdCad?.pct,4,'Yahoo Finance · USDCAD=X','Sensible al petróleo y al ciclo comercial de Norteamérica.',usdCad?.candles,'dolar canadiense canada estados unidos norteamerica usd cad'),
+        pair('USD/CHF','🇺🇸🇨🇭','Dólar frente al franco',usdChf?.price,usdChf?.pct,4,'Yahoo Finance · USDCHF=X','Cruce de refugio que contrasta la demanda por dólares y francos suizos.',usdChf?.candles,'dolar franco suizo suiza estados unidos usd chf'),
+        pair('AUD/USD','🇦🇺🇺🇸','Australiano frente al dólar',audUsd?.price,audUsd?.pct,4,'Yahoo Finance · AUDUSD=X','Cruce sensible al ciclo de materias primas, China y apetito global por riesgo.',audUsd?.candles,'dolar australiano australia estados unidos aud usd'),
+        pair('NZD/USD','🇳🇿🇺🇸','Neozelandés frente al dólar',nzdUsd?.price,nzdUsd?.pct,4,'Yahoo Finance · NZDUSD=X','Referencia de liquidez del Pacífico y expectativas del banco central de Nueva Zelanda.',nzdUsd?.candles,'dolar neozelandes nueva zelanda estados unidos nzd usd'),
+        pair('USD/BRL','🇺🇸🇧🇷','Dólar frente al real',usdBrl?.price,usdBrl?.pct,4,'Yahoo Finance · USDBRL=X','Referencia líquida de riesgo latinoamericano, tasas y materias primas.',usdBrl?.candles,'dolar real brasil latinoamerica emergentes usd brl'),
+        pair('USD/CNY','🇺🇸🇨🇳','Dólar frente al yuan',usdCny?.price,usdCny?.pct,4,'Yahoo Finance · USDCNY=X','Indicador de política cambiaria, comercio y competitividad manufacturera china.',usdCny?.candles,'dolar yuan renminbi china estados unidos asia usd cny'),
+        pair('USD/INR','🇺🇸🇮🇳','Dólar frente a la rupia',usdInr?.price,usdInr?.pct,4,'Yahoo Finance · USDINR=X','Cruce emergente sensible a energía, flujos de capital y política del Banco de la Reserva de India.',usdInr?.candles,'dolar rupia india estados unidos asia usd inr')
     ].filter(item => valid(item.price));
+}
+
+function normalizeFxSearch(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+
+function filterFxMarketBoard() {
+    const input = document.getElementById('fx-market-search-input');
+    const grid = document.getElementById('fx-pro-pair-grid');
+    if (!input || !grid) return;
+    const query = normalizeFxSearch(input.value);
+    const cards = [...grid.querySelectorAll('.fx-pro-pair')];
+    let visible = 0;
+    cards.forEach(card => {
+        const match = !query || normalizeFxSearch(card.dataset.fxSearch).includes(query);
+        card.hidden = !match;
+        if (match) visible += 1;
+    });
+    const status = document.getElementById('fx-market-search-status');
+    const empty = document.getElementById('fx-market-search-empty');
+    const clear = document.getElementById('fx-market-search-clear');
+    if (status) status.textContent = query ? `${visible} de ${cards.length} cruces coinciden con "${input.value.trim()}"` : `${cards.length} cruces prioritarios disponibles`;
+    if (empty) empty.hidden = visible !== 0;
+    if (clear) clear.hidden = !query;
+}
+
+function bindFxMarketSearch() {
+    const input = document.getElementById('fx-market-search-input');
+    if (!input || input.dataset.bound === 'true') return;
+    input.dataset.bound = 'true';
+    input.addEventListener('input', filterFxMarketBoard);
+    document.getElementById('fx-market-search-clear')?.addEventListener('click', () => {
+        input.value = '';
+        filterFxMarketBoard();
+        input.focus();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (/input|textarea|select/i.test(document.activeElement?.tagName || '')) return;
+        if (!document.body.classList.contains('ff-detail-divisas')) return;
+        event.preventDefault();
+        input.focus();
+    });
 }
 
 function renderFxProfessionalDashboard(items) {
@@ -1247,30 +1580,31 @@ function renderFxProfessionalDashboard(items) {
     if (!panel) return;
     items = Array.isArray(items) ? items.map((item,sourceIndex) => item ? ({...item,_sourceIndex:sourceIndex}) : null).filter(item => item && item.price != null) : [];
     const set = (id, value) => { const el = document.getElementById(id); if (el && value != null) el.textContent = value; };
-    const formatPrice = item => item ? '$' + (item.pair.mode === 'jpy_cross' ? Number(item.price).toFixed(4) : Number(item.price).toFixed(2)) : '—';
+    const formatPrice = item => item ? Number(item.price).toLocaleString('es-MX',{minimumFractionDigits:Number(item.price)>=100?2:4,maximumFractionDigits:Number(item.price)>=100?2:4}) : '—';
     const setChange = (id, pct, fallback) => {
         const el = document.getElementById(id); if (!el) return;
         if (pct == null || !Number.isFinite(+pct)) { el.textContent = fallback; el.className = ''; return; }
         const n = +pct;
-        el.textContent = `${n >= 0 ? '▲ +' : '▼ '}${Math.abs(n).toFixed(2)}% · ${n > 0 ? 'presión MXN' : n < 0 ? 'fortaleza MXN' : 'sin cambio'}`;
-        el.className = n > 0 ? 'down' : n < 0 ? 'up' : '';
+        el.textContent = `${n >= 0 ? '▲ +' : '▼ '}${Math.abs(n).toFixed(2)}% · sesión`;
+        el.className = n > 0 ? 'up' : n < 0 ? 'down' : '';
     };
-    const usd = items.find(item => item.pair.label === 'USD/MXN') || _fxData?.[0];
-    const eur = items.find(item => item.pair.label === 'EUR/MXN') || _fxData?.[1];
-    const gbp = items.find(item => item.pair.label === 'GBP/MXN') || _fxData?.[2];
-    set('fx-pro-usdmxn',formatPrice(usd)); setChange('fx-pro-usdmxn-chg',usd?.pct,'Peso mexicano');
-    set('fx-pro-eurmxn',formatPrice(eur)); setChange('fx-pro-eurmxn-chg',eur?.pct,'Cruce europeo');
-    set('fx-pro-gbpmxn',formatPrice(gbp)); setChange('fx-pro-gbpmxn-chg',gbp?.pct,'Libra esterlina');
+    const eur = items.find(item => item.pair.label === 'EUR/USD') || _fxData?.[0];
+    const gbp = items.find(item => item.pair.label === 'GBP/USD') || _fxData?.[1];
+    const jpy = items.find(item => item.pair.label === 'USD/JPY') || _fxData?.[2];
+    const chf = items.find(item => item.pair.label === 'USD/CHF') || _fxData?.[4];
+    set('fx-pro-eurusd',formatPrice(eur)); setChange('fx-pro-eurusd-chg',eur?.pct,'Euro frente al dólar');
+    set('fx-pro-gbpusd',formatPrice(gbp)); setChange('fx-pro-gbpusd-chg',gbp?.pct,'Libra frente al dólar');
+    set('fx-pro-usdjpy',formatPrice(jpy)); setChange('fx-pro-usdjpy-chg',jpy?.pct,'Dólar frente al yen');
     set('fx-pro-dxy',_rds.dxy == null ? '—' : (+_rds.dxy).toFixed(2));
     setChange('fx-pro-dxy-chg',_rds.dxyPct,'Fortaleza del dólar');
-    const carry = _rds.tiie == null ? null : +_rds.tiie - CENTRAL_BANKS.fed;
-    set('fx-pro-carry',carry == null ? '—' : `${carry >= 0 ? '+' : ''}${carry.toFixed(2)} pp`);
+    set('fx-pro-usdchf',formatPrice(chf)); setChange('fx-pro-usdchf-chg',chf?.pct,'Dólar frente al franco');
 
     const availablePct = items.filter(item => Number.isFinite(+item.pct));
-    const favorable = availablePct.filter(item => +item.pct <= 0).length;
+    const usdMove = item => String(item.pair.ticker).startsWith('USD') ? +item.pct : -(+item.pct);
+    const favorable = availablePct.filter(item => usdMove(item) >= 0).length;
     const breadth = availablePct.length ? Math.round(favorable / availablePct.length * 100) : null;
     set('fx-pro-breadth',breadth == null ? '—' : breadth + '%');
-    set('fx-pro-breadth-note',availablePct.length ? `${favorable} de ${availablePct.length} cruces favorecen al MXN` : 'Cruces favorables');
+    set('fx-pro-breadth-note',availablePct.length ? `${favorable} de ${availablePct.length} cruces favorecen al USD` : 'Cruces frente al dólar');
     const internationalBoard = buildInternationalFxBoard(items);
     _internationalFxBoard = internationalBoard;
     const globalPct = internationalBoard.filter(item => Number.isFinite(+item.pct));
@@ -1295,65 +1629,65 @@ function renderFxProfessionalDashboard(items) {
             const direction = pct == null ? 'Pendiente' : pct > 0 ? 'Base gana' : pct < 0 ? 'Base cede' : 'Estable';
             const width = pct == null ? 12 : Math.max(10,Math.min(100,Math.abs(pct)/maxMove*100));
             const quote = Number(item.price).toLocaleString('es-MX',{minimumFractionDigits:item.decimals,maximumFractionDigits:item.decimals});
-            return `<article class="fx-pro-pair report-card" style="--pair-tone:${tone}" role="button" tabindex="0" title="Abrir reporte de ${item.label}" onclick="openInternationalFxReport(${index})" onkeydown="reportCardKey(event,()=>openInternationalFxReport(${index}))">
+            return `<article class="fx-pro-pair report-card" data-fx-search="${item.label} ${item.note} ${item.search}" style="--pair-tone:${tone}" role="button" tabindex="0" title="Abrir reporte de ${item.label}" onclick="openInternationalFxReport(${index})" onkeydown="reportCardKey(event,()=>openInternationalFxReport(${index}))">
                 <div class="fx-pro-pair-head"><div class="fx-pro-pair-name"><span class="fx-pro-pair-flag">${item.flag}</span><span><strong>${item.label}</strong><small>${item.note}</small></span></div><em class="${pct != null && pct > 0 ? 'down' : 'up'}">${direction}</em></div>
                 <div class="fx-pro-pair-value"><strong>${quote}</strong><span>${pct == null ? '—' : `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`}</span></div>
                 <div class="fx-pro-pair-track"><i style="width:${width}%"></i></div>
                 <div class="fx-pro-pair-foot"><span>${item.source.startsWith('Cross-rate') ? 'Cross-rate calculado' : 'Cotización internacional'}</span><i class="fas fa-chevron-right"></i></div>
             </article>`;
         }).join('');
+        bindFxMarketSearch();
+        filterFxMarketBoard();
     }
 
-    const usdPct = Number.isFinite(+usd?.pct) ? +usd.pct : 0;
     const dxy = Number.isFinite(+_rds.dxy) ? +_rds.dxy : 100;
-    let score = 50 - usdPct * 34 - Math.max(-12,Math.min(12,(dxy-100)*2));
-    if (carry != null) score += Math.max(-8,Math.min(14,(carry-2)*4));
+    const avgUsdMove = availablePct.length ? availablePct.reduce((sum,item)=>sum+usdMove(item),0)/availablePct.length : 0;
+    let score = 50 + avgUsdMove * 28 + Math.max(-18,Math.min(18,(dxy-100)*2.4)) + (breadth == null ? 0 : (breadth-50)*.22);
     score = Math.round(Math.max(8,Math.min(92,score)));
     const regimePanel = document.getElementById('fx-pro-regime-panel');
     if (regimePanel) regimePanel.style.setProperty('--fx-score',score+'%');
     const marker = document.getElementById('fx-pro-regime-marker'); if (marker) marker.style.left = score+'%';
     set('fx-pro-score',score);
-    const regime = score >= 65 ? 'Peso con sesgo de fortaleza' : score <= 35 ? 'Peso bajo presión' : 'Mercado cambiario equilibrado';
-    const badge = score >= 65 ? 'Fortaleza relativa' : score <= 35 ? 'Presión cambiaria' : 'Rango neutral';
-    const copy = score >= 65 ? 'El carry y la sesión favorecen al peso; conviene vigilar una reversión del apetito global por riesgo.' : score <= 35 ? 'El dólar global y el movimiento spot limitan al peso; la liquidez y volatilidad requieren mayor atención.' : 'Las señales de spot, dólar global y diferencial de tasas no muestran una dirección extrema.';
+    const regime = score >= 65 ? 'Dólar con sesgo de fortaleza' : score <= 35 ? 'Dólar con sesgo de debilidad' : 'Dólar en rango equilibrado';
+    const badge = score >= 65 ? 'USD dominante' : score <= 35 ? 'USD defensivo' : 'Rango neutral';
+    const copy = score >= 65 ? 'El DXY y la amplitud de los cruces confirman fortaleza general del dólar frente a monedas desarrolladas y emergentes.' : score <= 35 ? 'La mayoría de los cruces muestra una pérdida de impulso del dólar; conviene vigilar tasas, liquidez y apetito por riesgo.' : 'El DXY, la amplitud y el movimiento spot no muestran una dirección extrema para el dólar.';
     set('fx-pro-regime-title',regime); set('fx-pro-regime-badge',badge); set('fx-pro-regime-copy',copy);
     set('fx-pro-signal-dollar',_rds.dxy == null ? 'Pendiente' : dxy > 105 ? 'Dólar muy fuerte' : dxy > 100 ? 'Dólar firme' : 'Dólar moderado');
-    set('fx-pro-signal-carry',carry == null ? 'Pendiente' : `${carry >= 0 ? '+' : ''}${carry.toFixed(2)} pp`);
-    set('fx-pro-signal-session',usd?.pct == null ? 'Pendiente' : usdPct > .15 ? 'Presión sobre MXN' : usdPct < -.15 ? 'MXN se fortalece' : 'Sesión estable');
-    set('fx-catalyst-rates',carry == null ? 'Diferencial de tasas pendiente' : `${carry.toFixed(2)} pp favorecen el carry en MXN`);
+    set('fx-pro-signal-breadth',breadth == null ? 'Pendiente' : `${breadth}% favorece al USD`);
+    set('fx-pro-signal-session',availablePct.length ? `${avgUsdMove >= 0 ? '+' : ''}${avgUsdMove.toFixed(2)}% USD medio` : 'Pendiente');
+    set('fx-catalyst-rates',`Fed ${CENTRAL_BANKS.fed.toFixed(2)}% · diferenciales globales`);
     set('fx-catalyst-dollar',_rds.dxy == null ? 'Esperando DXY' : `DXY ${dxy.toFixed(2)} · ${dxy > 105 ? 'zona fuerte' : dxy > 100 ? 'zona firme' : 'zona moderada'}`);
     set('fx-catalyst-risk',_rds.vix == null ? 'Volatilidad bajo observación' : `VIX ${(+_rds.vix).toFixed(1)} · ${+_rds.vix < 15 ? 'calma' : +_rds.vix < 25 ? 'riesgo moderado' : 'estrés elevado'}`);
     set('fx-pro-thesis-title',regime);
-    set('fx-pro-thesis-copy',`${copy} ${breadth == null ? '' : `El peso avanza en ${favorable} de ${availablePct.length} cruces disponibles.`}`.trim());
+    set('fx-pro-thesis-copy',`${copy} ${breadth == null ? '' : `El dólar avanza en ${favorable} de ${availablePct.length} cruces disponibles.`}`.trim());
     set('fx-pro-updated','Actualizado '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
-    set('sidebar-pulse-usdmxn',formatPrice(usd));
-    set('sidebar-pulse-usdmxn-note',usd?.pct == null ? 'Tipo de cambio' : `${+usd.pct >= 0 ? '▲ +' : '▼ '}${Math.abs(+usd.pct).toFixed(2)}% sesión`);
+    set('sidebar-pulse-eurusd',formatPrice(eur));
+    set('sidebar-pulse-eurusd-note',eur?.pct == null ? 'Tipo de cambio' : `${+eur.pct >= 0 ? '▲ +' : '▼ '}${Math.abs(+eur.pct).toFixed(2)}% sesión`);
     set('sidebar-pulse-dxy',_rds.dxy == null ? '—' : (+_rds.dxy).toFixed(2));
     set('sidebar-pulse-dxy-note',_rds.dxy == null ? 'Dólar global' : dxy > 105 ? 'Dólar muy fuerte' : dxy > 100 ? 'Dólar firme' : 'Dólar moderado');
     set('sidebar-pulse-vix',_rds.vix == null ? '—' : (+_rds.vix).toFixed(1));
     set('sidebar-pulse-vix-note',_rds.vix == null ? 'Volatilidad' : +_rds.vix < 15 ? 'Calma' : +_rds.vix < 25 ? 'Riesgo moderado' : 'Estrés elevado');
-    set('sidebar-pulse-carry',carry == null ? '—' : `${carry >= 0 ? '+' : ''}${carry.toFixed(2)} pp`);
-    set('sidebar-pulse-reading',`${regime}. ${breadth == null ? 'La amplitud cambiaria sigue en actualización.' : `${favorable} de ${availablePct.length} cruces disponibles favorecen al peso.`}`);
+    set('sidebar-pulse-carry',breadth == null ? '—' : `${breadth}%`);
+    set('sidebar-pulse-reading',`${regime}. ${breadth == null ? 'La amplitud cambiaria sigue en actualización.' : `${favorable} de ${availablePct.length} cruces disponibles favorecen al dólar.`}`);
 }
 
 function openFxSectionReport(kind) {
     const text = id => (document.getElementById(id)?.textContent || '').trim();
     const score = Number(text('fx-pro-score'));
     const breadth = Number.parseFloat(text('fx-pro-breadth'));
-    const carry = Number.parseFloat(text('fx-pro-carry'));
     const globalPairs = Array.isArray(_internationalFxBoard) ? _internationalFxBoard : [];
-    const emergingPairs = globalPairs.filter(item => ['USD/MXN','USD/BRL','USD/CNY'].includes(item.label));
+    const emergingPairs = globalPairs.filter(item => ['USD/BRL','USD/CNY','USD/INR'].includes(item.label));
     const configs = {
         breadth: {
-            label:'Amplitud del peso mexicano', sub:'CRUCES INTERNACIONALES FRENTE AL MXN', metricLabel:'Amplitud', value:Number.isFinite(breadth)?breadth:null, suffix:'%',
-            context:`La amplitud resume cuántos cruces internacionales favorecen al peso. ${text('fx-pro-breadth-note') || 'La lectura compara dirección y consistencia entre las principales divisas.'}`
+            label:'Amplitud global del dólar', sub:'MONEDAS INTERNACIONALES FRENTE AL USD', metricLabel:'Amplitud', value:Number.isFinite(breadth)?breadth:null, suffix:'%',
+            context:`La amplitud resume cuántos cruces internacionales favorecen al dólar. ${text('fx-pro-breadth-note') || 'La lectura compara dirección y consistencia entre las principales divisas.'}`
         },
         regime: {
-            label:'Régimen cambiario del peso', sub:'MODELO DE FORTALEZA RELATIVA VALLNEWS', metricLabel:'Puntuación', value:Number.isFinite(score)?score:null, suffix:'/100',
-            context:`${text('fx-pro-regime-title')}. ${text('fx-pro-regime-copy')} Señales: dólar global ${text('fx-pro-signal-dollar')}; diferencial ${text('fx-pro-signal-carry')}; sesión ${text('fx-pro-signal-session')}.`
+            label:'Régimen global del dólar', sub:'MODELO DE FORTALEZA RELATIVA VALLNEWS', metricLabel:'Puntuación', value:Number.isFinite(score)?score:null, suffix:'/100',
+            context:`${text('fx-pro-regime-title')}. ${text('fx-pro-regime-copy')} Señales: dólar global ${text('fx-pro-signal-dollar')}; amplitud ${text('fx-pro-signal-breadth')}; sesión ${text('fx-pro-signal-session')}.`
         },
         catalysts: {
-            label:'Catalizadores del mercado cambiario', sub:'TASAS · DÓLAR · FLUJOS · VOLATILIDAD', metricLabel:'Carry MX', value:Number.isFinite(carry)?carry:null, suffix:' pp',
+            label:'Catalizadores del mercado cambiario', sub:'TASAS · DÓLAR · FLUJOS · VOLATILIDAD', metricLabel:'Amplitud USD', value:Number.isFinite(breadth)?breadth:null, suffix:'%',
             context:[...document.querySelectorAll('.fx-catalyst-list > div')].map(card => (card.textContent||'').trim().replace(/\s+/g,' ')).join(' · ')
         },
         emerging: {
@@ -2600,6 +2934,11 @@ async function loadBonds() {
         const canvas = $$('rtl-canvas');
         if (!canvas || typeof Chart === 'undefined') return;
         if (chart) { chart.destroy(); chart = null; }
+        const darkTheme = document.body.classList.contains('vn-dark-finanzas');
+        const chartInk = darkTheme ? '#a9bac7' : '#5b6f7e';
+        const chartLine = darkTheme ? '#304354' : '#e2eaef';
+        const chartGrid = darkTheme ? 'rgba(167,190,207,.10)' : 'rgba(16,32,46,.06)';
+        const pointRing = darkTheme ? '#0b1621' : '#ffffff';
 
         const values = points.map(p => p.value);
         const last = points[points.length - 1];
@@ -2647,7 +2986,7 @@ async function loadBonds() {
         /* Colorimetría: la serie va siempre en el teal de Favro. El rojo y el
            verde se reservan para lo que sí es direccional —la variación y los
            extremos—, así el color significa una sola cosa en toda la vista. */
-        const TEAL = '#0d6d8c';
+        const TEAL = darkTheme ? '#56c9b0' : '#0d6d8c';
         const maxIdx = points.indexOf(maxP);
         const minIdx = points.indexOf(minP);
 
@@ -2661,7 +3000,7 @@ async function loadBonds() {
                 const g = c.ctx;
                 g.save();
                 g.setLineDash([5, 5]);
-                g.strokeStyle = 'rgba(13,109,140,.5)';
+                g.strokeStyle = darkTheme ? 'rgba(86,201,176,.58)' : 'rgba(13,109,140,.5)';
                 g.lineWidth = 1;
                 g.beginPath(); g.moveTo(left, y); g.lineTo(right, y); g.stroke();
                 g.restore();
@@ -2687,40 +3026,40 @@ async function loadBonds() {
                         ? undefined
                         : ctx => {
                             const area = ctx.chart.chartArea;
-                            if (!area) return 'rgba(13,109,140,.14)';
+                            if (!area) return darkTheme ? 'rgba(86,201,176,.14)' : 'rgba(13,109,140,.14)';
                             const g = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-                            g.addColorStop(0, 'rgba(13,109,140,.30)');
-                            g.addColorStop(1, 'rgba(13,109,140,.02)');
+                            g.addColorStop(0, darkTheme ? 'rgba(86,201,176,.30)' : 'rgba(13,109,140,.30)');
+                            g.addColorStop(1, darkTheme ? 'rgba(86,201,176,.02)' : 'rgba(13,109,140,.02)');
                             return g;
                         },
                     borderWidth: 2.2,
                     fill: meta.compValues
-                        ? { target: 1, above: 'rgba(179,38,30,.15)', below: 'rgba(14,122,64,.15)' }
+                        ? { target: 1, above: darkTheme ? 'rgba(255,123,136,.15)' : 'rgba(179,38,30,.15)', below: darkTheme ? 'rgba(81,211,168,.15)' : 'rgba(14,122,64,.15)' }
                         : true,
                     tension: .25,
                     /* Solo se marcan el máximo y el mínimo: son las dos cifras del
                        resumen, y así el ojo las localiza sobre la curva. */
                     pointRadius: points.map((_, i) => (i === maxIdx || i === minIdx) ? 5 : 0),
-                    pointBackgroundColor: points.map((_, i) => i === maxIdx ? '#b3261e' : i === minIdx ? '#0e7a40' : 'transparent'),
-                    pointBorderColor: '#ffffff',
+                    pointBackgroundColor: points.map((_, i) => i === maxIdx ? (darkTheme ? '#ff7b88' : '#b3261e') : i === minIdx ? (darkTheme ? '#51d3a8' : '#0e7a40') : 'transparent'),
+                    pointBorderColor: pointRing,
                     pointBorderWidth: 2,
                     pointHoverRadius: 5,
                     pointHoverBackgroundColor: TEAL,
-                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderColor: pointRing,
                     label: meta.seriesLabel,
                 },
                 ...(meta.compValues ? [{
                     data: meta.compValues,
                     label: meta.compLabel,
-                    borderColor: '#c99745',
+                    borderColor: darkTheme ? '#e1ae52' : '#c99745',
                     borderWidth: 2,
                     borderDash: [6, 4],
                     fill: false,
                     tension: .25,
                     pointRadius: 0,
                     pointHoverRadius: 5,
-                    pointHoverBackgroundColor: '#c99745',
-                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBackgroundColor: darkTheme ? '#e1ae52' : '#c99745',
+                    pointHoverBorderColor: pointRing,
                     spanGaps: true,
                 }] : [])],
             },
@@ -2754,18 +3093,18 @@ async function loadBonds() {
                 scales: {
                     x: {
                         grid: { display: false },
-                        border: { color: '#e2eaef' },
+                        border: { color: chartLine },
                         ticks: {
-                            color: '#5b6f7e', font: { family: 'Inter', size: 11, weight: '600' },
+                            color: chartInk, font: { family: 'Inter', size: 11, weight: '600' },
                             maxTicksLimit: 8, autoSkip: true, maxRotation: 0, padding: 6,
                         },
                     },
                     y: {
                         position: 'right',
-                        grid: { color: 'rgba(16,32,46,.06)', drawTicks: false },
+                        grid: { color: chartGrid, drawTicks: false },
                         border: { display: false },
                         ticks: {
-                            color: '#5b6f7e', font: { family: 'JetBrains Mono', size: 11 },
+                            color: chartInk, font: { family: 'JetBrains Mono', size: 11 },
                             padding: 10, maxTicksLimit: 6,
                             callback: v => v.toFixed(1) + '%',
                         },
@@ -3048,13 +3387,15 @@ function syncFxChartTypeUI() {
 function renderEmergingFXChart(labels,data) {
     const canvas=document.getElementById('fx-pro-emerging-chart')||document.getElementById('fx-emerging-chart');if(!canvas||typeof Chart==='undefined')return;
     if(_fxEmergingChart)_fxEmergingChart.destroy();
-    const colors=data.map(v=>v==null?'#cbd5e1':v>=0?'#16a34a':'#dc2626');
+    const darkFxTheme=document.body.classList.contains('vn-dark-finanzas');
+    const colors=data.map(v=>v==null?(darkFxTheme?'#607586':'#cbd5e1'):v>=0?(darkFxTheme?'#51d3a8':'#16a34a'):(darkFxTheme?'#ff7b88':'#dc2626'));
     const isRanking=_fxChartType==='ranking',isLine=_fxChartType==='line',isRadar=_fxChartType==='radar';
     const kind=isLine?'line':isRadar?'radar':'bar';
-    const valueAxis={ticks:{callback:v=>(typeof v==='number'?v.toFixed(1):v)+'%',font:{size:10},maxTicksLimit:5,autoSkip:true,maxRotation:0},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}};
-    const categoryAxis={ticks:{font:{size:10},autoSkip:false},grid:{display:false},border:{display:false}};
-    const scales=isRadar?{r:{angleLines:{color:'rgba(0,33,58,.1)'},grid:{color:'rgba(0,33,58,.08)'},pointLabels:{font:{size:9}},ticks:{display:false}}}:isRanking?{x:valueAxis,y:categoryAxis}:{x:categoryAxis,y:valueAxis};
-    _fxEmergingChart=new Chart(canvas.getContext('2d'),{type:kind,data:{labels,datasets:[{label:'Variación frente al USD (%)',data,backgroundColor:isLine?'rgba(0,91,150,.12)':isRadar?'rgba(0,91,150,.18)':colors,borderColor:isLine||isRadar?'#005b96':colors,borderWidth:isLine||isRadar?2:1,borderRadius:5,fill:isLine||isRadar,tension:.28,pointRadius:isLine?4:isRadar?3:0,pointBackgroundColor:colors}]},options:{indexAxis:isRanking?'y':'x',responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const value=isRanking?ctx.parsed.x:(ctx.parsed.r??ctx.parsed.y??ctx.raw);return ` ${value>=0?'+':''}${Number(value).toFixed(2)}%`;}}}},scales}});
+    const chartInk=darkFxTheme?'#a9bac7':'#66788a',chartGrid=darkFxTheme?'rgba(164,188,205,.11)':'rgba(0,0,0,0.05)',chartLine=darkFxTheme?'#56c9b0':'#005b96';
+    const valueAxis={ticks:{color:chartInk,callback:v=>(typeof v==='number'?v.toFixed(1):v)+'%',font:{size:10},maxTicksLimit:5,autoSkip:true,maxRotation:0},grid:{color:chartGrid},border:{display:false}};
+    const categoryAxis={ticks:{color:chartInk,font:{size:10},autoSkip:false},grid:{display:false},border:{display:false}};
+    const scales=isRadar?{r:{angleLines:{color:chartGrid},grid:{color:chartGrid},pointLabels:{color:chartInk,font:{size:9}},ticks:{display:false}}}:isRanking?{x:valueAxis,y:categoryAxis}:{x:categoryAxis,y:valueAxis};
+    _fxEmergingChart=new Chart(canvas.getContext('2d'),{type:kind,data:{labels,datasets:[{label:'Variación frente al USD (%)',data,backgroundColor:isLine?(darkFxTheme?'rgba(86,201,176,.12)':'rgba(0,91,150,.12)'):isRadar?(darkFxTheme?'rgba(86,201,176,.16)':'rgba(0,91,150,.18)'):colors,borderColor:isLine||isRadar?chartLine:colors,borderWidth:isLine||isRadar?2:1,borderRadius:5,fill:isLine||isRadar,tension:.28,pointRadius:isLine?4:isRadar?3:0,pointBackgroundColor:colors}]},options:{indexAxis:isRanking?'y':'x',responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:darkFxTheme?'#07131d':'rgba(0,0,0,.8)',titleColor:'#fff',bodyColor:'#fff',callbacks:{label:ctx=>{const value=isRanking?ctx.parsed.x:(ctx.parsed.r??ctx.parsed.y??ctx.raw);return ` ${value>=0?'+':''}${Number(value).toFixed(2)}%`;}}}},scales}});
     syncFxChartTypeUI();
 }
 
@@ -3069,7 +3410,6 @@ async function loadEmergingFX() {
     if (!canvas || typeof Chart === 'undefined') return;
 
     const FX = [
-        { ticker: 'USDMXN=X', label: '🇲🇽 Peso Mexicano' },
         { ticker: 'USDBRL=X', label: '🇧🇷 Real Brasileño' },
         { ticker: 'USDCOP=X', label: '🇨🇴 Peso Colombiano' },
         { ticker: 'USDCLP=X', label: '🇨🇱 Peso Chileno' },
@@ -3077,6 +3417,7 @@ async function loadEmergingFX() {
         { ticker: 'USDZAR=X', label: '🇿🇦 Rand Sudafricano' },
         { ticker: 'USDTRY=X', label: '🇹🇷 Lira Turca' },
         { ticker: 'USDIDR=X', label: '🇮🇩 Rupia Indonesia' },
+        { ticker: 'USDKRW=X', label: '🇰🇷 Won Surcoreano' },
     ];
 
     const results = await Promise.allSettled(FX.map(f => fetchAssetData(f.ticker)));
@@ -4201,11 +4542,10 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
         updateGeneralKPIs();
 
     } else if (name === 'mexico') {
-        const legacyMarketLayout = g('fin-layout-wrap'); if (legacyMarketLayout) legacyMarketLayout.style.display = '';
-        const chartPanel = g('bvmx-panel'); if (chartPanel) chartPanel.style.display = '';
         const fxPanel = g('fx-pro-panel'); if (fxPanel) fxPanel.style.display = '';
         if (bg) bg.style.display = 'none';
         renderFxProfessionalDashboard(_fxData || []);
+        loadFxHistoricalLab();
         requestAnimationFrame(() => { if (_fxEmergingChart) _fxEmergingChart.resize(); });
 
     } else if (name === 'mercados') {
@@ -4237,7 +4577,7 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
     });
     const sectionTargets = {
         general:   'pane-general',
-        mexico:    'fin-layout-wrap',
+        mexico:    'fx-pro-panel',
         mercados:  'bvmx-panel-anchor',
         bonos:     'bonds-panel',
         noticias:  'news-pro-panel',
@@ -4283,5 +4623,7 @@ window.VNFinanzas = {
         });
         /* El carrusel de noticias guarda su intervalo aparte. */
         if (typeof _ncTimer !== 'undefined' && _ncTimer) { clearInterval(_ncTimer); _ncTimer = null; }
+        if (_fxHistoryChart) { _fxHistoryChart.destroy(); _fxHistoryChart = null; }
+        if (_fxOverviewChart) { _fxOverviewChart.destroy(); _fxOverviewChart = null; }
     },
 };

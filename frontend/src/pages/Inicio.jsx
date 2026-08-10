@@ -6,32 +6,6 @@ import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts from '../lib/loadScripts.js';
 import './Inicio.css';
 
-/*
- * Portada en React idiomático (antes inicio.html).
- *
- * Qué cambia y qué no:
- *
- *  - El CARRUSEL pasa a ser estado de React. En el HTML eran cuatro funciones
- *    globales (show/changeSlide/goTo/reset) que hacían classList.add('active')
- *    y un `resetBar()` que reiniciaba la animación de la barra forzando un
- *    reflow. Aquí el slide activo es `actual` y la barra se reinicia sola
- *    porque lleva key={actual}: React la desmonta y la vuelve a montar, que es
- *    lo que rearranca una animación CSS sin tocar el DOM a mano.
- *
- *  - Los DATOS EN VIVO los sigue trayendo assets/js/live-engine.js, igual que
- *    hoy. Escribe por getElementById en ids concretos, así que el JSX conserva
- *    esos ids exactos (ver IDS_EN_VIVO abajo). No hay conflicto con React:
- *    esos nodos tienen texto constante en el JSX, y React solo toca el DOM
- *    cuando su propia salida cambia — como no cambia nunca, lo que escribió
- *    live-engine sobrevive a los re-render del carrusel.
- *
- *  - Reescribir live-engine (45 KB, pool de refrescos de 5-15 min, traducción,
- *    caché) NO era parte de migrar la portada. Lo que sí hubo que arreglar es
- *    su ciclo de vida: solo se detenía en 'beforeunload', que en una SPA no
- *    ocurre nunca. Ahora expone VNLive.init()/stop() y este componente los
- *    llama al montar y desmontar.
- */
-
 const HOJAS = [
   '/assets/css/base.css?v=2',
   '/assets/css/header.css',
@@ -39,6 +13,7 @@ const HOJAS = [
   '/assets/css/grid.css?v=2',
   '/assets/css/footer.css',
   '/assets/css/responsive.css',
+  '/assets/css/dark-pilot.css?v=2',
 ];
 
 const LIBS = [
@@ -47,8 +22,6 @@ const LIBS = [
   '/assets/js/live-engine.js?v=25',
 ];
 
-/* Ids que live-engine.js escribe por getElementById. Renombrar cualquiera de
-   ellos deja su recuadro congelado en el texto inicial, sin ningún error. */
 const SLIDES = [
   {
     clave: 'finanzas',
@@ -143,6 +116,15 @@ const MS_SLIDE = 5500;
 
 export default function Inicio() {
   usePageStyles(HOJAS);
+
+  useEffect(() => {
+    document.documentElement.classList.add('vn-dark-pilot');
+    document.body.classList.add('vn-dark-pilot', 'vn-dark-inicio');
+    return () => {
+      document.documentElement.classList.remove('vn-dark-pilot');
+      document.body.classList.remove('vn-dark-pilot', 'vn-dark-inicio');
+    };
+  }, []);
 
   const [actual, setActual] = useState(0);
   // Se congela al montar: live-engine reescribe sd-0…sd-3 con su propia marca

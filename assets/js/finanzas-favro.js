@@ -728,8 +728,11 @@
                 .sort((a, b) => (a.t > b.t ? 1 : a.t < b.t ? -1 : 0))
                 .filter((c, i, arr) => i === 0 || c.t !== arr[i - 1].t);
 
-            const axisInk  = '#64748b';
-            const gridLine = 'rgba(15,42,64,.07)';
+            const darkFinance = document.body.classList.contains('vn-dark-finanzas');
+            const axisInk  = darkFinance ? '#9fb0be' : '#64748b';
+            const gridLine = darkFinance ? 'rgba(159,176,190,.11)' : 'rgba(15,42,64,.07)';
+            const crosshairLine = darkFinance ? 'rgba(201,215,226,.3)' : 'rgba(15,42,64,.32)';
+            const crosshairLabel = darkFinance ? '#702b45' : '#0c2d44';
 
             const chart = LightweightCharts.createChart(container, {
                 width: w,
@@ -763,8 +766,8 @@
                 },
                 crosshair: {
                     mode: LightweightCharts.CrosshairMode.Magnet,
-                    vertLine: { color: 'rgba(15,42,64,.32)', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#0c2d44' },
-                    horzLine: { color: 'rgba(15,42,64,.32)', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#0c2d44' },
+                    vertLine: { color: crosshairLine, width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: crosshairLabel },
+                    horzLine: { color: crosshairLine, width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: crosshairLabel },
                 },
                 handleScroll: false,
                 handleScale: false,
@@ -1405,16 +1408,6 @@
             description: 'Índices, acciones, factores, amplitud y el laboratorio histórico multiactivo en una vista completa.',
             legacySection: 'mercados',
         },
-        /* Tasas y Rendimientos comparten el mismo panel de renta fija y se
-           mantienen separadas a propósito. Tasas lo muestra entero; Rendimientos
-           deja fuera los recuadros de referencias monetarias (el reparto está en
-           finanzas-premium.css, con data-fin-scope). Ver MODULOS_RENTA_FIJA. */
-        tasas: {
-            eyebrow: 'Política monetaria y renta fija',
-            title: 'Tasas',
-            description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
-            legacySection: 'bonos',
-        },
         /* La clave sigue siendo "rendimientos" aunque la sección se llame Bonos:
            ya existe un módulo heredado con la clave "bonos" (legacySection) y
            renombrarla aquí haría que ambos colisionaran. */
@@ -1423,6 +1416,12 @@
             title: 'Bonos',
             description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
             legacySection: 'bonos',
+        },
+        divisas: {
+            eyebrow: 'Mercado cambiario global',
+            title: 'Divisas',
+            description: 'Tipos de cambio en tiempo real, series históricas y comparación relativa entre monedas internacionales.',
+            legacySection: 'mexico',
         },
         noticias: {
             eyebrow: 'Noticiero financiero',
@@ -1434,10 +1433,7 @@
 
     const detailClasses = Object.keys(detailConfig).map(name => `ff-detail-${name}`);
 
-    /* Las dos secciones de renta fija comparten contenido y comportamiento. Se
-       agrupan aquí para no repetir la condición en cada sitio y para que añadir
-       o quitar una de ellas sea un solo cambio. */
-    const MODULOS_RENTA_FIJA = ['tasas', 'rendimientos'];
+    const MODULOS_RENTA_FIJA = ['rendimientos'];
     const esRentaFija = nombre => MODULOS_RENTA_FIJA.includes(nombre);
 
     function updateDetailNavigation(name) {
@@ -1456,8 +1452,8 @@
     function updateDetailStatus(name) {
         const copy = {
             bolsa: ['Bolsa · Renta variable global', 'Índices, factores, emisoras y gráfica histórica multiactivo.'],
-            tasas: ['Tasas', 'Referencias monetarias, instrumentos de deuda, curvas soberanas y próximas decisiones.'],
             rendimientos: ['Monitor de bonos', 'Curvas soberanas, cambios por tramo, pendiente y dispersión entre vencimientos.'],
+            divisas: ['Divisas · Mercado cambiario', 'Cotizaciones internacionales, histórico y comparación de monedas.'],
             noticias: ['Daily News', 'Última hora, noticia principal, impacto y mercados relacionados.'],
         }[name];
         if (!copy) return;
@@ -1467,12 +1463,6 @@
 
     function setLegacyBondView(name) {
         const presentation = {
-            tasas: {
-                eyebrow: 'Monitor monetario y de renta fija',
-                title: 'Tasas',
-                copy: 'Tasas de referencia, instrumentos soberanos, diferenciales, plazos y señales del ciclo financiero.',
-                chartTitle: 'Tasas y rendimientos soberanos',
-            },
             rendimientos: {
                 eyebrow: 'Monitor de curvas y diferenciales',
                 title: 'Bonos',
@@ -1553,16 +1543,21 @@
     }
 
     function openDetail(name, options = {}) {
+        // Compatibilidad con enlaces antiguos: la sección independiente de Tasas
+        // ahora forma parte de Bonos.
+        if (name === 'tasas') name = 'rendimientos';
         const cfg = detailConfig[name];
         if (!cfg) return;
 
         const isNews = name === 'noticias';
+        const isFx = name === 'divisas';
         if (name !== 'bolsa') restoreBolsaTopLayout();
-        if (!isNews) {
+        if (!isNews && !isFx) {
             restoreDailyNewsLayout();
             state.module = name;
             updateControls();
         } else {
+            if (isFx) restoreDailyNewsLayout();
             document.querySelectorAll('.ff-module').forEach(card => {
                 const active = card.dataset.module === name;
                 card.classList.toggle('is-active', active);
@@ -1581,7 +1576,7 @@
         const navigation = $('ff-detail-navigation');
         if (navigation) navigation.hidden = false;
         const supplement = $('ff-detail-supplement');
-        if (isNews) {
+        if (isNews || isFx) {
             if (supplement) supplement.hidden = true;
         } else {
             // Rendimientos ya no tiene su propio panel de curvas: pasa por el mismo
@@ -1594,6 +1589,15 @@
             finTab(cfg.legacySection, legacyButton, true, true);
         }
         if (name === 'bolsa') prepareBolsaTopLayout();
+        if (isFx) {
+            const legacyLayout = $('fin-layout-wrap');
+            const equityChart = $('bvmx-panel');
+            const fxPanel = $('fx-pro-panel');
+            if (legacyLayout) legacyLayout.style.display = 'none';
+            if (equityChart) equityChart.style.display = 'none';
+            if (fxPanel) fxPanel.style.display = '';
+            if (typeof window.loadFxHistoricalLab === 'function') window.loadFxHistoricalLab();
+        }
         // El tablero por sector vive en el script en línea de finanzas.html, así
         // que se invoca desde el objeto global y sólo si ya está definido.
         if (name === 'bolsa' && typeof window.loadSectorBoard === 'function') window.loadSectorBoard();
@@ -1726,6 +1730,9 @@
         if (state.supplementChart) state.supplementChart.destroy();
         
         const options = chartDefaults();
+        const darkFinance = document.body.classList.contains('vn-dark-finanzas');
+        const supplementAxis = darkFinance ? '#9fb0be' : '#687887';
+        const supplementGrid = darkFinance ? 'rgba(159,176,190,.12)' : colors.grid;
         options.animation.duration = 260;
         options.plugins.legend.display = isPie ? true : datasets.length > 1;
         options.plugins.legend.position = isPie ? 'right' : 'bottom';
@@ -1738,18 +1745,18 @@
             datasets.forEach(d => {
                 if (Array.isArray(d.data)) {
                     d.backgroundColor = d.data.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 55%)`);
-                    d.borderColor = '#ffffff';
+                    d.borderColor = darkFinance ? '#121f2c' : '#ffffff';
                     d.borderWidth = 2;
                 }
             });
         } else if (isHorizontal) {
             options.indexAxis = 'y';
-            options.scales.x = { position: 'bottom', title: { display: true, text: axisLabel, color: '#687887', font: { size: 9 } } };
+            options.scales.x = { position: 'bottom', title: { display: true, text: axisLabel, color: supplementAxis, font: { size: 9 } } };
             options.scales.y = { position: 'left' };
         } else {
             options.indexAxis = 'x';
             options.scales.x = { position: 'bottom' };
-            options.scales.y = { position: 'left', title: { display: true, text: axisLabel, color: '#687887', font: { size: 9 } } };
+            options.scales.y = { position: 'left', title: { display: true, text: axisLabel, color: supplementAxis, font: { size: 9 } } };
         }
 
         if (actualType === 'line') {
@@ -1776,6 +1783,15 @@
             };
             options.interaction = { intersect: false, mode: 'nearest' };
         }
+        if (!isPie) {
+            Object.values(options.scales).forEach(scale => {
+                scale.ticks = { ...(scale.ticks || {}), color: supplementAxis };
+                scale.grid = { ...(scale.grid || {}), color: supplementGrid };
+                scale.border = { ...(scale.border || {}), color: supplementGrid };
+                if (scale.title) scale.title.color = supplementAxis;
+            });
+        }
+        if (options.plugins.legend?.labels) options.plugins.legend.labels.color = supplementAxis;
         
         state.supplementChart = new Chart(canvas, { type: actualType, data: { labels, datasets }, options });
         observeSupplementChartSize(canvas);
@@ -2069,6 +2085,10 @@
     function renderSupplement(name) {
         const section = $('ff-detail-supplement');
         if (!section || !detailConfig[name]) return;
+        if (document.body.classList.contains('ff-detail-divisas')) {
+            section.hidden = true;
+            return;
+        }
         section.hidden = false;
 
         /* La tabla de diferenciales solo tiene sentido donde se habla de deuda. */

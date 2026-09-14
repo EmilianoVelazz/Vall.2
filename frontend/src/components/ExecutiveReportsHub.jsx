@@ -232,7 +232,10 @@ export default function ExecutiveReportsHub() {
     let activeRequest = true;
     setLoading(true);
     setStatus('Consultando el último corte…');
-    fetch(AREAS[area].endpoint, { credentials: 'include' })
+    // Un corte puede regenerarse manualmente durante una transición editorial.
+    // No reutilizamos una respuesta privada de minutos atrás porque mostraría
+    // una hora de generación y un contenido distintos al informe disponible.
+    fetch(AREAS[area].endpoint, { credentials: 'include', cache: 'no-store' })
       .then(async response => {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload.success) throw new Error(payload.error || 'No fue posible cargar los informes.');

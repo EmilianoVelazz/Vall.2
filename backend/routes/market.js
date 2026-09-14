@@ -1111,7 +1111,7 @@ router.get('/market-executive-reports', verifyToken, async (req, res) => {
         // El cron diario mantiene el mismo corte durante el día. Sólo se crea
         // uno bajo demanda cuando el almacén aún no tiene informes.
         if (!snapshot?.reports?.length) snapshot = await refreshMarketExecutiveReports();
-        res.set('Cache-Control', 'private, max-age=300');
+        res.set('Cache-Control', 'private, no-store');
         res.json({ success: true, data: snapshot.reports, generatedAt: snapshot.generatedAt, nextRefreshAt: nextReportRefreshAt(snapshot.generatedAt).toISOString(), persistence: snapshot.persistence });
     } catch (error) {
         console.error('/api/market-executive-reports:', error.message);

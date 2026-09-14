@@ -1408,7 +1408,7 @@ router.get('/finance-executive-reports', verifyToken, async (req, res) => {
         // El cron de las 09:00 define el corte diario. Sólo se crea un primer
         // corte bajo demanda cuando aún no existe ninguno que mostrar.
         if (!snapshot?.reports?.length) snapshot = await refreshExecutiveReports();
-        res.set('Cache-Control', 'private, max-age=300');
+        res.set('Cache-Control', 'private, no-store');
         res.json({ success: true, data: snapshot.reports, generatedAt: snapshot.generatedAt, nextRefreshAt: nextReportRefreshAt(snapshot.generatedAt).toISOString(), persistence: snapshot.persistence });
     } catch (error) {
         console.error('/api/finance-executive-reports:', error.message);

@@ -23,6 +23,116 @@
     box-shadow: 0 12px 40px rgba(7, 28, 44, 0.03), 0 1px 3px rgba(7, 28, 44, 0.02) !important;
 }
 
+/* Tasas soberanas globales v4: tablero visual en lugar de tabla continua. */
+#bonds-panel .debt-global-block {
+    --sov-gold: #c58a25;
+    --sov-green: #17856b;
+    --sov-red: #c94d5d;
+}
+#bonds-panel .sovereign-board-insights {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .7rem;
+    margin: 1rem 0 .2rem;
+}
+#bonds-panel .sov-insight {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    padding: .9rem 1rem .88rem 1.08rem;
+    border: 1px solid #d8e1e8;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #fff, #f7fafc);
+}
+#bonds-panel .sov-insight::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--insight-tone, var(--sov-gold));
+}
+#bonds-panel .sov-insight.is-high { --insight-tone: var(--sov-red); }
+#bonds-panel .sov-insight.is-low { --insight-tone: var(--sov-green); }
+#bonds-panel .sov-insight.is-move { --insight-tone: var(--sov-gold); }
+#bonds-panel .sov-insight span,
+#bonds-panel .sov-insight strong,
+#bonds-panel .sov-insight small { display: block; }
+#bonds-panel .sov-insight span {
+    color: #687b8b;
+    font: 800 .65rem/1.2 'Inter', sans-serif;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+#bonds-panel .sov-insight span i { width: 1.15rem; color: var(--insight-tone); }
+#bonds-panel .sov-insight strong {
+    margin-top: .5rem;
+    overflow: hidden;
+    color: #12283a;
+    font: 850 1rem/1.15 'Inter', sans-serif;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#bonds-panel .sov-insight small { margin-top: .25rem; color: #6f8190; font: 650 0.75rem/1.3 'Inter', sans-serif; }
+
+#bonds-panel .sov-table-head { display: none !important; }
+#bonds-panel .sovereign-board-table {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem !important;
+    margin-top: .85rem !important;
+}
+#bonds-panel .sov-row {
+    display: grid !important;
+    grid-template-columns: 32px minmax(0, 1fr) auto !important;
+    grid-template-areas:
+        'rank country change'
+        'rank bar spread' !important;
+    gap: .65rem .75rem !important;
+    min-height: 104px;
+    padding: .9rem !important;
+    border: 1px solid #dce4ea !important;
+    border-radius: 15px !important;
+    background: #fff !important;
+    box-shadow: 0 8px 20px rgba(18, 40, 58, .045) !important;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease !important;
+}
+#bonds-panel .sov-row:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--sov-tone) 55%, #dce4ea) !important;
+    box-shadow: 0 13px 28px rgba(18, 40, 58, .09) !important;
+}
+#bonds-panel .sov-rank {
+    grid-area: rank;
+    align-self: stretch;
+    display: grid !important;
+    place-items: center;
+    border-radius: 10px;
+    color: #647887 !important;
+    background: #eef3f6;
+    font-size: 0.75rem !important;
+}
+#bonds-panel .sov-country { grid-area: country; }
+#bonds-panel .sov-chg { grid-area: change; align-self: center; }
+#bonds-panel .sov-bar { grid-area: bar; }
+#bonds-panel .sov-spread { grid-area: spread; align-self: center; }
+#bonds-panel .sov-go { display: none !important; }
+#bonds-panel .sov-track { height: 7px !important; }
+#bonds-panel .sov-track::after { height: 15px !important; }
+
+@media (max-width: 800px) {
+    #bonds-panel .sovereign-board-insights { grid-template-columns: 1fr; }
+    #bonds-panel .sovereign-board-table { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+    #bonds-panel .sov-row {
+        grid-template-columns: 28px minmax(0, 1fr) !important;
+        grid-template-areas: 'rank country' 'change spread' 'bar bar' !important;
+        min-height: 0;
+    }
+    #bonds-panel .sov-chg { text-align: left !important; }
+    #bonds-panel .sov-spread { text-align: right !important; }
+}
+
 /* Regla de acento: las seis familias de la paleta, en el mismo orden que la
    fila de KPIs. Funciona como leyenda muda del código de color. */
 .debt-pro-hero::before {
@@ -50,7 +160,7 @@
     gap: 0.5rem !important;
     margin-bottom: 0.6rem !important;
     color: #1f56c9 !important;
-    font-size: 0.62rem !important;
+    font-size: 0.625rem !important;
     font-weight: 900 !important;
     letter-spacing: 0.14em !important;
     text-transform: uppercase !important;
@@ -77,11 +187,11 @@
 
 /* El meta venía en #fde68a y rgba(255,255,255,.5): pensados para el hero oscuro,
    invisibles sobre blanco. El small estaba además a .48rem (7.7px). */
-.debt-pro-meta span { color: #1f56c9 !important; font-size: 0.66rem !important; font-weight: 800 !important; }
+.debt-pro-meta span { color: #1f56c9 !important; font-size: 0.75rem !important; font-weight: 800 !important; }
 .debt-pro-meta span i { color: #1baf7a !important; filter: none !important; }
 .debt-pro-meta small {
     color: #6b7f8f !important;
-    font: 600 0.66rem/1.4 'Inter', sans-serif !important;
+    font: 600 0.75rem/1.4 'Inter', sans-serif !important;
 }
 
 /* ── Paleta semántica por familia de instrumento ─────────────────────────────
@@ -190,7 +300,7 @@
     display: block !important;
     overflow: hidden !important;
     color: #5c7180 !important;
-    font-size: 0.66rem !important;
+    font-size: 0.75rem !important;
     font-weight: 600 !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
@@ -213,7 +323,7 @@
     border-radius: 5px !important;
     background: rgba(7, 28, 44, 0.05) !important;
     color: #6b7f8f !important;
-    font: 700 0.56rem/1.4 'Inter', sans-serif !important;
+    font: 700 0.75rem/1.4 'Inter', sans-serif !important;
     font-style: normal !important;
     letter-spacing: 0.04em !important;
     text-transform: none !important;
@@ -232,12 +342,12 @@
     box-shadow: 0 12px 40px rgba(7, 28, 44, 0.03), 0 1px 3px rgba(7, 28, 44, 0.02) !important;
 }
 .cf-head { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; gap: 1rem !important; flex-wrap: wrap !important; }
-.cf-copy small { display: block !important; color: #1f56c9 !important; font: 800 0.6rem/1 'Inter', sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; }
+.cf-copy small { display: block !important; color: #1f56c9 !important; font: 800 0.625rem/1 'Inter', sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; }
 .cf-copy h3 { margin: 0.35rem 0 0 !important; color: #0f2436 !important; font: 800 1.1rem/1.2 'Inter', sans-serif !important; letter-spacing: -0.02em !important; }
-.cf-copy p { margin: 0.3rem 0 0 !important; max-width: 62ch !important; color: #6b7f8f !important; font: 500 0.72rem/1.55 'Inter', sans-serif !important; }
+.cf-copy p { margin: 0.3rem 0 0 !important; max-width: 62ch !important; color: #6b7f8f !important; font: 500 0.75rem/1.55 'Inter', sans-serif !important; }
 
 .cf-picker { display: flex !important; flex-direction: column !important; gap: 0.3rem !important; flex: 0 0 auto !important; }
-.cf-picker span { color: #7b8b99 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
+.cf-picker span { color: #7b8b99 !important; font: 800 0.625rem/1 'Inter', sans-serif !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
 .cf-picker select {
     min-width: 210px !important;
     padding: 0.5rem 0.75rem !important;
@@ -281,13 +391,13 @@
 .cf-flag { font-size: 1.6rem !important; line-height: 1 !important; flex: 0 0 auto !important; }
 .cf-identity-txt { min-width: 0 !important; }
 .cf-identity-txt strong { display: block !important; color: #0f2436 !important; font: 800 0.98rem/1.2 'Inter', sans-serif !important; }
-.cf-identity-txt small { display: block !important; margin-top: 0.12rem !important; color: #7b8b99 !important; font: 600 0.64rem/1.35 'Inter', sans-serif !important; }
+.cf-identity-txt small { display: block !important; margin-top: 0.12rem !important; color: #7b8b99 !important; font: 600 0.75rem/1.35 'Inter', sans-serif !important; }
 
 /* Cifra principal: una sola por vista, en la misma sans, con figuras
    proporcionales (tabular-nums sólo en columnas que deben alinearse). */
 .cf-hero-figure { display: flex !important; align-items: baseline !important; gap: 0.7rem !important; flex-wrap: wrap !important; }
 .cf-hero-value { color: #0f2436 !important; font: 800 2.6rem/1 'Inter', sans-serif !important; letter-spacing: -0.04em !important; }
-.cf-hero-delta { font: 700 0.72rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-hero-delta { font: 700 0.75rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
 .cf-hero-delta.up { color: #b3261e !important; } .cf-hero-delta.down { color: #0b6e4f !important; } .cf-hero-delta.flat { color: #8394a3 !important; }
 
 /* Rellena el aire que dejaba el margin-top:auto del pie con datos reales en
@@ -300,16 +410,16 @@
     border-top: 1px solid #eaeff4 !important;
     border-bottom: 1px solid #eaeff4 !important;
 }
-.cf-hero-meta span { display: block !important; color: #8394a3 !important; font: 700 0.56rem/1 'Inter', sans-serif !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; }
+.cf-hero-meta span { display: block !important; color: #8394a3 !important; font: 700 0.625rem/1 'Inter', sans-serif !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; }
 .cf-hero-meta b { display: block !important; margin-top: 0.2rem !important; color: #33465a !important; font: 800 0.78rem/1.2 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
 
 .cf-hero-foot { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 0.6rem !important; margin-top: auto !important; flex-wrap: wrap !important; }
-.cf-hero-inst { color: #5c7180 !important; font: 700 0.72rem/1.3 'Inter', sans-serif !important; }
+.cf-hero-inst { color: #5c7180 !important; font: 700 0.75rem/1.3 'Inter', sans-serif !important; }
 .cf-hero-foot em {
     flex: 0 0 auto !important;
     padding: 0.26rem 0.58rem !important;
     border-radius: 99px !important;
-    font: 800 0.6rem/1 'Inter', sans-serif !important;
+    font: 800 0.75rem/1 'Inter', sans-serif !important;
     font-style: normal !important;
 }
 .cf-hero-foot em.is-live  { border: 1px solid #b9e5cf !important; background: #edfbf4 !important; color: #0b6e4f !important; }
@@ -321,7 +431,7 @@
 .cf-neighbors[hidden] { display: none !important; }
 
 .cf-pos-head { display: flex !important; align-items: baseline !important; justify-content: space-between !important; gap: 0.6rem !important; }
-.cf-pos-head span { color: #7b8b99 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
+.cf-pos-head span { color: #7b8b99 !important; font: 800 0.625rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
 .cf-pos-head b { color: #0f2436 !important; font: 800 0.84rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
 
 .cf-pos-track { position: relative !important; height: 10px !important; margin: 0.6rem 0 0.35rem !important; border-radius: 0 3px 3px 0 !important; background: #eef1f4 !important; }
@@ -329,18 +439,18 @@
 .cf-pos-track.tone-high { --cf-tone: #e34948; } .cf-pos-track.tone-mid { --cf-tone: #898781; } .cf-pos-track.tone-low { --cf-tone: #2a78d6; }
 .cf-pos-track::after { content: '' !important; position: absolute !important; top: 50% !important; left: var(--cf-median, 50%) !important; width: 1px !important; height: 20px !important; transform: translateY(-50%) !important; background: #b9c4ce !important; }
 .cf-pos-scale { display: flex !important; justify-content: space-between !important; }
-.cf-pos-scale small { color: #a0aebb !important; font: 600 0.58rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
-.cf-pos-copy { margin: 0.55rem 0 0 !important; color: #6b7f8f !important; font: 500 0.68rem/1.5 'Inter', sans-serif !important; }
+.cf-pos-scale small { color: #a0aebb !important; font: 600 0.75rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-pos-copy { margin: 0.55rem 0 0 !important; color: #6b7f8f !important; font: 500 0.75rem/1.5 'Inter', sans-serif !important; }
 .cf-pos-copy strong { color: #33465a !important; font-weight: 800 !important; }
 .cf-pos-empty { display: flex !important; gap: 0.5rem !important; }
-.cf-pos-empty i { color: #2a78d6 !important; font-size: 0.7rem !important; margin-top: 0.15rem !important; }
-.cf-pos-empty span { color: #5c7180 !important; font: 500 0.68rem/1.5 'Inter', sans-serif !important; }
+.cf-pos-empty i { color: #2a78d6 !important; font-size: 0.75rem !important; margin-top: 0.15rem !important; }
+.cf-pos-empty span { color: #5c7180 !important; font: 500 0.75rem/1.5 'Inter', sans-serif !important; }
 
-.cf-nb-head { color: #7b8b99 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; margin-bottom: 0.4rem !important; }
+.cf-nb-head { color: #7b8b99 !important; font: 800 0.625rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; margin-bottom: 0.4rem !important; }
 .cf-nb { display: grid !important; grid-template-columns: 34px minmax(0, 1fr) auto !important; align-items: center !important; gap: 0.5rem !important; padding: 0.3rem 0.4rem !important; border-radius: 7px !important; }
-.cf-nb span { color: #a0aebb !important; font: 800 0.64rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
-.cf-nb b { overflow: hidden !important; color: #5c7180 !important; font: 600 0.72rem/1.3 'Inter', sans-serif !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-.cf-nb em { color: #33465a !important; font: 700 0.74rem/1 'Inter', sans-serif !important; font-style: normal !important; font-variant-numeric: tabular-nums !important; }
+.cf-nb span { color: #a0aebb !important; font: 800 0.75rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-nb b { overflow: hidden !important; color: #5c7180 !important; font: 600 0.75rem/1.3 'Inter', sans-serif !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.cf-nb em { color: #33465a !important; font: 700 0.75rem/1 'Inter', sans-serif !important; font-style: normal !important; font-variant-numeric: tabular-nums !important; }
 .cf-nb.is-current { background: #eef4fc !important; }
 .cf-nb.is-current span { color: #2a78d6 !important; }
 .cf-nb.is-current b { color: #0f2436 !important; font-weight: 800 !important; }
@@ -348,7 +458,7 @@
 
 .cf-table-title { display: flex !important; align-items: baseline !important; justify-content: space-between !important; gap: 0.6rem !important; margin-bottom: 0.5rem !important; }
 .cf-table-title span { color: #0f2436 !important; font: 800 0.8rem/1.2 'Inter', sans-serif !important; }
-.cf-table-title small { color: #8394a3 !important; font: 600 0.64rem/1 'Inter', sans-serif !important; }
+.cf-table-title small { color: #8394a3 !important; font: 600 0.75rem/1 'Inter', sans-serif !important; }
 
 /* Distintivo por instrumento. Neutro para que no se confunda con un tono de
    la paleta divergente de la Mesa. */
@@ -359,7 +469,7 @@
     border-radius: 5px !important;
     background: rgba(7, 28, 44, 0.05) !important;
     color: #6b7f8f !important;
-    font: 700 0.55rem/1.4 'Inter', sans-serif !important;
+    font: 700 0.75rem/1.4 'Inter', sans-serif !important;
     letter-spacing: 0.04em !important;
     cursor: help !important;
 }
@@ -374,7 +484,7 @@
     padding: 0 0.6rem 0.45rem !important;
     border-bottom: 1px solid #e6ebf0 !important;
     color: #8394a3 !important;
-    font: 800 0.58rem/1.3 'Inter', sans-serif !important;
+    font: 800 0.625rem/1.3 'Inter', sans-serif !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
 }
@@ -382,20 +492,20 @@
 .cf-row { padding: 0.6rem !important; border-bottom: 1px solid #f0f3f6 !important; }
 .cf-row:last-child { border-bottom: 0 !important; }
 .cf-inst { color: #0f2436 !important; font: 700 0.78rem/1.25 'Inter', sans-serif !important; }
-.cf-mat { color: #7b8b99 !important; font: 700 0.66rem/1 'Inter', sans-serif !important; }
+.cf-mat { color: #7b8b99 !important; font: 700 0.75rem/1 'Inter', sans-serif !important; }
 .cf-yld { color: #0f2436 !important; font: 800 0.92rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
-.cf-prev { color: #7b8b99 !important; font: 600 0.74rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
-.cf-chg { font: 700 0.72rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-prev { color: #7b8b99 !important; font: 600 0.75rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
+.cf-chg { font: 700 0.75rem/1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
 .cf-chg.up { color: #b3261e !important; } .cf-chg.down { color: #0b6e4f !important; } .cf-chg.flat { color: #8394a3 !important; }
 
 .cf-context { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important; gap: 0.6rem !important; margin-top: 1rem !important; }
 .cf-context > div { padding: 0.7rem 0.85rem !important; border: 1px solid #eaeff4 !important; border-radius: 12px !important; background: #fafbfc !important; }
-.cf-context span { display: block !important; color: #8394a3 !important; font: 800 0.58rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
+.cf-context span { display: block !important; color: #8394a3 !important; font: 800 0.625rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
 .cf-context strong { display: block !important; margin: 0.25rem 0 0.12rem !important; color: #0f2436 !important; font: 800 1.05rem/1.1 'Inter', sans-serif !important; font-variant-numeric: tabular-nums !important; }
-.cf-context small { display: block !important; color: #8394a3 !important; font: 600 0.62rem/1.35 'Inter', sans-serif !important; }
+.cf-context small { display: block !important; color: #8394a3 !important; font: 600 0.75rem/1.35 'Inter', sans-serif !important; }
 .cf-note { grid-column: 1 / -1 !important; display: flex !important; gap: 0.5rem !important; padding: 0.75rem 0.9rem !important; border: 1px solid #e6edf5 !important; border-radius: 12px !important; background: #f4f8fc !important; }
-.cf-note i { color: #2a78d6 !important; font-size: 0.7rem !important; margin-top: 0.15rem !important; }
-.cf-note span { color: #5c7180 !important; font: 500 0.68rem/1.5 'Inter', sans-serif !important; letter-spacing: 0 !important; text-transform: none !important; }
+.cf-note i { color: #2a78d6 !important; font-size: 0.75rem !important; margin-top: 0.15rem !important; }
+.cf-note span { color: #5c7180 !important; font: 500 0.75rem/1.5 'Inter', sans-serif !important; letter-spacing: 0 !important; text-transform: none !important; }
 
 @media (max-width: 980px) {
     .cf-top { grid-template-columns: 1fr !important; }
@@ -425,9 +535,9 @@
     gap: 0.4rem !important;
     align-self: flex-start !important;
     color: #7b8b99 !important;
-    font: 600 0.63rem/1 'Inter', sans-serif !important;
+    font: 600 0.75rem/1 'Inter', sans-serif !important;
 }
-.sov-fixed-note i { color: #b9c4ce !important; font-size: 0.58rem !important; }
+.sov-fixed-note i { color: #b9c4ce !important; font-size: 0.75rem !important; }
 
 /* ── Mesa internacional de renta fija ────────────────────────────────────────
    Antes eran 21 tarjetas sueltas, cada una con su propia barra normalizada
@@ -462,10 +572,10 @@
 .sov-region.tone-high { --sov-tone: #e34948; }
 .sov-region.tone-mid  { --sov-tone: #898781; }
 .sov-region.tone-low  { --sov-tone: #2a78d6; }
-.sov-region-name { display: block !important; color: #5c7180 !important; font: 800 0.6rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
+.sov-region-name { display: block !important; color: #5c7180 !important; font: 800 0.625rem/1 'Inter', sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
 .sov-region strong { display: block !important; margin: 0.25rem 0 0.15rem !important; color: #0f2436 !important; font: 800 1.05rem/1.1 'Inter', sans-serif !important; }
-.sov-region small { display: block !important; color: #8394a3 !important; font: 600 0.62rem/1.35 'Inter', sans-serif !important; }
-.sov-region em { display: block !important; margin-top: 0.2rem !important; color: #6b7f8f !important; font: 700 0.62rem/1.3 'Inter', sans-serif !important; font-style: normal !important; font-variant-numeric: tabular-nums !important; }
+.sov-region small { display: block !important; color: #8394a3 !important; font: 600 0.75rem/1.35 'Inter', sans-serif !important; }
+.sov-region em { display: block !important; margin-top: 0.2rem !important; color: #6b7f8f !important; font: 700 0.75rem/1.3 'Inter', sans-serif !important; font-style: normal !important; font-variant-numeric: tabular-nums !important; }
 
 /* Rejilla compartida por el encabezado y las filas: si se cambia, cambiar ambas. */
 .sov-table-head,
@@ -480,7 +590,7 @@
     padding: 0 0.55rem 0.45rem !important;
     border-bottom: 1px solid #e6ebf0 !important;
     color: #8394a3 !important;
-    font: 800 0.58rem/1.3 'Inter', sans-serif !important;
+    font: 800 0.625rem/1.3 'Inter', sans-serif !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
 }
@@ -515,7 +625,7 @@
 
 .sov-rank {
     color: #9aa8b5 !important;
-    font: 800 0.7rem/1 'Inter', sans-serif !important;
+    font: 800 0.75rem/1 'Inter', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
     text-align: right !important;
 }
@@ -535,7 +645,7 @@
     display: block !important;
     overflow: hidden !important;
     color: #7b8b99 !important;
-    font: 600 0.62rem/1.35 'Inter', sans-serif !important;
+    font: 600 0.75rem/1.35 'Inter', sans-serif !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
 }
@@ -591,7 +701,7 @@
 .sov-row.tone-low  { --sov-tone: #2a78d6; }
 
 .sov-chg {
-    font: 700 0.66rem/1 'Inter', sans-serif !important;
+    font: 700 0.75rem/1 'Inter', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
     text-align: right !important;
 }
@@ -603,12 +713,12 @@
 .sov-spread b {
     display: block !important;
     color: #33465a !important;
-    font: 800 0.7rem/1.25 'Inter', sans-serif !important;
+    font: 800 0.75rem/1.25 'Inter', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
 }
-.sov-spread small { display: block !important; color: #8394a3 !important; font: 600 0.6rem/1.3 'Inter', sans-serif !important; }
+.sov-spread small { display: block !important; color: #8394a3 !important; font: 600 0.75rem/1.3 'Inter', sans-serif !important; }
 
-.sov-go { color: #c2ccd6 !important; font-size: 0.62rem !important; }
+.sov-go { color: #c2ccd6 !important; font-size: 0.75rem !important; }
 .sov-row:hover .sov-go { color: #2a78d6 !important; }
 
 /* Controles: una fila por dimensión, encima de la tabla. */
@@ -626,7 +736,7 @@
 .sov-filter-label {
     flex: 0 0 52px !important;
     color: #7b8b99 !important;
-    font: 800 0.6rem/1 'Inter', sans-serif !important;
+    font: 800 0.625rem/1 'Inter', sans-serif !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
 }
@@ -637,7 +747,7 @@
     border-radius: 99px !important;
     background: #ffffff !important;
     color: #5c7180 !important;
-    font: 700 0.66rem/1 'Inter', sans-serif !important;
+    font: 700 0.75rem/1 'Inter', sans-serif !important;
     cursor: pointer !important;
     transition: all 0.15s ease !important;
 }
@@ -695,7 +805,7 @@
     background: rgba(36, 107, 254, 0.1) !important;
     padding: 0.2rem 0.6rem !important;
     border-radius: 99px !important;
-    font-size: 0.7rem !important;
+    font-size: 0.75rem !important;
     font-weight: 800 !important;
     letter-spacing: 0.07em !important;
 }
@@ -717,3 +827,134 @@
         grid-template-areas: 'regime' 'context' 'global' !important;
     }
 }
+
+/* Orden final del tablero soberano: estas reglas cierran la cascada histórica. */
+#bonds-panel .sov-table-head { display: none !important; }
+#bonds-panel .sovereign-board-table {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .65rem !important;
+    margin-top: .85rem !important;
+}
+#bonds-panel .sov-row {
+    display: grid !important;
+    grid-template-columns: 32px minmax(0, 1fr) auto !important;
+    grid-template-areas: 'rank country change' 'rank bar spread' !important;
+    gap: .65rem .75rem !important;
+    min-height: 104px !important;
+    padding: .9rem !important;
+    border: 1px solid #dce4ea !important;
+    border-radius: 15px !important;
+    background: #fff !important;
+}
+#bonds-panel .sov-rank { grid-area: rank !important; }
+#bonds-panel .sov-country { grid-area: country !important; }
+#bonds-panel .sov-chg { grid-area: change !important; align-self: center !important; }
+#bonds-panel .sov-bar { grid-area: bar !important; }
+#bonds-panel .sov-spread { grid-area: spread !important; align-self: center !important; }
+#bonds-panel .sov-go { display: none !important; }
+@media (max-width: 800px) {
+    #bonds-panel .sovereign-board-table { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 520px) {
+    #bonds-panel .sov-row {
+        grid-template-columns: 28px minmax(0, 1fr) !important;
+        grid-template-areas: 'rank country' 'change spread' 'bar bar' !important;
+        min-height: 0 !important;
+    }
+}
+
+/* Matriz soberana v5: una fila por mercado y una escala cromática por métrica. */
+#bonds-panel .sov-matrix-head,
+#bonds-panel .sov-matrix-row {
+    display:grid !important;
+    grid-template-columns:minmax(185px,1.35fr) repeat(4,minmax(105px,.82fr)) minmax(78px,.55fr) !important;
+    align-items:stretch !important;
+    gap:3px !important;
+}
+#bonds-panel .sov-matrix-head {
+    margin-top:.9rem !important;
+    padding:0 0 .35rem !important;
+    border-bottom:1px solid #496174 !important;
+}
+#bonds-panel .sov-matrix-head span {
+    display:flex !important;
+    align-items:flex-end !important;
+    padding:.28rem .45rem !important;
+    color:#9fb0bc !important;
+    font:750 0.625rem/1.2 'Inter',sans-serif !important;
+    letter-spacing:.04em !important;
+    text-transform:uppercase !important;
+}
+#bonds-panel .sovereign-board-table.sov-matrix {
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:3px !important;
+    margin-top:3px !important;
+}
+#bonds-panel .sov-matrix-row {
+    min-height:52px !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    cursor:pointer !important;
+}
+#bonds-panel .sov-matrix-row:hover > * { filter:brightness(1.12); }
+#bonds-panel .sov-matrix-row:focus-visible { outline:2px solid #d6e5ea !important; outline-offset:2px !important; }
+#bonds-panel .sov-mx-country,
+#bonds-panel .sov-mx-cell,
+#bonds-panel .sov-mx-rank {
+    min-width:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:center !important;
+    padding:.48rem .58rem !important;
+    border:1px solid rgba(126,153,170,.2) !important;
+    background:var(--sov-cell,rgba(36,57,72,.58)) !important;
+    transition:filter .16s ease !important;
+}
+#bonds-panel .sov-mx-country {
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:.55rem !important;
+    background:rgba(34,54,69,.74) !important;
+}
+#bonds-panel .sov-mx-country > i { flex:0 0 auto !important; font-size:1rem !important; font-style:normal !important; }
+#bonds-panel .sov-mx-country > span { min-width:0 !important; }
+#bonds-panel .sov-mx-country strong,
+#bonds-panel .sov-mx-cell strong,
+#bonds-panel .sov-mx-rank strong {
+    display:block !important;
+    overflow:hidden !important;
+    color:#eef5f7 !important;
+    font:800 0.75rem/1.2 'JetBrains Mono','Inter',sans-serif !important;
+    font-variant-numeric:tabular-nums !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+}
+#bonds-panel .sov-mx-country strong { font-family:'Inter',sans-serif !important; }
+#bonds-panel .sov-mx-country small,
+#bonds-panel .sov-mx-cell small,
+#bonds-panel .sov-mx-rank small {
+    display:block !important;
+    overflow:hidden !important;
+    margin-top:.2rem !important;
+    color:#b3c1ca !important;
+    font:600 0.75rem/1.2 'Inter',sans-serif !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+}
+#bonds-panel .sov-mx-cell.is-neutral { --sov-cell:rgba(93,113,127,.16); }
+#bonds-panel .sov-mx-cell.is-up strong { color:#f3c0c6 !important; }
+#bonds-panel .sov-mx-cell.is-down strong { color:#9ee0ca !important; }
+#bonds-panel .sov-mx-rank { align-items:center !important; text-align:center !important; background:rgba(34,54,69,.74) !important; }
+#bonds-panel .sov-mx-rank strong { font-size:.78rem !important; }
+
+@media(max-width:900px){
+    #bonds-panel .sov-matrix-head{display:none!important}
+    #bonds-panel .sov-matrix-row{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important;margin-bottom:.7rem!important;padding:.35rem!important;border:1px solid #496174!important;border-radius:12px!important}
+    #bonds-panel .sov-mx-country{grid-column:1/-1!important}
+    #bonds-panel .sov-mx-rank{grid-column:1/-1!important;align-items:flex-start!important;text-align:left!important}
+}
+@media(max-width:520px){#bonds-panel .sov-matrix-row{grid-template-columns:1fr!important}#bonds-panel .sov-mx-country,#bonds-panel .sov-mx-rank{grid-column:auto!important}}

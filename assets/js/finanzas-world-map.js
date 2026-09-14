@@ -22,6 +22,10 @@
     let indices = null;    // { ticker: {price, change} } de /api/world-indices
     let fijado = null;     // país fijado con clic; null si solo se está pasando por encima
     let activo = null;     // país mostrado ahora mismo en el flotante
+    let filtro = 'todos';  // todos | alza | baja | datos
+    let zoom = 1;
+    let arrastre = null;
+    let ignorarClick = false;
 
     const esc = texto => String(texto).replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -29,6 +33,15 @@
 
     const catalogo = () => window.VN_WORLD_EXCHANGES || {};
     const $ = id => document.getElementById(id);
+
+    function estadoFuente(tipo, texto) {
+        const nodo = $('ffwm-market-feed');
+        if (!nodo) return;
+        nodo.classList.remove('is-loading', 'is-live', 'is-partial');
+        nodo.classList.add(`is-${tipo}`);
+        const icono = tipo === 'loading' ? 'fa-circle-notch fa-spin' : tipo === 'live' ? 'fa-signal' : 'fa-triangle-exclamation';
+        nodo.innerHTML = `<i class="fas ${icono}" aria-hidden="true"></i> ${esc(texto)}`;
+    }
 
     /* Hora local de la bolsa. Se calcula con Intl a partir del identificador
        IANA, así que sale correcta sin registrar horarios ni husos a mano. */
@@ -151,6 +164,7 @@
                 nodo.setAttribute('aria-label', etiquetaPais(pais, t));
             }
         });
+        aplicarFiltro(filtro);
         pintarResumen();
         if (activo) mostrarTip(activo, nodoDe(activo), true);   // refrescar cifras a la vista
     }
@@ -162,7 +176,86 @@
         const paises = Object.keys(cat).length;
         const bolsas = Object.values(cat).reduce((n, p) => n + p.bolsas.length, 0);
         const conDato = Object.values(cat).flatMap(p => p.bolsas).filter(b => cotizacion(b.simbolo)).length;
-        nodo.textContent = `${paises} países · ${bolsas} bolsas · ${conDato} con cotización`;
+        nodo.innerHTML = `<i class="fas fa-circle-info" aria-hidden="true"></i> ${paises} países · ${bolsas} bolsas · ${conDato} con datos conectados`;
+    }
+
+    function aplicarFiltro(nuevoFiltro) {
+        filtro = nuevoFiltro || 'todos';
+        document.querySelectorAll('[data-ffwm-filter]').forEach(boton => {
+            const seleccionado = boton.dataset.ffwmFilter === filtro;
+            boton.classList.toggle('is-active', seleccionado);
+            boton.setAttribute('aria-pressed', String(seleccionado));
+        });
+
+        document.querySelectorAll('#ffwm-map [data-pais]').forEach(nodo => {
+            const tieneDato = nodo.classList.contains('is-alza') || nodo.classList.contains('is-baja') || nodo.classList.contains('is-plano');
+            const visible = filtro === 'todos'
+                || (filtro === 'alza' && nodo.classList.contains('is-alza'))
+                || (filtro === 'baja' && nodo.classList.contains('is-baja'))
+                || (filtro === 'datos' && tieneDato);
+            nodo.classList.toggle('is-filtrado', !visible);
+        });
+
+        const filtroEstado = $('ffwm-filter-status');
+        if (filtroEstado) {
+            const cat = Object.values(catalogo());
+            const visibles = cat.filter(pais => {
+                const t = tono(pais);
+                return filtro === 'todos'
+                    || (filtro === 'alza' && t?.clase === 'is-alza')
+                    || (filtro === 'baja' && t?.clase === 'is-baja')
+                    || (filtro === 'datos' && !!t);
+            }).length;
+            const etiquetas = { todos:'Vista global', alza:'Mercados al alza', baja:'Mercados a la baja', datos:'Con datos' };
+            filtroEstado.textContent = `${etiquetas[filtro] || 'Vista global'} · ${visibles} de ${cat.length} mercados`;
+        }
+
+        if (activo && nodoDe(activo)?.classList.contains('is-filtrado')) {
+            fijado = null;
+            ocultarTip();
+        }
+    }
+
+    function ajustarZoom(accion) {
+        const stage = $('ffwm-stage');
+        const lienzo = document.querySelector('#ffwm-map .ffwm-lienzo');
+        if (!stage || !lienzo) return;
+        const anterior = zoom;
+        if (accion === 'in') zoom = Math.min(1.8, +(zoom + .2).toFixed(1));
+        else if (accion === 'out') zoom = Math.max(1, +(zoom - .2).toFixed(1));
+        else zoom = 1;
+        lienzo.style.setProperty('--ffwm-zoom', zoom);
+        stage.dataset.zoom = String(zoom);
+        const indicador = $('ffwm-zoom-value');
+        if (indicador) indicador.textContent = `${Math.round(zoom * 100)}%`;
+        stage.classList.add('has-interacted');
+
+        if (accion === 'reset') {
+            stage.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+        } else if (zoom !== anterior) {
+            const proporcion = zoom / anterior;
+            stage.scrollTo({
+                left: (stage.scrollLeft + stage.clientWidth / 2) * proporcion - stage.clientWidth / 2,
+                top: (stage.scrollTop + stage.clientHeight / 2) * proporcion - stage.clientHeight / 2,
+                behavior: 'smooth',
+            });
+        }
+        document.querySelector('[data-ffwm-zoom="out"]')?.toggleAttribute('disabled', zoom <= 1);
+        document.querySelector('[data-ffwm-zoom="in"]')?.toggleAttribute('disabled', zoom >= 1.8);
+        if (activo) colocar($('ffwm-tip'), nodoDe(activo));
+    }
+
+    function centrarEn(objetivo) {
+        const stage = $('ffwm-stage');
+        if (!stage || !objetivo) return;
+        const caja = stage.getBoundingClientRect();
+        const punto = objetivo.getBoundingClientRect();
+        stage.scrollBy({
+            left: punto.left + punto.width / 2 - (caja.left + caja.width / 2),
+            top: punto.top + punto.height / 2 - (caja.top + caja.height / 2),
+            behavior: 'smooth',
+        });
+        stage.classList.add('has-interacted');
     }
 
     /* ── Flotante ────────────────────────────────────────────────────────── */
@@ -212,8 +305,10 @@
                     <h3>${esc(pais.pais)}</h3>
                     <p>${cuantas} ${cuantas === 1 ? 'bolsa de valores' : 'bolsas de valores'}</p>
                 </div>
+                <button type="button" class="ffwm-tip-close" aria-label="Cerrar ficha"><i class="fas fa-xmark" aria-hidden="true"></i></button>
             </header>
-            <div class="ffwm-bolsas">${pais.bolsas.map(b => fichaBolsa(b, pais.tz)).join('')}</div>`;
+            <div class="ffwm-bolsas">${pais.bolsas.map(b => fichaBolsa(b, pais.tz)).join('')}</div>
+            ${cuantas > 1 ? `<span class="ffwm-tip-more"><i class="fas fa-layer-group" aria-hidden="true"></i> ${cuantas - 1} ${cuantas - 1 === 1 ? 'bolsa adicional' : 'bolsas adicionales'}</span>` : ''}`;
         tip.hidden = false;
         activo = ne;
 
@@ -230,6 +325,11 @@
     function colocar(tip, objetivo) {
         const host = $('ffwm-map');
         if (!host || !objetivo) return;
+        if (window.matchMedia('(max-width: 620px)').matches) {
+            tip.style.left = '';
+            tip.style.top = '';
+            return;
+        }
         const caja = host.getBoundingClientRect();
         const r = objetivo.getBoundingClientRect();
         const ancho = tip.offsetWidth;
@@ -261,6 +361,7 @@
     /* ── Datos ───────────────────────────────────────────────────────────── */
 
     async function cargarIndices() {
+        estadoFuente('loading', 'Conectando mercados');
         try {
             const respuesta = await fetch('/api/world-indices');
             if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
@@ -268,10 +369,16 @@
             if (!json?.data) throw new Error('respuesta sin datos');
             indices = json.data;
             pintarTonos();
+            const hora = json.asOf ? new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit' }).format(new Date(json.asOf)) : null;
+            const disponibles = Number(json.total) || Object.keys(json.data).length;
+            estadoFuente(json.fallidos ? 'partial' : 'live', `${disponibles} índices${hora ? ` · ${hora} h` : ''}`);
         } catch (error) {
             /* Sin índices el mapa sigue sirviendo: los países quedan grises y las
                fichas dicen que no hay cotización. */
             console.warn('[mapa mundial] no se pudieron cargar los índices:', error.message);
+            const respaldo = Object.values(catalogo()).flatMap(p => p.bolsas).filter(b => cotizacion(b.simbolo)).length;
+            estadoFuente('partial', respaldo ? `${respaldo} índices de respaldo` : 'Mercados no disponibles');
+            pintarTonos();
         }
     }
 
@@ -300,12 +407,81 @@
         construirSelect();
         pintarResumen();
         host.dataset.listo = '1';
+        ajustarZoom('reset');
         cargarIndices();
+
+        document.querySelectorAll('[data-ffwm-filter]').forEach(boton => {
+            boton.addEventListener('click', () => aplicarFiltro(boton.dataset.ffwmFilter));
+        });
+        host.querySelectorAll('[data-ffwm-zoom]').forEach(boton => {
+            boton.addEventListener('click', evento => {
+                evento.stopPropagation();
+                ajustarZoom(boton.dataset.ffwmZoom);
+                boton.classList.remove('is-activated');
+                void boton.offsetWidth;
+                boton.classList.add('is-activated');
+                window.setTimeout(() => boton.classList.remove('is-activated'), 420);
+            });
+        });
+
+        const stage = $('ffwm-stage');
+        if (stage) {
+            stage.addEventListener('pointerdown', evento => {
+                if (evento.pointerType !== 'mouse' || evento.button !== 0 || evento.target.closest('.ffwm-tip, .ffwm-map-tools')) return;
+                arrastre = {
+                    id: evento.pointerId,
+                    x: evento.clientX,
+                    y: evento.clientY,
+                    left: stage.scrollLeft,
+                    top: stage.scrollTop,
+                    movio: false,
+                };
+                stage.setPointerCapture?.(evento.pointerId);
+            });
+            stage.addEventListener('pointermove', evento => {
+                if (!arrastre || arrastre.id !== evento.pointerId) return;
+                const dx = evento.clientX - arrastre.x;
+                const dy = evento.clientY - arrastre.y;
+                if (!arrastre.movio && Math.hypot(dx, dy) < 5) return;
+                arrastre.movio = true;
+                ignorarClick = true;
+                stage.classList.add('is-dragging', 'has-interacted');
+                if (!fijado) ocultarTip();
+                stage.scrollLeft = arrastre.left - dx;
+                stage.scrollTop = arrastre.top - dy;
+                evento.preventDefault();
+            });
+            const terminarArrastre = evento => {
+                if (!arrastre || (evento.pointerId !== undefined && arrastre.id !== evento.pointerId)) return;
+                stage.releasePointerCapture?.(arrastre.id);
+                stage.classList.remove('is-dragging');
+                arrastre = null;
+                window.setTimeout(() => { ignorarClick = false; }, 0);
+            };
+            stage.addEventListener('pointerup', terminarArrastre);
+            stage.addEventListener('pointercancel', terminarArrastre);
+            stage.addEventListener('wheel', evento => {
+                if (!evento.ctrlKey && !evento.metaKey) return;
+                evento.preventDefault();
+                ajustarZoom(evento.deltaY < 0 ? 'in' : 'out');
+            }, { passive: false });
+            stage.addEventListener('dblclick', evento => {
+                if (evento.target.closest('[data-pais]')) return;
+                evento.preventDefault();
+                ajustarZoom('in');
+            });
+            stage.addEventListener('keydown', evento => {
+                if (evento.key === '+' || evento.key === '=') { evento.preventDefault(); ajustarZoom('in'); }
+                if (evento.key === '-' || evento.key === '_') { evento.preventDefault(); ajustarZoom('out'); }
+                if (evento.key === '0') { evento.preventDefault(); ajustarZoom('reset'); }
+            });
+        }
 
         /* Un solo listener delegado: son ~230 nodos y no tiene sentido registrar
            un manejador por país. */
         host.addEventListener('mouseover', evento => {
-            if (fijado) return;                       // hay uno fijado con clic
+            if (fijado || arrastre?.movio) return;    // hay uno fijado o se está arrastrando
+            if (evento.target.closest('.ffwm-tip, .ffwm-map-tools')) return;
             const objetivo = evento.target.closest('[data-pais]');
             if (objetivo) mostrarTip(objetivo.dataset.pais, objetivo);
             else ocultarTip();                        // se pasó al océano
@@ -316,6 +492,16 @@
            donde no existe "pasar el cursor". Volver a tocar el mismo país lo
            suelta. */
         host.addEventListener('click', evento => {
+            if (ignorarClick) {
+                evento.preventDefault();
+                return;
+            }
+            if (evento.target.closest('.ffwm-tip-close')) {
+                fijado = null;
+                ocultarTip();
+                return;
+            }
+            if (evento.target.closest('.ffwm-tip, .ffwm-map-tools')) return;
             const objetivo = evento.target.closest('[data-pais]');
             if (!objetivo) { fijado = null; ocultarTip(); return; }
             const ne = objetivo.dataset.pais;
@@ -337,8 +523,11 @@
         const select = $('ffwm-select');
         if (select) select.addEventListener('change', () => {
             if (!select.value) { fijado = null; ocultarTip(); return; }
+            aplicarFiltro('todos');
             fijado = select.value;
-            mostrarTip(select.value, nodoDe(select.value));
+            const objetivo = nodoDe(select.value);
+            centrarEn(objetivo);
+            mostrarTip(select.value, objetivo);
         });
 
         /* Al cambiar el tamaño, el flotante quedaría descolocado: se recoloca

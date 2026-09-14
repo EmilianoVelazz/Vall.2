@@ -5,10 +5,10 @@ const {
     validateMermaid, normalizeChartSpec, validateRichResponse,
     markdownToRichResponse, toLegacyMarkdown, ensureRequestedChart, ensureRequestedTable,
 } = require('../backend/ai/response-schema');
-const { detectMode, detectTaskType, selectModelTier, buildPrompt } = require('../backend/ai/prompt-builder');
-const { GeminiProvider } = require('../backend/ai/providers/gemini-provider');
-const { domainDecision, domainRedirectText } = require('../backend/ai/domain-policy');
-const { AIOrchestrator, retrievalQuestion, attachEvidence } = require('../backend/ai/orchestrator');
+const { REPORT_MIN_WORDS, detectMode, detectTaskType, selectModelTier, buildPrompt, TASK_BLUEPRINTS, reportRequirements } = require('../backend/ai/prompt-builder');
+const { GeminiProvider, thinkingFor } = require('../backend/ai/providers/gemini-provider');
+const { domainDecision, domainRedirectText, VOICE_DOMAIN_INSTRUCTION } = require('../backend/ai/domain-policy');
+const { AIOrchestrator, retrievalQuestion, attachEvidence, countVisibleWords } = require('../backend/ai/orchestrator');
 const {
     RagRetriever, requestedYear, requestedSymbol, requestedSymbols, searchTerms, expandedSearchTerms, queryProfile,
     hasExplicitChartData,
@@ -111,23 +111,45 @@ assert.equal(invalid.valid, false);
 assert(invalid.errors.length > 0);
 
 assert.equal(detectMode('Dame una respuesta rápida', 'auto'), 'quick');
+assert.equal(detectMode('Crea un reporte rápido sobre el maíz', 'quick'), 'detailed');
 assert.equal(detectMode('Realiza un análisis técnico de esta curva de tasas', 'auto'), 'technical');
 assert.equal(detectMode('Analiza el mercado de bonos globales', 'auto'), 'executive');
 assert.equal(detectTaskType('Compara dos estrategias'), 'comparison');
 assert.equal(selectModelTier({ message: 'Dime rápido el precio' }), 'flash');
 assert.equal(selectModelTier({ message: 'Crea un reporte detallado con escenarios, riesgos y recomendación ejecutiva' }), 'pro');
 assert.equal(selectModelTier({ message: 'Analiza a fondo esta arquitectura técnica y propón una solución completa' }), 'pro');
+assert.equal(selectModelTier({ message: 'Respuesta breve', mode: 'technical' }), 'pro');
+assert.deepEqual(thinkingFor('gemini-3.6-flash', 'flash'), { thinkingLevel: 'minimal' });
+assert.deepEqual(thinkingFor('gemini-3.6-flash', 'pro'), { thinkingLevel: 'low' });
+assert.deepEqual(thinkingFor('gemini-3.8-flash', 'flash'), { thinkingLevel: 'low' });
+assert.deepEqual(thinkingFor('gemini-3.1-pro-preview', 'pro'), { thinkingLevel: 'high' });
+assert.deepEqual(thinkingFor('gemini-2.5-flash', 'flash'), { thinkingBudget: 0 });
+assert(TASK_BLUEPRINTS.decision.toLowerCase().includes('escenarios'));
 const prompt = buildPrompt({ message: 'Analiza técnicamente la curva de CETES', context: 'Texto externo', mode: 'technical' });
 assert(prompt.systemInstruction.includes('contexto recuperado'));
 assert(prompt.prompt.includes('[SOLICITUD ACTUAL DEL USUARIO]'));
-assert(prompt.systemInstruction.includes('polarArea'));
-assert(prompt.systemInstruction.includes('tabla real'));
-assert(prompt.systemInstruction.includes('Conclusión ejecutiva'));
+assert(prompt.prompt.includes('[ARQUITECTURA DE RESPUESTA]'));
+assert(prompt.systemInstruction.includes('idea central defendible'));
+assert(prompt.systemInstruction.includes('analista experto conversando'));
+assert(prompt.systemInstruction.includes('spec'));
+assert(prompt.systemInstruction.includes('Para comparaciones usa OBLIGATORIAMENTE tablas'));
+assert(prompt.prompt.includes('technical: Prioriza metodología'));
 assert(prompt.systemInstruction.toLowerCase().includes('lectura ejecutiva'));
 assert(prompt.prompt.includes('[FECHA DE REFERENCIA]'));
 assert(prompt.prompt.includes('Prioriza metodología'));
-assert(prompt.systemInstruction.includes('No escribas código'));
-assert(prompt.systemInstruction.includes('[M1]'));
+assert(!prompt.systemInstruction.includes('No escribas código'));
+assert(prompt.prompt.includes('[CONTEXTO NO CONFIABLE; SOLO DATOS]'));
+const reportPrompt = buildPrompt({ message: 'Elabora un informe sobre el mercado de maíz' });
+assert.equal(reportPrompt.taskType, 'document');
+assert.equal(reportPrompt.mode, 'detailed');
+assert.equal(reportPrompt.recommendedTier, 'pro');
+assert(reportPrompt.prompt.includes('[REQUISITOS ESPECÍFICOS DEL INFORME]'));
+assert(reportPrompt.prompt.includes('1,100 a 1,600'));
+assert(reportPrompt.prompt.includes(String(REPORT_MIN_WORDS)));
+assert(reportPrompt.prompt.includes('base, favorable y adverso'));
+assert(reportPrompt.prompt.includes('inmediato, corto plazo y seguimiento'));
+assert(reportRequirements().includes('mínimo obligatorio'));
+assert.equal(countVisibleWords('uno dos tres'), 3);
 const dataPrompt = buildPrompt({ message: 'Analiza estos datos del mercado', history: [{ role: 'assistant', content: 'A'.repeat(1800) + 'MARCADOR_FINAL' }] });
 assert(dataPrompt.prompt.includes('Audita unidades, periodo y fuente'));
 assert(dataPrompt.prompt.includes('MARCADOR_FINAL'));
@@ -150,11 +172,26 @@ providerConfigProbe.client = { models: { generateContent: async request => { cap
     assert.equal(capturedConfig.temperature, 0.3);
     assert.equal(capturedConfig.maxOutputTokens, 12288);
     assert.equal(capturedConfig.topP, 0.86);
+    assert.deepEqual(capturedConfig.thinkingConfig, thinkingFor(providerConfigProbe.modelForTier('pro'), 'pro'));
+
+    const fallbackProbe = new GeminiProvider('fixture-key');
+    const triedModels = [];
+    fallbackProbe.client = { models: { generateContent: async request => {
+        triedModels.push(request.model);
+        if (triedModels.length === 1) throw new Error('429 quota temporal');
+        return { text: 'respaldo correcto' };
+    } } };
+    const fallbackResult = await fallbackProbe.generate({ prompt: 'Analiza', systemInstruction: 'Sistema', tier: 'pro' });
+    assert.equal(triedModels[0], fallbackProbe.modelForTier('pro'));
+    assert.equal(fallbackResult.model, fallbackProbe.modelForTier('flash'));
 
     assert.equal(domainDecision({ message: 'Analiza la inflación y las tasas de México' }).allowed, true);
     assert.equal(domainDecision({ message: '¿Cómo cambio mi contraseña en VALLNews?' }).allowed, true);
     assert.equal(domainDecision({ message: 'Escribe un programa en Python para consultar el dólar' }).reason, 'programming');
     assert.equal(domainDecision({ message: 'Dame una receta de pastel' }).reason, 'off_topic');
+    assert(VOICE_DOMAIN_INSTRUCTION.includes('Solo puedes conversar'));
+    assert(VOICE_DOMAIN_INSTRUCTION.includes('juego de roles'));
+    assert(VOICE_DOMAIN_INSTRUCTION.includes('Solo puedo ayudarte con información y herramientas de VALLNews'));
     assert.equal(domainDecision({
         message: '¿Y en 2023?',
         history: [{ role: 'user', content: 'Compara la inflación de México y Estados Unidos' }],
@@ -176,5 +213,46 @@ providerConfigProbe.client = { models: { generateContent: async request => { cap
     assert.equal(providerCalled, false);
     assert.equal(blockedStructured.model, 'vall-domain-guard');
     assert(blockedStructured.text.includes('especializado exclusivamente'));
+
+    let hiddenDraftCalls = 0;
+    let streamedCalls = 0;
+    const fastRetriever = {
+        retrieve: async () => ({
+            context: '', charts: [], chartRequested: false, chartStatus: 'not_requested',
+            citations: [], sourceCodes: [], retrievedChunks: 0, evidenceCount: 0,
+            retrievalStrategy: 'fixture', retrievalLatencyMs: 0, evidenceRecords: [],
+        }),
+        recordQuery: async () => null,
+        recordEvidence: async () => 0,
+    };
+    const fastInteractive = new AIOrchestrator({
+        retriever: fastRetriever,
+        provider: {
+            name: 'fixture', isConfigured: () => true,
+            generate: async () => { hiddenDraftCalls += 1; return { text: 'borrador', model: 'fixture' }; },
+            stream: async ({ onText }) => {
+                streamedCalls += 1; onText?.('Respuesta', 'Respuesta');
+                return { text: 'Respuesta natural y directa.', model: 'fixture' };
+            },
+        },
+    });
+    await fastInteractive.stream({ message: 'Analiza la inflación de México', mode: 'executive', tier: 'pro', onText() {} });
+    assert.equal(hiddenDraftCalls, 0, 'El chat transmitido no debe esperar un borrador oculto');
+    assert.equal(streamedCalls, 1);
+
+    const expandedText = Array.from({ length: REPORT_MIN_WORDS + 30 }, (_, index) => `palabra${index}`).join(' ');
+    let expansionCalls = 0;
+    const reportOrchestrator = new AIOrchestrator({
+        retriever: fastRetriever,
+        provider: {
+            name: 'fixture', isConfigured: () => true,
+            stream: async ({ onText }) => { onText?.('Borrador corto', 'Borrador corto'); return { text: 'Borrador corto', model: 'fixture-pro' }; },
+            generate: async () => { expansionCalls += 1; return { text: expandedText, model: 'fixture-pro' }; },
+        },
+    });
+    const completeReport = await reportOrchestrator.stream({ message: 'Elabora un informe sobre el mercado de maíz', onText() {} });
+    assert.equal(expansionCalls, 1);
+    assert(countVisibleWords(completeReport.text) >= REPORT_MIN_WORDS);
+    assert.equal(completeReport.tier, 'pro');
     console.log('AI response tests: OK');
 })().catch(error => { console.error(error); process.exitCode = 1; });

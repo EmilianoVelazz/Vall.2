@@ -177,6 +177,116 @@ const VDS = (() => {
     return null;
   }
 
+  async function usdaCropProgress(commodity = 'CORN') {
+    const key = `usda_cp_${commodity}`;
+    const c = load(key);
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/usda/crop-progress?commodity=${commodity}`);
+      if (r.ok) {
+        const j = await r.json();
+        save(key, j);
+        return j;
+      }
+    } catch {}
+    return null;
+  }
+
+  // --- NUEVAS FUENTES INSTITUCIONALES PROTEÍNAS ---
+  async function siapData() {
+    const c = load('siap_prod');
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/siap/produccion`);
+      if (r.ok) { const j = await r.json(); save('siap_prod', j); return j; }
+    } catch {}
+    return null;
+  }
+
+  async function amsCutout() {
+    const c = load('ams_cutout');
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/usda/ams/cutout`);
+      if (r.ok) { const j = await r.json(); save('ams_cutout', j); return j; }
+    } catch {}
+    return null;
+  }
+
+  async function faoOutlook() {
+    const c = load('fao_outlook');
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/fao/outlook`);
+      if (r.ok) { const j = await r.json(); save('fao_outlook', j); return j; }
+    } catch {}
+    return null;
+  }
+
+  async function inegiPreciosCarne() {
+    const c = load('inegi_precios_carne');
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/inegi/precios-carne`);
+      if (r.ok) { const j = await r.json(); save('inegi_precios_carne', j); return j; }
+    } catch {}
+    return null;
+  }
+
+  async function wbCommodityPrices() {
+    const c = load('wb_commodity_prices');
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/worldbank/commodity-prices`);
+      if (r.ok) { const j = await r.json(); save('wb_commodity_prices', j); return j; }
+    } catch {}
+    return null;
+  }
+
+  async function blsMeatPrices() {
+    const c = load('bls_meat_prices');
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/bls/meat-prices`);
+      if (r.ok) { const j = await r.json(); save('bls_meat_prices', j); return j; }
+    } catch {}
+    return null;
+  }
+
+  async function woahAlerts() {
+    const c = load('woah_alerts');
+    if (c !== null) return c;
+    try {
+      const r = await safeFetch(`/api/woah/alerts`);
+      if (r.ok) { const j = await r.json(); save('woah_alerts', j); return j; }
+    } catch {}
+    return null;
+  }
+
+  async function mlInsightProteinas(payload) {
+    try {
+      const r = await safeFetch(`/api/ml/insight-proteinas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }, 18000);
+      if (r.ok) {
+        const j = await r.json();
+        return j.insight;
+      }
+    } catch {}
+    return null;
+  }
+
+  async function mercolleidaOverview() {
+    try {
+      const r = await safeFetch('/api/mercolleida/overview', { credentials: 'include' }, 12000);
+      return r.ok ? await r.json() : null;
+    } catch { return null; }
+  }
+
+  // ------------------------------------------------
+
   async function finnhubNews(category = 'general') {
     const key = `finnhub_${category}`;
     const c = load(key);
@@ -282,12 +392,13 @@ const VDS = (() => {
   // — Gemini Chat (text response, no JSON parsing) —
   // For report analysis and conversational AI. Returns raw text.
   async function geminiChat(prompt, systemPrompt) {
+    const reportRequested = /\b(reporte|informes?|documento|word|\.docx?|investigaci[oó]n)\b/i.test(String(prompt || ''));
     const res = await safeFetch('/api/ai-insight', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, systemPrompt })
-    }, 35000); // gemini-3.1-pro-preview razona antes de responder — puede tardar 8-18s+
+    }, reportRequested ? 120000 : 35000); // Los informes pueden requerir revisión de extensión.
     if (!res.ok) {
       const errBody = await res.json().catch(() => null);
       throw new Error(errBody?.error || `Gemini HTTP ${res.status}`);
@@ -374,6 +485,7 @@ const VDS = (() => {
     if (/\b(geopol[ií]tica|guerra|conflicto|sanci[oó]n|arancel|ucrania|rusia|china|medio oriente|israel|iran|ir[aá]n)\b/i.test(text)) add('geopolitics');
     if (/\b(m[eé]xico|econom[ií]a mexicana|mercado mexicano)\b/i.test(text)) add('mexico');
     if (/\b(panorama|mercados|resumen financiero|econom[ií]a global)\b/i.test(text)) add('market');
+    if (/\b(prote[ií]na|proteinas|carne|cerdo|pollo|res|huevo|porcino|av[ií]cola|bovino|sanidad|gripe aviar)\b/i.test(text)) add('proteins');
     return intents;
   }
 
@@ -492,6 +604,42 @@ const VDS = (() => {
       addTask('Cripto global', async () => {
         const data = (await _aiApiJson('/api/crypto-global'))?.data || {};
         return `CoinGecko (${new Date().toISOString()}): capitalización global USD ${_aiNumber(data.total_market_cap?.usd, 0)}; volumen 24h USD ${_aiNumber(data.total_volume?.usd, 0)}; dominio BTC ${_aiNumber(data.market_cap_percentage?.btc)}%; cambio 24h ${fmtPct(data.market_cap_change_percentage_24h_usd)}.`;
+      });
+    }
+
+    if (wants('proteins')) {
+      addTask('Proteínas: Precios y Producción (INEGI, BLS, SIAP, AMS)', async () => {
+        const [inegi, bls, wb, woah, siap, ams] = await Promise.allSettled([
+          inegiPreciosCarne(), blsMeatPrices(), wbCommodityPrices(), woahAlerts(), siapData(), amsCutout()
+        ]);
+        const parts = [];
+        if (inegi.status === 'fulfilled' && inegi.value?.precios) {
+           const p = inegi.value.precios;
+           if (p.cerdo) parts.push(`INEGI Cerdo ${p.cerdo.valor} MXN/kg`);
+           if (p.pollo) parts.push(`INEGI Pollo ${p.pollo.valor} MXN/kg`);
+           if (p.res) parts.push(`INEGI Res ${p.res.valor} MXN/kg`);
+        }
+        if (bls.status === 'fulfilled' && bls.value?.prices) {
+           const p = bls.value.prices;
+           if (p.beef) parts.push(`BLS Beef ${p.beef.ultimo} USD/lb`);
+           if (p.pork) parts.push(`BLS Pork ${p.pork.ultimo} USD/lb`);
+           if (p.chicken) parts.push(`BLS Chicken ${p.chicken.ultimo} USD/lb`);
+        }
+        if (siap.status === 'fulfilled' && siap.value?.toneladas_mensuales) {
+           const p = siap.value.toneladas_mensuales;
+           parts.push(`SIAP Producción (tons/mes): Cerdo ${p.cerdo}, Pollo ${p.pollo}, Res ${p.res}`);
+        }
+        if (ams.status === 'fulfilled' && ams.value?.data) {
+           const p = ams.value.data;
+           parts.push(`USDA AMS Cutout: Pork ${p.pork_cutout} USD/cwt, Beef ${p.beef_cutout} USD/cwt`);
+        }
+        if (wb.status === 'fulfilled' && wb.value?.prices?.livestock_index?.[0]) {
+           parts.push(`Banco Mundial Livestock Index: ${wb.value.prices.livestock_index[0].value}`);
+        }
+        if (woah.status === 'fulfilled' && woah.value?.alerts?.length > 0) {
+           parts.push(`WOAH: ${woah.value.alerts.length} alertas sanitarias pecuarias activas`);
+        }
+        return parts.length ? `Datos Proteínas: ${parts.join('; ')}.` : '';
       });
     }
 
@@ -904,6 +1052,16 @@ const VDS = (() => {
     isExpired,
     save,
     clear,
-    TTL
+    TTL,
+    usdaCropProgress,
+    siapData,
+    amsCutout,
+    faoOutlook,
+    inegiPreciosCarne,
+    wbCommodityPrices,
+    blsMeatPrices,
+    woahAlerts,
+    mlInsightProteinas,
+    mercolleidaOverview
   };
 })();

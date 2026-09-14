@@ -49,6 +49,7 @@ const DECIMALES = 1;
 const CENTROS = {
     'United States of America': [-74.0, 40.7],   // Nueva York
     'Canada': [-79.4, 43.7],                     // Toronto
+    'Mexico': [-99.13, 19.43],                   // Ciudad de México
     'Brazil': [-46.6, -23.5],                    // São Paulo
     'Argentina': [-58.4, -34.6],                 // Buenos Aires
     'Chile': [-70.7, -33.4],                     // Santiago
@@ -188,6 +189,23 @@ for (const feature of coleccion.features) {
     paises.push({ ne: nombre, d: redondear(d) });
 }
 
+/* Geometrías que no pertenecen al mapa bursátil, pero que otros módulos
+   financieros necesitan. Se proyectan con el mismo encuadre y se publican por
+   separado: así el mapa de Bolsa sigue respetando sus exclusiones y el mapa de
+   Bonos puede recuperar el territorio sin mantener una segunda cartografía. */
+const suplementos = {};
+for (const nombre of ['Mexico']) {
+    const geom = topo.objects.countries.geometries.find(g => g.properties?.name === nombre);
+    if (!geom) continue;
+    const feature = { type: 'Feature', properties: geom.properties, geometry: aGeometria(geom, arcos) };
+    const d = trazar(feature);
+    const xy = proyeccion(nombre === 'Mexico' ? [-99.13, 19.43] : [0, 0]);
+    if (d && xy) suplementos[nombre] = {
+        d: redondear(d),
+        centro: { x: +xy[0].toFixed(DECIMALES), y: +xy[1].toFixed(DECIMALES) },
+    };
+}
+
 /* Marcadores del centro financiero, proyectados al mismo lienzo. */
 const centros = {};
 for (const [nombre, lonLat] of Object.entries(CENTROS)) {
@@ -233,6 +251,7 @@ const salida = `/*
         alto: ${ALTO},
         generado: ${JSON.stringify(new Date().toISOString().slice(0, 10))},
         centros: ${JSON.stringify(centros)},
+        suplementos: ${JSON.stringify(suplementos)},
         paises: [
 ${paises.map(p => `            { ne: ${JSON.stringify(p.ne)}, d: ${JSON.stringify(p.d)} },`).join('\n')}
         ],

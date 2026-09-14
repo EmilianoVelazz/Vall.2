@@ -78,3 +78,20 @@ inflación, TIIE y CETES. Para actualizar únicamente Banxico:
 ```powershell
 node scripts/ingest-intelligence.cjs --only=banxico
 ```
+
+## Pronóstico numérico verificable
+
+Después de aplicar `007_forecasting_supabase.sql` en el editor SQL de Supabase,
+se puede entrenar un pronóstico de un paso directamente contra Supabase:
+
+```powershell
+npm run train:forecast -- --symbol=USDMXN=X --interval=1d
+```
+
+El backend requiere `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en `.env.local`;
+la clave publicable del navegador no tiene permiso para escribir estas tablas.
+El modelo descarga el histórico de Yahoo Finance, usa solo rezagos, se evalúa con validación temporal
+walk-forward y se compara contra el baseline de repetir el último valor. La
+ejecución queda registrada en `forecast_runs`; solo crea una predicción pública
+si el MAE mejora el baseline en al menos 2 %. Las predicciones vencidas se
+evalúan automáticamente contra la siguiente observación real disponible.

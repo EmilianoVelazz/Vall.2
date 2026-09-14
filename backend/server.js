@@ -12,6 +12,7 @@ try {
 }
 
 const express      = require('express');
+const compression  = require('compression');
 const cors         = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit    = require('express-rate-limit');
@@ -19,22 +20,24 @@ const jwt          = require('jsonwebtoken');
 
 
 // ── 4. Routers ────────────────────────────────────────────────────────────────
-const { router: authRouter }                      = require('./routes/auth');
+const  { router: authRouter }                      = require('./routes/auth');
 const finanzasRouter                              = require('./routes/finanzas');
-const { router: marketRouter, initCommodityWarmer } = require('./routes/market');
+const { router: marketRouter, initCommodityWarmer, startMarketExecutiveReportsScheduler, refreshMarketExecutiveReports } = require('./routes/market');
 const externalRouter                              = require('./routes/external');
+const mercolleidaRouter                           = require('./routes/mercolleida');
 const chatRouter                                  = require('./routes/chat');
 const exportRouter                                = require('./routes/export');
 const { router: attachmentsRouter }               = require('./routes/attachments');
 
 const app  = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3101;
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3001')
     .split(',')
     .map(o => o.trim())
     .filter(Boolean);
 
+app.use(compression());
 app.use(cors({
     origin(origin, callback) {
         if (!origin) return callback(null, true);
@@ -60,6 +63,17 @@ app.use(cors({
 app.use(cookieParser());
 // Exportación admite imágenes de gráficas; usa un límite propio antes del
 // parser global pequeño que protege al resto de las rutas.
+// ── Rate limiter (300 req/min por IP) ─────────────────────────────────────────
+// Una sola carga de finanzas.html dispara ~40-50 peticiones; inicio.html ~17
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Demasiadas peticiones. Intenta en un momento.' },
+});
+app.use('/api', apiLimiter);
+
 app.use('/api', exportRouter);
 // Los adjuntos multimodales usan su propio límite y se conservan solo 30 minutos.
 app.use('/api', attachmentsRouter);
@@ -68,44 +82,50 @@ app.use('/api', attachmentsRouter);
 app.use('/api', chatRouter);
 app.use(express.json({ limit: '10kb' }));
 
-// Compatibilidad con enlaces guardados por versiones anteriores del frontend.
-// Debe declararse antes de express.static para evitar un 404 persistente.
-app.get('/finanzas/inicio.html', (req, res) => res.redirect(302, '/inicio.html'));
+// ── Puentes hacia la SPA ──────────────────────────────────────────────────────
+//
+// Estas rutas redirigían a los .html de pages/, que desaparecieron al terminar
+// la migración a React. Sin este puente, abrir /finanzas en este servidor daba
+// "Cannot GET /pages/finanzas.html", y lo mismo cualquier enlace guardado.
+//
+// En desarrollo la app de React NO la sirve Express, sino Vite en su propio
+// puerto (5273 por defecto; scripts/dev.mjs manda el real en SPA_ORIGIN), así
+// que hay que mandar al usuario allí. En producción no se llega hasta aquí:
+// vercel.json solo enruta /api a esta aplicación y el resto lo resuelve el
+// index.html del bundle, de modo que ORIGEN_SPA queda vacío y la redirección
+// es relativa.
+const EN_DESARROLLO = process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
+const ORIGEN_SPA = process.env.SPA_ORIGIN || (EN_DESARROLLO ? 'http://localhost:5273' : '');
 
-// Toda navegación al nombre histórico pasa por una URL versionada. Esto evita
-// que una pestaña restaurada por el navegador conserve el DOM anterior.
-app.get('/finanzas/finanzas.html', (req, res, next) => {
-    if (req.query.ui === '31') return next();
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.redirect(302, '/pages/finanzas.html?ui=31');
-});
-
-app.get('/pages/finanzas.html', (req, res, next) => {
-    if (req.query.ui === '31') return next();
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.redirect(302, '/pages/finanzas.html?ui=31');
-});
-
-// Rutas limpias equivalentes a las redirecciones de Vercel. Express local no
-// interpreta vercel.json, por lo que deben declararse también aquí.
-const LOCAL_PAGE_ROUTES = {
-    '/inicio': '/inicio.html',
-    '/finanzas': '/pages/finanzas.html',
-    '/mercados': '/pages/mercados.html',
-    '/geopolitica': '/pages/geopolitica.html',
-    '/mexico': '/pages/mexico.html',
-    '/mercado-proteinas': '/pages/mercadoproteinas.html',
-    '/configuracion': '/pages/configuracion.html',
-    '/vall-ai': '/pages/vall-ai.html',
+const RUTAS_SPA = {
+    '/inicio': '/inicio',
+    '/finanzas': '/finanzas',
+    '/mercados': '/mercados',
+    '/geopolitica': '/geopolitica',
+    '/mexico': '/mexico',
+    '/mercado-proteinas': '/mercado-proteinas',
+    '/configuracion': '/configuracion',
+    '/vall-ai': '/vall-ai',
+    // Enlaces antiguos: los .html ya no existen, pero siguen en marcadores, en
+    // la navegación de inicio.html y en enlaces compartidos.
+    '/pages/finanzas.html': '/finanzas',
+    '/pages/mercados.html': '/mercados',
+    '/pages/geopolitica.html': '/geopolitica',
+    '/pages/mexico.html': '/mexico',
+    '/pages/mercadoproteinas.html': '/mercado-proteinas',
+    '/pages/configuracion.html': '/configuracion',
+    '/pages/vall-ai.html': '/vall-ai',
+    '/finanzas/finanzas.html': '/finanzas',
+    '/finanzas/inicio.html': '/inicio',
 };
-Object.entries(LOCAL_PAGE_ROUTES).forEach(([route, target]) => {
-    app.get(route, (req, res) => {
-        // Las redirecciones también pueden quedar almacenadas por el navegador.
-        // Finanzas usa una versión explícita para que cada rediseño abra el HTML nuevo.
+
+Object.entries(RUTAS_SPA).forEach(([desde, hacia]) => {
+    app.get(desde, (req, res) => {
+        // Una redirección cacheada sobrevive a los cambios de enrutado y deja al
+        // navegador yendo a una URL que ya no sirve.
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         res.set('Pragma', 'no-cache');
-        const destination = route === '/finanzas' ? `${target}?ui=31` : target;
-        res.redirect(302, destination);
+        res.redirect(302, `${ORIGEN_SPA}${hacia}`);
     });
 });
 
@@ -133,15 +153,11 @@ if (!_JWT_SECRET_STATIC) {
 }
 
 // Nombres exactos de páginas protegidas
+// Solo queda inicio.html: las demás páginas se migraron a React y sus URLs se
+// redirigen a la SPA más arriba, antes de llegar a este guard. Allí la sesión la
+// vigila ProtectedRoute, y las rutas /api siguen protegidas por verifyToken.
 const PROTECTED_PAGES = new Set([
     '/inicio.html',
-    '/pages/finanzas.html',
-    '/pages/mercados.html',
-    '/pages/geopolitica.html',
-    '/pages/mexico.html',
-    '/pages/mercadoproteinas.html',
-    '/pages/configuracion.html',
-    '/pages/vall-ai.html',
 ]);
 
 app.use((req, res, next) => {
@@ -166,8 +182,9 @@ app.use((req, res, next) => {
     }
 });
 
-// Servir archivos estáticos desde public_html (directorio padre)
-app.use(express.static(path.join(__dirname, '..'), {
+// En desarrollo Vite reenvía /assets al backend. Limitar el directorio expuesto
+// evita publicar por accidente el código del servidor, documentación y cachés.
+app.use('/assets', express.static(path.join(__dirname, '..', 'assets'), {
     setHeaders: (res, pathPath) => {
         if (pathPath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -178,16 +195,7 @@ app.use(express.static(path.join(__dirname, '..'), {
 }));
 
 
-// ── Rate limiter (300 req/min por IP) ─────────────────────────────────────────
-// Una sola carga de finanzas.html dispara ~40-50 peticiones; inicio.html ~17
-const apiLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 300,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { success: false, error: 'Demasiadas peticiones. Intenta en un momento.' },
-});
-app.use('/api', apiLimiter);
+
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
@@ -199,9 +207,35 @@ app.use('/api', authRouter);
 app.use('/api', finanzasRouter);
 app.use('/api', marketRouter);
 app.use('/api', externalRouter);
+app.use('/api', mercolleidaRouter);
+
+// Vercel invoca esta ruta cada día. CRON_SECRET viaja automáticamente como
+// Bearer token y ambos grupos comparten el mismo corte horario de las 09:00
+// America/Mexico_City (15:00 UTC en la configuración actual).
+app.get('/api/executive-reports/refresh', async (req, res) => {
+    const expected = process.env.CRON_SECRET;
+    const authorization = String(req.headers.authorization || '');
+    if (!expected || authorization !== `Bearer ${expected}`) {
+        return res.status(401).json({ success: false, error: 'No autorizado.' });
+    }
+    try {
+        const [finanzas, mercados] = await Promise.all([
+            finanzasRouter.refreshExecutiveReports(),
+            refreshMarketExecutiveReports(),
+        ]);
+        res.json({
+            success: true,
+            generatedAt: new Date().toISOString(),
+            reports: { finanzas: finanzas.reports.length, mercados: mercados.reports.length },
+        });
+    } catch (error) {
+        console.error('/api/executive-reports/refresh:', error.message);
+        res.status(502).json({ success: false, error: 'No se pudieron actualizar los informes programados.' });
+    }
+});
 
 // ── Error handler global ──────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
+ 
 app.use((err, req, res, next) => {
     console.error('Unhandled Express error:', err.message);
     if (err.type === 'entity.too.large' || err.status === 413) {
@@ -214,13 +248,29 @@ app.use((err, req, res, next) => {
 // Pasa true si server.js se ejecuta directamente (no como módulo serverless)
 initCommodityWarmer(require.main === module);
 
-// ── Cerebro Autodidacta (Worker) ──────────────────────────────────────────────
+// ── SNIIM warmer ──────────────────────────────────────────────────────────────
+if (require.main === module) {
+    finanzasRouter.startExecutiveReportsScheduler?.();
+    startMarketExecutiveReportsScheduler?.();
+    const { initSNIIMWarmer } = require('./lib/sniim-service');
+    initSNIIMWarmer();
+    const { initGeminiWholesalePriceWarmer } = require('./lib/gemini-wholesale-price-service');
+    initGeminiWholesalePriceWarmer();
+}
+
+// ── Cerebro Autodidacta y VALL-ML (Workers) ───────────────────────────────────
 if (require.main === module) {
     try {
         const brainWorker = require('./ai/brain-worker');
         brainWorker.startWorker(); // Inicia el ciclo de aprendizaje autónomo
     } catch (e) {
-        console.warn('  [Cerebro] No se pudo iniciar el worker:', e.message);
+        console.warn('  [Cerebro] No se pudo iniciar el worker supervisado:', e.message);
+    }
+    try {
+        const mlWorker = require('./ai/ml-unsupervised');
+        mlWorker.startMLWorker(6); // Inicia el pipeline no supervisado (cada 6h)
+    } catch (e) {
+        console.warn('  [VALL-ML] No se pudo iniciar el motor no supervisado:', e.message);
     }
 }
 

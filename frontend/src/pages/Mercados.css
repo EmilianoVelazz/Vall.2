@@ -7,17 +7,25 @@
 
 
     :root {
-      --navy:    #00213a;
-      --navy2:   #001827;
-      --green:   #16a34a;
-      --red:     #dc2626;
-      --amber:   #d97706;
-      --blue:    #0284c7;
-      --slate:   #334155;
-      --muted:   #94a3b8;
-      --border:  rgba(0,33,58,.10);
-      --bg:      #eaeff6;
-      --card:    #ffffff;
+      /* Nombres heredados del tema claro, reapuntados al sistema oscuro.
+         Se mantienen porque 122 declaraciones de esta hoja los consumen; lo que
+         cambia es a dónde apuntan, no cómo se llaman.
+
+         Cada uno conserva su PAPEL, que es lo que importa: --green sigue
+         significando "sube" y --red "baja". Da igual que ahora sean otro verde y
+         otro rojo; lo que no puede pasar es que acaben siendo el mismo color,
+         porque entonces una subida y una caída se leerían igual. */
+      --navy:    var(--mk-text);        /* texto principal */
+      --navy2:   var(--mk-bg-raised);   /* fondo hundido (cinta de cotizaciones) */
+      --green:   var(--mk-up);          /* al alza */
+      --red:     var(--mk-down);        /* a la baja */
+      --amber:   var(--mk-granos);      /* aviso */
+      --blue:    var(--mk-metales);     /* informativo */
+      --slate:   var(--mk-text-2);      /* texto secundario */
+      --muted:   var(--mk-muted);       /* texto apagado */
+      --border:  var(--mk-line);
+      --bg:      var(--mk-bg);
+      --card:    var(--mk-surface);
       --radius:  12px;
     }
     *, *::before, *::after { box-sizing: border-box; }
@@ -26,7 +34,7 @@
       background: var(--bg);
       background-image: radial-gradient(circle at 1.5px 1.5px, rgba(0,33,58,.045) 1.5px, transparent 0);
       background-size: 26px 26px;
-      color: #0f172a;
+      color:var(--mk-text-2);
       overflow-x: hidden;
       min-height: 100vh;
     }
@@ -40,26 +48,34 @@
       align-items: center;
       border-bottom: 1px solid rgba(255,255,255,.06);
     }
+    /* flex-shrink:0 es lo que hace legible la cinta. .mkt-ticker es un
+       contenedor flex, asi que .ticker-inner es un flex item y por defecto se
+       encoge (flex-shrink:1) hasta el ancho de la pantalla: los items, que
+       tienen padding fijo, se comprimian unos sobre otros y las cotizaciones
+       aparecian superpuestas e ilegibles. Al no encogerse conserva su ancho
+       natural, que es justo lo que necesita el desplazamiento. */
     .ticker-inner {
       display: inline-flex;
+      flex-shrink: 0;
       animation: ticker-scroll 55s linear infinite;
       gap: 0;
     }
     .ticker-inner:hover { animation-play-state: paused; }
     .tk-item {
       display: inline-flex;
+      flex-shrink: 0;
       align-items: center;
       gap: .4rem;
       padding: 0 1.4rem;
-      border-right: 1px solid rgba(255,255,255,.07);
+      border-right: 1px solid var(--mk-line-soft);
       font-family: 'JetBrains Mono', monospace;
-      font-size: .62rem;
+      font-size: 0.75rem;
     }
-    .tk-lbl { color: rgba(255,255,255,.45); font-size: .55rem; text-transform: uppercase; letter-spacing: .08em; }
-    .tk-val { color: #e2e8f0; font-weight: 700; }
-    .tk-pct { font-size: .55rem; font-weight: 700; }
-    .tk-pct.up   { color: #86efac; }
-    .tk-pct.down { color: #fca5a5; }
+    .tk-lbl { color: rgba(255,255,255,.55); font-size: 0.625rem; text-transform: uppercase; letter-spacing: .08em; }
+    .tk-val { color:var(--mk-text); font-weight: 700; }
+    .tk-pct { font-size: 0.75rem; font-weight: 700; }
+    .tk-pct.up   { color:var(--mk-up); }
+    .tk-pct.down { color:var(--mk-down); }
     @keyframes ticker-scroll { 0%{ transform:translateX(0) } 100%{ transform:translateX(-50%) } }
     .mkt-wrap { max-width: 1440px; margin: 0 auto; padding: .8rem 1.5rem 2rem; }
     .mkt-tabs-row {
@@ -73,9 +89,9 @@
       border: 1.5px solid var(--border);
       border-radius: 10px;
       padding: .55rem 1.1rem;
-      font-size: .72rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      color: #64748b;
+      color:var(--mk-text);
       cursor: pointer;
       transition: all .2s;
       display: flex;
@@ -89,17 +105,17 @@
       position: absolute;
       bottom: 0; left: 0; right: 0;
       height: 2.5px;
-      background: var(--navy);
+      background: var(--mk-surface-3);
       transform: scaleX(0);
       transition: transform .2s;
     }
     .mkt-tab-btn:hover { border-color: var(--navy); color: var(--navy); }
-    .mkt-tab-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .mkt-tab-btn.active { background: var(--mk-surface-3); color: var(--mk-text); border-color: var(--mk-line-strong); }
     .mkt-tab-btn.active::before { display: none; }
     .mkt-tab-icon { font-size: .75rem; }
         #pane-general { display: block; }
     .hub-hero {
-      background: linear-gradient(135deg, var(--navy2) 0%, #003d6b 55%, #001827 100%);
+      background:linear-gradient(135deg, var(--navy2) 0%, var(--mk-surface) 55%, var(--mk-surface) 100%);
       border-radius: var(--radius);
       padding: 1.6rem 2rem;
       margin-bottom: 1.2rem;
@@ -117,11 +133,11 @@
       font-family: 'Playfair Display', serif;
       font-size: 1.5rem;
       font-weight: 700;
-      color: #fff;
+      color:var(--mk-muted);
       margin: 0 0 .25rem;
     }
     .hub-hero-sub {
-      font-size: .72rem;
+      font-size: 0.75rem;
       color: rgba(255,255,255,.5);
       display: flex;
       align-items: center;
@@ -129,7 +145,7 @@
     }
     .live-dot {
       width: 7px; height: 7px;
-      background: #ef4444;
+      background:var(--mk-surface);
       border-radius: 50%;
       display: inline-block;
       animation: pulse-dot 1.4s ease-in-out infinite;
@@ -158,19 +174,19 @@
       top: 0; left: 0; right: 0;
       height: 3px;
     }
-    .hub-card.granos::before  { background: linear-gradient(90deg, #f59e0b, #84cc16); }
-    .hub-card.energia::before { background: linear-gradient(90deg, #ef4444, #f97316); }
-    .hub-card.metales::before { background: linear-gradient(90deg, #8b5cf6, #0284c7); }
-    .hub-card.logistica::before { background: linear-gradient(90deg, #0ea5e9, #0284c7); }
-    .hub-card.fx::before      { background: linear-gradient(90deg, #10b981, #16a34a); }
+    .hub-card.granos::before  { background:linear-gradient(90deg, var(--mk-surface), var(--mk-surface)); }
+    .hub-card.energia::before { background:linear-gradient(90deg, var(--mk-surface), var(--mk-surface)); }
+    .hub-card.metales::before { background:linear-gradient(90deg, var(--mk-surface), var(--mk-surface)); }
+    .hub-card.logistica::before { background:linear-gradient(90deg, var(--mk-surface), var(--mk-surface)); }
+    .hub-card.fx::before      { background:linear-gradient(90deg, var(--mk-surface), var(--mk-surface)); }
     .hub-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,33,58,.12); border-color: rgba(0,33,58,.22); }
     .hub-card-icon { font-size: 1.1rem; margin-bottom: .4rem; }
-    .hub-card-label { font-size: .55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: .25rem; }
+    .hub-card-label { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: .25rem; }
     .hub-card-value { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 800; color: var(--navy); line-height: 1; margin-bottom: .2rem; }
-    .hub-card-pct { font-size: .65rem; font-weight: 700; }
+    .hub-card-pct { font-size: 0.75rem; font-weight: 700; }
     .hub-card-pct.up   { color: var(--green); }
     .hub-card-pct.down { color: var(--red); }
-    .hub-card-note { font-size: .58rem; color: var(--muted); margin-top: .2rem; }
+    .hub-card-note { font-size: 0.75rem; color: var(--muted); margin-top: .2rem; }
 
     .ipi-hero {
       background: var(--card);
@@ -185,10 +201,25 @@
     }
     .ipi-gauge-wrap { flex: 0 0 auto; text-align: center; }
     .ipi-score-big { font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; font-weight: 900; line-height: 1; }
-    .ipi-score-lbl { font-size: .55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-top: .15rem; }
-    .ipi-bar-outer { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: .6rem 0 .4rem; min-width: 160px; }
+    .ipi-score-lbl { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-top: .15rem; }
+    .ipi-bar-outer { height: 8px; background:var(--mk-surface); border-radius: 4px; overflow: hidden; margin: .6rem 0 .4rem; min-width: 160px; }
     .ipi-bar-fill   { height: 100%; border-radius: 4px; transition: width 1.2s ease, background 1.2s ease; }
     .ipi-verdict-big { font-size: .75rem; font-weight: 700; }
+    .tono-critico { color:var(--mk-down); }
+    .tono-alto    { color:var(--mk-down); }
+    .tono-medio   { color:var(--mk-text-2); }
+    .tono-estable { color:var(--mk-text-2); }
+    .tono-bajo    { color:var(--mk-up); }
+    .tono-caida   { color:var(--mk-up); }
+    .tono-indice  { color:var(--mk-text-2); }
+    .tono-neutro  { color: var(--muted); }
+
+    .tono-fondo-critico { background:var(--mk-surface); }
+    .tono-fondo-alto    { background:var(--mk-surface); }
+    .tono-fondo-medio   { background:var(--mk-surface); }
+    .tono-fondo-estable { background:var(--mk-surface); }
+    .tono-fondo-bajo    { background:var(--mk-surface); }
+    .tono-fondo-neutro  { background: var(--muted); }
     .ipi-details { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(4,1fr); gap: .6rem; }
     .ipi-metric {
       background: rgba(0,33,58,.03);
@@ -196,7 +227,7 @@
       border-radius: 8px;
       padding: .6rem .8rem;
     }
-    .ipi-metric-lbl { font-size: .55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: .2rem; }
+    .ipi-metric-lbl { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: .2rem; }
     .ipi-metric-val { font-family: 'JetBrains Mono', monospace; font-size: .95rem; font-weight: 800; }
 
     .mkt-layout-main {
@@ -225,7 +256,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,.06);
     }
     .rd-section {
-      font-size: .5rem; font-weight: 800; text-transform: uppercase;
+      font-size: 0.625rem; font-weight: 800; text-transform: uppercase;
       letter-spacing: 2px; color: var(--muted);
       margin-bottom: .45rem; padding-bottom: .2rem;
       border-bottom: 1px solid rgba(0,0,0,.05);
@@ -239,11 +270,11 @@
     }
     .rd-row:last-child { border-bottom: none; }
     .rd-row:hover { background: rgba(0,33,58,.04); }
-    .rd-label { font-size: .6rem; color: #64748b; font-weight: 500; white-space: nowrap; }
-    .rd-val { font-family: 'JetBrains Mono', 'Inter', monospace; font-size: .68rem; font-weight: 700; color: #0f172a; white-space: nowrap; }
+    .rd-label { font-size: 0.75rem; color:var(--mk-text); font-weight: 500; white-space: nowrap; }
+    .rd-val { font-family: 'JetBrains Mono', 'Inter', monospace; font-size: 0.75rem; font-weight: 700; color:var(--mk-text-2); white-space: nowrap; }
     .rd-val.up   { color: var(--green); }
     .rd-val.down { color: var(--red); }
-    .rd-pct { font-size: .55rem; margin-left: .15rem; font-weight: 600; }
+    .rd-pct { font-size: 0.75rem; margin-left: .15rem; font-weight: 600; }
     .rd-pct.up   { color: var(--green); }
     .rd-pct.down { color: var(--red); }
     .chart-panel {
@@ -258,18 +289,18 @@
     }
     .chart-title { font-size: .75rem; font-weight: 800; color: var(--navy); flex: 1; min-width: 0; }
     .chart-sel {
-      font-size: .65rem; font-weight: 600; border: 1px solid var(--border);
+      font-size: 0.75rem; font-weight: 600; border: 1px solid var(--border);
       border-radius: 6px; padding: .28rem .55rem; color: var(--slate);
       background: var(--card); cursor: pointer; outline: none;
     }
     .chart-intervals { display: flex; gap: .3rem; flex-wrap: wrap; }
     .chart-int-btn {
-      font-size: .58rem; font-weight: 700; border: 1px solid var(--border);
+      font-size: 0.75rem; font-weight: 700; border: 1px solid var(--border);
       border-radius: 5px; padding: .2rem .5rem; cursor: pointer;
-      background: var(--card); color: #64748b; transition: all .15s;
+      background: var(--card); color:var(--mk-text); transition: all .15s;
     }
     .chart-int-btn:hover  { border-color: var(--navy); color: var(--navy); }
-    .chart-int-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .chart-int-btn.active { background: var(--mk-surface-3); color: var(--mk-text); border-color: var(--mk-line-strong); }
     #mkt-chart { height: 320px; width: 100%; border-radius: 8px; overflow: hidden; }
 
     .news-side-panel {
@@ -280,10 +311,10 @@
       box-shadow: 0 2px 8px rgba(0,0,0,.06);
     }
     .news-side-hdr {
-      background: linear-gradient(135deg, var(--navy), #003d6b);
+      background:linear-gradient(135deg, var(--mk-surface-2), var(--mk-surface));
       padding: .75rem 1rem;
       display: flex; align-items: center; gap: .5rem;
-      font-size: .62rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px;
+      font-size: 0.625rem; font-weight: 700; color:var(--mk-muted); text-transform: uppercase; letter-spacing: 1px;
     }
     .news-scroll-viewport { height: 380px; overflow-y: auto; position: relative; padding-right: 4px; scroll-behavior: smooth; }
     .news-scroll-viewport::-webkit-scrollbar { width: 5px; }
@@ -292,42 +323,55 @@
     .news-scroll-viewport::-webkit-scrollbar-thumb:hover { background: rgba(0,33,58,.3); }
     .news-scroll-inner { transition: none; }
     .news-item {
-      background: #fff;
+
+      display: block;
+      background:var(--mk-surface-2);
       border: 1px solid var(--border); border-radius: 10px;
       margin: .55rem .4rem; padding: .85rem 1rem;
       cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, border-left-color .2s ease;
       position: relative; box-shadow: 0 1px 4px rgba(0,0,0,.04);
-      border-left: 3px solid #e2e8f0;
+      border-left:3px solid var(--mk-line);
     }
-    .news-item[onclick]:hover {
-      border-left-color: var(--navy);
-      transform: translateY(-2px); box-shadow: 0 5px 14px rgba(0,33,58,.1);
+
+    a.news-item:hover {
+      border-left-color: var(--mk-energia);
+      transform: translateY(-2px); box-shadow: 0 5px 14px rgba(0,0,0,.28);
     }
-    .news-item[onclick]:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(0,0,0,.04); }
-    /* Skeleton/no-action items */
-    .news-item:not([onclick]) { cursor: default; opacity: .7; }
-    .news-item:not([onclick]):hover { transform: none; box-shadow: 0 1px 4px rgba(0,0,0,.04); border-left-color: #e2e8f0; }
-    /* "Ver reporte" hint on hover */
-    .news-item[onclick]::after { content:'Ver reporte →'; position:absolute; right:.85rem; bottom:.7rem; font-size:.5rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:rgba(0,33,58,.0); transition:color .2s; pointer-events:none; }
-    .news-item[onclick]:hover::after { color:var(--navy); }
+    a.news-item:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+    /* Un <a> sin reset se lleva el azul subrayado del navegador y arrastra con
+       él al título y a la fuente, que van dentro. */
+    a.news-item, a.news-item:visited { color: inherit; text-decoration: none; }
+    a.news-item:focus-visible { outline: 2px solid var(--mk-energia); outline-offset: 2px; }
+
+    /* Sin enlace: no es pulsable y se comporta como ficha. */
+    div.news-item { cursor: default; }
+    div.news-item:hover { transform: none; box-shadow: 0 1px 4px rgba(0,0,0,.04); border-left-color:var(--mk-line); }
+
+    a.news-item::after { content:'Ver reporte →'; position:absolute; right:.85rem; bottom:.7rem; font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:transparent; transition:color .2s; pointer-events:none; }
+    a.news-item:hover::after { color:var(--mk-energia-ink); }
+    /* El «Ver reporte» aterriza en la esquina inferior derecha, que es justo
+       donde va la hora: se dibujaban uno encima del otro. La hora cede el sitio
+       porque es el dato menos importante de la ficha y vuelve al soltar el
+       puntero. Con visibility y no display, para que la fila no se mueva. */
+    a.news-item:hover .news-src span:last-child { visibility: hidden; }
     .nm-cover-img {
       width: 100%; height: 220px; object-fit: cover;
       display: none; border-bottom: 1px solid var(--border);
     }
     .news-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
-    .news-cat { font-size: .52rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--navy); }
-    .news-impact-tag { font-size: .48rem; font-weight: 800; padding: .15rem .4rem; border-radius: 12px; color: #fff; letter-spacing: .5px; }
-    .news-title { font-size: .75rem; font-weight: 700; color: #1e293b; line-height: 1.35; margin-bottom: .4rem; }
-    .news-src { font-size: .55rem; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; }
-    .news-filter-bar { display: flex; gap: .3rem; padding: .6rem .7rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; background: #f8fafc; }
+    .news-cat { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--navy); }
+    .news-impact-tag { font-size: 0.75rem; font-weight: 800; padding: .15rem .4rem; border-radius: 12px; color:var(--mk-muted); letter-spacing: .5px; }
+    .news-title { font-size: .75rem; font-weight: 700; color:var(--mk-text-2); line-height: 1.35; margin-bottom: .4rem; }
+    .news-src { font-size: 0.75rem; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; }
+    .news-filter-bar { display: flex; gap: .3rem; padding: .6rem .7rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; background:var(--mk-surface-2); }
     .news-fpill {
-      font-size: .55rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+      font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
       padding: .18rem .55rem; border-radius: 20px; cursor: pointer;
       background: rgba(0,33,58,.06); color: var(--muted); border: 1px solid transparent;
       transition: all .15s;
     }
-    .news-fpill:hover  { color: var(--navy); border-color: var(--navy); }
-    .news-fpill.active { background: var(--navy); color: #fff; }
+    .news-fpill:hover  { color: var(--mk-text); border-color: var(--mk-line-strong); }
+    .news-fpill.active { background: var(--mk-surface-3); color: var(--mk-text); border-color: var(--mk-line-strong); }
 
     .sec-lbl {
       font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
@@ -352,7 +396,7 @@
 
     .cmt { width: 100%; border-collapse: collapse; }
     .cmt th {
-      font-size: .52rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;
+      font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;
       color: var(--muted); padding: .3rem .4rem .5rem; text-align: left;
       border-bottom: 2px solid rgba(0,33,58,.08);
     }
@@ -360,16 +404,16 @@
     .cmt tr:last-child td { border-bottom: none; }
     .cmt tr { cursor: pointer; transition: background .15s; border-radius: 6px; }
     .cmt tr:hover td { background: rgba(0,33,58,.03); }
-    .cmt-name  { font-weight: 700; font-size: .82rem; color: #0f172a; }
-    .cmt-sub   { font-size: .56rem; color: var(--muted); margin-top: 2px; }
-    .cmt-price { font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 700; color: #0f172a; }
+    .cmt-name  { font-weight: 700; font-size: .82rem; color:var(--mk-text-2); }
+    .cmt-sub   { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .cmt-price { font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 700; color:var(--mk-text-2); }
     .cmt-pct   { font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 700; }
     .cmt-pct.up   { color: var(--green); }
     .cmt-pct.down { color: var(--red); }
-    .cmt-note b  { font-size: .65rem; }
+    .cmt-note b  { font-size: 0.75rem; }
     .cmt-spark { display: flex; gap: 2px; align-items: flex-end; height: 18px; margin-top: 4px; }
     .spark-b { width: 3px; border-radius: 1px 1px 0 0; min-height: 2px; }
-    .cmt-mxn { font-size: .57rem; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+    .cmt-mxn { font-size: 0.75rem; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
     .heat-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -385,11 +429,11 @@
       overflow: hidden;
     }
     .heat-cell:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.15); }
-    .heat-cell-lbl  { font-size: .56rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.65); margin-bottom: .35rem; }
-    .heat-cell-price { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 900; color: #fff; line-height: 1; }
-    .heat-cell-pct  { font-size: .72rem; font-weight: 800; color: rgba(255,255,255,.9); margin-top: .2rem; }
-    .heat-cell-unit { font-size: .52rem; color: rgba(255,255,255,.5); margin-top: .2rem; }
-    .heat-cell.neutral { background: linear-gradient(135deg, #475569, #334155); }
+    .heat-cell-lbl  { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.65); margin-bottom: .35rem; }
+    .heat-cell-price { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 900; color:var(--mk-text); line-height: 1; }
+    .heat-cell-pct  { font-size: 0.75rem; font-weight: 800; color: rgba(255,255,255,.9); margin-top: .2rem; }
+    .heat-cell-unit { font-size: 0.75rem; color: rgba(255,255,255,.5); margin-top: .2rem; }
+    .heat-cell.neutral { background:linear-gradient(135deg, var(--mk-surface), var(--mk-surface)); }
     .raciones-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -404,30 +448,30 @@
       cursor: pointer; transition: all .2s;
     }
     .racion-card:hover {
-      background: #ffffff;
+      background:var(--mk-surface-2);
       border-color: var(--navy);
       transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,33,58,.08);
     }
-    .racion-hdr { display: flex; align-items: center; gap: .4rem; font-size: .57rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #64748b; margin-bottom: .3rem; }
-    .racion-hdr i { color: var(--navy); font-size: .65rem; }
+    .racion-hdr { display: flex; align-items: center; gap: .4rem; font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color:var(--mk-text); margin-bottom: .3rem; }
+    .racion-hdr i { color: var(--navy); font-size: 0.75rem; }
     .racion-price { font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 800; color: var(--navy); }
-    .racion-mxn   { font-size: .6rem; color: var(--muted); }
-    .racion-sub    { font-size: .57rem; color: var(--muted); line-height: 1.35; margin-top: .15rem; }
-    .racion-pct   { font-size: .65rem; font-weight: 700; margin-top: .2rem; }
+    .racion-mxn   { font-size: 0.75rem; color: var(--muted); }
+    .racion-sub    { font-size: 0.75rem; color: var(--muted); line-height: 1.35; margin-top: .15rem; }
+    .racion-pct   { font-size: 0.75rem; font-weight: 700; margin-top: .2rem; }
     .racion-pct.up   { color: var(--red); }
     .racion-pct.down { color: var(--green); }
     .racion-pct.neu  { color: var(--muted); }
     @media(max-width:900px){ .raciones-grid{ grid-template-columns:repeat(2,1fr); } }
     .log-header {
-      background: linear-gradient(135deg, var(--navy) 0%, #003d6b 100%);
+      background:linear-gradient(135deg, var(--mk-surface-2) 0%, var(--mk-surface) 100%);
       border-radius: 8px; padding: 1rem 1.2rem; text-align: center; margin-bottom: 1rem;
     }
-    .log-lbl { font-size: .56rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,.55); text-transform: uppercase; }
-    .log-val  { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 800; color: #fff; line-height: 1.1; }
-    .log-sub  { font-size: .7rem; color: rgba(255,255,255,.65); margin-top: 3px; }
-    .log-trend { display: inline-block; font-size: .58rem; font-weight: 800; letter-spacing: .08em; padding: .14rem .55rem; border-radius: 3px; margin-top: .5rem; }
-    .lt-up  { background: rgba(239,68,68,.22); color: #fca5a5; }
-    .lt-dn  { background: rgba(34,197,94,.22); color: #86efac; }
+    .log-lbl { font-size: 0.625rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,.55); text-transform: uppercase; }
+    .log-val  { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 800; color:var(--mk-muted); line-height: 1.1; }
+    .log-sub  { font-size: 0.75rem; color: rgba(255,255,255,.65); margin-top: 3px; }
+    .log-trend { display: inline-block; font-size: 0.75rem; font-weight: 800; letter-spacing: .08em; padding: .14rem .55rem; border-radius: 3px; margin-top: .5rem; }
+    .lt-up  { background: rgba(239,68,68,.22); color:var(--mk-down); }
+    .lt-dn  { background: rgba(34,197,94,.22); color:var(--mk-up); }
     .lt-neu { background: rgba(148,163,184,.18); color: rgba(255,255,255,.6); }
     .log-row {
       display: flex; justify-content: space-between; align-items: center;
@@ -435,8 +479,8 @@
     }
     .log-row:last-child { border-bottom: none; }
     .log-label { color: var(--slate); font-weight: 500; font-size: .76rem; }
-    .log-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: .8rem; color: #0f172a; }
-    .log-mxnsub { font-size: .6rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: right; }
+    .log-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: .8rem; color:var(--mk-text-2); }
+    .log-mxnsub { font-size: 0.75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: right; }
     .cal-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -455,14 +499,14 @@
     .cal-card.low  { border-left: 3px solid var(--green); }
     .cal-icon { font-size: 1.4rem; flex-shrink: 0; }
     .cal-body { flex: 1; min-width: 0; }
-    .cal-title { font-size: .75rem; font-weight: 700; color: #1e293b; margin-bottom: .2rem; }
-    .cal-desc  { font-size: .62rem; color: var(--muted); line-height: 1.4; }
+    .cal-title { font-size: .75rem; font-weight: 700; color:var(--mk-text-2); margin-bottom: .2rem; }
+    .cal-desc  { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
     .cal-badges { display: flex; gap: .3rem; margin-top: .3rem; flex-wrap: wrap; }
-    .cal-badge { font-size: .52rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; padding: .15rem .45rem; border-radius: 3px; }
-    .cb-high { background: rgba(220,38,38,.12); color: var(--red); }
-    .cb-med  { background: rgba(217,119,6,.12); color: var(--amber); }
+    .cal-badge { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; padding: .15rem .45rem; border-radius: 3px; }
+    .cb-high { background: rgba(221,132,104,.12); color: var(--red); }
+    .cb-med  { background: rgba(224,176,89,.12); color: var(--amber); }
     .cb-low  { background: rgba(22,163,74,.12); color: var(--green); }
-    .cb-soon { background: rgba(220,38,38,.1); color: var(--red); }
+    .cb-soon { background: rgba(221,132,104,.1); color: var(--red); }
     .cb-past { background: rgba(148,163,184,.1); color: var(--muted); }
     .cb-today{ background: rgba(239,68,68,.2); color: var(--red); }
     .ia-insight {
@@ -470,7 +514,7 @@
       border: 1px solid rgba(0,33,58,.1);
       border-radius: 8px;
       padding: .65rem .9rem;
-      font-size: .7rem;
+      font-size: 0.75rem;
       color: var(--slate);
       line-height: 1.6;
       display: flex;
@@ -480,7 +524,7 @@
     }
     .ia-insight i { color: var(--navy); flex-shrink: 0; margin-top: 1px; }
 
-    .sk-line { border-radius: 4px; background: #e2e8f0; animation: sk-shimmer 1.4s infinite; }
+    .sk-line { border-radius: 4px; background:var(--mk-surface); animation: sk-shimmer 1.4s infinite; }
     @keyframes sk-shimmer { 0%,100%{opacity:1} 50%{opacity:.45} }
 
     .cm-overlay {
@@ -501,43 +545,43 @@
     @keyframes slideInRight { from{transform:translateX(100%)} to{transform:translateX(0)} }
     .cm-header {
       padding: 1.3rem 1.5rem;
-      color: #fff;
+      color:var(--mk-muted);
       position: relative;
     }
     .cm-close {
       position: absolute; top: 1rem; right: 1rem;
       background: rgba(255,255,255,.15); border: none; border-radius: 50%;
-      width: 32px; height: 32px; cursor: pointer; color: #fff; font-size: .9rem;
+      width: 32px; height: 32px; cursor: pointer; color:var(--mk-muted); font-size: .9rem;
       display: flex; align-items: center; justify-content: center;
       transition: background .15s;
     }
     .cm-close:hover { background: rgba(255,255,255,.28); }
-    .cm-ticker-lbl { font-size: .55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,.5); margin-bottom: .2rem; }
-    .cm-name   { font-size: 1.05rem; font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: .3rem; }
+    .cm-ticker-lbl { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,.5); margin-bottom: .2rem; }
+    .cm-name   { font-size: 1.05rem; font-weight: 800; color:var(--mk-muted); line-height: 1.2; margin-bottom: .3rem; }
     .cm-price-row { display: flex; align-items: baseline; gap: .7rem; margin-top: .5rem; flex-wrap: wrap; }
-    .cm-price  { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 900; color: #fff; }
+    .cm-price  { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 900; color:var(--mk-muted); }
     .cm-chg    { font-size: .8rem; font-weight: 700; padding: .2rem .65rem; border-radius: 6px; }
     .cm-body   { padding: 1.2rem 1.5rem; }
     .cm-section { margin-bottom: 1.2rem; }
     .cm-section-title {
-      font-size: .55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+      font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
       color: var(--muted); margin-bottom: .6rem; padding-bottom: .3rem;
       border-bottom: 1px solid var(--border);
     }
     .cm-metric-row { display: flex; justify-content: space-between; align-items: center; padding: .3rem 0; border-bottom: 1px solid rgba(0,0,0,.04); }
     .cm-metric-row:last-child { border-bottom: none; }
-    .cm-metric-lbl { font-size: .68rem; color: var(--slate); }
-    .cm-metric-val { font-family: 'JetBrains Mono', monospace; font-size: .75rem; font-weight: 700; color: #0f172a; }
-    .cm-tag { font-size: .58rem; font-weight: 700; background: rgba(0,33,58,.07); color: var(--slate); padding: .18rem .5rem; border-radius: 4px; margin: .2rem .2rem 0 0; display: inline-block; }
-    .cm-analysis-box { background: rgba(0,33,58,.03); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; font-size: .73rem; color: var(--slate); line-height: 1.65; white-space: pre-line; }
-    .cm-ai-badge { font-size: .6rem; font-weight: 800; background: linear-gradient(90deg,#00213a,#003d6b); color: #fff; padding: .18rem .6rem; border-radius: 4px; margin-bottom: .5rem; display: inline-flex; align-items: center; gap: .35rem; }
-    .cm-report-box { background: rgba(0,33,58,.03); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: .67rem; color: #334155; line-height: 1.7; white-space: pre-wrap; max-height: 240px; overflow-y: auto; }
+    .cm-metric-lbl { font-size: 0.75rem; color: var(--slate); }
+    .cm-metric-val { font-family: 'JetBrains Mono', monospace; font-size: .75rem; font-weight: 700; color:var(--mk-text-2); }
+    .cm-tag { font-size: 0.75rem; font-weight: 700; background: rgba(0,33,58,.07); color: var(--slate); padding: .18rem .5rem; border-radius: 4px; margin: .2rem .2rem 0 0; display: inline-block; }
+    .cm-analysis-box { background: rgba(0,33,58,.03); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; font-size: 0.75rem; color: var(--slate); line-height: 1.65; white-space: pre-line; }
+    .cm-ai-badge { font-size: 0.75rem; font-weight: 800; background:linear-gradient(90deg,var(--mk-surface),var(--mk-surface)); color:var(--mk-muted); padding: .18rem .6rem; border-radius: 4px; margin-bottom: .5rem; display: inline-flex; align-items: center; gap: .35rem; }
+    .cm-report-box { background: rgba(0,33,58,.03); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color:var(--mk-text-2); line-height: 1.7; white-space: pre-wrap; max-height: 240px; overflow-y: auto; }
     .cm-btn-row { display: flex; gap: .5rem; margin-top: .7rem; flex-wrap: wrap; }
-    .cm-btn { font-size: .65rem; font-weight: 700; padding: .42rem .85rem; border-radius: 6px; cursor: pointer; border: none; display: flex; align-items: center; gap: .3rem; transition: all .15s; }
-    .cm-btn-primary { background: var(--navy); color: #fff; }
-    .cm-btn-primary:hover { background: #003d6b; }
+    .cm-btn { font-size: 0.75rem; font-weight: 700; padding: .42rem .85rem; border-radius: 6px; cursor: pointer; border: none; display: flex; align-items: center; gap: .3rem; transition: all .15s; }
+    .cm-btn-primary { background: var(--mk-general); color: var(--mk-bg); }
+    .cm-btn-primary:hover { background:var(--mk-surface); }
     .cm-btn-outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); }
-    .cm-btn-outline:hover { background: var(--navy); color: #fff; }
+    .cm-btn-outline:hover { background: var(--mk-surface-3); color: var(--mk-text); }
     .forecast-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -559,13 +603,13 @@
     .fc-card.alcista::before { background: var(--red); }
     .fc-card.bajista::before { background: var(--green); }
     .fc-card.lateral::before { background: var(--muted); }
-    .fc-name  { font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #64748b; }
-    .fc-price { font-family: 'JetBrains Mono', monospace; font-size: .88rem; font-weight: 700; color: #0f172a; }
-    .fc-dir   { display: inline-flex; align-items: center; gap: .22rem; font-size: .65rem; font-weight: 800; padding: .15rem .5rem; border-radius: 4px; margin-top: .05rem; }
+    .fc-name  { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color:var(--mk-text); }
+    .fc-price { font-family: 'JetBrains Mono', monospace; font-size: .88rem; font-weight: 700; color:var(--mk-text-2); }
+    .fc-dir   { display: inline-flex; align-items: center; gap: .22rem; font-size: 0.75rem; font-weight: 800; padding: .15rem .5rem; border-radius: 4px; margin-top: .05rem; }
     .fc-dir.alcista { background: rgba(239,68,68,.1); color: var(--red); }
-    .fc-dir.bajista { background: rgba(34,197,94,.1); color: #15803d; }
-    .fc-dir.lateral { background: rgba(148,163,184,.15); color: #475569; }
-    .fc-driver { font-size: .6rem; color: #475569; line-height: 1.4; margin-top: .1rem; }
+    .fc-dir.bajista { background: rgba(34,197,94,.1); color:var(--mk-up); }
+    .fc-dir.lateral { background: rgba(148,163,184,.15); color:var(--mk-text); }
+    .fc-driver { font-size: 0.75rem; color:var(--mk-text); line-height: 1.4; margin-top: .1rem; }
     @media(max-width:1100px){ .forecast-grid{ grid-template-columns:repeat(3,1fr); } }
     @media(max-width:640px)  { .forecast-grid{ grid-template-columns:repeat(2,1fr); } }
     @media(max-width:1200px) { .hub-cards-grid{ grid-template-columns:repeat(3,1fr); } .mkt-layout-main{ grid-template-columns:175px 1fr; } }
@@ -576,89 +620,93 @@
     @media(max-width:1100px){ .mkt-tabs-nav { grid-template-columns:repeat(3,1fr); gap:.5rem; } }
     @media(max-width:640px) { .mkt-tabs-nav { grid-template-columns:repeat(2,1fr); gap:.45rem; } }
     @media(max-width:380px) { .mkt-tabs-nav { grid-template-columns:1fr; } }
-    .mkt-tab-card { display:flex; align-items:center; gap:.8rem; padding:.85rem 1rem; border-radius:14px; background:#fff; border:2px solid transparent; cursor:pointer; text-align:left; transition:all .22s; box-shadow:0 2px 12px rgba(0,33,58,.07),0 0 0 1px rgba(0,33,58,.04); position:relative; overflow:hidden; font-family:'Inter',sans-serif; outline:none; -webkit-appearance:none; appearance:none; }
+    .mkt-tab-card { display:flex; align-items:center; gap:.8rem; padding:.85rem 1rem; border-radius:14px; background:var(--mk-surface-2); border:2px solid transparent; cursor:pointer; text-align:left; transition:all .22s; box-shadow:0 2px 12px rgba(0,33,58,.07),0 0 0 1px rgba(0,33,58,.04); position:relative; overflow:hidden; font-family:'Inter',sans-serif; outline:none; -webkit-appearance:none; appearance:none; }
     .mkt-tab-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; border-radius:0 0 14px 14px; background:transparent; transition:background .22s; }
     .mkt-tab-card:hover { box-shadow:0 6px 24px rgba(0,33,58,.13); transform:translateY(-2px); border-color:rgba(0,33,58,.1); }
-    .mkt-tab-card.active { background:#f8fafc; box-shadow:0 6px 28px rgba(0,33,58,.16); }
-    .mkt-tab-card.active.mtc-general::after  { background:#6366f1; }
-    .mkt-tab-card.active.mtc-granos::after   { background:#d97706; }
-    .mkt-tab-card.active.mtc-energia::after  { background:#dc2626; }
-    .mkt-tab-card.active.mtc-metales::after  { background:#7c3aed; }
+    .mkt-tab-card.active { background:var(--mk-surface-2); box-shadow:0 6px 28px rgba(0,33,58,.16); }
+    .mkt-tab-card.active.mtc-general::after  { background:var(--mk-surface); }
+    .mkt-tab-card.active.mtc-granos::after   { background:var(--mk-surface); }
+    .mkt-tab-card.active.mtc-energia::after  { background:var(--mk-surface); }
+    .mkt-tab-card.active.mtc-metales::after  { background:var(--mk-surface); }
     .mkt-tab-icon-sq { width:42px; height:42px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.05rem; transition:transform .22s; }
     .mkt-tab-card:hover .mkt-tab-icon-sq { transform:scale(1.1); }
-    .mtc-general  .mkt-tab-icon-sq { background:rgba(99,102,241,.12);  color:#6366f1; }
-    .mtc-granos   .mkt-tab-icon-sq { background:rgba(217,119,6,.12);   color:#d97706; }
-    .mtc-energia  .mkt-tab-icon-sq { background:rgba(220,38,38,.12);   color:#dc2626; }
-    .mtc-metales  .mkt-tab-icon-sq { background:rgba(124,58,237,.12);  color:#7c3aed; }
-    .mtc-costos   .mkt-tab-icon-sq { background:rgba(2,132,199,.12);   color:#0284c7; }
-    .mtc-general.active  .mkt-tab-icon-sq { background:rgba(99,102,241,.18); }
-    .mtc-granos.active   .mkt-tab-icon-sq { background:rgba(217,119,6,.18);  }
-    .mtc-energia.active  .mkt-tab-icon-sq { background:rgba(220,38,38,.18);  }
-    .mtc-metales.active  .mkt-tab-icon-sq { background:rgba(124,58,237,.18); }
+    .mtc-general  .mkt-tab-icon-sq { background:rgba(68,198,168,.12);  color:var(--mk-general-ink); }
+    .mtc-granos   .mkt-tab-icon-sq { background:rgba(224,176,89,.12);   color:var(--mk-granos-ink); }
+    .mtc-energia  .mkt-tab-icon-sq { background:rgba(221,132,104,.12);   color:var(--mk-energia-ink); }
+    .mtc-metales  .mkt-tab-icon-sq { background:rgba(169,138,224,.12);  color:var(--mk-metales-ink); }
+    .mtc-costos   .mkt-tab-icon-sq { background:rgba(2,132,199,.12);   color:var(--mk-text-2); }
+    .mtc-general.active  .mkt-tab-icon-sq { background:rgba(68,198,168,.18); }
+    .mtc-granos.active   .mkt-tab-icon-sq { background:rgba(224,176,89,.18);  }
+    .mtc-energia.active  .mkt-tab-icon-sq { background:rgba(221,132,104,.18);  }
+    .mtc-metales.active  .mkt-tab-icon-sq { background:rgba(169,138,224,.18); }
     .mtc-costos.active   .mkt-tab-icon-sq { background:rgba(2,132,199,.18);  }
-    .mkt-tab-ttl { font-size:.8rem; font-weight:800; color:#0f172a; white-space:nowrap; }
-    .mkt-tab-sub { font-size:.62rem; color:#64748b; margin-top:.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .hub-hero { background:linear-gradient(140deg,#001020 0%,#00213a 45%,#002d55 78%,#000d1a 100%); border-radius:22px; padding:2.5rem 2.4rem 2.3rem; margin-bottom:1.4rem; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:1.2rem; }
-    .hub-hero-eyebrow { display:flex; align-items:center; gap:.4rem; font-size:.52rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:rgba(255,255,255,.4); margin-bottom:.55rem; }
+    .mkt-tab-ttl { font-size:.8rem; font-weight:800; color:var(--mk-text-2); white-space:nowrap; }
+    .mkt-tab-sub { font-size:0.75rem; color:var(--mk-text); margin-top:.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hub-hero { background:linear-gradient(140deg,var(--mk-surface) 0%,var(--mk-surface) 45%,var(--mk-surface) 78%,var(--mk-surface) 100%); border-radius:22px; padding:2.5rem 2.4rem 2.3rem; margin-bottom:1.4rem; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:1.2rem; }
+    .hub-hero-eyebrow { display:flex; align-items:center; gap:.4rem; font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:rgba(255,255,255,.4); margin-bottom:.55rem; }
     .hub-hero-dot-w { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.4); flex-shrink:0; animation:mkt-hub-pulse 2s ease-in-out infinite; }
     @keyframes mkt-hub-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
-    .hub-hero-accent-mkt { position:absolute; bottom:0; left:0; right:0; height:3px; z-index:3; background:linear-gradient(90deg,#d97706 0%,#dc2626 33%,#7c3aed 66%,#0284c7 100%); }
+    .hub-hero-accent-mkt { position:absolute; bottom:0; left:0; right:0; height:3px; z-index:3; background:linear-gradient(90deg,var(--mk-surface) 0%,var(--mk-surface) 33%,var(--mk-surface) 66%,var(--mk-surface) 100%); }
     .hub-hero-beam-mkt { position:absolute; top:0; bottom:0; width:80px; pointer-events:none; z-index:1; background:linear-gradient(90deg,transparent,rgba(255,255,255,.045) 50%,transparent); left:-15%; animation:mkt-beam 12s ease-in-out 2s infinite; }
     @keyframes mkt-beam { 0%,100%{left:-15%;opacity:0} 35%{opacity:1} 65%{opacity:1} 100%{left:115%;opacity:0} }
-    .hub-hero-live-mkt { display:flex; align-items:center; gap:.4rem; font-size:.56rem; font-weight:700; color:#4ade80; background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.22); padding:.26rem .8rem; border-radius:20px; white-space:nowrap; }
-    .hub-live-dot-mkt { width:6px; height:6px; border-radius:50%; background:#4ade80; flex-shrink:0; animation:mkt-hub-pulse 2s ease-in-out infinite; }
+    .hub-hero-live-mkt { display:flex; align-items:center; gap:.4rem; font-size:0.75rem; font-weight:700; color:var(--mk-up); background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.22); padding:.26rem .8rem; border-radius:20px; white-space:nowrap; }
+    .hub-live-dot-mkt { width:6px; height:6px; border-radius:50%; background:var(--mk-surface-3); flex-shrink:0; animation:mkt-hub-pulse 2s ease-in-out infinite; }
     .mkt-hub-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; margin-bottom:1.2rem; }
     @media(max-width:900px){ .mkt-hub-grid { grid-template-columns:1fr; } }
-    .mkt-hub-card { background:#fff; border-radius:22px; overflow:hidden; box-shadow:0 4px 20px rgba(0,33,58,.09),0 0 0 1px rgba(0,33,58,.045); cursor:pointer; display:flex; flex-direction:column; transition:transform .32s cubic-bezier(.34,1.18,.64,1),box-shadow .32s; }
+    .mkt-hub-card { background:var(--mk-surface-2); border-radius:22px; overflow:hidden; box-shadow:0 4px 20px rgba(0,33,58,.09),0 0 0 1px rgba(0,33,58,.045); cursor:pointer; display:flex; flex-direction:column; transition:transform .32s cubic-bezier(.34,1.18,.64,1),box-shadow .32s; }
     .mkt-hub-card:hover { transform:translateY(-10px) scale(1.02); box-shadow:0 30px 70px rgba(0,33,58,.18),0 0 0 1px rgba(0,33,58,.07); }
     .mkt-hub-card:active { transform:translateY(-5px) scale(1.007) !important; transition-duration:.1s !important; }
     .mkt-hub-hdr { position:relative; overflow:hidden; padding:2rem 1.75rem 1.75rem; display:flex; align-items:center; gap:1.1rem; min-height:155px; }
-    .mhc-granos  .mkt-hub-hdr { background:linear-gradient(140deg,#78350f 0%,#b45309 55%,#fbbf24 100%); }
-    .mhc-energia .mkt-hub-hdr { background:linear-gradient(140deg,#7f1d1d 0%,#dc2626 55%,#f97316 100%); }
-    .mhc-metales .mkt-hub-hdr { background:linear-gradient(140deg,#1e1b4b 0%,#7c3aed 55%,#0284c7 100%); }
-    .mhc-costos  .mkt-hub-hdr { background:linear-gradient(140deg,#1e3a8a 0%,#0284c7 55%,#38bdf8 100%); }
+    .mhc-granos  .mkt-hub-hdr { background:linear-gradient(140deg,var(--mk-surface) 0%,var(--mk-surface) 55%,var(--mk-surface) 100%); }
+    .mhc-energia .mkt-hub-hdr { background:linear-gradient(140deg,var(--mk-surface) 0%,var(--mk-surface) 55%,var(--mk-surface) 100%); }
+    .mhc-metales .mkt-hub-hdr { background:linear-gradient(140deg,var(--mk-surface) 0%,var(--mk-surface) 55%,var(--mk-surface) 100%); }
+    .mhc-costos  .mkt-hub-hdr { background:linear-gradient(140deg,var(--mk-surface) 0%,var(--mk-surface) 55%,var(--mk-surface) 100%); }
     .mkt-hub-hdr::before { content:''; position:absolute; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.09); right:-30px; top:-50px; pointer-events:none; }
     .mkt-hub-hdr::after  { content:''; position:absolute; width:75px;  height:75px;  border-radius:50%; background:rgba(255,255,255,.06); right:65px; bottom:-28px; pointer-events:none; }
     .mkt-hub-shine { position:absolute; top:-10%; left:-120%; width:70%; height:120%; background:linear-gradient(105deg,transparent 10%,rgba(255,255,255,.25) 50%,transparent 90%); transform:skewX(-12deg); transition:left .6s cubic-bezier(.25,.8,.25,1); pointer-events:none; z-index:3; }
     .mkt-hub-card:hover .mkt-hub-shine { left:160%; }
-    .mkt-hub-icon { width:62px; height:62px; border-radius:17px; flex-shrink:0; background:rgba(255,255,255,.22); color:#fff; font-size:1.5rem; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; transition:background .25s,transform .35s cubic-bezier(.34,1.4,.64,1); box-shadow:0 4px 18px rgba(0,0,0,.15); }
+    .mkt-hub-icon { width:62px; height:62px; border-radius:17px; flex-shrink:0; background:rgba(255,255,255,.22); color:var(--mk-muted); font-size:1.5rem; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; transition:background .25s,transform .35s cubic-bezier(.34,1.4,.64,1); box-shadow:0 4px 18px rgba(0,0,0,.15); }
     .mkt-hub-card:hover .mkt-hub-icon { background:rgba(255,255,255,.36); transform:rotate(-10deg) scale(1.14); }
     .mkt-hub-txt { flex:1; position:relative; z-index:1; min-width:0; }
-    .mkt-hub-title { font-size:1.1rem; font-weight:800; color:#fff; line-height:1.22; letter-spacing:-.012em; }
-    .mkt-hub-sub   { font-size:.57rem; color:rgba(255,255,255,.7); margin-top:.2rem; }
-    .mkt-hub-badge { font-size:.47rem; font-weight:800; text-transform:uppercase; letter-spacing:.8px; padding:.22rem .65rem; border-radius:20px; background:rgba(255,255,255,.2); color:#fff; border:1px solid rgba(255,255,255,.3); position:relative; z-index:1; align-self:flex-start; display:flex; align-items:center; gap:.3rem; transition:background .22s; }
+    .mkt-hub-title { font-size:1.1rem; font-weight:800; color:var(--mk-muted); line-height:1.22; letter-spacing:-.012em; }
+    .mkt-hub-sub   { font-size:0.75rem; color:rgba(255,255,255,.7); margin-top:.2rem; }
+    .mkt-hub-badge { font-size:0.625rem; font-weight:800; text-transform:uppercase; letter-spacing:.8px; padding:.22rem .65rem; border-radius:20px; background:rgba(255,255,255,.2); color:var(--mk-muted); border:1px solid rgba(255,255,255,.3); position:relative; z-index:1; align-self:flex-start; display:flex; align-items:center; gap:.3rem; transition:background .22s; }
     .mkt-hub-card:hover .mkt-hub-badge { background:rgba(255,255,255,.32); box-shadow:0 0 16px rgba(255,255,255,.2); }
-    .mkt-hub-bdot { width:5px; height:5px; border-radius:50%; background:#fff; flex-shrink:0; animation:mkt-hub-pulse 2s ease-in-out infinite; }
+    .mkt-hub-bdot { width:5px; height:5px; border-radius:50%; background:var(--mk-surface-2); flex-shrink:0; animation:mkt-hub-pulse 2s ease-in-out infinite; }
     .mkt-hub-stat { position:absolute; bottom:1rem; right:1.35rem; z-index:2; text-align:right; pointer-events:none; }
-    .mkt-hub-stat-lbl { font-size:.4rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.52); margin-bottom:.1rem; }
-    .mkt-hub-stat-val { font-family:'JetBrains Mono',monospace; font-size:1.55rem; font-weight:900; color:#fff; line-height:1; letter-spacing:-.03em; text-shadow:0 2px 18px rgba(0,0,0,.25); }
+    .mkt-hub-stat-lbl { font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.52); margin-bottom:.1rem; }
+    .mkt-hub-stat-val { font-family:'JetBrains Mono',monospace; font-size:1.55rem; font-weight:900; color:var(--mk-muted); line-height:1; letter-spacing:-.03em; text-shadow:0 2px 18px rgba(0,0,0,.25); }
     .mkt-hub-body { padding:1.15rem 1.75rem 1.2rem; flex:1; }
-    .mkt-hub-desc { font-size:.65rem; color:#64748b; line-height:1.62; margin:0 0 1rem; }
+    .mkt-hub-desc { font-size:0.75rem; color:var(--mk-text); line-height:1.62; margin:0 0 1rem; }
     .mkt-hub-metrics { display:flex; gap:.55rem; }
-    .mkt-hub-m { background:#f8fafc; border:1px solid #eaeff5; border-radius:12px; padding:.6rem .85rem; flex:1; min-width:0; cursor:pointer; transition:background .2s,border-color .2s,transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .2s; }
+    .mkt-hub-m { background:var(--mk-surface-2); border:1px solid var(--mk-line); border-radius:12px; padding:.6rem .85rem; flex:1; min-width:0; cursor:pointer; transition:background .2s,border-color .2s,transform .22s cubic-bezier(.34,1.3,.64,1),box-shadow .2s; }
     .mkt-hub-m:hover { transform:translateY(-4px); box-shadow:0 6px 16px rgba(0,33,58,.1); }
     .mhc-granos  .mkt-hub-m:hover { background:rgba(180,83,9,.07);  border-color:rgba(180,83,9,.28); }
-    .mhc-energia .mkt-hub-m:hover { background:rgba(220,38,38,.07); border-color:rgba(220,38,38,.28); }
-    .mhc-metales .mkt-hub-m:hover { background:rgba(124,58,2537,.07);border-color:rgba(124,58,237,.28); }
+    .mhc-energia .mkt-hub-m:hover { background:rgba(221,132,104,.07); border-color:rgba(221,132,104,.28); }
+    .mhc-metales .mkt-hub-m:hover { background:rgba(124,58,2537,.07);border-color:rgba(169,138,224,.28); }
     .mhc-costos  .mkt-hub-m:hover { background:rgba(2,132,199,.07); border-color:rgba(2,132,199,.28); }
-    .mkt-hub-m-lbl { font-size:.44rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:.12rem; }
-    .mkt-hub-m-val { font-family:'JetBrains Mono',monospace; font-size:.95rem; font-weight:900; color:#0f172a; white-space:nowrap; transition:color .22s; }
-    .mkt-hub-cta { padding:.9rem 1.75rem; border-top:1px solid #f0f4f8; display:flex; align-items:center; justify-content:space-between; font-size:.71rem; font-weight:700; color:#94a3b8; transition:all .2s; }
-    .mkt-hub-card:hover .mkt-hub-cta { background:#fafbfd; border-top-color:#e8eef5; }
-    .mhc-granos:hover  .mkt-hub-cta { color:#78350f; }
-    .mhc-energia:hover .mkt-hub-cta { color:#7f1d1d; }
-    .mhc-metales:hover .mkt-hub-cta { color:#1e1b4b; }
-    .mhc-costos:hover  .mkt-hub-cta { color:#1e3a8a; }
-    .mkt-hub-arrow { width:32px; height:32px; border-radius:50%; background:#f1f5f9; color:#94a3b8; display:flex; align-items:center; justify-content:center; font-size:.65rem; transition:all .28s cubic-bezier(.34,1.4,.64,1); flex-shrink:0; }
-    .mhc-granos:hover  .mkt-hub-arrow { background:#78350f; color:#fff; transform:translateX(6px) scale(1.15); }
-    .mhc-energia:hover .mkt-hub-arrow { background:#7f1d1d; color:#fff; transform:translateX(6px) scale(1.15); }
-    .mhc-metales:hover .mkt-hub-arrow { background:#1e1b4b; color:#fff; transform:translateX(6px) scale(1.15); }
-    .mhc-costos:hover  .mkt-hub-arrow { background:#1e3a8a; color:#fff; transform:translateX(6px) scale(1.15); }
+    .mkt-hub-m-lbl { font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--mk-text); margin-bottom:.12rem; }
+    .mkt-hub-m-val { font-family:'JetBrains Mono',monospace; font-size:.95rem; font-weight:900; color:var(--mk-text-2); white-space:nowrap; transition:color .22s; }
+    .mkt-hub-cta { padding:.9rem 1.75rem; border-top:1px solid var(--mk-line); display:flex; align-items:center; justify-content:space-between; font-size:0.75rem; font-weight:700; color:var(--mk-text); transition:all .2s; }
+    .mkt-hub-card:hover .mkt-hub-cta { background:var(--mk-surface-2); border-top-color:var(--mk-line); }
+    .mhc-granos:hover  .mkt-hub-cta { color:var(--mk-granos-ink); }
+    .mhc-energia:hover .mkt-hub-cta { color:var(--mk-energia-ink); }
+    .mhc-metales:hover .mkt-hub-cta { color:var(--mk-metales-ink); }
+    .mhc-costos:hover  .mkt-hub-cta { color:var(--mk-text-2); }
+    .mkt-hub-arrow { width:32px; height:32px; border-radius:50%; background:var(--mk-surface); color:var(--mk-text); display:flex; align-items:center; justify-content:center; font-size:0.75rem; transition:all .28s cubic-bezier(.34,1.4,.64,1); flex-shrink:0; }
+    .mhc-granos:hover  .mkt-hub-arrow { background:var(--mk-surface); color:var(--mk-muted); transform:translateX(6px) scale(1.15); }
+    .mhc-energia:hover .mkt-hub-arrow { background:var(--mk-surface); color:var(--mk-muted); transform:translateX(6px) scale(1.15); }
+    .mhc-metales:hover .mkt-hub-arrow { background:var(--mk-surface); color:var(--mk-muted); transform:translateX(6px) scale(1.15); }
+    .mhc-costos:hover  .mkt-hub-arrow { background:var(--mk-surface); color:var(--mk-muted); transform:translateX(6px) scale(1.15); }
 
     /* MKT-V3 */
-    .hub-hero::before { content:''; position:absolute; width:320px; height:320px; border-radius:50%; pointer-events:none; background:radial-gradient(circle,rgba(99,102,241,.2) 0%,transparent 70%); right:-90px; top:-110px; }
+    .hub-hero::before { content:''; position:absolute; width:320px; height:320px; border-radius:50%; pointer-events:none; background:radial-gradient(circle,rgba(68,198,168,.2) 0%,transparent 70%); right:-90px; top:-110px; }
     .hub-hero::after  { content:''; position:absolute; width:200px; height:200px; border-radius:50%; pointer-events:none; background:radial-gradient(circle,rgba(34,197,94,.13) 0%,transparent 70%); left:-50px; bottom:-70px; }
-    .hub-hero-title { font-family:'Inter',sans-serif; font-size:2.3rem; font-weight:900; letter-spacing:-.04em; line-height:1.03; background:linear-gradient(130deg,#fff 0%,rgba(255,255,255,.9) 40%,rgba(148,163,184,.6) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:.55rem; }
+    /* Ojo: aquí el degradado NO es un fondo, es el relleno del texto
+       (background-clip:text). Por eso va de claro a claro: si su primer tramo
+       se oscurece como una superficie, el título arranca en gris oscuro sobre
+       un hero oscuro y se queda en 2,3:1. */
+    .hub-hero-title { font-family:'Inter',sans-serif; font-size:2.3rem; font-weight:900; letter-spacing:-.04em; line-height:1.03; background:linear-gradient(130deg,var(--mk-text) 0%,rgba(238,244,248,.94) 45%,rgba(202,212,222,.82) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:.55rem; }
     .hub-hero-sub { max-width:420px; }
     @keyframes mkt-hub-enter { from { opacity:0; transform:translateY(28px) scale(.94); } to { opacity:1; transform:none; } }
     .mkt-hub-card { animation:mkt-hub-enter .6s cubic-bezier(.34,1.1,.64,1) both; will-change:transform; }
@@ -667,14 +715,14 @@
     .mkt-hub-grid > .mkt-hub-card:nth-child(3) { animation-delay:.23s; }
     .mkt-hub-grid > .mkt-hub-card:nth-child(4) { animation-delay:.32s; }
     .mhc-granos:hover  .mkt-hub-m { background:rgba(180,83,9,.05);   border-color:rgba(180,83,9,.2); }
-    .mhc-energia:hover .mkt-hub-m { background:rgba(220,38,38,.05);  border-color:rgba(220,38,38,.2); }
-    .mhc-metales:hover .mkt-hub-m { background:rgba(124,58,237,.05); border-color:rgba(124,58,237,.2); }
+    .mhc-energia:hover .mkt-hub-m { background:rgba(221,132,104,.05);  border-color:rgba(221,132,104,.2); }
+    .mhc-metales:hover .mkt-hub-m { background:rgba(169,138,224,.05); border-color:rgba(169,138,224,.2); }
     .mhc-costos:hover  .mkt-hub-m { background:rgba(2,132,199,.05);  border-color:rgba(2,132,199,.2); }
-    .mhc-granos:hover  .mkt-hub-m-val { color:#78350f; }
-    .mhc-energia:hover .mkt-hub-m-val { color:#7f1d1d; }
-    .mhc-metales:hover .mkt-hub-m-val { color:#1e1b4b; }
-    .mhc-costos:hover  .mkt-hub-m-val { color:#1e3a8a; }
-    .sec-lbl { font-size:.63rem; font-weight:800; text-transform:uppercase; letter-spacing:1.8px; color:#00213a; margin-bottom:.6rem; margin-top:.85rem; display:flex; align-items:center; gap:8px; padding-left:.5rem; border-left:3px solid #00213a; }
+    .mhc-granos:hover  .mkt-hub-m-val { color:var(--mk-granos-ink); }
+    .mhc-energia:hover .mkt-hub-m-val { color:var(--mk-energia-ink); }
+    .mhc-metales:hover .mkt-hub-m-val { color:var(--mk-metales-ink); }
+    .mhc-costos:hover  .mkt-hub-m-val { color:var(--mk-text-2); }
+    .sec-lbl { font-size:.63rem; font-weight:800; text-transform:uppercase; letter-spacing:1.8px; color:var(--mk-down); margin-bottom:.6rem; margin-top:.85rem; display:flex; align-items:center; gap:8px; padding-left:.5rem; border-left:3px solid var(--mk-line-strong); }
     .sec-lbl::after { content:""; flex:1; height:1px; background:linear-gradient(to right,rgba(0,33,58,.12),transparent); }
     .ipi-hero { border-radius:18px; padding:1.4rem 1.75rem; box-shadow:0 4px 20px rgba(0,33,58,.08),0 0 0 1px rgba(0,33,58,.04); }
     .ipi-metric { border-radius:12px; padding:.75rem 1rem; transition:box-shadow .18s,transform .15s; cursor:default; }
@@ -703,7 +751,7 @@
       .mkt-wrap { padding:.55rem .75rem 1.4rem; }
       .hub-hero { padding:1.35rem 1.2rem 1.25rem; border-radius:16px; gap:.85rem; }
       .hub-hero-title { font-size:1.6rem !important; }
-      .hub-hero-sub { font-size:.62rem; flex-wrap:wrap; }
+      .hub-hero-sub { font-size:0.75rem; flex-wrap:wrap; }
       .mkt-raw-col { grid-template-columns:repeat(2,1fr) !important; }
       .mkt-hub-grid { grid-template-columns:1fr !important; }
       .mkt-hub-card:hover { transform:translateY(-3px) scale(1.005); }
@@ -721,7 +769,7 @@
       .hub-hero-title { font-size:1.35rem !important; }
       .mkt-tab-sub { display:none; }
       .mkt-tab-icon-sq { width:36px; height:36px; font-size:.88rem; }
-      .mkt-tab-ttl { font-size:.73rem; }
+      .mkt-tab-ttl { font-size:0.75rem; }
       .mkt-tab-card { padding:.7rem .8rem; gap:.6rem; }
       .mkt-hub-hdr { min-height:100px; padding:1rem 1rem .85rem; }
       .mkt-hub-icon { width:46px; height:46px; border-radius:12px; font-size:1.05rem; }
@@ -730,7 +778,7 @@
       .mkt-hub-metrics { gap:.4rem; }
       .mkt-hub-m { padding:.5rem .65rem; }
       .mkt-hub-m-val { font-size:.85rem; }
-      .mkt-hub-m-lbl { font-size:.55rem; }
+      .mkt-hub-m-lbl { font-size:0.75rem; }
       .mkt-hub-title { font-size:.95rem; }
       .ipi-details { grid-template-columns:repeat(2,1fr) !important; }
       .raciones-grid { grid-template-columns:repeat(2,1fr) !important; }
@@ -754,38 +802,3052 @@
       .mkt-hub-card:hover { transform:none; box-shadow:0 4px 20px rgba(0,33,58,.09),0 0 0 1px rgba(0,33,58,.045); }
       .mkt-hub-card:active { transform:translateY(-3px) scale(1.01) !important; }
       .heat-cell:hover { transform:none; box-shadow:none; }
+      /* Sin puntero no hay hover que revele el «Ver reporte», así que en táctil
+         no reserva sitio. Estas dos reglas estaban escritas justo debajo del
+         cierre de este bloque, con la sangría de dentro pero fuera de él: se
+         aplicaban en todas partes, y por eso el «Ver reporte» no llegó a verse
+         nunca en escritorio pese a tener su regla de hover. */
+      .news-item { padding-right:1rem !important; }
+      .news-item::after { display: none; }
     }
-          .news-item { padding-right:1rem !important; }
-    .news-item::after { display: none; }
     #nm-overlay { position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:9300;display:none;align-items:flex-start;justify-content:flex-end;backdrop-filter:blur(3px); }
     #nm-overlay.open { display:flex; }
-    #nm-panel { width:min(520px,100vw);height:100dvh;background:#fff;overflow-y:auto;box-shadow:-12px 0 40px rgba(0,0,0,.24);display:flex;flex-direction:column;animation:nmSlideIn .26s ease; }
+    #nm-panel { width:min(520px,100vw);height:100dvh;background:var(--mk-surface-2);overflow-y:auto;box-shadow:-12px 0 40px rgba(0,0,0,.24);display:flex;flex-direction:column;animation:nmSlideIn .26s ease; }
     @keyframes nmSlideIn { from{transform:translateX(100%);opacity:.4} to{transform:translateX(0);opacity:1} }
-    .nm-hdr { flex-shrink:0;background:linear-gradient(135deg,#001828,#003a5c);padding:1.3rem 1.5rem;position:relative; }
-    .nm-close-btn { position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;color:#fff;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .15s;line-height:1; }
+    .nm-hdr { flex-shrink:0;background:linear-gradient(135deg,var(--mk-surface),var(--mk-surface));padding:1.3rem 1.5rem;position:relative; }
+    .nm-close-btn { position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;color:var(--mk-muted);font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .15s;line-height:1; }
     .nm-close-btn:hover { background:rgba(255,255,255,.3); }
     .nm-cat-row { display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.3rem; }
-    .nm-cat-lbl { font-size:.54rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.5); }
-    .nm-impact-pill { display:inline-block;font-size:.5rem;font-weight:800;text-transform:uppercase;letter-spacing:.9px;padding:.15rem .5rem;border-radius:4px;color:#fff; }
-    .nm-title-big { font-size:.96rem;font-weight:800;color:#fff;line-height:1.32;padding-right:2.5rem;margin:.15rem 0 .3rem; }
-    .nm-source-lbl { font-size:.57rem;color:rgba(255,255,255,.45); }
+    .nm-cat-lbl { font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.5); }
+    .nm-impact-pill { display:inline-block;font-size:0.625rem;font-weight:800;text-transform:uppercase;letter-spacing:.9px;padding:.15rem .5rem;border-radius:4px;color:var(--mk-muted); }
+    .nm-title-big { font-size:.96rem;font-weight:800;color:var(--mk-muted);line-height:1.32;padding-right:2.5rem;margin:.15rem 0 .3rem; }
+    .nm-source-lbl { font-size:0.75rem;color:rgba(255,255,255,.45); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Modulo Noticias — el cuarto recuadro del hub y su sala.
+
+   Ocupaba la fila entera cuando los modulos eran cinco: la reticula es de dos
+   columnas y el quinto recuadro dejaba un hueco suelto a su derecha.
+
+   Al fusionarse Energeticos y Metales en un solo modulo quedan cuatro, que es
+   una reticula 2x2 exacta. Manteniendo la banda, el hueco pasaba a estar junto
+   a Proteinas —el mismo problema, una fila mas arriba—, asi que Noticias vuelve
+   a ser un recuadro normal. La regla no se borra: queda condicionada, para que
+   si algun dia vuelve a haber un numero impar de modulos baste con volver a
+   activarla en vez de reconstruirla.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.mhc-noticias .mkt-hub-icon { color: var(--mk-general-ink); background: var(--mk-general-soft); }
+.mhc-noticias .mkt-hub-badge { color: var(--mk-general-ink); }
+
+/* Solo cuando Noticias es el impar que sobra (`:nth-child(odd)` sobre el ultimo
+   recuadro) recupera la banda a lo ancho. Con cuatro modulos es par y no entra,
+   asi que se comporta como los demas sin tocar nada. */
+.mkt-hub-card.mhc-noticias:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    /* Mas baja que las otras: a lo ancho de la fila, la altura de un recuadro
+       normal se convierte en un cartelon. */
+    min-height: 190px;
+}
+@media (max-width: 900px) {
+    /* Ya es de una columna: vuelve a la altura de las demas. */
+    .mkt-hub-card.mhc-noticias { min-height: 0; }
+}
+.mkt-terms {
+    margin-bottom: 1.2rem;
+    padding: 16px 18px;
+    border: 1px solid var(--mk-line-soft);
+    border-left: 3px solid var(--mk-energia);
+    border-radius: 15px;
+    background: var(--mk-surface-2);
+}
+.mkt-terms h3 { margin: .35rem 0 .3rem; color: var(--mk-muted); font-size: 1.05rem; letter-spacing: -.02em; }
+.mkt-terms > header p { margin: 0; color: var(--mk-text); font-size: .78rem; }
+
+/* ── Termometros ── */
+.mkt-terms-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 1rem; }
+@media (max-width: 1000px) { .mkt-terms-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .mkt-terms-grid { grid-template-columns: 1fr; } }
+
+.mkt-term {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 15px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+}
+.mkt-term > header { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+.mkt-term h4 { margin: 0; color: var(--mk-text-2); font-size: .76rem; font-weight: 700; }
+.mkt-term-icono {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    border-radius: 8px;
+    font-size: .68rem;
+    color: var(--mk-text);
+    background: var(--mk-surface);
+}
+.mkt-term > strong { font-size: 1.25rem; line-height: 1.1; letter-spacing: -.02em; color: var(--mk-muted); }
+
+/* La escala: tres tramos, uno encendido. Es lo que convierte «Media» en un
+   punto entre dos extremos en vez de una palabra suelta. */
+.mkt-term-escala { display: flex; gap: 3px; margin: .6rem 0 0; padding: 0; list-style: none; }
+.mkt-term-escala li { flex: 1; min-width: 0; }
+.mkt-term-escala i { display: block; height: 5px; border-radius: 20px; background: var(--mk-surface); }
+.mkt-term-escala span {
+    display: block;
+    margin-top: .25rem;
+    font-size: .55rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--mk-text);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mkt-term-escala li.is-activo span { color: var(--mk-text-2); }
+
+/* El tono sale de la POSICION y del sentido del indicador, no de la palabra:
+   asi «Debil» en demanda y «Alta» en riesgo comparten alerta aunque como
+   palabras no se parezcan en nada. El texto siempre acompana al color. */
+.mkt-term.es-bueno > strong { color: var(--mk-up); }
+.mkt-term.es-bueno .is-activo i { background: var(--mk-up); }
+.mkt-term.es-medio > strong { color: var(--mk-granos-ink); }
+.mkt-term.es-medio .is-activo i { background: var(--mk-granos); }
+.mkt-term.es-malo > strong { color: var(--mk-down); }
+.mkt-term.es-malo .is-activo i { background: var(--mk-down); }
+.mkt-term.es-nulo > strong { color: var(--mk-text); }
+
+.mkt-term p { margin: .6rem 0 0; color: var(--mk-text); font-size: .7rem; line-height: 1.5; }
+.mkt-sim {
+    margin-bottom: 1.2rem;
+    padding: 16px 18px;
+    border: 1px solid var(--mk-line-soft);
+    border-left: 3px solid var(--mk-energia);
+    border-radius: 15px;
+    background: var(--mk-surface-2);
+}
+.mkt-sim-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.mkt-sim-head h3 { margin: .35rem 0 .3rem; color: var(--mk-muted); font-size: 1.05rem; letter-spacing: -.02em; }
+.mkt-sim-head p { margin: 0; max-width: 60ch; color: var(--mk-text); font-size: .78rem; line-height: 1.55; }
+
+/* Selector de moneda */
+.mkt-sim-moneda { display: flex; flex-direction: column; align-items: flex-end; gap: .25rem; }
+.mkt-sim-moneda label { display: flex; flex-direction: column; gap: .25rem; align-items: flex-end; }
+.mkt-sim-moneda span {
+    font-size: .58rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--mk-text);
+}
+.mkt-sim-moneda select {
+    padding: .4rem .7rem;
+    border: 1px solid var(--mk-line);
+    border-radius: 9px;
+    background: var(--mk-bg-raised);
+    color: var(--mk-text-2);
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.mkt-sim-moneda > small { font-family: 'JetBrains Mono', monospace; font-size: .6rem; color: var(--mk-granos-ink); }
+
+/* Dos columnas: lo que se toca a la izquierda, lo que sale a la derecha. */
+.mkt-sim-cuerpo { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 14px; margin-top: 1rem; }
+@media (max-width: 1000px) { .mkt-sim-cuerpo { grid-template-columns: 1fr; } }
+
+.mkt-sim-controles { display: flex; flex-direction: column; gap: 10px; }
+.mkt-sim-grupo {
+    padding: 13px 14px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+}
+.mkt-sim-grupo h4 {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: 0 0 .6rem;
+    font-size: .64rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--mk-energia-ink);
+}
+/* Que hace este grupo de controles. Sin esta linea, «Precios de la energia» no
+   dice si se estan poniendo precios de compra, de venta o de referencia. */
+.mkt-sim-que { margin: 0 0 .6rem; font-size: .68rem; line-height: 1.45; color: var(--mk-text); }
+.mkt-sim-que b { color: var(--mk-text-2); font-weight: 700; }
+
+.mkt-sim-presets { display: flex; gap: .25rem; margin-bottom: .6rem; padding: .2rem; border-radius: 9px; background: var(--mk-surface); }
+.mkt-sim-presets button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .05rem;
+    flex: 1;
+    padding: .32rem .4rem;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--mk-text);
+    font-size: .68rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background .16s, color .16s;
+}
+.mkt-sim-presets button em {
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .55rem;
+    font-weight: 700;
+    opacity: .8;
+}
+.mkt-sim-presets button:hover { background: var(--mk-surface-2); color: var(--mk-text-2); }
+.mkt-sim-presets button.is-activo { background: var(--mk-energia); color: #2a1207; }
+
+/* Rejilla de tres columnas: etiqueta, barra y valor siempre alineados entre
+   sliders, que es lo que permite compararlos de un vistazo. */
+.mkt-sim-slider { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) 3.6rem; align-items: center; gap: .6rem; margin-bottom: .5rem; }
+.mkt-sim-slider:last-child { margin-bottom: 0; }
+.mkt-sim-lbl { font-size: .72rem; font-weight: 600; color: var(--mk-text-2); line-height: 1.25; }
+.mkt-sim-lbl em { display: block; font-style: normal; font-size: .58rem; font-weight: 700; color: var(--mk-text); }
+.mkt-sim-slider input[type="range"] { width: 100%; height: 6px; accent-color: var(--mk-energia); cursor: pointer; }
+.mkt-sim-slider input[type="range"]:disabled { accent-color: var(--mk-line); cursor: not-allowed; opacity: .5; }
+/* El pulgar crece al agarrarlo: confirma que el control respondio antes de que
+   el numero termine de moverse. */
+.mkt-sim-slider input[type="range"]::-webkit-slider-thumb { transition: transform .15s ease; }
+.mkt-sim-slider input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
+.mkt-sim-slider input[type="range"]:focus-visible { outline: 2px solid var(--mk-energia); outline-offset: 3px; border-radius: 20px; }
+.mkt-sim-slider b {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem;
+    font-weight: 800;
+    color: var(--mk-muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    transition: color .2s;
+}
+
+/* Las tarjetas entran escalonadas al abrir la seccion. Milisegundos, no una
+   animacion vistosa: lo justo para que la vista siga el orden de lectura. */
+.mkt-sim-salidas > .mkt-sim-salida { animation: mkt-sim-in .35s cubic-bezier(.34, 1.1, .64, 1) both; }
+.mkt-sim-salidas > .mkt-sim-salida:nth-child(2) { animation-delay: .05s; }
+.mkt-sim-salidas > .mkt-sim-salida:nth-child(3) { animation-delay: .1s; }
+.mkt-sim-salidas > .mkt-sim-salida:nth-child(4) { animation-delay: .15s; }
+@keyframes mkt-sim-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Nada de lo anterior es informacion: quien pida menos movimiento no pierde
+   nada. El contador de cifras ya se desactiva solo en el propio hook. */
+@media (prefers-reduced-motion: reduce) {
+    .mkt-sim-salidas > .mkt-sim-salida,
+    .mkt-sim-delta { animation: none; }
+    .mkt-sim-salida,
+    .mkt-sim-icono,
+    .mkt-sim-slider input[type="range"]::-webkit-slider-thumb { transition: none; }
+    .mkt-sim-salida:hover { transform: none; }
+    .mkt-sim-salida:hover .mkt-sim-icono { transform: none; }
+}
+.mkt-sim-slider b.es-malo { color: var(--mk-down); }
+.mkt-sim-slider b.es-bueno { color: var(--mk-up); }
+/* Aire por los DOS lados: esta linea va entre los atajos y los sliders, y con
+   margen solo arriba quedaba pegada al primero como si fuera su etiqueta. */
+.mkt-sim-ayuda { margin: 0 0 .7rem; font-size: .66rem; line-height: 1.45; color: var(--mk-text-2); font-style: italic; }
+/* En el grupo del tipo de cambio va la ultima, y ahi el margen sobra abajo. */
+.mkt-sim-grupo > .mkt-sim-ayuda:last-child { margin: .55rem 0 0; }
+
+/* ── Salidas ── */
+.mkt-sim-salidas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
+@media (max-width: 620px) { .mkt-sim-salidas { grid-template-columns: 1fr; } }
+.mkt-sim-salida {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 13px 14px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+    overflow: hidden;
+    transition: transform .22s cubic-bezier(.34, 1.2, .64, 1), border-color .22s, box-shadow .22s;
+}
+/* Un realce discreto al pasar por encima: confirma que cada tarjeta es una
+   unidad de lectura, sin invitar a pulsarla (no es un boton). */
+.mkt-sim-salida:hover {
+    transform: translateY(-2px);
+    border-color: var(--mk-line);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .3);
+}
+/* Filo superior con el tono de la seccion: da jerarquia a la rejilla sin
+   anadir mas texto. El destacado lo lleva a color pleno. */
+.mkt-sim-salida::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: var(--mk-line-soft);
+    transition: background .22s;
+}
+.mkt-sim-salida:hover::before { background: var(--mk-energia); }
+.mkt-sim-salida.es-total { border-color: var(--mk-energia); background: linear-gradient(160deg, var(--mk-surface), var(--mk-bg-raised)); }
+.mkt-sim-salida.es-total::before { background: var(--mk-energia); }
+.mkt-sim-salida > header { display: flex; align-items: center; gap: .45rem; margin-bottom: .5rem; }
+.mkt-sim-salida h4 { margin: 0; font-size: .72rem; font-weight: 700; color: var(--mk-text-2); }
+.mkt-sim-icono {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    border-radius: 7px;
+    font-size: .62rem;
+    color: var(--mk-energia-ink);
+    background: var(--mk-energia-soft);
+    transition: transform .3s cubic-bezier(.34, 1.4, .64, 1);
+}
+.mkt-sim-salida:hover .mkt-sim-icono { transform: scale(1.12) rotate(-6deg); }
+
+/* ── Distancia al escenario de hoy ──
+   Lo que convierte la cifra en una decision: «30 pesos» no dice nada; «30, un
+   19% mas que hoy» si. Va arriba a la derecha, fuera del camino de la cifra. */
+.mkt-sim-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    margin-left: auto;
+    padding: .12rem .4rem;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .58rem;
+    font-weight: 800;
+    animation: mkt-delta-in .28s ease-out;
+}
+.mkt-sim-delta.es-sube { color: var(--mk-down); background: rgba(254, 125, 138, .13); }
+.mkt-sim-delta.es-baja { color: var(--mk-up); background: rgba(89, 210, 170, .13); }
+@keyframes mkt-delta-in { from { opacity: 0; transform: translateY(-3px) scale(.9); } to { opacity: 1; transform: none; } }
+.mkt-sim-vs { color: var(--mk-text-2); }
+.mkt-sim-vs b { font-family: 'JetBrains Mono', monospace; font-weight: 800; }
+
+.mkt-sim-salida > strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    line-height: 1.1;
+    letter-spacing: -.03em;
+    color: var(--mk-muted);
+    /* `tabular-nums` es imprescindible con la cifra animada: sin el, cada
+       fotograma cambia el ancho de los digitos y el numero tiembla mientras
+       corre la interpolacion. */
+    font-variant-numeric: tabular-nums;
+}
+.mkt-sim-salida > strong em {
+    display: block;
+    margin-top: .12rem;
+    font-style: normal;
+    font-size: .58rem;
+    font-weight: 700;
+    color: var(--mk-text);
+}
+/* La cuenta con los numeros ya puestos. En <code> y con fondo propio porque es
+   una formula, no prosa: se lee para comprobarla, no para entenderla de
+   corrido, y asi se distingue de la nota de abajo. */
+.mkt-sim-cuenta {
+    display: block;
+    margin-top: .55rem;
+    padding: .35rem .5rem;
+    border-radius: 7px;
+    background: var(--mk-surface);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .6rem;
+    line-height: 1.45;
+    color: var(--mk-granos-ink);
+    overflow-wrap: anywhere;
+}
+.mkt-sim-salida p { margin: .45rem 0 0; font-size: .66rem; line-height: 1.45; color: var(--mk-text); }
+.mkt-sim-pie { display: flex; gap: .45rem; margin: 1rem 0 0; font-size: .68rem; line-height: 1.5; color: var(--mk-text); }
+.mkt-sim-pie i { margin-top: .2rem; color: var(--mk-energia-ink); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIMULADOR DE PUT (Granos)
+   ══════════════════════════════════════════════════════════════════════════
+   Reutiliza entero el armazon .mkt-sim de Energia & Metales. Esa hoja lleva el
+   naranja `--mk-energia` escrito a mano en SIETE sitios (filo, preset activo,
+   accent-color de las barras, foco, filo superior de la tarjeta, tarjeta
+   destacada e icono del pie), asi que el modificador solo repite esos siete
+   con el dorado. No se toca ninguna regla base: el simulador energetico se
+   quedo exactamente como estaba.
+
+   Va DESPUES del bloque base y en el mismo archivo, asi que el orden de
+   cascada esta garantizado; ademas `.mkt-sim.es-granos X` gana en
+   especificidad, que es lo que de verdad lo sostiene. */
+.mkt-sim.es-granos { border-left-color: var(--mk-granos); }
+.mkt-sim.es-granos .mkt-sim-presets button.is-activo { background: var(--mk-granos); color: #2b210c; }
+.mkt-sim.es-granos .mkt-sim-slider input[type="range"] { accent-color: var(--mk-granos); }
+.mkt-sim.es-granos .mkt-sim-slider input[type="range"]:focus-visible { outline-color: var(--mk-granos); }
+.mkt-sim.es-granos .mkt-sim-salida:hover::before { background: var(--mk-granos); }
+.mkt-sim.es-granos .mkt-sim-salida.es-total { border-color: var(--mk-granos); }
+.mkt-sim.es-granos .mkt-sim-salida.es-total::before { background: var(--mk-granos); }
+.mkt-sim.es-granos .mkt-sim-icono { color: var(--mk-granos-ink); background: var(--mk-granos-soft); }
+.mkt-sim.es-granos .mkt-sim-pie i { color: var(--mk-granos-ink); }
+
+/* «Volver a la histórica»: es un boton dentro de un parrafo de ayuda, asi que
+   se disfraza de enlace en vez de heredar el aspecto de los presets. */
+.put-reset {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--mk-granos-ink);
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.put-reset:hover { color: var(--mk-muted); }
+
+/* ── Tabla de escenarios ──
+   Es la pieza que convierte el panel en una decision: las tarjetas dicen que
+   cuesta y esto dice que pasa, incluido el caso en el que la cobertura no
+   sirve. */
+.put-esc-marco {
+    margin-top: 1rem;
+    padding: 12px 14px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 12px;
+    background: var(--mk-surface);
+}
+.put-esc-titulo {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: 0 0 .7rem;
+    color: var(--mk-granos-ink);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+/* Seis columnas no caben en movil. El scroll va en un envoltorio propio y no
+   en la tabla, para que el <table> conserve su ancho natural y las cifras no
+   se compriman hasta partirse. */
+.put-esc-scroll { overflow-x: auto; }
+.put-esc {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.put-esc th,
+.put-esc td { padding: .45rem .6rem; text-align: right; }
+.put-esc thead th {
+    color: var(--mk-text);
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--mk-line);
+}
+.put-esc thead th em {
+    display: block;
+    margin-top: .1rem;
+    font-style: normal;
+    font-size: .54rem;
+    font-weight: 600;
+    color: var(--mk-text-2);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.put-esc tbody th {
+    text-align: left;
+    color: var(--mk-text-2);
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+    font-size: .7rem;
+}
+.put-esc tbody td { color: var(--mk-text-2); }
+.put-esc tbody tr + tr th,
+.put-esc tbody tr + tr td { border-top: 1px solid var(--mk-line-soft); }
+.put-esc tbody tr.es-hoy th,
+.put-esc tbody tr.es-hoy td { background: var(--mk-granos-soft); }
+.put-esc td b { color: var(--mk-muted); font-weight: 800; }
+.put-esc .es-paga { color: var(--mk-up); }
+.put-esc .es-favor { color: var(--mk-up); }
+.put-esc .es-contra { color: var(--mk-down); }
+.put-esc-pie { margin: .7rem 0 0; font-size: .66rem; line-height: 1.5; color: var(--mk-text); }
+
+@media (max-width: 560px) {
+    .mkt-sim-slider { grid-template-columns: 1fr auto; }
+    .mkt-sim-slider input[type="range"] { grid-column: 1 / -1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Interes abierto · COT de la CFTC (.oi-*)
+
+   Comparte el marco de .mkt-sim —mismo borde izquierdo dorado de Granos, mismo
+   radio, mismo pie de advertencia— para que se lea como parte de la misma
+   seccion y no como un widget pegado. Lo que NO comparte es el color del dato
+   principal: el interes abierto va en gris. Subir no es bueno ni malo, y
+   pintarlo de verde lo convertiria en una senal que el dato no da.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.oi-panel {
+    margin-top: 1rem;
+    padding: 1.1rem 1.2rem 1.2rem;
+    border: 1px solid var(--mk-line);
+    border-left: 3px solid var(--mk-granos);
+    border-radius: 16px;
+    background: var(--mk-surface);
+}
+.oi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.oi-head h3 { margin: .35rem 0 .3rem; color: var(--mk-muted); font-size: 1.05rem; letter-spacing: -.02em; }
+.oi-head p { margin: 0; max-width: 68ch; color: var(--mk-text); font-size: .78rem; line-height: 1.55; }
+
+/* El sello de la fecha. Va aparte y con el rezago escrito debajo porque un
+   numero de mercado sin fecha se lee como si fuera de hoy, y este nunca lo es. */
+.oi-sello {
+    display: flex; flex-direction: column; align-items: flex-end; gap: .1rem;
+    padding: .45rem .7rem;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 10px;
+    background: var(--mk-bg-raised);
+    white-space: nowrap;
+}
+.oi-sello small { font-size: .58rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--mk-text); }
+.oi-sello b { font-family: 'JetBrains Mono', monospace; font-size: .82rem; font-weight: 800; color: var(--mk-granos-ink); }
+
+.oi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 1rem; }
+@media (max-width: 1050px) { .oi-grid { grid-template-columns: 1fr; } }
+
+.oi-card {
+    padding: .85rem .95rem 1rem;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+}
+.oi-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+.oi-card-head h4 { margin: 0; font-size: .85rem; font-weight: 800; color: var(--mk-muted); }
+.oi-contrato {
+    font-family: 'JetBrains Mono', monospace; font-size: .53rem; font-weight: 700;
+    letter-spacing: .04em; color: var(--mk-text); text-align: right;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+
+.oi-cifra { display: flex; align-items: baseline; flex-wrap: wrap; gap: .35rem .5rem; }
+.oi-cifra strong {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 800;
+    line-height: 1.1; color: var(--mk-text-2); letter-spacing: -.02em;
+}
+.oi-cifra em { font-style: normal; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--mk-text); }
+/* Gris deliberado: ver la nota de arriba. */
+.oi-var { display: inline-flex; align-items: center; gap: .25rem; margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: .64rem; font-weight: 700; color: var(--mk-text); }
+.oi-var i { font-size: .55rem; }
+
+.oi-spark { display: block; width: 100%; height: auto; margin: .55rem 0 .3rem; overflow: visible; }
+.oi-spark-linea { fill: none; stroke: var(--mk-granos); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.oi-spark-area { fill: var(--mk-granos-soft); stroke: none; }
+.oi-spark-hoy { fill: var(--mk-granos-ink); }
+
+.oi-rango { margin: 0 0 .7rem; font-size: .62rem; line-height: 1.45; color: var(--mk-text); }
+.oi-rango b { font-family: 'JetBrains Mono', monospace; color: var(--mk-text-2); }
+
+.oi-cats { border-top: 1px solid var(--mk-line-soft); padding-top: .55rem; }
+/* La cabecera comparte la rejilla de las filas y no es un flex aparte: con
+   space-between los rotulos caian donde les tocaba y ninguno quedaba sobre su
+   columna, que es justo lo que un encabezado tiene que hacer. */
+.oi-cats-cab,
+.oi-cat { display: grid; grid-template-columns: 4.2rem 4.6rem minmax(0, 1fr) 3.6rem; align-items: center; gap: .4rem; }
+.oi-cats-cab {
+    margin-bottom: .4rem;
+    font-size: .55rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--mk-text);
+}
+.oi-cats-cab span:first-child { grid-column: 1 / 3; }
+.oi-cats-cab span:nth-child(2) { text-align: center; }
+.oi-cats-cab span:last-child { text-align: right; }
+.oi-cat { margin-bottom: .3rem; }
+.oi-cat:last-child { margin-bottom: 0; }
+.oi-cat-nombre { font-size: .68rem; font-weight: 700; color: var(--mk-text-2); }
+.oi-cat b, .oi-cat small { font-family: 'JetBrains Mono', monospace; font-weight: 700; text-align: right; }
+.oi-cat b { font-size: .68rem; }
+.oi-cat small { font-size: .58rem; opacity: .8; }
+
+/* Barra con el cero en el centro: la mitad izquierda es corto y la derecha
+   largo. El ::before es la marca del cero — sin ella, una barra corta pegada al
+   centro no se distingue de otra que empieza en el borde. */
+.oi-barra { position: relative; height: 7px; border-radius: 4px; background: var(--mk-surface); overflow: hidden; }
+.oi-barra::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--mk-line); }
+.oi-barra i { position: absolute; top: 0; bottom: 0; border-radius: 3px; transition: width .3s ease; }
+.oi-barra i.es-largo { left: 50%; background: var(--mk-up); }
+.oi-barra i.es-corto { right: 50%; background: var(--mk-down); }
+.oi-cat .es-largo { color: var(--mk-up); }
+.oi-cat .es-corto { color: var(--mk-down); }
+.oi-barra i.es-largo, .oi-barra i.es-corto { color: inherit; }
+
+.oi-lectura {
+    display: flex; gap: .4rem; margin: .7rem 0 0; padding-top: .6rem;
+    border-top: 1px solid var(--mk-line-soft);
+    font-size: .66rem; line-height: 1.5; color: var(--mk-text);
+}
+.oi-lectura i { margin-top: .15rem; font-size: .55rem; color: var(--mk-granos-ink); flex-shrink: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .oi-barra i { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Cadena de conversion, version explicada (.mkt-chain-v2).
+
+   La hoja legada pinta .mkt-chain-steps como una fila de cajas con la operacion
+   arriba. El problema no era el formato sino que «÷ 42 gal/bbl» y «× 8.5» no
+   significan nada para quien no vive del sector. Ahora cada paso lleva su
+   numero de orden y una frase que dice POR QUE se multiplica por eso; la
+   operacion se queda al final de la frase, como comprobacion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.mkt-chain-intro { margin: .4rem 0 0; max-width: 62ch; color: var(--mk-text); font-size: .76rem; line-height: 1.55; }
+
+.mkt-chain-v2 .mkt-chain-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+@media (max-width: 980px) { .mkt-chain-v2 .mkt-chain-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .mkt-chain-v2 .mkt-chain-steps { grid-template-columns: 1fr; } }
+
+.mkt-chain-v2 .mkt-chain-steps li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 13px 14px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+}
+/* El ultimo paso es el resultado, no un paso mas: se marca con el tono de la
+   seccion para que la vista sepa donde acaba la cadena. */
+.mkt-chain-v2 .mkt-chain-steps li.is-final {
+    border-color: var(--mk-energia);
+    background: linear-gradient(160deg, var(--mk-surface), var(--mk-bg-raised));
+}
+.mkt-chain-num {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-bottom: .5rem;
+    border-radius: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .66rem;
+    font-weight: 800;
+    color: var(--mk-energia-ink);
+    background: var(--mk-energia-soft);
+}
+.mkt-chain-v2 .mkt-chain-lbl {
+    margin-bottom: .2rem;
+    color: var(--mk-text-2);
+    font-size: .72rem;
+    font-weight: 700;
+}
+.mkt-chain-v2 .mkt-chain-steps strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.15rem;
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    color: var(--mk-muted);
+}
+.mkt-chain-v2 .mkt-chain-steps strong em {
+    display: block;
+    margin-top: .15rem;
+    font-style: normal;
+    font-size: .58rem;
+    font-weight: 700;
+    color: var(--mk-text);
+}
+.mkt-chain-porque {
+    margin-top: .55rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--mk-line-soft);
+    color: var(--mk-text);
+    font-size: .68rem;
+    line-height: 1.45;
+}
+.mkt-chain-v2 b.mkt-chain-op {
+    display: inline-block;
+    margin-left: .3rem;
+    padding: .05rem .3rem;
+    border-radius: 5px;
+    background: var(--mk-surface);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .6rem;
+    font-weight: 800;
+    color: var(--mk-energia-ink);
+    white-space: nowrap;
+}
+.mkt-chain-v2 .mkt-chain-foot {
+    display: flex;
+    gap: .5rem;
+    margin: 1rem 0 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--mk-surface);
+    color: var(--mk-text-2);
+    font-size: .76rem;
+    line-height: 1.55;
+}
+.mkt-chain-v2 .mkt-chain-foot i { margin-top: .2rem; color: var(--mk-energia-ink); }
+.mkt-chain-v2 .mkt-chain-foot b { color: var(--mk-muted); }
+.mkt-chain-v2 .mkt-chain-foot strong { color: var(--mk-energia-ink); font-family: 'JetBrains Mono', monospace; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Monitor por plazas — matriz cultivo x mercado.
+
+   Sustituye a la tabla que solo traia una columna MXN/MT. Once columnas no
+   caben en pantalla, asi que la matriz vive dentro del .grain-table-scroll que
+   ya existia y las tres primeras columnas quedan CONGELADAS a la izquierda: sin
+   eso, al desplazarse para ver Corea del Sur se pierde de vista de que cultivo
+   es la fila, y la matriz deja de poder leerse.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmt-matriz { min-width: 1050px; border-collapse: separate; border-spacing: 0; }
+.cmt-matriz th,
+.cmt-matriz td { vertical-align: middle; }
+
+/* Las tres columnas ancladas. El z-index las mantiene por encima de las celdas
+   que pasan por debajo al desplazar; el fondo opaco es imprescindible o se
+   transparentarian y se leerian dos cifras superpuestas. */
+.cmt-matriz .mz-cultivo,
+.cmt-matriz .mz-base,
+.cmt-matriz .mz-var {
+    position: sticky;
+    background: var(--mk-surface-2);
+    z-index: 2;
+}
+.cmt-matriz .mz-cultivo { left: 0; min-width: 150px; }
+.cmt-matriz .mz-base { left: 150px; min-width: 108px; }
+.cmt-matriz .mz-var { left: 258px; min-width: 96px; box-shadow: 6px 0 10px -6px rgba(0, 0, 0, .5); }
+.cmt-matriz thead .mz-cultivo,
+.cmt-matriz thead .mz-base,
+.cmt-matriz thead .mz-var { z-index: 3; background: var(--mk-surface); }
+
+.cmt-matriz .cmt-price em { font-style: normal; font-size: .62rem; color: var(--mk-text); }
+.mz-usd { margin-top: .12rem; font-family: 'JetBrains Mono', monospace; font-size: .6rem; color: var(--mk-text); }
+.mz-3m { margin-top: .12rem; font-size: .58rem; color: var(--mk-text); }
+
+/* ── Cabecera de plaza ── */
+.cmt-matriz th.mz-plaza { min-width: 92px; text-align: right; }
+.mz-plaza-pais { display: block; font-size: .66rem; font-weight: 800; color: var(--mk-text-2); white-space: nowrap; }
+.mz-plaza-fx {
+    display: block;
+    margin-top: .1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .56rem;
+    font-weight: 700;
+    color: var(--mk-text);
+}
+.mz-plaza-fx em { margin-left: .25rem; font-style: normal; color: var(--mk-granos-ink); }
+
+/* ── Celda de plaza ── */
+.cmt-matriz td.mz-plaza,
+.cmt-matriz th.mz-plaza {
+    text-align: right;
+    white-space: nowrap;
+    /* Separador del color del fondo. Sin el, dos plazas contiguas con el mismo
+       papel funden sus velos en un bloque unico —la fila del maiz salia como
+       una banda dorada continua— y se pierde de vista que son celdas
+       independientes. Es el mismo recurso que el hueco entre segmentos de una
+       barra apilada. */
+    border-left: 1px solid var(--mk-bg-raised);
+}
+.mz-monto { display: block; font-family: 'JetBrains Mono', monospace; font-size: .76rem; font-weight: 800; color: var(--mk-text-2); }
+.mz-nulo { color: var(--mk-text); }
+.mz-papel {
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    margin-top: .15rem;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+/* Vende / compra: la misma subida es ingreso para uno y costo para otro, y ese
+   es el sentido de la matriz. Van con icono ademas de color — el tono solo
+   refuerza lo que la palabra ya dice. */
+.mz-plaza.es-exporta { background: rgba(89, 210, 170, .07); }
+.mz-plaza.es-exporta .mz-papel { color: var(--mk-up); }
+.mz-plaza.es-exporta .mz-monto { color: var(--mk-muted); }
+.mz-plaza.es-importa { background: rgba(224, 176, 89, .08); }
+.mz-plaza.es-importa .mz-papel { color: var(--mk-granos-ink); }
+.mz-plaza.es-importa .mz-monto { color: var(--mk-muted); }
+
+.mz-pie { display: flex; gap: .45rem; margin: .9rem 0 0; font-size: .68rem; line-height: 1.5; color: var(--mk-text); }
+.mz-pie i { margin-top: .2rem; color: var(--mk-granos-ink); }
+
+@media (max-width: 720px) {
+    /* En movil el anclaje de tres columnas se come la pantalla: se queda solo
+       el nombre del cultivo, que es lo minimo para no perder el hilo. */
+    .cmt-matriz .mz-base,
+    .cmt-matriz .mz-var { position: static; }
+    .cmt-matriz .mz-cultivo { min-width: 118px; }
+}
+.grain-market-grid.gmg-amplio { grid-template-columns: minmax(0, 1fr); }
+.gmg-amplio .grain-chart-canvas { height: 620px; }
+
+@media (max-width: 1120px) {
+    /* A este ancho la grafica ya no gana nada por ser mas alta: baja para que
+       la tabla de abajo no quede fuera de pantalla. */
+    .gmg-amplio .grain-chart-canvas { height: 470px; }
+}
+@media (max-width: 720px) {
+    .gmg-amplio .grain-chart-canvas { height: 340px; }
+}
+.grain-balance,
+.grain-trade {
+    margin-bottom: 1.2rem;
+    padding: 16px 18px;
+    border: 1px solid var(--mk-line-soft);
+    border-left: 3px solid var(--mk-granos);
+    border-radius: 15px;
+    background: var(--mk-surface-2);
+}
+.grain-balance-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.grain-balance-head h3,
+.grain-trade h3 { margin: .35rem 0 .3rem; color: var(--mk-muted); font-size: 1.05rem; letter-spacing: -.02em; }
+.grain-balance-head p { margin: 0 0 .2rem; max-width: 62ch; color: var(--mk-text); font-size: .78rem; line-height: 1.55; }
+
+/* ── Las tres tarjetas de balance ── */
+.grain-balance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 1rem;
+}
+@media (max-width: 900px) { .grain-balance-grid { grid-template-columns: 1fr; } }
+
+.grain-balance-card {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 15px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+}
+.grain-balance-card > header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.grain-balance-card h4 { margin: 0; color: var(--mk-muted); font-size: .95rem; letter-spacing: -.01em; }
+
+/* La etiqueta de tension es lo unico con color propio de la tarjeta, y va
+   siempre acompanada de su texto: el tono solo refuerza lo que la palabra ya
+   dice, nunca lo sustituye. */
+.gb-tag {
+    padding: .18rem .5rem;
+    border-radius: 999px;
+    font-size: .58rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+.es-tenso    .gb-tag { color: #ffb4bb; background: rgba(254, 125, 138, .16); }
+.es-ajustado .gb-tag { color: var(--mk-granos-ink); background: var(--mk-granos-soft); }
+.es-holgado  .gb-tag { color: #8fe3c6; background: rgba(89, 210, 170, .14); }
+
+.gb-barra { height: 6px; margin: .8rem 0 .7rem; border-radius: 20px; background: var(--mk-surface); overflow: hidden; }
+.gb-barra i { display: block; height: 100%; border-radius: inherit; background: var(--mk-granos); }
+
+.gb-lineas { margin: 0; padding: 0; list-style: none; display: grid; gap: .3rem; }
+.gb-lineas li { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
+.gb-lineas b { font-size: .72rem; font-weight: 600; color: var(--mk-text); }
+.gb-lineas em {
+    font-family: 'JetBrains Mono', monospace;
+    font-style: normal;
+    font-size: .8rem;
+    font-weight: 800;
+    color: var(--mk-text-2);
+}
+.gb-lineas em i { margin-left: .2rem; font-style: normal; font-size: .6rem; font-weight: 700; color: var(--mk-text); }
+/* La linea del pienso va sangrada: es una PARTE del consumo de arriba, no otra
+   partida del balance. Sin la sangria se suma mentalmente con las demas. */
+.gb-pienso { padding-left: .7rem; border-left: 2px solid var(--mk-line-soft); }
+.gb-pienso b, .gb-pienso em { color: var(--mk-granos-ink); }
+.gb-sep { margin-top: .45rem; padding-top: .45rem; border-top: 1px solid var(--mk-line-soft); }
+
+.gb-stock {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .6rem;
+    margin-top: auto;
+    padding: .6rem .7rem;
+    border-radius: 11px;
+    background: var(--mk-surface);
+}
+/* El aire por encima va en la lista, no en el bloque: si fuera `padding` del
+   propio .gb-stock se le pintaria el fondo y la caja quedaria desproporcionada. */
+.gb-lineas { margin-bottom: .8rem; }
+.gb-stock small { display: block; font-size: .58rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--mk-text); }
+.gb-stock strong { display: block; margin-top: .15rem; font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; line-height: 1; color: var(--mk-muted); }
+.gb-stock > span { font-size: .66rem; font-weight: 700; color: var(--mk-text); text-align: right; }
+.gb-nota { margin: .7rem 0 0; font-size: .7rem; line-height: 1.5; color: var(--mk-text); }
+
+/* ── Comercio: dos columnas de barras ── */
+.grain-trade-tabs { display: flex; gap: .3rem; padding: .25rem; border-radius: 11px; background: var(--mk-bg-raised); }
+.grain-trade-tabs button {
+    padding: .35rem .8rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--mk-text);
+    font-size: .72rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background .16s, color .16s;
+}
+.grain-trade-tabs button:hover { background: var(--mk-surface); color: var(--mk-text-2); }
+.grain-trade-tabs button.is-activo { background: var(--mk-granos); color: #2a1f05; }
+
+.grain-trade-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 1rem; }
+@media (max-width: 760px) { .grain-trade-grid { grid-template-columns: 1fr; } }
+.grain-trade-col { padding: 13px 14px; border: 1px solid var(--mk-line-soft); border-radius: 13px; background: var(--mk-bg-raised); }
+.grain-trade-col h4 {
+    display: flex; align-items: center; gap: .4rem;
+    margin: 0 0 .7rem;
+    font-size: .68rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--mk-granos-ink);
+}
+.grain-trade-col ol { margin: 0; padding: 0; list-style: none; display: grid; gap: .45rem; }
+/* Rejilla de tres columnas y no flex: asi las barras arrancan y acaban en la
+   misma vertical en las dos listas, que es lo que permite compararlas. */
+.grain-trade-col li { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) 3.4rem; align-items: center; gap: .5rem; }
+.gt-pais { font-size: .74rem; font-weight: 600; color: var(--mk-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gt-barra { height: 8px; border-radius: 20px; background: var(--mk-surface); overflow: hidden; }
+.gt-barra i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gm-p2), var(--gm-p4)); }
+.gt-mt { font-family: 'JetBrains Mono', monospace; font-size: .74rem; font-weight: 800; color: var(--mk-muted); text-align: right; }
+.gt-mt em { margin-left: .15rem; font-style: normal; font-size: .58rem; font-weight: 700; color: var(--mk-text); }
+.grain-trade-pie { display: flex; gap: .45rem; margin: 1rem 0 0; font-size: .7rem; line-height: 1.5; color: var(--mk-text); }
+.grain-trade-pie i { margin-top: .2rem; color: var(--mk-granos-ink); }
+
+@media (max-width: 560px) {
+    .grain-trade-col li { grid-template-columns: 1fr auto; }
+    .gt-barra { grid-column: 1 / -1; }
+}
+.grain-map-cuerpo.gmc-ancho { grid-template-columns: minmax(0, 1fr); }
+
+/* Ancla del flotante. El posicionamiento es absoluto respecto a este marco (no
+   `fixed`), como en finanzas-world-map.js: con `fixed`, cualquier ancestro con
+   `transform` lo convertiria en absolute y descolocaria la ficha. */
+.grain-map-marco { position: relative; }
+
+/* ── La ficha flotante ── */
+.gm-tip {
+    position: absolute;
+    z-index: 5;
+    width: 260px;
+    max-width: calc(100% - 20px);
+    padding: 13px 14px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-surface-2);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .38);
+    /* Imprescindible: si el flotante capturase el raton, aparecer bajo el
+       cursor dispararia el mouseleave del marco, que lo ocultaria, que
+       devolveria el cursor al pais... y a parpadear sin fin. */
+    pointer-events: none;
+    animation: gm-tip-in .14s ease-out;
+}
+@keyframes gm-tip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+    .gm-tip { animation: none; }
+    /* La reproduccion de la linea de tiempo la pide el usuario pulsando, asi
+       que el boton se queda; lo que se quita es el desvanecido del relleno, que
+       es el movimiento que nadie ha pedido. El salto sigue siendo legible
+       porque el ano se lee al lado. */
+    .gm-paises path,
+    .gm-tiempo-play { transition: none; }
+}
+
+/* Clavado con un clic: se distingue del que solo sigue al cursor, porque si no
+   no hay forma de saber por que la ficha no se va al apartar el raton. */
+.gm-tip.is-fijado { border-color: var(--mk-granos); box-shadow: 0 18px 44px rgba(0, 0, 0, .45), 0 0 0 1px var(--mk-granos); }
+.grain-map.es-proteinas .gm-tip.is-fijado { border-color: var(--mk-proteinas); box-shadow: 0 18px 44px rgba(0, 0, 0, .45), 0 0 0 1px var(--mk-proteinas); }
+
+.gm-tip h4 { margin: .45rem 0 .2rem; color: var(--mk-muted); font-size: .95rem; letter-spacing: -.02em; }
+/* Heredan del panel que existia antes; solo hay que quitarles el margen que
+   traian de vivir en una columna alta. */
+.gm-tip .grain-map-factor { margin: 0 0 .55rem; }
+.gm-tip .grain-map-dato { margin: 0; }
+.gm-tip .grain-map-nota { margin: .55rem 0 0; }
+
+/* ── Bloque de cosecha ── */
+.gm-tip-cosecha {
+    margin: 0 0 .6rem;
+    padding: .5rem .6rem;
+    border-radius: 10px;
+    background: var(--mk-surface);
+}
+.gm-tip-cosecha-lbl {
+    display: block;
+    margin-bottom: .35rem;
+    font-size: .58rem;
+    font-weight: 850;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--mk-text);
+}
+.gm-tip-cosecha ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .25rem; }
+.gm-tip-cosecha li { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.gm-tip-cosecha b { font-size: .72rem; font-weight: 700; color: var(--mk-text-2); }
+.gm-tip-cosecha em {
+    font-family: 'JetBrains Mono', monospace;
+    font-style: normal;
+    font-size: .82rem;
+    font-weight: 800;
+    color: var(--mk-muted);
+}
+/* La unidad, mas pequena y apagada: se repite en las tres lineas y compite con
+   la cifra, que es lo que de verdad se compara entre paises. */
+.gm-tip-cosecha em i {
+    margin-left: .2rem;
+    font-style: normal;
+    font-size: .62rem;
+    font-weight: 700;
+    color: var(--mk-text);
+}
+:root {
+    --gm-p0: #7a5603;
+    --gm-p1: #976c07;
+    --gm-p2: #b58202;
+    --gm-p3: #d49906;
+    --gm-p4: #f2b11d;
+    --gm-p5: #ffd07d;
+}
+/* `fill` para los <path> del mapa. La leyenda usa las MISMAS clases sobre un
+   <i> de HTML, donde `fill` no pinta nada — de ahi que la escalera saliera
+   invisible y solo se vieran sus numeros. Cada paso necesita las dos
+   propiedades para servir a los dos elementos desde un unico nombre. */
+.gm-p0 { fill: var(--gm-p0); background: var(--gm-p0); }
+.gm-p1 { fill: var(--gm-p1); background: var(--gm-p1); }
+.gm-p2 { fill: var(--gm-p2); background: var(--gm-p2); }
+.gm-p3 { fill: var(--gm-p3); background: var(--gm-p3); }
+.gm-p4 { fill: var(--gm-p4); background: var(--gm-p4); }
+.gm-p5 { fill: var(--gm-p5); background: var(--gm-p5); }
+/* …pero no sobre los paises: un <path> con `background` no se ve afectado, y
+   dejarlo evita tener que duplicar la lista de clases para la leyenda. */
+
+/* Los paises sin dato son contexto: se ven, se distinguen unos de otros, y no
+   compiten con la rampa. Gris azulado y no un dorado apagado, para que nadie
+   los lea como "la banda mas baja". */
+.gm-sin-dato { fill: #26333f; }
+
+.gm-paises path {
+    /* El trazo del color del fondo separa paises vecinos de la misma banda: sin
+       el, Argentina y Paraguay serian una sola mancha. Es el mismo recurso que
+       el hueco de 2px entre segmentos de una barra apilada. */
+    stroke: var(--mk-bg-raised);
+    stroke-width: .5;
+    stroke-linejoin: round;
+    /* `fill` entra en la transicion por la linea de tiempo: sin el, cambiar de
+       ano es un parpadeo de todo el mapa a la vez y no se ve QUE se ha movido.
+       Con .3s contra los .78s de cada fotograma, cada pais se desplaza por su
+       rampa y la vista puede seguir cual sube. No afecta a Granos, cuyo relleno
+       no cambia nunca despues de cargar. */
+    transition: fill .3s ease, filter .18s ease, stroke .18s ease, stroke-width .18s ease;
+}
+.gm-paises path[role="button"] { cursor: pointer; }
+
+/* La marca secundaria: contorno claro sobre los paises que el sistema sigue con
+   ficha propia. Va por trazo y no por relleno justamente para no gastar el
+   canal del color, que ya esta contando la cosecha. */
+.gm-paises path.es-motor {
+    stroke: var(--mk-text);
+    stroke-width: 1.2;
+    paint-order: stroke;
+}
+.gm-paises path[role="button"]:hover,
+.gm-paises path.is-activo {
+    filter: brightness(1.22);
+    stroke: #fff;
+    stroke-width: 1.6;
+}
+.gm-paises path:focus-visible { outline: none; stroke: #fff; stroke-width: 2; }
+
+/* ── La leyenda: una escalera de magnitud ───────────────────────────────────
+   Sustituye a la lista de cuatro categorias. Los pasos van pegados, sin hueco,
+   porque son tramos continuos de una misma escala y no cuatro cosas distintas. */
+.gm-escala { display: flex; flex-direction: column; gap: .4rem; align-items: flex-start; }
+.gm-escala-lbl {
+    font-size: .6rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--mk-text-2);
+}
+.gm-escala-lbl em {
+    display: block;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: none;
+    color: var(--mk-text);
+}
+.gm-escala-pasos { display: flex; margin: 0; padding: 0; list-style: none; }
+/* Las etiquetas se alinean al BORDE IZQUIERDO de su paso, no al centro: cada
+   numero marca donde empieza la banda, que es como se lee una escalera. */
+.gm-escala-pasos li { display: flex; flex-direction: column; align-items: flex-start; gap: .22rem; }
+.gm-escala-pasos i {
+    display: block;
+    width: 40px;
+    height: 9px;
+    border-radius: 0;
+}
+.gm-escala-pasos li:first-child i { border-radius: 3px 0 0 3px; }
+.gm-escala-pasos b {
+    /* Sale del flujo para no ensanchar su casilla: con `position:static` el
+       numero mas largo estiraba su paso y la escalera dejaba de tener tramos
+       iguales. */
+    position: relative;
+    left: -1px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .58rem;
+    font-weight: 700;
+    color: var(--mk-text);
+    white-space: nowrap;
+}
+.gm-escala-pasos li:last-child i { border-radius: 0 3px 3px 0; }
+/* «200+» es mas ancho que su casilla y, siendo el ultimo, se saldria del
+   bloque. Se ancla por la derecha en vez de por la izquierda. */
+.gm-escala-pasos li:last-child b { left: auto; right: -2px; }
+.gm-escala-notas { display: flex; flex-direction: column; gap: .22rem; }
+.gm-escala-nota {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .62rem;
+    font-weight: 700;
+    color: var(--mk-text);
+}
+
+/* ── Los socios de la UE ────────────────────────────────────────────────────
+   Van rayados y no con un paso de la rampa. El PSD publica 204.8 Mt para el
+   bloque entero y no desglosa por pais: darles esa banda pintaria Luxemburgo
+   igual que Estados Unidos. La textura dice "hay cosecha, pero agregada" sin
+   ocupar un escalon que no les toca — y la ficha lo explica con palabras. */
+.gm-ue { fill: url(#gm-ue-rayas); }
+.gm-ue-fondo { fill: #443a1e; }
+.gm-ue-raya { stroke: var(--gm-p3); stroke-width: 3; }
+.gm-ue-muestra {
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    background: repeating-linear-gradient(45deg, #443a1e 0 3px, var(--gm-p3) 3px 6px);
+}
+/* Muestra de la marca: un cuadro de la rampa con el mismo contorno que llevan
+   los paises remarcados, para que la leyenda ensene la marca y no la describa. */
+.gm-marca-muestra {
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    background: var(--gm-p3);
+    box-shadow: inset 0 0 0 1.4px var(--mk-text);
+}
+@media (max-width: 900px) {
+    .gm-escala { width: 100%; }
+    .gm-escala-pasos i { width: 100%; min-width: 26px; }
+    .gm-escala-pasos li { flex: 1; }
+}
+
+/* Aviso del bloque UE dentro de la ficha. */
+.gm-tip-aviso {
+    margin: .45rem 0 0;
+    font-size: .63rem;
+    line-height: 1.4;
+    color: var(--mk-text);
+    border-top: 1px solid var(--mk-line-soft);
+    padding-top: .4rem;
+}
+
+/* Total de la cosecha, alineado a la derecha de su etiqueta. */
+.gm-tip-cosecha-lbl { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.gm-tip-cosecha-lbl b {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--mk-granos-ink);
+}
+
+@media (max-width: 720px) {
+    /* Sin hover no hay flotante util, y a este ancho taparia medio mapa: la
+       ficha baja a ocupar el ancho completo bajo el mapa. Las pastillas siguen
+       siendo la via de seleccion en tactil. */
+    .gm-tip {
+        position: static;
+        width: auto;
+        max-width: none;
+        margin-top: .6rem;
+        animation: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Seccion unificada Energia & Metales.
+
+   Las dos pestanas se fundieron en una (ver MODULOS en Mercados.jsx). Eso deja
+   dos cosas sin hoja, porque el diseno anterior no las necesitaba: dos
+   medidores en la misma cabecera —antes habia uno por pestana— y un encabezado
+   que separe las dos familias dentro del cuerpo.
+
+   Los nombres son nuevos a proposito. mercados-redesign-v2.css se carga aparte
+   (usePageStyles) y el orden entre las dos hojas no esta garantizado, asi que
+   reutilizar un selector suyo seria pelearse por la especificidad a ciegas.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* .energy-hero es flex; este envoltorio ocupa el sitio que tenia la unica
+   tarjeta y reparte a las dos por dentro. */
+.mkt-hero-gauges {
+    display: flex;
+    gap: .7rem;
+    flex: 0 0 auto;
+}
+/* Las tarjetas traen `flex:0 0 215px` de la hoja legada: dos seguidas suman
+   430px y desbordan la cabecera en pantallas medianas. Aqui se les deja
+   encoger, con un minimo por debajo del cual el numero grande no cabe. */
+.mkt-hero-gauges > .energy-pressure-card,
+.mkt-hero-gauges > .grain-pressure-card {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 150px;
+}
+@media (max-width: 980px) {
+    /* Antes del punto en que el hero pasa a bloque (720px) ya no caben dos
+       tarjetas al lado del titular. */
+    .mkt-hero-gauges { flex-direction: column; }
+}
+@media (max-width: 720px) {
+    /* El hero es `display:block` aqui y la hoja legada le pone `width:auto` a
+       cada tarjeta; el envoltorio necesita el mismo trato. */
+    .mkt-hero-gauges { margin-top: 19px; }
+}
+
+/* Encabezado de familia. Sin el, los KPIs de energia y los de metales se leen
+   como una sola lista y el cobre parece un energetico mas. */
+.mkt-family-head {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin: 1.4rem 0 .7rem;
+    padding-left: .75rem;
+    border-left: 3px solid var(--mk-line-strong);
+    font-size: .95rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: var(--mk-muted);
+}
+/* El primero va pegado al hero: ahi el margen superior sobra. */
+.energy-hero + .mkt-family-head { margin-top: 1rem; }
+.mkt-family-head > i {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 9px;
+    font-size: .8rem;
+    background: rgba(255, 255, 255, .08);
+}
+.mkt-family-head > small {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--mk-text);
+}
+/* El filo y el icono toman el color que ya identifica a cada familia en el
+   resto de la seccion: el mismo --mk-* que pinta la linea de su grafica. */
+.mfh-energia { border-left-color: var(--mk-energia); }
+.mfh-energia > i { color: var(--mk-energia-ink); }
+.mfh-metales { border-left-color: var(--mk-metales); }
+.mfh-metales > i { color: var(--mk-metales-ink); }
+@media (max-width: 720px) {
+    .mkt-family-head { font-size: .85rem; }
+    /* En una columna la etiqueta de la derecha empuja al titulo hasta partirlo. */
+    .mkt-family-head > small { display: none; }
+}
+
+/* La fila de pestanas del detalle: tantas columnas como modulos haya.
+   mercados-redesign-v2.css la fija en `repeat(4, ...)`, y con el quinto modulo
+   la pestana de Noticias bajaba sola a una segunda fila. --tabs lo escribe el
+   componente desde MODULOS.length. */
+.mkt-detail-tabs { grid-template-columns: repeat(var(--tabs, 4), minmax(70px, 1fr)); }
+@media (max-width: 720px) {
+    /* Cinco columnas de 70px no caben: se reparten en dos filas de tres y dos. */
+    .mkt-detail-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.mkt-newsroom { margin-bottom: 1.2rem; }
+
+a.fnb-lead,
+a.fnb-card,
+a.fnb-stream-item,
+a.fnb-coverage-card,
+a.fnb-archive-item,
+a.fnb-perspective,
+a.fnb-spotlight-card,
+a.fnb-pulse-detail-read {
+    text-decoration: none;
+    color: inherit;
+}
+a.fnb-lead *,
+a.fnb-card *,
+a.fnb-stream-item *,
+a.fnb-coverage-card *,
+a.fnb-archive-item *,
+a.fnb-perspective *,
+a.fnb-spotlight-card * { text-decoration: none; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom span.fnb-cat[data-cat] {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom span.fnb-cat[data-cat="granos"]    { --c: #8f7139 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom span.fnb-cat[data-cat="energia"]   { --c: #a8644f !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom span.fnb-cat[data-cat="metales"]   { --c: #8069aa !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom span.fnb-cat[data-cat="logistica"] { --c: #2d836f !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom span.fnb-cat[data-cat="macro"]     { --c: #5e778f !important; }
+html.vn-dark-pilot body.ff-detail-noticias .fnb-coverage-card { position: relative; overflow: hidden; }
+.mkt-cob-foto {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    box-shadow:
+        inset 0 -190px 120px -70px rgba(10, 16, 24, .97),
+        inset 0 0 0 999px rgba(10, 16, 24, .2);
+}
+
+html.vn-dark-pilot body.ff-detail-noticias .fnb-coverage-card .fnb-coverage-copy { z-index: 1; }
+
+.mkt-foto {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    box-shadow:
+        inset 0 -200px 130px -70px rgba(12, 18, 26, .97),
+        inset 0 0 0 999px rgba(12, 18, 26, .22);
+}
+.fnb-pulse-halo { pointer-events: all; }
+.fnb-pulse-node { cursor: pointer; }
+.fnb-pulse-node:focus-visible .fnb-pulse-halo { stroke: currentColor; stroke-width: 2.5; stroke-opacity: 1; }
     .nm-body { padding:1.1rem 1.4rem;display:flex;flex-direction:column;gap:.9rem;flex:1; }
     .nm-section { display:flex;flex-direction:column;gap:.35rem; }
-    .nm-section-hdr { font-size:.52rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding-bottom:.3rem;border-bottom:1px solid var(--border); }
-    .nm-desc-box { font-size:.72rem;color:#334155;line-height:1.75;white-space:pre-line; }
-    .nm-related-row { display:flex;justify-content:space-between;align-items:center;padding:.27rem 0;border-bottom:1px solid #f1f5f9; }
-    .nm-rel-asset { font-size:.67rem;font-weight:700;color:#00213a; }
-    .nm-rel-dir { font-size:.61rem;color:#64748b; }
-    .nm-ai-badge { display:inline-flex;align-items:center;gap:.35rem;font-size:.56rem;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;background:linear-gradient(90deg,#00213a,#003d6b);color:#fff;padding:.18rem .6rem;border-radius:4px;width:fit-content;margin-bottom:.35rem; }
-    .nm-analysis-box { background:rgba(0,33,58,.03);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;font-size:.71rem;color:var(--slate);line-height:1.7;white-space:pre-line;min-height:56px; }
-    .nm-report-box { background:rgba(0,33,58,.03);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;font-family:'JetBrains Mono',monospace;font-size:.63rem;color:#334155;line-height:1.75;white-space:pre-wrap;max-height:260px;overflow-y:auto; }
+    .nm-section-hdr { font-size:0.625rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding-bottom:.3rem;border-bottom:1px solid var(--border); }
+    .nm-desc-box { font-size:0.75rem;color:var(--mk-text-2);line-height:1.75;white-space:pre-line; }
+    .nm-related-row { display:flex;justify-content:space-between;align-items:center;padding:.27rem 0;border-bottom:1px solid var(--mk-line); }
+    .nm-rel-asset { font-size:0.75rem;font-weight:700;color:var(--mk-down); }
+    .nm-rel-dir { font-size:0.75rem;color:var(--mk-text); }
+    .nm-ai-badge { display:inline-flex;align-items:center;gap:.35rem;font-size:0.625rem;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;background:linear-gradient(90deg,var(--mk-surface),var(--mk-surface));color:var(--mk-muted);padding:.18rem .6rem;border-radius:4px;width:fit-content;margin-bottom:.35rem; }
+    .nm-analysis-box { background:rgba(0,33,58,.03);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;font-size:0.75rem;color:var(--slate);line-height:1.7;white-space:pre-line;min-height:56px; }
+    .nm-report-box { background:rgba(0,33,58,.03);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--mk-text-2);line-height:1.75;white-space:pre-wrap;max-height:260px;overflow-y:auto; }
     .nm-btn-row { display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.15rem; }
-    .nm-btn { font-size:.64rem;font-weight:700;padding:.42rem .85rem;border-radius:6px;cursor:pointer;border:none;display:flex;align-items:center;gap:.32rem;transition:all .15s;text-decoration:none; }
-    .nm-btn-primary { background:var(--navy);color:#fff; }
-    .nm-btn-primary:hover { background:#003d6b; }
+    .nm-btn { font-size:0.75rem;font-weight:700;padding:.42rem .85rem;border-radius:6px;cursor:pointer;border:none;display:flex;align-items:center;gap:.32rem;transition:all .15s;text-decoration:none; }
+    .nm-btn-primary { background:var(--mk-general);color:var(--mk-bg); }
+    .nm-btn-primary:hover { background:var(--mk-surface); }
     .nm-btn-outline { background:transparent;color:var(--navy);border:1.5px solid var(--navy); }
-    .nm-btn-outline:hover { background:var(--navy);color:#fff; }
-    .nm-btn-ext { background:transparent;color:#64748b;border:1.5px solid #e2e8f0; }
-    .nm-btn-ext:hover { border-color:#64748b;color:#1e293b; }
+    .nm-btn-outline:hover { background:var(--mk-surface-3);color:var(--mk-text); }
+    .nm-btn-ext { background:transparent;color:var(--mk-text);border:1.5px solid var(--mk-line); }
+    .nm-btn-ext:hover { border-color:var(--mk-line-strong);color:var(--mk-text-2); }
     @media (max-width:640px) { #nm-panel { width:100vw; } .nm-hdr { padding:1rem 1.1rem; } .nm-body { padding:.9rem 1rem; } }
+
+.mkt-proteinas .grain-kpi-icon { color: var(--mk-proteinas-ink); background: var(--mk-proteinas-soft); }
+.mkt-proteinas .grain-kpi strong,
+.mkt-proteinas .grain-reading small,
+.mkt-proteinas .grain-reading p,
+.mkt-proteinas .grain-panel-head small,
+.mkt-proteinas .grain-panel-head h2,
+.mkt-proteinas .grain-map-kicker,
+.mkt-proteinas .energy-scenario-results strong { color: var(--mk-proteinas-ink); }
+.mkt-proteinas .energy-scenario-results span i,
+.mkt-proteinas .mkt-chain-foot i,
+.mkt-proteinas .grain-trade-pie i,
+.mkt-proteinas b.mkt-chain-op { color: var(--mk-proteinas-ink); }
+.mkt-proteinas .mkt-chain-steps li.is-final { border-color: var(--mk-proteinas); }
+.mkt-proteinas .mkt-chain-foot strong { color: var(--mk-proteinas-ink); }
+
+.mkt-proteinas .grain-kpi strong { flex-wrap: wrap; }
+
+/* Mercolleida se integra como una referencia de Proteínas: conserva el mismo
+   acento, superficies y contraste del resto de la pestaña, sin añadir tonos
+   nuevos que compitan con la jerarquía de Mercado. */
+.prot-mercolleida {
+    margin: 1.2rem 0;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--mk-line-soft);
+    border-left: 3px solid var(--mk-proteinas);
+    border-radius: 15px;
+    background: var(--mk-surface-2);
+}
+.prot-mercolleida-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: .85rem;
+}
+.prot-mercolleida-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .38rem;
+    color: var(--mk-proteinas-ink);
+    font-size: .61rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+.prot-mercolleida h2 { margin: .2rem 0 .18rem; color: var(--mk-text-2); font-size: 1.05rem; }
+.prot-mercolleida-head p { margin: 0; color: var(--mk-text); font-size: .73rem; line-height: 1.5; }
+.prot-mercolleida-status {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .32rem .55rem;
+    border: 1px solid var(--mk-line);
+    border-radius: 999px;
+    color: var(--mk-muted);
+    font-size: .62rem;
+    font-weight: 800;
+}
+.prot-mercolleida-status.is-live { border-color: var(--mk-proteinas); color: var(--mk-proteinas-ink); background: var(--mk-proteinas-soft); }
+.prot-mercolleida-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+.prot-mercolleida-grid > div { min-width: 0; padding: .72rem .78rem; border: 1px solid var(--mk-line-soft); border-radius: 10px; background: var(--mk-surface); }
+.prot-mercolleida-grid small,
+.prot-mercolleida-grid em { display: block; color: var(--mk-text); font-size: .63rem; font-style: normal; line-height: 1.4; }
+.prot-mercolleida-grid strong { display: block; margin: .2rem 0; color: var(--mk-text-2); font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.prot-mercolleida-note { margin: .75rem 0 0; color: var(--mk-text); font-size: .7rem; line-height: 1.5; }
+.prot-mercolleida-note i { margin-right: .38rem; color: var(--mk-proteinas-ink); }
+.mll-trend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin-top: .8rem; }
+.mll-trend { min-width: 0; padding: .8rem .85rem .65rem; border: 1px solid var(--mk-line-soft); border-radius: 11px; background: linear-gradient(145deg, color-mix(in srgb, var(--mk-surface) 88%, #f08aaf 12%), var(--mk-surface)); }
+.mll-trend-gold { background: linear-gradient(145deg, color-mix(in srgb, var(--mk-surface) 88%, #d9aa3d 12%), var(--mk-surface)); }
+.mll-trend-blue { background: linear-gradient(145deg, color-mix(in srgb, var(--mk-surface) 88%, #6caeea 12%), var(--mk-surface)); }
+.mll-trend-green { background: linear-gradient(145deg, color-mix(in srgb, var(--mk-surface) 88%, #55c99a 12%), var(--mk-surface)); }
+.mll-trend header, .mll-costs header, .mll-session header, .mll-production header { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem; }
+.mll-trend small, .mll-costs small, .mll-session small, .mll-production small, .mll-session-signals small { display: block; color: var(--mk-text); font-size: .61rem; font-weight: 800; letter-spacing: .045em; text-transform: uppercase; }
+.mll-trend strong { display: block; margin-top: .14rem; color: var(--mk-text-2); font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.mll-trend header > b { padding: .18rem .35rem; border-radius: 999px; background: color-mix(in srgb, var(--mk-surface-2) 80%, transparent); font-size: .65rem; }
+.mll-trend header > b.up { color: var(--mk-up); }.mll-trend header > b.down { color: var(--mk-down); }
+.mll-trend svg { display: block; width: 100%; height: 5.2rem; margin-top: .28rem; overflow: visible; }
+.mll-trend svg line { stroke: var(--mk-line-soft); stroke-width: 1; }.mll-trend svg polygon { fill: var(--mk-proteinas); opacity: .14; }.mll-trend svg polyline { fill: none; stroke: var(--mk-proteinas); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }.mll-trend svg circle { fill: var(--mk-proteinas); stroke: var(--mk-surface); stroke-width: 2; }
+.mll-trend-gold svg polygon { fill: #d9aa3d; }.mll-trend-gold svg polyline,.mll-trend-gold svg circle { stroke: #d9aa3d; fill: #d9aa3d; }.mll-trend-gold svg circle { stroke: var(--mk-surface); }
+.mll-trend-blue svg polygon { fill: #6caeea; }.mll-trend-blue svg polyline,.mll-trend-blue svg circle { stroke: #6caeea; fill: #6caeea; }.mll-trend-blue svg circle { stroke: var(--mk-surface); }
+.mll-trend-green svg polygon { fill: #55c99a; }.mll-trend-green svg polyline,.mll-trend-green svg circle { stroke: #55c99a; fill: #55c99a; }.mll-trend-green svg circle { stroke: var(--mk-surface); }
+.mll-trend footer { display: grid; grid-template-columns: 1fr auto 1fr; gap: .4rem; color: var(--mk-text); font-size: .58rem; }.mll-trend footer span:nth-child(2) { text-align: center; opacity: .8; }.mll-trend footer span:last-child { text-align: right; }
+.mll-trend-empty { min-height: 10.1rem; display: flex; flex-direction: column; justify-content: center; }.mll-trend-empty p { margin: .35rem 0 0; color: var(--mk-text); font-size: .68rem; }
+.mll-details-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; margin-top: .7rem; }
+.mll-costs, .mll-session, .mll-production { min-width: 0; padding: .8rem .85rem; border: 1px solid var(--mk-line-soft); border-radius: 11px; background: var(--mk-surface); }
+.mll-costs header i, .mll-session header i, .mll-production header i { width: 1.85rem; height: 1.85rem; display: grid; place-items: center; flex: 0 0 auto; border-radius: 8px; color: var(--mk-proteinas-ink); background: var(--mk-proteinas-soft); }
+.mll-costs header > div, .mll-session header > div, .mll-production header > div { min-width: 0; flex: 1; }.mll-costs header strong, .mll-session header strong, .mll-production header strong { display: block; margin-top: .12rem; color: var(--mk-text-2); font-size: .78rem; }
+.mll-costs > div, .mll-session > div, .mll-production > div { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; padding-top: .46rem; margin-top: .46rem; border-top: 1px solid var(--mk-line-soft); color: var(--mk-text); font-size: .65rem; }.mll-costs > div:first-of-type,.mll-session > div:first-of-type,.mll-production > div:first-of-type { margin-top: .7rem; }.mll-costs b,.mll-session b,.mll-production b { max-width: 60%; color: var(--mk-text-2); font-family: 'JetBrains Mono', monospace; font-size: .67rem; text-align: right; font-variant-numeric: tabular-nums; }
+.mll-session-signals { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(13rem, 1fr); gap: .7rem; margin-top: .7rem; padding: .75rem .85rem; border: 1px solid var(--mk-line-soft); border-radius: 11px; background: color-mix(in srgb, var(--mk-surface-2) 58%, var(--mk-surface)); }.mll-session-signals > div + div { padding-left: .75rem; border-left: 1px solid var(--mk-line-soft); }.mll-session-signals span { display: inline-block; margin: .4rem .32rem 0 0; color: var(--mk-text-2); font-size: .66rem; line-height: 1.4; }.mll-session-signals > div:first-child span { padding: .2rem .4rem; border-radius: 999px; background: var(--mk-proteinas-soft); }.mll-session-signals b { display: block; margin-top: .35rem; color: var(--mk-text-2); font-family: 'JetBrains Mono', monospace; font-size: .75rem; }
+@media (max-width: 780px) { .prot-mercolleida-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 780px) { .mll-details-grid { grid-template-columns: 1fr; }.mll-session-signals { grid-template-columns: 1fr; }.mll-session-signals > div + div { padding: .7rem 0 0; border: 0; border-top: 1px solid var(--mk-line-soft); } }
+@media (max-width: 480px) {
+    .prot-mercolleida { padding: .9rem; }
+    .prot-mercolleida-head { flex-direction: column; }
+    .prot-mercolleida-status { align-self: flex-start; }
+    .prot-mercolleida-grid { grid-template-columns: 1fr; }
+    .mll-trend-grid { grid-template-columns: 1fr; }.mll-trend svg { height: 4.7rem; }
+}
+
+/* Pulso global: USDA, Statistics Canada, ABPA y FAOSTAT complementan el
+   precio local sin competir visualmente con las tarjetas operativas. */
+.prot-global-pork {
+    margin: 1.2rem 0;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--mk-line-soft);
+    border-left: 3px solid var(--mk-proteinas);
+    border-radius: 15px;
+    background: linear-gradient(120deg, var(--mk-surface-2), var(--mk-surface));
+}
+.prot-global-pork-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: .85rem; }
+.prot-global-pork-kicker { display: inline-flex; align-items: center; gap: .38rem; color: var(--mk-proteinas-ink); font-size: .61rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.prot-global-pork h2 { margin: .2rem 0 .18rem; color: var(--mk-text-2); font-size: 1.05rem; }
+.prot-global-pork-head p { margin: 0; color: var(--mk-text); font-size: .73rem; line-height: 1.5; max-width: 46rem; }
+.prot-global-pork-status { flex: 0 0 auto; display: inline-flex; align-items: center; gap: .35rem; padding: .32rem .55rem; border: 1px solid var(--mk-line); border-radius: 999px; color: var(--mk-muted); font-size: .62rem; font-weight: 800; }
+.prot-global-pork-status.is-live { border-color: var(--mk-proteinas); color: var(--mk-proteinas-ink); background: var(--mk-proteinas-soft); }
+.prot-global-pork-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.prot-global-pork-grid article { min-width: 0; padding: .76rem .8rem; border: 1px solid var(--mk-line-soft); border-radius: 10px; background: var(--mk-surface); }
+.prot-global-pork-grid small, .prot-global-pork-grid em { display: block; color: var(--mk-text); font-size: .63rem; font-style: normal; line-height: 1.4; }
+.prot-global-pork-grid small i { margin-right: .25rem; color: var(--mk-proteinas-ink); }
+.prot-global-pork-grid strong { display: block; margin: .2rem 0; color: var(--mk-text-2); font-family: 'JetBrains Mono', monospace; font-size: 1.02rem; font-variant-numeric: tabular-nums; }
+.prot-global-pork-grid a, .prot-global-pork-note a { display: inline-block; margin-top: .42rem; color: var(--mk-proteinas-ink); font-size: .63rem; font-weight: 800; text-decoration: none; }
+.prot-global-pork-grid a:hover, .prot-global-pork-note a:hover { text-decoration: underline; }
+.prot-global-pork-grid a i, .prot-global-pork-note a i { font-size: .56rem; }
+.prot-global-pork-note { margin: .75rem 0 0; color: var(--mk-text); font-size: .68rem; line-height: 1.5; }
+.prot-global-pork-note > i { margin-right: .38rem; color: var(--mk-proteinas-ink); }
+.prot-global-pork-note a { margin-left: .3rem; }
+@media (max-width: 780px) { .prot-global-pork-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .prot-global-pork { padding: .9rem; } .prot-global-pork-head { flex-direction: column; } .prot-global-pork-status { align-self: flex-start; } }
+
+/* Se retiraron con «Economía de producción» (25/08/2026): las reglas de
+   `.protein-species-switch` y `.energy-scenario-results` dentro de Proteínas ya
+   no tenían marcado que las usara. `.energy-scenario-results` sigue viva en
+   Energía & Metales; lo que se fue es solo la variante de esta sección. */
+
+/* `.gsg-cinco` existia para la rejilla de cinco senales de Proteinas, retirada
+   el 25/08/2026. `.grain-signal-grid` a secas sigue en la hoja heredada y la
+   usan otras secciones: lo que se fue es solo la variante de cinco columnas. */
+
+.grain-pressure-card.es-auto > div i { background: linear-gradient(90deg, var(--gm-q2), var(--gm-q4)); }
+/* Rampa del mapa de Proteínas.
+
+   Es una escala secuencial, no el color de identidad de la sección. Por tanto
+   la intensidad SIEMPRE sigue la cantidad: q0 es el volumen más bajo y q5 el
+   más alto. El mapa anterior hacía lo contrario (los mayores productores se
+   veían más claros), así que era visualmente bonito pero semánticamente
+   confuso. Los seis tonos conservan el mismo matiz rosado, avanzando de una
+   tinta suave a un borgoña firme que mantiene contraste sobre el océano oscuro.
+   El gris sigue reservado exclusivamente para países sin dato. */
+:root {
+    --gm-q0: #ffd1dd;
+    --gm-q1: #f7abc1;
+    --gm-q2: #eb7e9e;
+    --gm-q3: #d6577c;
+    --gm-q4: #ad3e60;
+    --gm-q5: #7e2944;
+}
+/* `fill` pinta el país en el SVG y `background` la muestra de la leyenda: las
+   dos van juntas para que la escalera de la leyenda no pueda desincronizarse
+   del mapa que explica. */
+.gm-q0 { fill: var(--gm-q0); background: var(--gm-q0); }
+.gm-q1 { fill: var(--gm-q1); background: var(--gm-q1); }
+.gm-q2 { fill: var(--gm-q2); background: var(--gm-q2); }
+.gm-q3 { fill: var(--gm-q3); background: var(--gm-q3); }
+.gm-q4 { fill: var(--gm-q4); background: var(--gm-q4); }
+.gm-q5 { fill: var(--gm-q5); background: var(--gm-q5); }
+.grain-map.es-proteinas .gm-marca-muestra { background: var(--gm-q3); }
+.gm-sindato-muestra { width: 13px; height: 13px; border-radius: 3px; background: #26333f; box-shadow: inset 0 0 0 1px var(--mk-line); }
+.grain-map.es-proteinas .gm-tip-cosecha-lbl b { color: var(--mk-proteinas-ink); }
+.grain-map.es-proteinas .grain-map-pastillas button:focus-visible { outline-color: var(--mk-proteinas-foco); }
+.gm-metricas {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin-top: .8rem;
+}
+.gm-metricas button {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .4rem .85rem;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 999px;
+    background: var(--mk-bg-raised);
+    color: var(--mk-text);
+    font-size: .72rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background .16s, color .16s, border-color .16s;
+}
+.gm-metricas button i { font-size: .68rem; }
+.gm-metricas button:hover { background: var(--mk-surface); color: var(--mk-text-2); }
+.gm-metricas button.is-activo {
+    border-color: var(--mk-proteinas);
+    background: var(--mk-proteinas-soft);
+    color: var(--mk-proteinas-ink);
+}
+.gm-metricas button:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: 2px; }
+.gm-metricas-ayuda {
+    flex: 1 1 100%;
+    font-size: .68rem;
+    line-height: 1.45;
+    color: var(--mk-text);
+}
+
+/* ── La linea de tiempo del mapa ────────────────────────────────────────────
+   Tres piezas en una fila: reproducir, el ano, y la barra. El ano va FUERA del
+   deslizador y en cuerpo grande porque durante la reproduccion es lo unico que
+   dice que se esta mirando, y buscarlo dentro del control obliga a apartar la
+   vista del mapa justo cuando el mapa se esta moviendo. */
+.gm-tiempo {
+    /* Banda propia a todo lo ancho de la cabecera, que es flex con wrap. Dentro
+       de la columna del texto medía 405px y los catorce anos caian a menos de
+       veinte pixeles cada uno. */
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: .1rem .75rem;
+    margin-top: .35rem;
+    padding: .55rem .95rem .5rem;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 12px;
+    background: var(--mk-bg-raised);
+}
+
+.gm-tiempo-play {
+    /* Igual que el ano: ocupa las dos filas para centrarse contra el control
+       entero y no contra la barra, que solo es la de arriba. */
+    grid-row: span 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--mk-proteinas);
+    border-radius: 50%;
+    background: var(--mk-proteinas-soft);
+    color: var(--mk-proteinas-ink);
+    font-size: .72rem;
+    cursor: pointer;
+    transition: background .16s, color .16s;
+}
+.gm-tiempo-play:hover { background: var(--mk-proteinas); color: #fff; }
+.gm-tiempo-play.is-jugando { background: var(--mk-proteinas); color: #fff; }
+.gm-tiempo-play:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: 2px; }
+/* El icono de reproducir se ve descentrado en un circulo por su propia forma:
+   el triangulo tiene mas masa a la izquierda que el hueco que deja a la
+   derecha. Un pixel de correccion optica, solo cuando esta parado. */
+.gm-tiempo-play:not(.is-jugando) i { margin-left: 2px; }
+
+.gm-tiempo-anio {
+    grid-row: span 2;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.32rem;
+    font-weight: 800;
+    /* Sin cifras de ancho fijo el ano cambia de anchura entre 2011 y 2020 y
+       arrastra la barra un par de pixeles en cada fotograma: con catorce
+       fotogramas seguidos, el control entero parece temblar. */
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--mk-proteinas-ink);
+}
+
+.gm-tiempo-barra {
+    -webkit-appearance: none;
+    appearance: none;
+    grid-column: 3;
+    width: 100%;
+    height: 20px;
+    margin: 0;
+    background: none;
+    cursor: pointer;
+}
+/* El carril es NEUTRO a proposito. Pintarlo con la rampa rosa del mapa haria
+   creer que el color de la barra y el color de los paises son la misma escala,
+   y aqui el eje es el tiempo, no el volumen. */
+.gm-tiempo-barra::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 999px;
+    background: var(--mk-line);
+}
+.gm-tiempo-barra::-moz-range-track {
+    height: 5px;
+    border-radius: 999px;
+    background: var(--mk-line);
+}
+.gm-tiempo-barra::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    margin-top: -5px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--mk-proteinas), 0 2px 6px rgba(0, 0, 0, .45);
+}
+.gm-tiempo-barra::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--mk-proteinas), 0 2px 6px rgba(0, 0, 0, .45);
+}
+.gm-tiempo-barra:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: 3px; border-radius: 999px; }
+
+/* Las marcas del carril: un ano por paso. `space-between` con cifras de ancho
+   fijo deja cada rotulo a menos de siete pixeles del punto donde para el
+   tirador —el desfase es medio ancho de tirador, y el paso mide noventa—, asi
+   que se leen como lo que son: las paradas de la barra. */
+.gm-tiempo-extremos {
+    grid-column: 3;
+    display: flex;
+    justify-content: space-between;
+    margin-top: -.15rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .58rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--mk-text);
+}
+.gm-tiempo-extremos .is-activo { color: var(--mk-proteinas-ink); }
+
+/* Los anos ESTIMADOS. Se marcan con un punto bajo la cifra y no cambiandoles el
+   color: el color de esta fila ya significa «el ano que estas viendo», y darle
+   un segundo significado dejaria las dos lecturas ambiguas justo donde importa.
+   La opacidad los separa sin sacarlos de la escala. */
+.gm-tiempo-extremos .es-estimado {
+    position: relative;
+    opacity: .72;
+}
+.gm-tiempo-extremos .es-estimado::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    width: 3px;
+    height: 3px;
+    margin-left: -1.5px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.gm-tiempo-extremos .es-estimado.is-activo { opacity: 1; }
+
+/* El cartel del ano estimado. Ambar y no rojo: no es un error, es una cifra de
+   otra clase — y en rojo, sobre un mapa rosa, se leeria como una alarma. */
+.gm-tiempo-nota {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: flex-start;
+    gap: .45rem;
+    margin: .5rem 0 0;
+    padding-top: .5rem;
+    border-top: 1px solid var(--mk-line-soft);
+    font-size: .68rem;
+    line-height: 1.45;
+    color: var(--mk-text-2);
+}
+.gm-tiempo-nota i { margin-top: .18rem; font-size: .62rem; color: #e0b059; flex-shrink: 0; }
+
+.gm-tip-aviso.es-estimado { color: #e0b059; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   «Lo que come una persona» (.cp-*)
+
+   Clases propias y no las heredadas de la seccion: los cuatro colores del
+   donut son una PALETA DE DATOS validada como conjunto contra esta superficie
+   (#1d2837), y colgarlos de reglas que tambien pintan la piel de Mercados
+   invita a retocarlos por armonia. Si cambian, hay que revalidar.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cp-panel {
+    margin-bottom: 10px;
+    padding: 16px 18px;
+    border: 1px solid var(--mk-line);
+    border-left: 3px solid var(--mk-proteinas);
+    border-radius: 16px;
+    background: var(--mk-surface);
+}
+.cp-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    margin-bottom: 16px;
+}
+.cp-kicker {
+    display: inline-flex; align-items: center; gap: .4rem;
+    color: var(--mk-proteinas-ink);
+    font: 800 .625rem/1 'Inter', sans-serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.cp-panel h3 {
+    margin: 6px 0 0;
+    color: var(--mk-text);
+    font: 750 1.05rem/1.2 'Inter', sans-serif;
+    letter-spacing: -.02em;
+}
+
+/* ── El selector de pais, compartido ───────────────────────────────────────
+   Lo usan los tres bloques de Proteinas que se pueden mirar por pais (consumo
+   por habitante, despiece y balance nacional). Va en UNA clase y no copiado
+   tres veces: son el mismo control y tienen que verse y comportarse igual, y
+   con tres copias la tercera ya se habria desincronizado.
+
+   Es un control, no una clave de lectura: por eso va arriba, donde se ve antes
+   de mirar el dato que gobierna. */
+.mkt-pais-sel { display: flex; flex-direction: column; gap: .3rem; }
+.mkt-pais-sel > span {
+    font: 800 .6rem/1 'Inter', sans-serif;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--mk-text);
+}
+.mkt-pais-sel select {
+    min-width: 200px;
+    padding: .45rem .7rem;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 9px;
+    background: var(--mk-bg-raised);
+    color: var(--mk-text-2);
+    font: 700 .78rem/1.2 'Inter', sans-serif;
+    cursor: pointer;
+}
+.mkt-pais-sel select:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: 2px; }
+/* El desplegable nativo lo pinta el sistema: sin esto, en Windows sale la
+   lista en blanco sobre blanco dentro de una pagina oscura. */
+.mkt-pais-sel select option { background: #1d2837; color: #eef4f8; }
+
+.cp-cuerpo {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 20px 28px;
+}
+
+/* ── La silueta y la cifra grande ─────────────────────────────────────────── */
+.cp-persona { display: flex; align-items: center; gap: 14px; }
+.cp-persona svg {
+    width: 46px;
+    height: auto;
+    flex-shrink: 0;
+    fill: var(--mk-proteinas);
+    /* Sin opacidad plena: es un pictograma de contexto, no un dato. A todo
+       color compite con el donut, que si lo es. */
+    opacity: .82;
+}
+.cp-total strong {
+    display: block;
+    color: var(--mk-text);
+    /* Proporcional y no tabular: en cifras grandes los digitos de ancho fijo
+       dejan huecos y el numero se lee suelto. */
+    font: 800 1.9rem/1 'Inter', sans-serif;
+    letter-spacing: -.03em;
+}
+.cp-total strong em { margin-left: .18rem; font-style: normal; font-size: .82rem; font-weight: 700; color: var(--mk-text-2); }
+.cp-total > span { display: block; margin-top: .3rem; font-size: .68rem; line-height: 1.35; color: var(--mk-text); max-width: 16ch; }
+.cp-total b {
+    display: inline-block;
+    margin-top: .45rem;
+    padding: .2rem .5rem;
+    border-radius: 999px;
+    background: var(--mk-proteinas-soft);
+    color: var(--mk-proteinas-ink);
+    font: 800 .66rem/1 'JetBrains Mono', monospace;
+}
+
+/* ── El donut ─────────────────────────────────────────────────────────────── */
+.cp-grafica svg { width: 178px; height: 178px; display: block; }
+.cp-carril { stroke: var(--mk-bg-raised); }
+.cp-tramo {
+    cursor: pointer;
+    transition: opacity .16s ease;
+}
+/* Atenuar el resto y no resaltar el señalado: subir el brillo de un tramo
+   cambia su color, y el color es lo que identifica la proteina. */
+.cp-tramo.es-apagado { opacity: .3; }
+.cp-grafica svg:hover .cp-tramo { transition: opacity .16s ease; }
+
+.cp-centro-cifra { fill: var(--mk-text); font: 800 1.55rem/1 'Inter', sans-serif; letter-spacing: -.03em; }
+.cp-centro-lbl { fill: var(--mk-text-2); font: 700 .62rem/1 'Inter', sans-serif; }
+.cp-centro-pct { fill: var(--mk-text); font: 700 .58rem/1 'Inter', sans-serif; }
+
+/* ── El desglose: leyenda y tabla a la vez ────────────────────────────────── */
+.cp-desglose { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+/* En dos columnas cuando hay sitio. A lo ancho, una fila por proteina deja el
+   nombre y su cifra a media pantalla de distancia y hay que recorrer el hueco
+   con la vista para emparejarlos; en 2x2 se leen juntos. */
+@media (min-width: 1100px) {
+    .cp-desglose { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem .5rem; }
+}
+.cp-desglose li {
+    display: grid;
+    grid-template-columns: 11px minmax(0, 1fr) auto 3.2rem;
+    align-items: baseline;
+    gap: .55rem;
+    padding: .4rem .55rem;
+    border-radius: 9px;
+    background: var(--mk-bg-raised);
+    transition: opacity .16s ease;
+}
+.cp-desglose li.es-apagado { opacity: .42; }
+.cp-desglose li i { width: 11px; height: 11px; border-radius: 3px; align-self: center; }
+.cp-desglose li span { font-size: .74rem; font-weight: 700; color: var(--mk-text-2); }
+.cp-desglose li strong {
+    font: 800 .86rem/1 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--mk-text);
+    text-align: right;
+}
+.cp-desglose li strong em { margin-left: .15rem; font-style: normal; font-size: .58rem; font-weight: 700; color: var(--mk-text); }
+.cp-desglose li b {
+    font: 700 .68rem/1 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--mk-text);
+    text-align: right;
+}
+
+.cp-pie {
+    display: flex; gap: .45rem;
+    margin: 14px 0 0; padding-top: .7rem;
+    border-top: 1px solid var(--mk-line-soft);
+    font-size: .66rem; line-height: 1.5; color: var(--mk-text);
+}
+.cp-pie i { margin-top: .2rem; font-size: .58rem; color: var(--mk-proteinas-ink); flex-shrink: 0; }
+.cp-vacio { margin: .6rem 0 0; font-size: .74rem; color: var(--mk-text); }
+
+/* La reticula de tres columnas necesita ~760px. Por debajo, la silueta y el
+   donut comparten fila y el desglose pasa a lo ancho. */
+@media (max-width: 900px) {
+    .cp-cuerpo { grid-template-columns: auto minmax(0, 1fr); }
+    .cp-desglose { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+    .cp-cuerpo { grid-template-columns: 1fr; justify-items: center; }
+    .cp-persona { justify-self: start; }
+    .cp-desglose { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cp-tramo, .cp-desglose li { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   «De qué parte del animal» (.ca-canal / .ca-*)
+
+   OJO con el prefijo: `.ca-` ya lo usan las fichas del catalogo de proteinas
+   alternativas (.ca-ficha, .ca-cifra, .ca-tag). Todo lo de aqui cuelga de
+   `.ca-canal` o lleva un nombre que no colisiona; no añadir reglas `.ca-*`
+   sueltas sin comprobar antes que no existan.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ca-canal {
+    margin-bottom: 10px;
+    padding: 16px 18px;
+    border: 1px solid var(--mk-line);
+    border-left: 3px solid var(--mk-proteinas);
+    border-radius: 16px;
+    background: var(--mk-surface);
+}
+.ca-canal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+}
+.ca-canal-kicker {
+    display: inline-flex; align-items: center; gap: .4rem;
+    color: var(--mk-proteinas-ink);
+    font: 800 .625rem/1 'Inter', sans-serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.ca-canal h3 {
+    margin: 6px 0 4px;
+    color: var(--mk-text);
+    font: 750 1.05rem/1.2 'Inter', sans-serif;
+    letter-spacing: -.02em;
+}
+.ca-canal-head p {
+    margin: 0;
+    max-width: 56ch;
+    color: var(--mk-text-2);
+    font: 500 .75rem/1.45 'Inter', sans-serif;
+}
+/* El aspecto lo pone `.mkt-pais-sel`, compartido con los otros dos bloques. */
+
+/* ── El conmutador de animal ──────────────────────────────────────────────── */
+.ca-especies { display: flex; flex-wrap: wrap; gap: .45rem; margin: 14px 0 16px; }
+.ca-especies button {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .45rem 1rem;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 999px;
+    background: var(--mk-bg-raised);
+    color: var(--mk-text);
+    font-size: .74rem; font-weight: 800;
+    cursor: pointer;
+    transition: background .16s, color .16s, border-color .16s;
+}
+.ca-especies button:hover { background: var(--mk-surface); color: var(--mk-text-2); }
+.ca-especies button.is-activo {
+    border-color: var(--mk-proteinas);
+    background: var(--mk-proteinas-soft);
+    color: var(--mk-proteinas-ink);
+}
+.ca-especies button:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: 2px; }
+
+.ca-canal-cuerpo {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    align-items: start;
+    gap: 20px 28px;
+}
+
+/* ── La silueta ───────────────────────────────────────────────────────────── */
+.ca-silueta { margin: 0; text-align: center; }
+.ca-silueta svg {
+    width: 100%;
+    max-width: 190px;
+    height: auto;
+    fill: var(--mk-proteinas);
+    /* Es un pictograma de contexto, no un dato: a todo color competiria con
+       las barras, que si lo son. */
+    opacity: .8;
+}
+/* Las patas del lado de alla. Sin bajarles el tono, ocho patas del mismo color
+   se leen como una fila de postes en vez de como dos pares. */
+.ca-silueta .ca-lejos { fill: var(--mk-proteinas); opacity: .55; }
+/* Huecos del propio dibujo (los orificios del hocico): van del color del fondo
+   sobre el que se pinta la silueta, no en transparente — el <g> ya lleva su
+   propia opacidad y un hueco transparente dejaria ver el borde de la pieza. */
+.ca-silueta .ca-hueco { fill: var(--mk-surface); }
+.ca-silueta figcaption { margin-top: .5rem; }
+.ca-silueta strong {
+    display: block;
+    color: var(--mk-text);
+    font: 800 1.6rem/1 'Inter', sans-serif;
+    letter-spacing: -.03em;
+}
+.ca-silueta strong em { margin-left: .15rem; font-style: normal; font-size: .78rem; font-weight: 700; color: var(--mk-text-2); }
+.ca-silueta figcaption > span { display: block; margin-top: .3rem; font-size: .68rem; line-height: 1.4; color: var(--mk-text); }
+.ca-canal-sindato { color: var(--mk-text); font-size: .7rem; }
+
+/* ── Las barras de los cortes ─────────────────────────────────────────────── */
+.ca-cortes { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.ca-cortes li {
+    display: grid;
+    grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .5rem .9rem;
+    padding: .45rem .6rem;
+    border-radius: 9px;
+    background: var(--mk-bg-raised);
+    transition: opacity .16s ease;
+}
+.ca-cortes li.es-apagado { opacity: .45; }
+.ca-corte-lbl b { display: block; font-size: .76rem; font-weight: 800; color: var(--mk-text-2); }
+.ca-corte-lbl i { display: block; margin-top: .1rem; font-style: normal; font-size: .62rem; line-height: 1.35; color: var(--mk-text); }
+.ca-corte-barra {
+    height: 9px;
+    border-radius: 999px;
+    background: var(--mk-surface);
+    overflow: hidden;
+}
+/* Una sola tinta para todas: la longitud ya dice el tamaño. */
+.ca-corte-barra > span {
+    display: block; height: 100%;
+    border-radius: 999px;
+    background: var(--mk-proteinas);
+}
+.ca-corte-cifras { text-align: right; }
+.ca-corte-cifras strong {
+    font: 800 .9rem/1 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--mk-text);
+}
+.ca-corte-cifras strong em { font-style: normal; font-size: .62rem; font-weight: 700; color: var(--mk-text-2); }
+.ca-corte-cifras > span { display: block; margin-top: .15rem; font-size: .64rem; font-weight: 700; color: var(--mk-text); font-variant-numeric: tabular-nums; }
+
+.ca-canal-nota {
+    display: flex; gap: .45rem;
+    margin: 14px 0 0; padding-top: .7rem;
+    border-top: 1px solid var(--mk-line-soft);
+    font-size: .68rem; line-height: 1.5; color: var(--mk-text-2);
+}
+.ca-canal-nota i { margin-top: .2rem; font-size: .58rem; color: var(--mk-proteinas-ink); flex-shrink: 0; }
+
+/* ── Visceras y grasa: el bloque con dato medido ──────────────────────────── */
+.ca-despojos {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 12px;
+    background: var(--mk-bg-raised);
+}
+.ca-despojos h4 {
+    margin: 0 0 .6rem;
+    color: var(--mk-text);
+    font: 800 .78rem/1.3 'Inter', sans-serif;
+}
+.ca-despojos h4 em {
+    display: block; margin-top: .15rem;
+    font-style: normal; font-size: .64rem; font-weight: 600; color: var(--mk-text);
+}
+.ca-despojos ul { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.ca-despojos li {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: .6rem;
+}
+.ca-despojos li > span { font-size: .72rem; font-weight: 700; color: var(--mk-text-2); }
+.ca-desp-barra { height: 9px; border-radius: 999px; background: var(--mk-surface); overflow: hidden; }
+.ca-desp-barra > span { display: block; height: 100%; border-radius: 999px; background: var(--mk-proteinas); }
+.ca-despojos strong {
+    font: 800 .86rem/1 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--mk-text);
+    text-align: right;
+}
+.ca-despojos strong em { margin-left: .12rem; font-style: normal; font-size: .58rem; font-weight: 700; color: var(--mk-text-2); }
+.ca-despojos b {
+    min-width: 8.5rem;
+    text-align: right;
+    font-size: .64rem; font-weight: 800;
+}
+.ca-despojos b.es-alto { color: var(--mk-proteinas-ink); }
+.ca-despojos b.es-bajo { color: var(--mk-text); }
+
+.ca-canal-pie {
+    display: flex; gap: .5rem;
+    margin: 14px 0 0; padding-top: .7rem;
+    border-top: 1px solid var(--mk-line-soft);
+    font-size: .66rem; line-height: 1.55; color: var(--mk-text);
+}
+/* Ambar y no rojo: no es un error, es una advertencia de lectura. */
+.ca-canal-pie > i { margin-top: .22rem; font-size: .6rem; color: #e0b059; flex-shrink: 0; }
+.ca-canal-pie b { color: var(--mk-text-2); }
+
+@media (max-width: 820px) {
+    .ca-canal-cuerpo { grid-template-columns: 1fr; }
+    .ca-silueta svg { max-width: 150px; }
+    .ca-cortes li { grid-template-columns: minmax(0, 1fr) auto; }
+    .ca-corte-barra { grid-column: 1 / -1; order: 3; }
+    .ca-despojos li { grid-template-columns: 6.5rem minmax(0, 1fr) auto; }
+    .ca-despojos b { grid-column: 1 / -1; text-align: left; }
+}
+/* El selector del balance nacional va bajo la entradilla, no en la esquina:
+   ese bloque ya tiene la cifra de autosuficiencia ocupando la derecha. */
+.pb-pais { margin-top: .85rem; }
+
+@media (max-width: 560px) {
+    .mkt-pais-sel { flex: 1 1 100%; }
+    .mkt-pais-sel select { min-width: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ca-cortes li, .ca-especies button { transition: none; }
+}
+
+/* Los anos intermedios solo caben mientras la banda es ancha. Se van en dos
+   tiempos —primero uno de cada dos, luego todos menos los extremos— en lugar de
+   dejarlos amontonarse hasta tocarse. */
+@media (max-width: 1080px) {
+    .gm-tiempo-extremos span:nth-child(even):not(:last-child) { visibility: hidden; }
+}
+@media (max-width: 720px) {
+    .gm-tiempo-extremos span:not(:first-child):not(:last-child) { display: none; }
+}
+
+/* Por debajo de este ancho la barra se queda en un palmo y deja de poderse
+   apuntar a un ano concreto: pasa a su propia fila, a ancho completo. */
+@media (max-width: 520px) {
+    .gm-tiempo { grid-template-columns: auto minmax(0, 1fr); }
+    .gm-tiempo-anio { grid-row: auto; }
+    .gm-tiempo-barra,
+    .gm-tiempo-extremos { grid-column: 1 / -1; }
+}
+.gm-tip-extra {
+    display: grid;
+    gap: .4rem;
+    margin: 0 0 .55rem;
+    padding: 0;
+    list-style: none;
+}
+.gm-tip-extra li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: .3rem .6rem;
+    padding: .38rem .55rem;
+    border-radius: 9px;
+    background: var(--mk-bg-raised);
+}
+.gm-tip-extra span { font-size: .66rem; font-weight: 700; color: var(--mk-text); }
+.gm-tip-extra strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .8rem;
+    font-weight: 800;
+    color: var(--mk-muted);
+}
+.gm-tip-extra strong em { margin-left: .2rem; font-style: normal; font-size: .6rem; font-weight: 700; color: var(--mk-text); }
+.gm-tip-extra i {
+    grid-column: 1 / -1;
+    font-style: normal;
+    font-size: .62rem;
+    line-height: 1.35;
+    color: var(--mk-proteinas-ink);
+}
+.prot-balance,
+.prot-matriz,
+.prot-alt {
+    margin-bottom: 1.2rem;
+    padding: 16px 18px;
+    border: 1px solid var(--mk-line-soft);
+    border-left: 3px solid var(--mk-proteinas);
+    border-radius: 15px;
+    background: var(--mk-surface-2);
+}
+.prot-balance h3,
+.prot-matriz h3,
+.prot-alt h3 { margin: .35rem 0 .3rem; color: var(--mk-muted); font-size: 1.05rem; letter-spacing: -.02em; }
+.prot-balance .grain-balance-head p,
+.prot-matriz .grain-balance-head p,
+.prot-alt .grain-balance-head p { margin: 0; max-width: 64ch; color: var(--mk-text); font-size: .78rem; line-height: 1.55; }
+.prot-matriz .grain-balance-head { margin-bottom: 1rem; }
+.pb-total {
+    flex: 0 0 auto;
+    padding: .6rem .85rem;
+    border-radius: 12px;
+    background: var(--mk-bg-raised);
+    text-align: right;
+}
+.pb-total small { display: block; font-size: .58rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-text); }
+.pb-total strong {
+    display: block;
+    margin: .15rem 0 .1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    line-height: 1;
+    letter-spacing: -.03em;
+    color: var(--mk-proteinas-ink);
+}
+.pb-total span { font-size: .62rem; color: var(--mk-text); }
+.pb-lista { display: grid; gap: .55rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.pb-lista li {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr) 5rem 5rem;
+    align-items: center;
+    gap: .7rem;
+    padding: .55rem .7rem;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 12px;
+    background: var(--mk-bg-raised);
+}
+.pb-nombre {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--mk-text-2);
+}
+.pb-nombre i { width: 1.1rem; text-align: center; color: var(--mk-proteinas-ink); }
+
+.pb-barras { display: grid; gap: 5px; min-width: 0; }
+.pb-fila { display: grid; grid-template-columns: minmax(0, 1fr) 8.6rem; align-items: center; gap: .55rem; }
+.pb-fila > i {
+    display: block;
+    height: 14px;
+    border-radius: 2px 4px 4px 2px;
+    transition: width .45s cubic-bezier(.22, 1, .36, 1);
+}
+.pb-fila em {
+    font-style: normal;
+    font-size: .64rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--mk-text);
+}
+.pb-fila em b { font-family: 'JetBrains Mono', monospace; font-size: .72rem; font-weight: 800; color: var(--mk-text-2); }
+i.pb-prod { background: var(--gm-q4); }
+i.pb-cons { background: var(--gm-q2); }
+
+.pb-auto, .pb-kg { text-align: right; }
+.pb-auto strong, .pb-kg strong {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .95rem;
+    font-weight: 800;
+    color: var(--mk-muted);
+}
+.pb-auto i, .pb-kg i { font-style: normal; font-size: .58rem; color: var(--mk-text); }
+.pb-lista li.es-deficit .pb-auto strong { color: var(--mk-down); }
+.pb-lista li.es-superavit .pb-auto strong { color: var(--mk-up); }
+.pb-lista li.es-equilibrio .pb-auto strong { color: var(--mk-muted); }
+
+@media (max-width: 900px) {
+    .pb-lista li { grid-template-columns: minmax(0, 1fr) 4.5rem 4.5rem; }
+    .pb-nombre { grid-column: 1 / -1; }
+    .pb-barras { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+    .pb-fila { grid-template-columns: minmax(0, 1fr); }
+    .pb-fila em { font-size: .6rem; }
+}
+/* `.prot-exposicion` («Cuánto del precio se lo lleva el alimento») se fue con
+   «Economía de producción» el 25/08/2026: vivía dentro de ese panel. La lectura
+   NO se ha perdido del todo — la señal «Más expuesta al grano» de abajo sigue
+   diciendo qué especie es la más expuesta y con qué texto. */
+.pm-scroll {
+    max-height: 30rem;
+    overflow: auto;
+    border-color: var(--mk-line-soft);
+}
+.pm-matriz {
+    min-width: 940px;
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .74rem;
+}
+
+.pm-matriz caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+/* ── Cabecera ── */
+.pm-matriz thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 0;
+
+    background: var(--mk-surface);
+    border-bottom: 1px solid var(--mk-line);
+    text-align: right;
+    white-space: nowrap;
+}
+.pm-matriz thead th button {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: .35rem;
+    width: 100%;
+    padding: .6rem .7rem;
+    border: 0;
+    background: transparent;
+    color: var(--mk-text);
+    font: inherit;
+    font-size: .64rem;
+    font-weight: 850;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color .15s, background .15s;
+}
+.pm-matriz thead th button:hover { background: var(--mk-surface-3); color: var(--mk-text-2); }
+.pm-matriz thead th button:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: -2px; }
+.pm-matriz thead th small {
+    font-size: .55rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--mk-muted);
+}
+/* El icono de orden está SIEMPRE, no solo en la columna activa: si aparece al
+   pasar el cursor, no hay forma de saber que las demás también se ordenan. */
+.pm-matriz thead th button i { font-size: .6rem; opacity: .35; }
+.pm-matriz thead th.es-orden { background: var(--mk-proteinas-soft); }
+.pm-matriz thead th.es-orden button { color: var(--mk-proteinas-ink); }
+.pm-matriz thead th.es-orden button i { opacity: 1; }
+
+
+.pm-matriz td,
+.pm-matriz tbody th {
+    padding: .45rem .7rem;
+    border-bottom: 1px solid var(--mk-line-soft);
+    text-align: right;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.pm-monto { font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 800; color: var(--mk-text-2); }
+.pm-monto em { margin-left: .05rem; font-style: normal; font-size: .6rem; font-weight: 700; color: var(--mk-text); }
+
+.pm-sub { display: block; margin-top: .1rem; font-size: .58rem; color: var(--mk-text); }
+.pm-nulo { color: var(--mk-line-strong); }
+
+.pm-matriz .pm-pais,
+.pm-matriz .pm-prod,
+.pm-matriz .pm-cons {
+    position: sticky;
+    z-index: 1;
+    background: var(--mk-surface-2);
+}
+
+.pm-matriz .pm-pais { left: 0; width: 11rem; min-width: 11rem; text-align: left; font-weight: 600; color: var(--mk-text-2); }
+.pm-matriz .pm-prod { left: 11rem; width: 5.5rem; min-width: 5.5rem; }
+.pm-matriz .pm-cons { left: 16.5rem; width: 5.5rem; min-width: 5.5rem; box-shadow: 6px 0 10px -6px rgba(0, 0, 0, .5); }
+.pm-matriz .pm-auto { width: 8rem; }
+.pm-matriz .pm-kg { width: 6rem; }
+
+.pm-matriz .pm-esp { width: 7rem; }
+
+.pm-matriz thead .pm-pais,
+.pm-matriz thead .pm-prod,
+.pm-matriz thead .pm-cons { z-index: 4; background: var(--mk-surface); }
+.pm-matriz thead .pm-pais button { justify-content: flex-start; }
+
+.pm-matriz tbody tr:hover .pm-pais,
+.pm-matriz tbody tr:hover .pm-prod,
+.pm-matriz tbody tr:hover .pm-cons { background: var(--mk-surface-3); }
+.pm-matriz tbody tr:hover td { background: rgba(255, 255, 255, .03); }
+.pm-auto-barra {
+    position: relative;
+    display: block;
+    height: 5px;
+    margin-top: .22rem;
+    border-radius: 20px;
+    background: var(--mk-surface);
+}
+.pm-auto-barra i { display: block; height: 100%; border-radius: inherit; background: var(--gm-q2); }
+/* La marca del 100% cae a media barra porque la escala llega al 200%. */
+.pm-auto-barra u {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    left: 50%;
+    width: 1px;
+    background: var(--mk-text-2);
+    opacity: .55;
+}
+.pm-matriz tbody tr.es-mundo th,
+.pm-matriz tbody tr.es-mundo td { background: var(--mk-bg-raised); font-weight: 700; }
+.pm-matriz tbody tr.es-mundo { position: sticky; top: 2.1rem; z-index: 2; }
+.pm-matriz tbody tr.es-mundo .pm-pais { box-shadow: inset 3px 0 0 var(--mk-text-2); }
+.pm-matriz tbody tr.es-mundo .pm-monto { color: var(--mk-muted); }
+
+.pm-matriz tbody tr.es-mexico th,
+.pm-matriz tbody tr.es-mexico td { background: var(--mk-proteinas-soft); }
+.pm-matriz tbody tr.es-mexico .pm-pais { color: var(--mk-proteinas-ink); font-weight: 800; box-shadow: inset 3px 0 0 var(--mk-proteinas); }
+
+@media (max-width: 720px) {
+    .pm-matriz .pm-prod,
+    .pm-matriz .pm-cons { position: static; }
+    .pm-matriz .pm-pais { min-width: 8.5rem; box-shadow: 6px 0 10px -6px rgba(0, 0, 0, .5); }
+    .pm-scroll { max-height: 24rem; }
+}
+.pa-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 1rem; }
+@media (max-width: 760px) { .pa-grid { grid-template-columns: 1fr; } }
+
+.pa-tarjeta {
+    padding: 14px 15px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+}
+.pa-tarjeta > header { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
+.pa-tarjeta h4 { margin: 0; color: var(--mk-muted); font-size: .95rem; letter-spacing: -.01em; }
+.pa-tarjeta > header strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--mk-muted);
+}
+.pa-tarjeta > header strong em { font-style: normal; font-size: .6rem; font-weight: 700; color: var(--mk-text); }
+
+
+:root {
+    --pa-veg: #4d8c3e;
+    --pa-agua: #5b8ee0;
+
+    --pa-veg-rgb: 77, 140, 62;
+    --pa-agua-rgb: 91, 142, 224;
+
+    --ma-tinte: var(--pa-veg-rgb);
+}
+.pa-split { display: flex; gap: 2px; height: 12px; margin: .8rem 0 .7rem; }
+.pa-split i { display: block; height: 100%; border-radius: 3px; transition: width .45s cubic-bezier(.22, 1, .36, 1); }
+i.pa-vegetal { background: var(--pa-veg); }
+i.pa-agua { background: var(--pa-agua); }
+i.pa-animal { background: var(--mk-proteinas); }
+
+.pa-leyenda { display: flex; flex-wrap: wrap; gap: .2rem 1rem; margin: 0 0 .8rem; padding: 0; list-style: none; }
+.pa-leyenda li { display: inline-flex; align-items: center; gap: .35rem; font-size: .68rem; color: var(--mk-text); }
+.pa-leyenda li i { width: 10px; height: 10px; border-radius: 3px; }
+.pa-leyenda b { font-family: 'JetBrains Mono', monospace; font-size: .72rem; font-weight: 800; color: var(--mk-text-2); }
+.pa-leyenda em { font-style: normal; font-size: .62rem; font-weight: 700; color: var(--mk-muted); }
+
+.pa-familias { display: grid; gap: .35rem; margin: 0; padding: .7rem 0 0; border-top: 1px solid var(--mk-line-soft); list-style: none; }
+.pa-familias li { display: grid; grid-template-columns: 7.6rem minmax(0, 1fr) 3rem; align-items: center; gap: .5rem; }
+.pa-familias b { display: flex; align-items: center; gap: .35rem; font-size: .68rem; font-weight: 600; color: var(--mk-text); }
+.pa-familias b i { width: .9rem; font-size: .62rem; text-align: center; color: var(--mk-muted); }
+.pa-familias span { height: 7px; border-radius: 20px; background: var(--mk-surface); overflow: hidden; }
+.pa-familias span i { display: block; height: 100%; border-radius: inherit; background: var(--pa-veg); }
+
+.pa-familias li.fam-pescado span i,
+.pa-familias li.fam-alga span i { background: var(--pa-agua); }
+.pa-familias li.fam-pescado b i,
+.pa-familias li.fam-alga b i { color: var(--pa-agua); }
+.pa-familias em {
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .72rem;
+    font-weight: 800;
+    color: var(--mk-text-2);
+    text-align: right;
+}
+.pa-familias em small { margin-left: .1rem; font-size: .54rem; font-weight: 700; color: var(--mk-text); }
+.prot-alt .mkt-chain-foot {
+    display: block;
+    margin: 1rem 0 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--mk-surface);
+    color: var(--mk-text-2);
+    font-size: .74rem;
+    line-height: 1.6;
+}
+.prot-alt .mkt-chain-foot > i { float: left; margin: .25rem .55rem 0 0; color: var(--mk-proteinas-ink); }
+.prot-alt .mkt-chain-foot strong { color: var(--mk-proteinas-ink); }
+
+@media (max-width: 560px) {
+    .pa-familias li { grid-template-columns: 1fr auto; }
+    .pa-familias span { grid-column: 1 / -1; }
+}
+.pa-sub { margin: 1.8rem 0 .9rem; padding-top: 1.2rem; border-top: 1px solid var(--mk-line-soft); }
+.pa-sub h4 {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0 0 .3rem;
+    color: var(--mk-muted);
+    font-size: .92rem;
+    letter-spacing: -.01em;
+}
+.pa-sub h4 i { color: var(--mk-proteinas-ink); font-size: .8rem; }
+.pa-sub p { margin: 0; max-width: 70ch; color: var(--mk-text); font-size: .75rem; line-height: 1.6; }
+
+
+.ca-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.ca-ficha {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    padding: 13px 14px 12px;
+    border: 1px solid var(--mk-line-soft);
+
+    border-top: 3px solid var(--pa-veg);
+    border-radius: 13px;
+    background: var(--mk-bg-raised);
+}
+.ca-ficha.fam-pescado,
+.ca-ficha.fam-alga { border-top-color: var(--pa-agua); }
+
+.ca-ficha > header { display: flex; align-items: flex-start; gap: .6rem; }
+.ca-icono {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9px;
+    background: rgba(var(--pa-veg-rgb), .16);
+
+    color: #7cb96b;
+    font-size: .82rem;
+}
+.ca-ficha.fam-pescado .ca-icono,
+.ca-ficha.fam-alga .ca-icono { background: rgba(var(--pa-agua-rgb), .16); color: #8fb4ec; }
+
+.ca-ficha h4 { margin: 0 0 .15rem; color: var(--mk-text); font-size: .82rem; letter-spacing: -.01em; }
+.ca-que { margin: 0; color: var(--mk-text); font-size: .68rem; line-height: 1.5; opacity: .85; }
+
+.ca-cifra {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: .2rem .6rem;
+    padding: .55rem 0 .1rem;
+    border-top: 1px solid var(--mk-line-soft);
+}
+.ca-cifra strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--mk-text-2);
+    white-space: nowrap;
+}
+.ca-cifra strong em { margin-left: .15rem; font-style: normal; font-size: .58rem; font-weight: 700; color: var(--mk-text); }
+.ca-cifra > span { height: 6px; border-radius: 20px; background: var(--mk-surface); overflow: hidden; }
+.ca-cifra > span i { display: block; height: 100%; border-radius: inherit; background: var(--pa-veg); }
+.ca-ficha.fam-pescado .ca-cifra > span i,
+.ca-ficha.fam-alga .ca-cifra > span i { background: var(--pa-agua); }
+.ca-cifra b {
+    grid-column: 1 / -1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .68rem;
+    font-weight: 800;
+    color: var(--mk-muted);
+}
+.ca-cifra b small { font-family: 'Inter', sans-serif; font-size: .6rem; font-weight: 600; color: var(--mk-text); }
+
+.ca-detalle { display: grid; gap: .25rem; margin: -.2rem 0 0; padding: 0; list-style: none; }
+.ca-detalle li { display: grid; grid-template-columns: 4.6rem auto minmax(0, 1fr); align-items: baseline; gap: .45rem; }
+.ca-detalle span { color: var(--mk-text); font-size: .66rem; }
+.ca-detalle b { font-family: 'JetBrains Mono', monospace; font-size: .7rem; font-weight: 800; color: var(--mk-text-2); }
+.ca-detalle em { font-style: normal; color: var(--mk-muted); font-size: .6rem; }
+
+.ca-lectura { margin: 0; color: var(--mk-text-2); font-size: .72rem; line-height: 1.55; }
+.ca-mercado {
+    display: flex;
+    gap: .45rem;
+    margin: 0;
+    padding: .5rem .6rem;
+    border-radius: 9px;
+    background: var(--mk-surface);
+    color: var(--mk-text);
+    font-size: .67rem;
+    line-height: 1.5;
+}
+.ca-mercado i { flex: 0 0 auto; margin-top: .15rem; color: var(--mk-proteinas-ink); font-size: .6rem; }
+.ca-tag {
+    margin-top: auto;
+    align-self: flex-start;
+    padding: .2rem .5rem;
+    border-radius: 20px;
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+.ca-tag.es-sustituta { background: rgba(var(--pa-veg-rgb), .18); color: #8fc47e; }
+.ca-tag.es-difusa { background: var(--mk-surface-2); color: var(--mk-muted); }
+
+/* ── Lo que la fuente no mide ── */
+.ca-sinmedir {
+    margin-top: 12px;
+    padding: 14px 15px;
+    border: 1px dashed var(--mk-line);
+    border-radius: 13px;
+    background: var(--mk-surface);
+}
+.ca-sinmedir > h4 {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0 0 .35rem;
+    color: var(--mk-muted);
+    font-size: .82rem;
+}
+.ca-sinmedir > h4 i { color: var(--mk-proteinas-ink); font-size: .72rem; }
+.ca-sinmedir > p { margin: 0 0 .9rem; max-width: 74ch; color: var(--mk-text); font-size: .71rem; line-height: 1.6; }
+.ca-sinmedir ol {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.ca-sinmedir li { display: flex; gap: .6rem; }
+.ca-sm-icono {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 8px;
+    background: var(--mk-surface-2);
+    color: var(--mk-muted);
+    font-size: .7rem;
+}
+.ca-sinmedir b { display: block; color: var(--mk-text-2); font-size: .73rem; }
+.ca-sinmedir em { display: block; margin: .1rem 0 .25rem; font-style: normal; color: var(--mk-text); font-size: .66rem; line-height: 1.5; }
+.ca-sinmedir small { display: block; color: var(--mk-muted); font-size: .63rem; line-height: 1.5; }
+.ca-sinmedir small i { margin-right: .25rem; font-size: .55rem; }
+.ma-controles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin: 0 0 .7rem;
+}
+.ma-busca {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .38rem .65rem;
+    border: 1px solid var(--mk-line);
+    border-radius: 9px;
+    background: var(--mk-bg-raised);
+}
+.ma-busca i { color: var(--mk-muted); font-size: .68rem; }
+.ma-busca input {
+    width: 11rem;
+    border: 0;
+    background: transparent;
+    color: var(--mk-text-2);
+    font: inherit;
+    font-size: .74rem;
+}
+.ma-busca input::placeholder { color: var(--mk-muted); }
+.ma-busca input:focus { outline: none; }
+.ma-busca:focus-within { border-color: var(--mk-proteinas); }
+/* La cruz nativa del type=search se dibuja negra sobre fondo oscuro y no se ve.
+   Se le da el color del texto en vez de esconderla: es la única forma de vaciar
+   el filtro sin borrar a mano. */
+.ma-busca input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    width: .6rem;
+    height: .6rem;
+    background: var(--mk-muted);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M1 1l10 10M11 1L1 11' stroke='%23000' stroke-width='2' fill='none'/%3E%3C/svg%3E") center/contain no-repeat;
+    cursor: pointer;
+}
+
+.ma-unidad { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--mk-line); border-radius: 9px; background: var(--mk-bg-raised); }
+.ma-unidad button {
+    padding: .32rem .7rem;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--mk-text);
+    font: inherit;
+    font-size: .68rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+.ma-unidad button:hover { color: var(--mk-text-2); }
+.ma-unidad button.active { background: var(--mk-proteinas-soft); color: var(--mk-proteinas-ink); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LECTURAS INTERNACIONALES — spread Brent-WTI y brecha del gas
+   ───────────────────────────────────────────────────────────────────────────
+   Dos tarjetas que no son ni KPI ni lectura ejecutiva: comparan DOS mercados
+   del mismo producto. De ahí el formato propio, con la cifra de la diferencia
+   como protagonista y la comparación desglosada debajo.
+
+   Se apoyan en los tokens --mk-* de mercados-redesign-v2.css, igual que el
+   resto de la sección. Ningún color suelto: el día que cambie la paleta, estas
+   tarjetas cambian con ella.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.mkt-global-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 1.2rem;
+}
+/* El desglose de la conversión del gas necesita ancho para no partirse: por
+   debajo de 1000px las dos tarjetas se apilan antes que estrecharse. */
+@media (max-width: 1000px) {
+    .mkt-global-grid { grid-template-columns: 1fr; }
+}
+
+.mkt-global-card {
+    padding: 15px 17px;
+    border: 1px solid var(--mk-line-soft);
+    border-left: 3px solid var(--mk-sec, var(--mk-energia));
+    border-radius: 15px;
+    background: var(--mk-surface-2);
+}
+.mkt-global-card.mgc-crudo { --mk-sec: var(--mk-energia); --mk-sec-ink: var(--mk-energia-ink); }
+/* El gas comparte familia con el crudo pero no tono: dos tarjetas seguidas con
+   el mismo filo se leen como una sola. */
+.mkt-global-card.mgc-gas { --mk-sec: var(--mk-granos); --mk-sec-ink: var(--mk-granos-ink); }
+
+.mkt-global-card > header {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: .7rem;
+}
+.mkt-global-card .mgc-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--mk-surface-3);
+    color: var(--mk-sec);
+    font-size: .92rem;
+}
+.mkt-global-card > header > div { flex: 1 1 auto; min-width: 0; }
+.mkt-global-card > header small {
+    display: block;
+    color: var(--mk-muted);
+    font-size: .72rem;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+.mkt-global-card > header strong {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    color: var(--mk-text);
+    font-size: 1.42rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+}
+.mkt-global-card > header strong em {
+    color: var(--mk-muted);
+    font-size: .74rem;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+/* Distintivo de régimen. Los nombres salen en minúsculas de `.toLowerCase()`
+   sobre el valor que devuelve la capa de cálculo, así que la clase es
+   `mgc-dislocado`, `mgc-extrema`… y hay una por cada valor de las dos escalas.
+   Un valor sin clase cae al gris neutro de arriba, nunca a nada. */
+.mkt-global-card .mgc-badge {
+    flex: 0 0 auto;
+    padding: .27rem .6rem;
+    border: 1px solid var(--mk-line);
+    border-radius: 999px;
+    background: var(--mk-surface-3);
+    color: var(--mk-text-2);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+.mkt-global-card .mgc-alineado,
+.mkt-global-card .mgc-estrecha { border-color: var(--mk-up); color: var(--mk-up); }
+.mkt-global-card .mgc-dislocado,
+.mkt-global-card .mgc-extrema { border-color: var(--mk-down); color: var(--mk-down); }
+/* Invertido no es «peor» que dislocado, es otra cosa: el WTI por encima del
+   Brent es raro y merece mirarse, sin que el color afirme una dirección. */
+.mkt-global-card .mgc-invertido { border-color: var(--mk-metales); color: var(--mk-metales-ink); }
+
+.mkt-global-card > p {
+    margin: 0;
+    color: var(--mk-text-2);
+    font-size: .81rem;
+    line-height: 1.6;
+}
+
+/* ── La cadena de conversión del gas ──
+   Se enseña entera —moneda y unidad de energía— porque es el paso donde un
+   error pasa inadvertido: cualquiera de los dos factores mal da un número
+   plausible. Verla desglosada es lo que permite auditarla de un vistazo. */
+.mgc-conv {
+    display: flex;
+    align-items: stretch;
+    gap: 9px;
+    margin-bottom: .75rem;
+    padding: 11px 12px;
+    border: 1px solid var(--mk-line-soft);
+    border-radius: 11px;
+    background: var(--mk-bg-raised);
+    /* Tres bloques más dos operadores no caben en móvil: la cadena se desplaza
+       dentro de su propia caja en vez de romper la página a lo ancho. */
+    overflow-x: auto;
+}
+.mgc-conv > span {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: .1rem;
+    min-width: 5.6rem;
+}
+.mgc-conv small { color: var(--mk-muted); font-size: .67rem; letter-spacing: .02em; }
+.mgc-conv b {
+    color: var(--mk-text);
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+.mgc-conv i { color: var(--mk-muted); font-size: .64rem; font-style: normal; }
+
+/* El resultado de la cadena, destacado sobre los dos operandos. Toma el tono de
+   su tarjeta, no uno fijo: en la del crudo era el naranja de energía y en la del
+   gas el dorado, y con un color escrito a mano una de las dos quedaba fuera de
+   su propia paleta. */
+.mgc-conv > span:last-child b { color: var(--mk-sec-ink, var(--mk-text)); }
+
+.mgc-conv .mgc-conv-op {
+    flex: 0 0 auto;
+    justify-content: center;
+    min-width: 0;
+    color: var(--mk-muted);
+    font-size: .8rem;
+    font-weight: 700;
+    text-align: center;
+}
+.ma-unidad button:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: 1px; }
+.ma-cuenta { margin-left: auto; color: var(--mk-muted); font-size: .68rem; font-weight: 700; }
+
+.ma-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem 1.1rem;
+    margin-bottom: .5rem;
+    color: var(--mk-text);
+    font-size: .66rem;
+}
+.ma-leyenda > span { display: inline-flex; align-items: center; gap: .35rem; }
+.ma-sw { width: 11px; height: 11px; border-radius: 3px; }
+.ma-sw.es-veg { background: var(--pa-veg); }
+.ma-sw.es-agua { background: var(--pa-agua); }
+.ma-sw.es-dom { border: 1.5px solid var(--mk-proteinas-ink); background: transparent; }
+.ma-leyenda-calor { gap: .18rem; }
+.ma-leyenda-calor small { color: var(--mk-muted); }
+
+.ma-scroll {
+    /* 152 filas no caben en pantalla ni deben empujar el resto de la sección
+       fuera de la vista: la tabla tiene su propio alto y su propio scroll. */
+    max-height: 32rem;
+    overflow: auto;
+    border-color: var(--mk-line-soft);
+}
+.ma-matriz {
+    min-width: 1080px;
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .74rem;
+}
+/* Oculto a la vista pero presente para un lector de pantalla. */
+.ma-matriz caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.ma-matriz thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 0;
+    /* Fondo opaco imprescindible: las filas pasan por debajo al desplazar y sin
+       él se leerían dos textos superpuestos. */
+    background: var(--mk-surface);
+    border-bottom: 1px solid var(--mk-line);
+    text-align: right;
+    white-space: nowrap;
+}
+.ma-matriz thead th button {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: .3rem;
+    width: 100%;
+    padding: .55rem .6rem;
+    border: 0;
+    background: transparent;
+    color: var(--mk-text);
+    font: inherit;
+    font-size: .61rem;
+    font-weight: 850;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color .15s, background .15s;
+}
+.ma-matriz thead th button:hover { background: var(--mk-surface-3); color: var(--mk-text-2); }
+.ma-matriz thead th button:focus-visible { outline: 2px solid var(--mk-proteinas-foco); outline-offset: -2px; }
+.ma-matriz thead th small {
+    font-size: .53rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--mk-muted);
+}
+.ma-matriz thead th button i { font-size: .58rem; opacity: .35; }
+.ma-matriz thead th.es-orden { background: var(--mk-proteinas-soft); }
+.ma-matriz thead th.es-orden button { color: var(--mk-proteinas-ink); }
+.ma-matriz thead th.es-orden button i { opacity: 1; }
+/* Una línea de color bajo la cabecera dice a qué procedencia pertenece cada
+   columna sin gastar una fila de agrupación. */
+.ma-matriz thead th.ma-cel { box-shadow: inset 0 -2px 0 rgba(var(--pa-veg-rgb), .5); }
+.ma-matriz thead th.fam-pescado,
+.ma-matriz thead th.fam-alga { box-shadow: inset 0 -2px 0 rgba(var(--pa-agua-rgb), .5); }
+
+.ma-matriz td,
+.ma-matriz tbody th {
+    padding: .4rem .6rem;
+    border-bottom: 1px solid var(--mk-line-soft);
+    text-align: right;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.ma-val { font-family: 'JetBrains Mono', monospace; font-size: .75rem; font-weight: 800; color: var(--mk-text); }
+.ma-val em { margin-left: .05rem; font-style: normal; font-size: .55rem; font-weight: 700; color: var(--mk-muted); }
+.ma-nulo { color: var(--mk-line-strong); }
+.ma-matriz .ma-pais,
+.ma-matriz .ma-no-gan {
+    position: sticky;
+    z-index: 1;
+    background: var(--mk-bg-raised);
+}
+.ma-matriz .ma-pais { left: 0; width: 10.5rem; min-width: 10.5rem; text-align: left; font-weight: 600; color: var(--mk-text-2); }
+/* La familia dominante bajo el nombre: es la lectura de la fila en una palabra,
+   y evita tener que recorrer nueve columnas para saber de qué vive ese país. */
+.ma-matriz .ma-pais small { display: block; margin-top: .05rem; color: var(--mk-muted); font-size: .58rem; font-weight: 700; }
+.ma-matriz .ma-no-gan { left: 10.5rem; width: 6.5rem; min-width: 6.5rem; box-shadow: 6px 0 10px -6px rgba(0, 0, 0, .5); }
+.ma-matriz .ma-total { width: 5.2rem; }
+.ma-matriz .ma-cel { width: 5.4rem; }
+.ma-matriz thead .ma-pais,
+.ma-matriz thead .ma-no-gan { z-index: 4; background: var(--mk-surface); }
+.ma-matriz thead .ma-pais button { justify-content: flex-start; }
+
+.ma-ng-barra { display: flex; gap: 1px; height: 4px; margin-top: .2rem; border-radius: 20px; background: var(--mk-surface); overflow: hidden; }
+.ma-ng-barra i { display: block; height: 100%; }
+.ma-ng-barra i.es-veg { background: var(--pa-veg); }
+.ma-ng-barra i.es-agua { background: var(--pa-agua); }
+.ma-cel.fam-pescado,
+.ma-cel.fam-alga { --ma-tinte: var(--pa-agua-rgb); }
+.ma-b1 { background: rgba(var(--ma-tinte), .08); }
+.ma-b2 { background: rgba(var(--ma-tinte), .18); }
+.ma-b3 { background: rgba(var(--ma-tinte), .30); }
+.ma-b4 { background: rgba(var(--ma-tinte), .43); }
+.ma-b5 { background: rgba(var(--ma-tinte), .56); }
+/* El recuadro de la dominante va POR DENTRO (inset) y no como border: un borde
+   real desplazaría la celda un píxel y desalinearía toda la fila. */
+.ma-cel.es-dominante { box-shadow: inset 0 0 0 1.5px var(--mk-proteinas-ink); }
+
+.ma-matriz tbody tr:hover .ma-pais,
+.ma-matriz tbody tr:hover .ma-no-gan { background: var(--mk-surface-3); }
+.ma-matriz tbody tr:hover td { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .04); }
+/* El hover no puede borrar el recuadro de la dominante, y ambos usan box-shadow:
+   se apilan en una sola declaración en vez de pisarse. */
+.ma-matriz tbody tr:hover td.es-dominante {
+    box-shadow: inset 0 0 0 1.5px var(--mk-proteinas-ink), inset 0 0 0 999px rgba(255, 255, 255, .04);
+}
+
+.ma-matriz tbody tr.es-mundo th,
+.ma-matriz tbody tr.es-mundo td { background: var(--mk-bg-raised); font-weight: 700; }
+.ma-matriz tbody tr.es-mundo { position: sticky; top: 2.1rem; z-index: 2; }
+.ma-matriz tbody tr.es-mundo .ma-pais { box-shadow: inset 3px 0 0 var(--mk-text-2); }
+/* El mundo es la vara de medir, no una fila más: se le quita el tinte de calor
+   para que no compita con los países en la misma escala visual. */
+.ma-matriz tbody tr.es-mundo .ma-cel { background: var(--mk-bg-raised); box-shadow: none; }
+.ma-matriz tbody tr.es-mundo .ma-val { color: var(--mk-muted); }
+
+.ma-matriz tbody tr.es-mexico th,
+.ma-matriz tbody tr.es-mexico .ma-no-gan,
+.ma-matriz tbody tr.es-mexico .ma-total { background: var(--mk-proteinas-soft); }
+.ma-matriz tbody tr.es-mexico .ma-pais { color: var(--mk-proteinas-ink); font-weight: 800; box-shadow: inset 3px 0 0 var(--mk-proteinas); }
+
+.ma-vacio td { padding: 1.6rem .8rem; color: var(--mk-muted); font-size: .74rem; text-align: center; }
+
+@media (max-width: 720px) {
+    /* Dos columnas ancladas se comen la pantalla: se queda solo el nombre del
+       país, que es el mínimo para no perder el hilo de la fila. */
+    .ma-matriz .ma-no-gan { position: static; }
+    .ma-matriz .ma-pais { width: 8rem; min-width: 8rem; box-shadow: 6px 0 10px -6px rgba(0, 0, 0, .5); }
+    .ma-scroll { max-height: 26rem; }
+    .ma-cuenta { margin-left: 0; }
+    .ma-busca input { width: 100%; }
+    .ma-busca { flex: 1 1 100%; }
+}
+
   

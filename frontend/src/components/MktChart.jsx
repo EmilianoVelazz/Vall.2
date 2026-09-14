@@ -22,11 +22,25 @@ const INTERVALO_POR_RANGO = {
   '3y': '1wk', '5y': '1wk', max: '1mo',
 };
 
+/* Acentos de la serie, uno por panel. Coinciden con --mk-{seccion} de
+   mercados-redesign-v2.css, que es lo que pinta el filo y el icono de esa misma
+   sección: la línea de la gráfica y la tarjeta de la que se abre son el mismo
+   color. */
 const ACENTO = {
-  granos: { linea: '#2f7d32', area: 'rgba(94,139,44,.42)' },
-  energia: { linea: '#17788a', area: 'rgba(23,120,138,.40)' },
-  metales: { linea: '#a85d29', area: 'rgba(168,93,41,.38)' },
+  granos: { linea: '#e0b059', area: 'rgba(224,176,89,.28)' },
+  energia: { linea: '#dd8468', area: 'rgba(221,132,104,.26)' },
+  metales: { linea: '#a98ae0', area: 'rgba(169,138,224,.26)' },
 };
+
+/* LightweightCharts recibe colores ya resueltos, no acepta var(--…). En vez de
+   copiar la paleta aquí —que es como se desincronizan las dos— se leen las
+   custom properties del documento en el momento de crear la gráfica, con un
+   valor de reserva por si la hoja aún no ha cargado. */
+function token(nombre, reserva) {
+  if (typeof window === 'undefined') return reserva;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  return v || reserva;
+}
 
 export default function MktChart({ ticker, rango, modo, panel }) {
   const contenedor = useRef(null);
@@ -60,14 +74,18 @@ export default function MktChart({ ticker, rango, modo, panel }) {
 
       if (!velas.length) { setEstado('vacio'); return; }
 
+      const superficie = token('--mk-surface', '#243142');
+      const linea = token('--mk-line-soft', '#374758');
+      const rotulo = token('--mk-muted', '#9dacb9');
+
       chart = LWC.createChart(nodo, {
         width: nodo.clientWidth,
         height: nodo.clientHeight || 280,
-        layout: { background: { color: '#fff' }, textColor: '#334155' },
-        grid: { vertLines: { color: 'rgba(0,33,58,.05)' }, horzLines: { color: 'rgba(0,33,58,.05)' } },
+        layout: { background: { color: superficie }, textColor: rotulo },
+        grid: { vertLines: { color: linea }, horzLines: { color: linea } },
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { borderColor: 'rgba(0,33,58,.08)', timeVisible: true, secondsVisible: false },
-        rightPriceScale: { borderColor: 'rgba(0,33,58,.08)' },
+        timeScale: { borderColor: linea, timeVisible: true, secondsVisible: false },
+        rightPriceScale: { borderColor: linea },
       });
 
       const color = ACENTO[panel] || ACENTO.granos;
@@ -79,10 +97,12 @@ export default function MktChart({ ticker, rango, modo, panel }) {
         chart.addAreaSeries({ lineColor: color.linea, topColor: color.area, bottomColor: 'rgba(23,120,138,.03)', lineWidth: 3, priceLineColor: color.linea })
           .setData(velas.map((q) => ({ time: q.time, value: q.close })));
       } else {
+        const sube = token('--mk-up', '#59d2aa');
+        const baja = token('--mk-down', '#fe7d8a');
         chart.addCandlestickSeries({
-          upColor: '#16a34a', downColor: '#dc2626',
-          borderUpColor: '#16a34a', borderDownColor: '#dc2626',
-          wickUpColor: '#16a34a', wickDownColor: '#dc2626',
+          upColor: sube, downColor: baja,
+          borderUpColor: sube, borderDownColor: baja,
+          wickUpColor: sube, wickDownColor: baja,
         }).setData(velas.map((q) => ({ time: q.time, open: q.open, high: q.high, low: q.low, close: q.close })));
       }
 
@@ -109,7 +129,8 @@ export default function MktChart({ ticker, rango, modo, panel }) {
         <div style={{
           position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
           justifyContent: 'center', gap: '.5rem', fontSize: '.72rem',
-          color: estado === 'error' ? '#dc2626' : '#94a3b8', background: '#fff',
+          color: estado === 'error' ? 'var(--mk-down)' : 'var(--mk-muted)',
+          background: 'var(--mk-surface)',
         }}
         >
           {estado === 'cargando' && <><i className="fas fa-spinner fa-spin" /> Cargando gráfico…</>}

@@ -370,7 +370,7 @@
 
             miConfig.addEventListener('click', function () {
                 _closeHam();
-                window.location.href = '/pages/configuracion.html';
+                window.location.href = '/configuracion';
             });
             miLogout.addEventListener('click', function () {
                 _closeHam();
@@ -393,7 +393,7 @@
         document.getElementById('vn-um-config').addEventListener('click', function (e) {
             e.stopPropagation();
             menu.classList.remove('vn-um-open');
-            window.location.href = '/pages/configuracion.html';
+            window.location.href = '/configuracion';
         });
         document.getElementById('vn-um-logout').addEventListener('click', function (e) {
             e.stopPropagation();

@@ -338,8 +338,12 @@
        robot para toda la plataforma: un solo SVG, sin variantes ni preferencia
        almacenada. Se conserva data-mascota como anulación opcional para no
        romper las páginas que aún lo declaran. */
+    /* La marca ?v= NO es decorativa: el SVG se sirve desde /assets, sin hash en
+       el nombre, así que el navegador se queda con la copia anterior hasta que
+       cambia. Al rediseñar la mascota sin subirla, quien ya hubiera abierto el
+       chat seguía viendo la vieja. Si se vuelve a tocar robot.svg, se sube. */
     const script = document.querySelector('script[src*="chat-widget"]');
-    const ROBOT  = script?.dataset.mascota || '/assets/img/robot.svg';
+    const ROBOT  = script?.dataset.mascota || '/assets/img/robot.svg?v=3';
     const mascotaFull = ROBOT;
     const mascotaPeek = ROBOT;
 
@@ -357,6 +361,9 @@ REGLAS:
 2. Ajusta la extensión a la pregunta: si es simple, responde en 1-2 frases directas.
    Si piden un análisis, reporte o "explica a fondo", desarrolla con la profundidad
    que el tema merezca — no recortes artificialmente un análisis completo.
+   Un reporte o informe debe ser autónomo, responder al encargo específico y tener
+   al menos 900 palabras útiles; amplía con evidencia, mecanismos, escenarios,
+   riesgos, recomendaciones y límites, nunca con frases repetidas.
 3. Cuando tengas datos de la página del usuario, analízalos proactivamente.
 4. Usa **negritas** para datos clave y cifras.
 5. Si te preguntan algo fuera de finanzas/economía/mercados, responde brevemente y redirige amablemente.
@@ -736,6 +743,7 @@ REGLAS:
        limitada, así que solo se pide cuando la pregunta realmente lo amerita.
        El backend valida el nivel (whitelist 'flash'|'pro') — esto es solo la heurística. */
     const _PRO_INTENT_RE = /\b(reporte|documento|word|\.doc|an[aá]lisis (profundo|detallado|completo|a fondo)|analiza a fondo|proyecci[oó]n(es)?|pron[oó]stico|escenarios?|compara(r|ci[oó]n)?|estrategia|recomendaci[oó]n de inversi[oó]n|impacto (de|en)|explica (por qu[eé]|a fondo)|elabora|desarrolla|tendencias?|correlaci[oó]n|riesgo sist[eé]mico|m[uú]ltiples|varios (activos|mercados|pa[ií]ses|escenarios)|a largo plazo|qu[eé] pasar[ií]a si|c[oó]mo afecta|profundiza|gr[aá]fica|gr[aá]fico|graficar|chart|diagrama|visualiza(ci[oó]n)?)\b/i;
+    const _REPORT_INTENT_RE = /\b(reporte|informes?|documento|word|\.docx?|investigaci[oó]n)\b/i;
 
     function _classifyComplexity(text) {
         const t = (text || '').trim();
@@ -753,7 +761,6 @@ REGLAS:
     async function _geminiStreamRequest(request, tier, onChunk) {
         const ctrl = new AbortController();
         _activeCtrl = ctrl;
-        const tid  = setTimeout(() => ctrl.abort(), 45000);
         let usedTier = tier;
         try {
             // Enviar ambos nombres mantiene compatibilidad con el backend nuevo
@@ -762,55 +769,76 @@ REGLAS:
             // termina respondiendo "Prompt vacío".
             const normalizedMessage = String(request?.message || request?.prompt || '').trim();
             if (!normalizedMessage) throw new Error('Escribe una pregunta antes de enviarla.');
-            const res = await fetch('/api/ai-insight-stream', {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...request,
-                    message: normalizedMessage,
-                    prompt: normalizedMessage,
-                    tier,
-                    structured: true,
-                }),
-                signal: ctrl.signal,
-            });
-            if (!res.ok || !res.body) {
-                const errBody = await res.json().catch(() => null);
-                throw new Error(errBody?.error ? `${res.status}: ${errBody.error}` : `Gemini HTTP ${res.status}`);
-            }
+            // Los informes usan Pro y pueden requerir una revisión final de
+            // longitud; no se deben abortar mientras ya se está generando.
+            const timeoutMs = _REPORT_INTENT_RE.test(normalizedMessage) ? 150000 : 60000;
+            const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                const res = await fetch('/api/ai-insight-stream', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...request,
+                        message: normalizedMessage,
+                        prompt: normalizedMessage,
+                        tier,
+                        structured: true,
+                    }),
+                    signal: ctrl.signal,
+                });
+                if (res.status === 401) {
+                    // La cookie httpOnly dejó de ser válida aunque la pestaña
+                    // conserve el historial visual. Volvemos al acceso en vez
+                    // de presentar un error técnico dentro de la conversación.
+                    try { sessionStorage.removeItem('vn_auth'); sessionStorage.removeItem('vn_user'); } catch {}
+                    window.location.replace('/');
+                    throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+                }
+                if (!res.ok || !res.body) {
+                    const errBody = await res.json().catch(() => null);
+                    throw new Error(errBody?.error ? `${res.status}: ${errBody.error}` : `Gemini HTTP ${res.status}`);
+                }
 
-            const reader  = res.body.getReader();
-            const decoder = new TextDecoder('utf-8');
-            let buf = '';
-            let full = '';
-            let richResponse = null;
+                const reader  = res.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buf = '';
+                let full = '';
+                let richResponse = null;
 
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                buf += decoder.decode(value, { stream: true });
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, { stream: true });
 
-                let idx;
-                while ((idx = buf.indexOf('\n\n')) !== -1) {
-                    const raw = buf.slice(0, idx);
-                    buf = buf.slice(idx + 2);
-                    const line = raw.trim();
-                    if (!line.startsWith('data:')) continue;
-                    let payload;
-                    try { payload = JSON.parse(line.slice(5).trim()); } catch { continue; }
-                    if (payload.error) throw new Error(payload.error);
-                    if (payload.text) { full += payload.text; onChunk(full); }
-                    if (payload.response) richResponse = payload.response;
-                    if (payload.done) {
-                        if (payload.tier) usedTier = payload.tier;
-                        return { text: payload.finalText || full, tier: usedTier, response: richResponse };
+                    let idx;
+                    while ((idx = buf.indexOf('\n\n')) !== -1) {
+                        const raw = buf.slice(0, idx);
+                        buf = buf.slice(idx + 2);
+                        const line = raw.trim();
+                        if (!line.startsWith('data:')) continue;
+                        let payload;
+                        try { payload = JSON.parse(line.slice(5).trim()); } catch { continue; }
+                        if (payload.error) {
+                            // Una falla posterior a los fragmentos —por ejemplo,
+                            // al guardar telemetría— no debe borrar la respuesta
+                            // que la persona ya alcanzó a recibir.
+                            if (full) return { text: full, tier: usedTier, response: richResponse };
+                            throw new Error(payload.error);
+                        }
+                        if (payload.text) { full += payload.text; onChunk(full); }
+                        if (payload.response) richResponse = payload.response;
+                        if (payload.done) {
+                            if (payload.tier) usedTier = payload.tier;
+                            return { text: payload.finalText || full, tier: usedTier, response: richResponse };
+                        }
                     }
                 }
+                return { text: full, tier: usedTier, response: richResponse };
+            } finally {
+                clearTimeout(tid);
             }
-            return { text: full, tier: usedTier, response: richResponse };
         } finally {
-            clearTimeout(tid);
             if (_activeCtrl === ctrl) _activeCtrl = null;
         }
     }
@@ -881,7 +909,7 @@ REGLAS:
             message: userMessage,
             context: parts.join('\n\n'),
             history: recentHistory,
-            mode: (() => { try { return localStorage.getItem(RESPONSE_MODE_KEY) || 'auto'; } catch { return 'auto'; } })(),
+            mode: _REPORT_INTENT_RE.test(userMessage) ? 'detailed' : (() => { try { return localStorage.getItem(RESPONSE_MODE_KEY) || 'auto'; } catch { return 'auto'; } })(),
         };
         let { text: reply, tier: usedTier, response } = await _geminiStreamRequest(request, tier, onChunk);
         if (!reply) throw new Error('Respuesta vacía');
@@ -1220,6 +1248,269 @@ REGLAS:
 /* Si el usuario pide menos movimiento, el rebote del botón se desactiva. */
 @media (prefers-reduced-motion: reduce) {
     #vn-cw-btn, #vn-cw-btn img { transition: none; }
+}
+
+/* ── Sistema visual VALL AI v6 ─────────────────────────────────────
+   Capa final de presentación: mantiene la estructura y los eventos del chat,
+   pero lo alinea con la interfaz actual de VALLNews (tinta, superficies claras
+   y ámbar como único acento de inteligencia artificial). */
+/* Este widget no participa en /vall-ai (se oculta en esa ruta). La capa visual
+   se mantiene activa para dar al acceso flotante el mismo sistema de contraste
+   que el resto de VALLNews.
+*/
+#vn-cw {
+    right: 24px;
+    bottom: 24px;
+    --cw-ink: #0f2436;
+    --cw-muted: #647889;
+    --cw-plane: #f4f6f8;
+    --cw-surface: #ffffff;
+    --cw-line: rgba(15,36,54,.12);
+    --cw-accent: #51d2f2;
+    --cw-accent-ink: #073e58;
+    --cw-deep: #0a2a3e;
+}
+
+#vn-cw-btn {
+    width: 64px;
+    height: 64px;
+    padding: 0;
+    transform: none;
+    overflow: hidden;
+    border: 1px solid rgba(176, 239, 252, .82);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 28%, #1a5570, var(--cw-deep) 66%);
+    box-shadow: 0 12px 28px rgba(4, 23, 36, .32), 0 0 0 4px rgba(81, 210, 242, .16);
+    filter: none;
+}
+#vn-cw-btn::before {
+    position: absolute;
+    inset: -5px;
+    z-index: -1;
+    content: '';
+    border: 1px solid rgba(81, 210, 242, .72);
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(.92);
+    transition: opacity .2s, transform .2s;
+}
+#vn-cw-btn:hover, #vn-cw-btn.open { transform: translateY(-2px); }
+#vn-cw-btn:hover::before, #vn-cw-btn.open::before { opacity: 1; transform: scale(1); }
+#vn-cw-btn img {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 78px;
+    height: 78px;
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    clip-path: inset(0 0 24% 0);
+    transform: translateX(-50%);
+}
+#vn-cw-btn:hover #vn-cw-img-normal,
+#vn-cw-btn.open #vn-cw-img-normal { transform: none; }
+#vn-cw-badge {
+    top: -8px;
+    left: auto;
+    right: -8px;
+    min-width: 19px;
+    padding: 3px 6px;
+    color: #fff;
+    text-align: center;
+    background: #187ec1;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(15,36,54,.22);
+}
+
+#vn-cw-box {
+    right: 0;
+    bottom: 84px;
+    top: auto;
+    width: min(424px, calc(100vw - 48px));
+    height: min(660px, calc(100vh - 124px));
+    max-height: none;
+    border: 1px solid var(--cw-line);
+    border-radius: 16px;
+    background: var(--cw-plane);
+    box-shadow: 0 24px 70px rgba(15,36,54,.24);
+}
+@keyframes vn-up { from{opacity:0;transform:translateY(10px) scale(.985)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+#vn-cw-hdr {
+    min-height: 72px;
+    padding: .75rem 1rem;
+    background: var(--cw-deep);
+    border-bottom: 3px solid var(--cw-accent);
+}
+#vn-cw-hdr-left { gap: .65rem; }
+#vn-cw-hdr-avatar {
+    width: 39px;
+    height: 39px;
+    padding: 4px;
+    border-radius: 11px;
+    background: var(--cw-accent);
+}
+#vn-cw-hdr-title { font-size: .82rem; letter-spacing: .08em; }
+#vn-cw-hdr-sub { color: rgba(239,246,249,.66); font-size: .57rem; letter-spacing: .015em; }
+#vn-cw-page-tag {
+    padding: 2px 6px;
+    margin-left: .4rem;
+    color: #a8efff;
+    background: rgba(81,210,242,.16);
+    border: 1px solid rgba(81,210,242,.28);
+    border-radius: 5px;
+}
+#vn-cw-hdr-online { background: #41c985; box-shadow: 0 0 0 3px rgba(65,201,133,.16); }
+#vn-cw-newchat, #vn-cw-more, #vn-cw-close {
+    width: 29px;
+    height: 29px;
+    padding: 0;
+    color: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 7px;
+}
+#vn-cw-newchat:hover, #vn-cw-more:hover, #vn-cw-close:hover, #vn-cw-more.vn-menu-open {
+    color: #fff;
+    background: rgba(255,255,255,.16);
+}
+
+#vn-cw-menu {
+    right: 0;
+    min-width: 226px;
+    border-color: var(--cw-line);
+    border-radius: 10px;
+    box-shadow: 0 16px 40px rgba(15,36,54,.2);
+}
+.vn-menu-item { color: var(--cw-ink); font-size: .75rem; }
+.vn-menu-item:hover { background: #fff8e8; }
+.vn-menu-item i { color: var(--cw-accent-ink); }
+
+#vn-cw-msgs {
+    padding: 1rem;
+    gap: .72rem;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.75), rgba(244,246,248,.96)),
+        var(--cw-plane);
+}
+#vn-cw-msgs::-webkit-scrollbar-thumb { background: #bdc8cf; }
+.vn-avatar {
+    width: 27px;
+    height: 27px;
+    padding: 3px;
+    border: 1px solid #f0d28d;
+    border-radius: 8px;
+    background: #fff3d4;
+    box-shadow: none;
+}
+.vn-col { max-width: 87%; }
+.vn-bbl {
+    padding: .62rem .78rem;
+    font-size: .77rem;
+    line-height: 1.6;
+    border: 1px solid var(--cw-line);
+    border-radius: 5px 13px 13px;
+    box-shadow: 0 5px 14px rgba(15,36,54,.045);
+}
+.vn-m.b .vn-bbl { color: var(--cw-ink); background: var(--cw-surface); }
+.vn-m.b .vn-bbl strong, .vn-rich-heading, .vn-rich-block-title { color: var(--cw-ink); }
+.vn-m.u .vn-bbl {
+    color: #fff;
+    background: var(--cw-deep);
+    border-color: var(--cw-deep);
+    border-radius: 13px 5px 13px 13px;
+}
+.vn-m.sys .vn-bbl { color: var(--cw-muted); background: #fff8e8; border-color: #f2dfa9; }
+.vn-ts { color: #8496a2; }
+.vn-tier-badge { color: var(--cw-accent-ink); background: #e8faff; border-color: #a8eafa; border-radius: 6px; }
+
+.vn-act-btn {
+    color: var(--cw-muted);
+    border-color: var(--cw-line);
+    border-radius: 6px;
+    background: rgba(255,255,255,.7);
+}
+.vn-act-btn:hover { color: var(--cw-accent-ink); background: #e8faff; border-color: var(--cw-accent); }
+.vn-act-btn.vn-copied { color: #275a7a; background: #eaf3f8; border-color: #9fc7da; }
+.vn-bbl table.vn-tbl th, .vn-bbl table.vn-tbl td { border-color: var(--cw-line); }
+.vn-bbl table.vn-tbl th { color: var(--cw-ink); background: #f1f5f6; }
+.vn-bbl table.vn-tbl tr:nth-child(even) td { background: #fafcfc; }
+.vn-chart-wrap { border-color: var(--cw-line); border-radius: 9px; box-shadow: none; }
+.vn-chart-title { color: var(--cw-ink); }
+
+#vn-cw-scrollbtn { right: 15px; background: var(--cw-deep); border-radius: 8px; }
+#vn-cw-scrollbtn:hover { background: #24465a; }
+#vn-cw-histpanel { background: var(--cw-plane); }
+#vn-cw-histpanel-hdr { background: #fff; border-bottom-color: var(--cw-line); }
+#vn-cw-histpanel-back, #vn-cw-histpanel-title { color: var(--cw-ink); }
+#vn-cw-histpanel-back:hover { color: var(--cw-accent-ink); }
+.vn-hist-group-hdr { color: var(--cw-muted); }
+.vn-hist-conv-title { color: var(--cw-ink); }
+.vn-hist-conv:hover .vn-hist-conv-title { background: #fff8e8; }
+.vn-hist-conv-active .vn-hist-conv-title { color: var(--cw-accent-ink); background: #def8ff; box-shadow: inset 2px 0 0 var(--cw-accent); }
+
+.vn-typing span { background: var(--cw-accent-ink); }
+#vn-cw-sugs { padding: 8px 12px; background: rgba(255,255,255,.7); border-top-color: var(--cw-line); }
+.vn-sug-btn {
+    color: var(--cw-ink);
+    background: #fff;
+    border-color: var(--cw-line);
+    border-radius: 7px;
+    font-size: .63rem;
+}
+.vn-sug-btn:hover { color: var(--cw-accent-ink); background: #e8faff; border-color: var(--cw-accent); }
+.vn-sug-btn.vn-sug-personal { color: var(--cw-accent-ink); border-color: #91e4f6; }
+.vn-sug-btn.vn-sug-personal:hover { color: var(--cw-accent-ink); background: #def8ff; border-color: var(--cw-accent); }
+
+#vn-cw-footer { padding: .6rem .75rem .7rem; background: #fff; border-top-color: var(--cw-line); }
+#vn-cw-mode-row { color: var(--cw-muted); }
+#vn-cw-mode { color: var(--cw-ink); background: #f8fafb; border-color: var(--cw-line); border-radius: 6px; }
+#vn-cw-input {
+    color: var(--cw-ink);
+    background: #f8fafb;
+    border-color: var(--cw-line);
+    border-radius: 9px;
+}
+#vn-cw-input::placeholder { color: #8d9da7; }
+#vn-cw-input:focus { border-color: var(--cw-accent); box-shadow: 0 0 0 3px rgba(81,210,242,.16); }
+#vn-cw-send { color: #052d40; background: var(--cw-accent); border-radius: 9px; }
+#vn-cw-send:hover { color: #052d40; background: #8ce7f9; }
+
+.vn-rich-summary { color: #07506a; background: #e8faff; border-left-color: var(--cw-accent); }
+.vn-rich-alert { color: #174864; background: #edf7fb; border-color: #b8dae9; }
+.vn-rich-quote { color: #4a606e; background: #f4f7f8; border-left-color: var(--cw-accent); }
+.vn-rich-comparison article, .vn-rich-document { border-color: var(--cw-line); border-radius: 9px; }
+.vn-rich-formula { background: #f4f7f8; }
+.vn-rich-formula code { color: var(--cw-ink); }
+.vn-rich-download { color: #052d40; background: var(--cw-accent); }
+
+[data-theme="dark"] #vn-cw, .dark-theme #vn-cw {
+    --cw-ink: #edf4f7;
+    --cw-muted: #a7bbc6;
+    --cw-plane: #10212c;
+    --cw-surface: #142a37;
+    --cw-line: rgba(231,243,247,.13);
+    --cw-deep: #0b1d28;
+}
+[data-theme="dark"] #vn-cw-msgs, .dark-theme #vn-cw-msgs { background: linear-gradient(180deg, #142a37, #10212c); }
+[data-theme="dark"] #vn-cw-footer, .dark-theme #vn-cw-footer,
+[data-theme="dark"] #vn-cw-histpanel-hdr, .dark-theme #vn-cw-histpanel-hdr,
+[data-theme="dark"] .vn-m.b .vn-bbl, .dark-theme .vn-m.b .vn-bbl { background: var(--cw-surface); }
+[data-theme="dark"] .vn-sug-btn, .dark-theme .vn-sug-btn,
+[data-theme="dark"] #vn-cw-input, .dark-theme #vn-cw-input { background: #10212c; }
+[data-theme="dark"] #vn-cw-menu, .dark-theme #vn-cw-menu { background: #142a37; }
+
+@media (max-width: 768px) {
+    #vn-cw { right: 14px; bottom: 14px; }
+    #vn-cw-btn { width: 60px; height: 60px; border-radius: 50%; }
+    #vn-cw-box { left: auto; right: 0; top: auto; bottom: 74px; width: min(424px, calc(100vw - 28px)); height: min(650px, calc(100vh - 96px)); border-radius: 14px; }
+}
+@media (max-width: 400px) {
+    #vn-cw-btn { width: 56px; height: 56px; }
+    #vn-cw-box { bottom: 68px; height: calc(100vh - 84px); }
 }
 `;
         document.head.appendChild(style);

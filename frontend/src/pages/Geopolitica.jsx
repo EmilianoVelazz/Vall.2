@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import AcledMap from '../components/AcledMap.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { globalLegado } from '../lib/loadScripts.js';
+import textoEnriquecido from '../lib/textoEnriquecido.js';
 import acledDemo, { REGION_POR_PAIS, categoriaDe } from '../data/acledDemo.js';
 import './Geopolitica.css';
+import { ESQUELETO } from '../lib/hojasComunes.js';
 
 /*
  * Geopolítica en React idiomático (antes pages/geopolitica.html, 1205 líneas).
@@ -31,16 +33,13 @@ import './Geopolitica.css';
  */
 
 const HOJAS = [
-  '/assets/css/base.css',
-  '/assets/css/header.css',
-  '/assets/css/footer.css',
-  '/assets/css/responsive.css',
+  ...ESQUELETO,
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
 ];
 
-const LIBS = ['/assets/js/api-keys.js?v=5', '/assets/js/data-service.js?v=22'];
+const LIBS = ['/assets/js/api-keys.js?v=5', '/assets/js/data-service.js?v=23'];
 const LIBS_MAPA = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
@@ -58,28 +57,31 @@ const TICKER = [
   { clave: 'vix', titulo: 'VIX (Volatilidad)', ticker: '^VIX', decimales: 2 },
 ];
 
+/* Iconos y no emoji. Windows no dibuja las banderas emoji: 🇺🇸 se pintaba como
+   las letras «US» sueltas y 🇪🇺 como «EU», que parecía un fallo de codificación.
+   Font Awesome ya está cargado en todas las rutas y se ve igual en todas. */
 const REGIONES_MAPA = [
-  { id: 'all', texto: '🌍 Mundo' },
-  { id: 'ukraine', texto: '🇺🇦 Ucrania' },
-  { id: 'middle_east', texto: '📍 Medio Oriente' },
-  { id: 'africa', texto: '🌍 África' },
-  { id: 'latam', texto: '🌎 LATAM' },
+  { id: 'all', texto: 'Mundo', icono: 'fa-globe' },
+  { id: 'ukraine', texto: 'Ucrania', icono: 'fa-crosshairs' },
+  { id: 'middle_east', texto: 'Medio Oriente', icono: 'fa-location-dot' },
+  { id: 'africa', texto: 'África', icono: 'fa-earth-africa' },
+  { id: 'latam', texto: 'LATAM', icono: 'fa-earth-americas' },
 ];
 
 const CATEGORIAS_MAPA = [
-  { id: 'all', texto: 'Todos' },
-  { id: 'armado', texto: '⚔️ Armado' },
-  { id: 'social', texto: '👥 Social' },
-  { id: 'politico', texto: '🏛️ Político' },
-  { id: 'economico', texto: '📉 Económico' },
+  { id: 'all', texto: 'Todos', icono: 'fa-layer-group' },
+  { id: 'armado', texto: 'Armado', icono: 'fa-crosshairs' },
+  { id: 'social', texto: 'Social', icono: 'fa-users' },
+  { id: 'politico', texto: 'Político', icono: 'fa-landmark' },
+  { id: 'economico', texto: 'Económico', icono: 'fa-arrow-trend-down' },
 ];
 
 const FILTROS = [
-  { id: 'all', texto: 'TODAS LAS REGIONES' },
-  { id: 'usa', texto: '🇺🇸 USA' },
-  { id: 'asia', texto: '🌏 ASIA' },
-  { id: 'europa', texto: '🇪🇺 EUROPA' },
-  { id: 'latam', texto: '🌎 LATAM' },
+  { id: 'all', texto: 'Todas las regiones', icono: 'fa-globe' },
+  { id: 'usa', texto: 'USA', icono: 'fa-flag-usa' },
+  { id: 'asia', texto: 'Asia', icono: 'fa-earth-asia' },
+  { id: 'europa', texto: 'Europa', icono: 'fa-euro-sign' },
+  { id: 'latam', texto: 'LATAM', icono: 'fa-earth-americas' },
 ];
 
 const LEYENDA = [
@@ -122,8 +124,38 @@ const RESPALDO = {
 const REGIONES = ['usa', 'asia', 'europa', 'latam'];
 const CATEGORIA_TXT = { usa: 'USA · Política', asia: 'Asia · Geopolítica', europa: 'Europa · Conflicto', latam: 'LATAM · Región' };
 const IMPACTO = { usa: 'alto', asia: 'alto', europa: 'medio', latam: 'bajo' };
-const BANDERA = { usa: '🇺🇸', asia: '🌏', europa: '🇪🇺', latam: '🌎', global: '🌍' };
-const IMGS = ['/assets/img/mercados.webp', '/assets/img/finanzas.webp', '/assets/img/mercadoP.webp', '/assets/img/mexico.webp'];
+const BANDERA = { usa: 'fa-flag-usa', asia: 'fa-earth-asia', europa: 'fa-euro-sign', latam: 'fa-earth-americas', global: 'fa-globe' };
+const REGION_TXT = { usa: 'USA', asia: 'Asia', europa: 'Europa', latam: 'LATAM', global: 'Global' };
+
+/* UNA sola imagen, la de la sección, para las cuatro regiones.
+   Antes se repartían cuatro fotos de OTRAS secciones —granos, finanzas,
+   proteínas, México— por orden de índice, sin ninguna relación con el titular
+   que les tocaba encima. Salía una foto de carne bajo «Europa · Conflicto:
+   Emiratos dice que Irán le lanzó dos misiles», que es exactamente la pareja
+   titular-imagen que no se debe publicar. Lo que distingue ahora una región de
+   otra es el tono: filo, icono y cintillo, como en Mercados. */
+const IMG_SECCION = '/assets/img/geo.webp';
+
+/** Recorta sin partir palabras. `slice(0,100)` a secas dejaba titulares
+    terminados en «…suben los re». */
+function recortar(texto, max) {
+  const t = (texto || '').trim();
+  if (t.length <= max) return t;
+  const corte = t.slice(0, max);
+  const espacio = corte.lastIndexOf(' ');
+  return `${(espacio > max * 0.6 ? corte.slice(0, espacio) : corte).replace(/[.,;:·\-\s]+$/, '')}…`;
+}
+
+/** ¿La descripción no aporta nada sobre el titular?
+    GDELT y Finnhub devuelven a menudo el mismo texto en los dos campos, y la
+    tarjeta acababa diciendo lo mismo dos veces seguidas. */
+function repiteTitulo(desc, titulo) {
+  const limpia = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const d = limpia(desc);
+  const t = limpia(titulo).replace(/…$/, '');
+  if (!d) return true;
+  return d.startsWith(t.slice(0, 40)) || t.startsWith(d.slice(0, 40));
+}
 
 const RE_ES = /\b(el|la|los|las|de|en|y|que|un|una|por|con|del|al|se|es|su|como|para)\b/i;
 
@@ -188,14 +220,17 @@ async function cargarNoticias(VDS) {
     if (reg && grupos[reg].length < 3) grupos[reg].push(a);
   });
 
-  const noticias = REGIONES.map((reg, i) => {
+  const noticias = REGIONES.map((reg) => {
     const a = grupos[reg][0];
-    const base = { region: reg, categoria: CATEGORIA_TXT[reg], impacto: IMPACTO[reg], fecha: `${fechaFmt} · ${hora}`, img: IMGS[i % IMGS.length] };
+    const base = { region: reg, categoria: CATEGORIA_TXT[reg], impacto: IMPACTO[reg], fecha: `${fechaFmt} · ${hora}`, img: IMG_SECCION };
     if (a) {
+      const titulo = recortar(a.title, 100);
+      const desc = recortar(a.desc, 350);
       return {
         ...base,
-        titulo: (a.title || '').slice(0, 100),
-        desc: (a.desc || 'Información geopolítica actualizada.').slice(0, 350),
+        titulo,
+        // Vacía en vez de repetida: la tarjeta ya sabe no pintarla.
+        desc: repiteTitulo(desc, titulo) ? '' : desc,
         fuente: (a.src || 'GDELT').toUpperCase(),
       };
     }
@@ -210,13 +245,33 @@ function Alerta({ nivel, icono, etiqueta, titulo, cuerpo }) {
     <div className={`gp-alert-card ${nivel}`}>
       <div className="gp-alert-lbl"><i className={`fas ${icono}`} /> &nbsp;{etiqueta}</div>
       <div className="gp-alert-title">{titulo}</div>
-      <div className="gp-alert-body" dangerouslySetInnerHTML={{ __html: cuerpo }} />
+      {/* El cuerpo lo compone la página, pero interpola titulares de GDELT y
+          Alpha Vantage —texto de terceros—, así que pasa por el saneador. */}
+      {/* eslint-disable-next-line react/no-danger */}
+      <div className="gp-alert-body" dangerouslySetInnerHTML={{ __html: textoEnriquecido(cuerpo) }} />
     </div>
   );
 }
 
 export default function Geopolitica() {
   usePageStyles(HOJAS);
+
+  /* El tema de la sección se activa por clase, no por media query:
+     Geopolitica.css cuelga el fondo de body.vn-dark-geo. Se pone al montar y se
+     quita al salir, para que no tiña el resto de rutas. Es el mismo patrón que
+     usan Inicio, Finanzas y Mercados.
+
+     La clase va también en <html>, y no es redundante: el <html> conserva el
+     azul claro del tema heredado y asoma por detrás del body, lavando el color
+     de la página entera. */
+  useEffect(() => {
+    document.documentElement.classList.add('vn-dark-geo');
+    document.body.classList.add('vn-dark-geo');
+    return () => {
+      document.documentElement.classList.remove('vn-dark-geo');
+      document.body.classList.remove('vn-dark-geo');
+    };
+  }, []);
 
   const [datos, setDatos] = useState(null);
   const [precios, setPrecios] = useState({});
@@ -350,9 +405,12 @@ export default function Geopolitica() {
     const altos = lista.filter((n) => n.impacto === 'alto').length;
     const medios = lista.filter((n) => n.impacto === 'medio').length;
     const puntos = Math.min(95, Math.max(25, 40 + altos * 15 + medios * 5));
-    if (puntos > 70) return { puntos, color: '#ef4444', etiqueta: 'Riesgo Elevado', desc: 'Tensión alta detectada en zonas clave. Impacto esperado en commodities.' };
-    if (puntos > 45) return { puntos, color: '#f59e0b', etiqueta: 'Riesgo Moderado', desc: 'Tensión regional activa. Vigilancia de mercados recomendada.' };
-    return { puntos, color: '#10b981', etiqueta: 'Riesgo Bajo', desc: 'Contexto geopolítico estable o en distensión relativa.' };
+    /* Los tres colores son los del sistema (armado / económico / alza), no unos
+       rojos y verdes propios: el mismo rojo que marca «armado» en el mapa es el
+       que marca riesgo elevado aquí, y eso los ata. */
+    if (puntos > 70) return { puntos, color: '#e0605f', etiqueta: 'Riesgo elevado', desc: 'Tensión alta detectada en zonas clave. Impacto esperado en commodities.' };
+    if (puntos > 45) return { puntos, color: '#e0b059', etiqueta: 'Riesgo moderado', desc: 'Tensión regional activa. Vigilancia de mercados recomendada.' };
+    return { puntos, color: '#59d2aa', etiqueta: 'Riesgo bajo', desc: 'Contexto geopolítico estable o en distensión relativa.' };
   }, [datos]);
 
   const resumen = (n) => `<b>${(n.titulo || '').slice(0, 72)}</b><br><span style="font-size:0.78rem">${(n.desc || '').slice(0, 130)}</span>`;
@@ -363,25 +421,47 @@ export default function Geopolitica() {
       <div className="hdr-divider" />
 
       <div className="gp-container">
-        <div className="gp-page-title">
-          <i className="fas fa-earth-americas" /> Geopolítica Global
-          <span className="gp-radar-badge"><span className="gp-live-dot" /> Radar Activo</span>
-        </div>
+        {/* ── Hero ──────────────────────────────────────────────────────────
+            Mismo bloque que abre Mercados y Finanzas: cintillo, título grande,
+            línea de alcance con la hora, y a la derecha los distintivos de
+            estado. El índice de tensión sale del reparto de impacto de los
+            titulares, así que no aparece hasta que hay titulares. */}
+        <section className="gp-hero">
+          <div className="gp-hero-copy">
+            <span className="gp-hero-kicker">
+              <span className="gp-live-dot" /> VALLNews · Riesgo global
+            </span>
+            <h1 className="gp-hero-title">Geopolítica</h1>
+            <p className="gp-hero-sub">
+              Conflictos · Rutas comerciales · Sanciones · Cadenas de suministro
+              {datos?.hora && <> &nbsp;·&nbsp; {datos.hora}</>}
+            </p>
+          </div>
+          <div className="gp-hero-badges">
+            <span className="gp-badge-live"><span className="gp-live-dot" /> Radar activo</span>
+            <span className="gp-badge-idx">
+              Tensión {riesgo ? `${riesgo.puntos}/100` : '--'}
+            </span>
+          </div>
+        </section>
 
-        <div className="gp-crisis-ticker">
+        {/* ── Raíl de instrumentos ──────────────────────────────────────────
+            Los cuatro que reaccionan a una crisis. Sin dato se muestra «—» y
+            «s/d»: no se completa con cifras estimadas lo que la fuente no da. */}
+        <div className="gp-rail">
           {TICKER.map((t) => {
             const d = precios[t.clave];
             const pct = d?.pct;
             const clase = pct == null ? 'na' : pct >= 0 ? 'up' : 'dn';
             return (
-              <div className="gp-ct-card" key={t.clave}>
-                <div className="gp-ct-title">{t.titulo}</div>
-                <div className="gp-ct-val">
-                  {d ? d.precio.toFixed(t.decimales) : '—'}
-                  <span className={`gp-ct-pct ${clase}`}>
+              <div className="gp-rail-item" key={t.clave}>
+                <span className="gp-rail-lbl">{t.titulo}</span>
+                <span className="gp-rail-val">
+                  <strong>{d ? d.precio.toFixed(t.decimales) : '—'}</strong>
+                  <span className={`gp-rail-pct ${clase}`}>
                     {pct == null ? 's/d' : `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`}
                   </span>
-                </div>
+                </span>
               </div>
             );
           })}
@@ -395,7 +475,7 @@ export default function Geopolitica() {
               className={`gp-fpill${filtro === f.id ? ' active' : ''}`}
               onClick={() => setFiltro(f.id)}
             >
-              {f.texto}
+              <i className={`fas ${f.icono}`} aria-hidden="true" /> {f.texto}
             </button>
           ))}
         </div>
@@ -427,7 +507,7 @@ export default function Geopolitica() {
                 className={`gp-acled-fbtn${regionMapa === r.id ? ' active' : ''}`}
                 onClick={() => setRegionMapa(r.id)}
               >
-                {r.texto}
+                <i className={`fas ${r.icono}`} aria-hidden="true" /> {r.texto}
               </button>
             ))}
             <span className="gp-acled-count">
@@ -446,7 +526,7 @@ export default function Geopolitica() {
                 className={`gp-acled-cbtn${catMapa === c.id ? ' active' : ''}`}
                 onClick={() => setCatMapa(c.id)}
               >
-                {c.texto}
+                <i className={`fas ${c.icono}`} aria-hidden="true" /> {c.texto}
               </button>
             ))}
           </div>
@@ -467,25 +547,40 @@ export default function Geopolitica() {
           </div>
         </div>
 
+        {/* ── Módulos por región ────────────────────────────────────────────
+            Misma pieza que las cuatro tarjetas de Mercados: fotografía a
+            sangre, icono cuadrado, cintillo en versales, titular y la fuente
+            arriba a la derecha. El titular sale de GDELT/Finnhub; cuando no hay
+            nada clasificado para esa región se etiqueta «Análisis VALL», nunca
+            como titular de agencia. */}
         <div className="gp-news-grid">
           {noticias.map((n) => (
-            <article className="gp-news-card" key={n.region}>
-              <img className="gp-nc-img" src={n.img} alt={n.categoria} />
-              <div className="gp-nc-body">
-                <span className="gp-nc-cat">{n.categoria}</span>
-                <span className="gp-nc-date">{n.fecha}</span>
-                <h3 className="gp-nc-title">{n.titulo}</h3>
-                <p className="gp-nc-desc">{n.desc}</p>
-                <div className="gp-nc-foot">
-                  <span className="gp-tag-src">{n.fuente}</span>
-                  {n.impacto === 'alto' && <span className="gp-tag-high">ALTO IMPACTO</span>}
-                  {n.impacto === 'medio' && <span className="gp-tag-med">IMPACTO MEDIO</span>}
-                  {n.impacto === 'bajo' && <span className="gp-tag-low">BAJO</span>}
+            <article className={`gp-mod gp-mod-${n.region}`} key={n.region}>
+              <span
+                className="gp-mod-foto"
+                aria-hidden="true"
+                style={{ backgroundImage: `url('${n.img}')` }}
+              />
+              <span className="gp-mod-velo" aria-hidden="true" />
+              <div className="gp-mod-top">
+                <span className="gp-mod-icono"><i className={`fas ${BANDERA[n.region]}`} aria-hidden="true" /></span>
+                <div className="gp-mod-encab">
+                  <span className="gp-mod-cat">{n.categoria}</span>
+                  <span className="gp-mod-fecha">{n.fecha}</span>
                 </div>
+                <span className="gp-mod-src">{n.fuente}</span>
+              </div>
+              <div className="gp-mod-pie">
+                <h3 className="gp-mod-title">{n.titulo}</h3>
+                {n.desc && <p className="gp-mod-desc">{n.desc}</p>}
+                <span className={`gp-mod-impacto gp-imp-${n.impacto}`}>
+                  <i className="fas fa-signal" aria-hidden="true" />
+                  {n.impacto === 'alto' ? 'Alto impacto' : n.impacto === 'medio' ? 'Impacto medio' : 'Impacto bajo'}
+                </span>
               </div>
             </article>
           ))}
-          {!datos && <p className="gp-nc-desc">Cargando análisis geopolítico…</p>}
+          {!datos && <p className="gp-cargando">Cargando análisis geopolítico…</p>}
         </div>
 
         <div className="gp-bottom-grid">
@@ -494,7 +589,10 @@ export default function Geopolitica() {
             {filasRegion.length === 0 && <div className="gp-region-news">Cargando eventos…</div>}
             {filasRegion.map((f) => (
               <div className="gp-region-row" key={f.region}>
-                <span className="gp-region-flag">{BANDERA[f.region]}</span>
+                <span className="gp-region-flag" title={REGION_TXT[f.region]}>
+                  <i className={`fas ${BANDERA[f.region]}`} aria-hidden="true" />
+                  <span className="gp-region-cod">{REGION_TXT[f.region]}</span>
+                </span>
                 <div>
                   <div className="gp-region-news">{f.texto}</div>
                   <div className="gp-region-place">{f.lugar}</div>
@@ -511,7 +609,10 @@ export default function Geopolitica() {
               <div className="gp-risk-gauge">
                 <div className="gp-rg-chart">
                   <svg viewBox="0 0 100 100" width="70" height="70" style={{ transform: 'rotate(-90deg)' }}>
-                    <circle fill="none" stroke="#e2e8f0" strokeWidth="10" cx="50" cy="50" r="40" />
+                    {/* El aro de fondo iba en #e2e8f0, un gris de tema claro que
+                        sobre la superficie oscura se veía como un anillo blanco
+                        rodeando la cifra. */}
+                    <circle fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="10" cx="50" cy="50" r="40" />
                     <circle
                       fill="none"
                       stroke={riesgo?.color || '#ef4444'}

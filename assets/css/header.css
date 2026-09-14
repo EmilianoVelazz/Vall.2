@@ -1,189 +1,638 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Cabecera VALLNews: barra superior fina + rail lateral de secciones.
 
-.header {
+   Sustituye a la cabecera de dos filas (logo con eslogan centrado y, debajo,
+   los enlaces separados por lineas verticales) que ocupaba ~118 px fijos en
+   las ocho rutas. Ahora la barra mide 52 px y las secciones van en un rail
+   vertical de 68 px: el contenido recupera altura, que es lo que escasea en
+   una pagina de datos.
+
+   Colores: el navy #00213a era el unico elemento constante de toda la
+   plataforma y se conserva como identidad. Los acentos de seccion salen de
+   los tokens --sec-* de base.css, que estan validados para vision con
+   deficiencia de color; no se inventan aqui.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* La paleta se hundio en 2026-08-18. Antes el rail iba en un azul medio
+   (#203d52 - #1a3345) mas claro que el fondo de la portada rediseñada: la
+   cabecera pesaba mas que el contenido y el rail se leia como una tira pegada
+   al costado. Ahora es la misma familia honda de la portada, asi que el marco
+   retrocede y manda la pagina. Sobre las secciones claras un rail oscuro sigue
+   funcionando: es el contraste de siempre entre marco y lienzo. */
+:root {
+    --vn-barra-alto: 58px;
+    --vn-rail-ancho: 82px;
+    --vn-navy:       #16283a;
+    --vn-navy-hondo: #101f30;
+    --vn-navy-alto:  #1e3a52;
+    --vn-marco-filo: rgba(150, 196, 234, 0.22);
+    --vn-filo:       rgba(255, 255, 255, 0.10);
+    --vn-filo-suave: rgba(255, 255, 255, 0.06);
+    --vn-tinta:      #e8eef4;
+    --vn-tinta-2:    rgba(232, 238, 244, 0.72);
+    --vn-curva:      cubic-bezier(.22, .82, .24, 1);
+}
+
+/* Solo se aplica mientras la cabecera esta montada; la clase la pone y la
+   quita Header.jsx. El login no la lleva, y por eso no se desplaza. */
+body.vn-rail { padding-left: var(--vn-rail-ancho); }
+
+.vn-sr {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── Blindaje contra el CSS de las secciones ────────────────────────────────
+   Esta cabecera se monta en las ocho rutas, y algunas traen selectores de
+   ELEMENTO sueltos: finanzas-premium.css declara `p, span, small { color:
+   var(--fin-text-main) }`, que alcanza cualquier <span> del documento —
+   incluidos los de aqui— y le gana a la herencia, porque heredar no tiene
+   especificidad y un selector de elemento si (0,0,1).
+
+   El sintoma era mudo: en /finanzas las etiquetas del rail se pintaban del
+   azul oscuro del cuerpo de esa seccion sobre el navy del rail, ilegibles,
+   mientras en las otras siete rutas se veian bien.
+
+   Con los <span> basta con fijar el color con especificidad de clase. Con los
+   <button> no: finanzas-premium.css declara
+   `button, .chart-int-btn, … { color: var(--fin-text-main) !important }`,
+   y contra un !important no hay especificidad que valga. De ahi los
+   !important de este bloque — son ocho, todos aqui, y solo para que la
+   cabecera no dependa de que hoja cargue la seccion.
+
+   EL ARREGLO DE VERDAD es acotar esas reglas de Finanzas a su contenedor en
+   vez de soltarlas sobre `button` y `span` a secas. Mientras tanto, al anadir
+   texto nuevo a la cabecera hay que darle color explicito. */
+.vn-nav-txt,
+.vn-paleta-item span:not(.vn-paleta-ruta) {
+    color: inherit;
+}
+.vn-cmd            { color: var(--vn-tinta-2) !important; }
+.vn-cmd:hover      { color: var(--vn-tinta) !important; }
+.vn-cmd-txt        { color: inherit !important; }
+.vn-cmd-kbd        { color: var(--vn-tinta-2) !important; }
+.vn-cuenta         { color: var(--vn-tinta-2) !important; }
+.vn-cuenta:hover   { color: #fff !important; }
+.vn-cuenta-inicial { color: inherit !important; }
+.vn-brand-txt      { color: var(--vn-tinta) !important; }
+.vn-paleta-campo input { color: var(--vn-tinta) !important; }
+/* Las acciones del pie del rail son <button>, asi que caen de lleno en el
+   `button { color: … !important }` de finanzas-premium.css: sin esto salen en
+   azul marino sobre el rail oscuro, ilegibles, y SOLO en /finanzas. */
+.vn-nav-accion       { color: rgba(238, 246, 252, 0.72) !important; }
+.vn-nav-accion:hover { color: var(--vn-tinta) !important; }
+.vn-nav-accion.activo { color: #fff !important; }
+/* La paleta puede abrirse encima de /finanzas, asi que su texto tambien cae
+   bajo `p, span, small`. El <mark> del resaltado no lo alcanza esa regla, pero
+   se le fija el color igual para que no dependa de ello. */
+.vn-paleta-vacio p     { color: rgba(232, 238, 244, 0.78) !important; }
+.vn-paleta-vacio small { color: rgba(232, 238, 244, 0.62) !important; }
+.vn-paleta-pie span    { color: inherit !important; }
+.vn-paleta-marca       { color: #ffdfa6 !important; }
+
+/* ── Barra superior ─────────────────────────────────────────────────────── */
+.vn-topbar {
     position: sticky;
     top: 0;
-    z-index: 1000;
-    box-shadow: 0 6px 36px rgba(0,0,0,0.75);
+    /* Por encima del cajón móvil (1001), no por debajo. La cabecera crea su
+       propio contexto de apilamiento, así que la hamburguesa que lleva dentro
+       no puede superar este z-index por mucho que se le suba el suyo: con la
+       barra en 1000 el cajón la tapaba entera y el aspa para cerrarlo
+       quedaba invisible. Se cerraba con Escape o eligiendo sección, pero no
+       había forma visible de salir. */
+    z-index: 1002;
+    height: var(--vn-barra-alto);
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0 1.15rem;
+    background: linear-gradient(100deg, #0e1c2b 0, #16293c 46%, #1b3550 100%);
+    border-bottom: 1px solid var(--vn-marco-filo);
+    box-shadow: 0 8px 26px rgba(4, 14, 24, .28);
+    /* El rail arranca debajo de la barra, asi que la barra se estira sobre el
+       hueco que el padding del body deja a la izquierda. */
+    margin-left: calc(var(--vn-rail-ancho) * -1);
+    padding-left: calc(var(--vn-rail-ancho) + 0.7rem);
 }
 
-
-.hdr-top {
+.vn-brand {
     position: relative;
     display: flex;
     align-items: center;
-    padding: 0.82rem 2.5rem;
-    background: #00213a;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-
- 
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.62rem;
-    cursor: pointer;
+    gap: 0.55rem;
     text-decoration: none;
     flex-shrink: 0;
-    transition: opacity 0.2s;
+    border-radius: 6px;
+    padding: 4px 7px;
+    transition: opacity 0.18s;
 }
-.logo:hover { opacity: 0.82; }
-
-.logo-icon {
-    width: 46px;
-    height: 46px;
-    border-radius: 0;
-    overflow: visible;
-    background: none;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    box-shadow: none;
+.vn-brand:hover { opacity: 0.85; }
+.vn-brand img { width: 30px; height: auto; display: block; }
+/* La tapa del logo continua el rail, no la barra: mismo color de arranque y
+   mismo resplandor. Antes eran tres azules distintos apilados en la esquina y
+   se veian las dos costuras. */
+.vn-rail-cap {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: var(--vn-rail-ancho);
+    height: var(--vn-barra-alto);
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle at 50% 120%, rgba(110, 178, 235, .22), transparent 70%),
+        #16283a;
+    border-right: 1px solid var(--vn-marco-filo);
+    box-shadow: inset -12px 0 24px rgba(4, 20, 32, .10);
 }
-.logo-icon img {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    display: block;
+.vn-rail-cap img {
+    width: 37px;
+    filter: drop-shadow(0 4px 9px rgba(0, 0, 0, .3));
+    transition: transform .4s var(--vn-curva);
 }
-.logo-text {
-    font-family: var(--font-serif);
-    font-size: 1.38rem;
+.vn-brand:hover .vn-rail-cap img { transform: scale(1.07); }
+.vn-brand-txt {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 1.12rem;
     font-weight: 700;
-    color: #d7dee5;
+    color: var(--vn-tinta);
     letter-spacing: -0.2px;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
-    transition: color 0.2s ease;
-}
-.logo:hover .logo-text { color: #eef2f5; }
-
-.hdr-tagline {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.79rem;
-    font-weight: 400;
-    color: rgba(255,255,255,0.88);
-    letter-spacing: 0.55px;
-    white-space: nowrap;
-    pointer-events: none;
-}
-.hdr-nav {
-    display: flex;
-    align-items: stretch;
-    position: relative;
-    background: #00213a;
-    border-top:    1px solid rgba(255,255,255,0.08);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-.nav-center {
-    display: flex;
-    align-items: stretch;
-    flex: 1;
-    justify-content: center;
-}
-
-.nav-link {
+.vn-contexto {
+    --tono: #6f9bd1;
     display: inline-flex;
     align-items: center;
-    gap: 0.38rem;
-    color: rgba(255,255,255,0.85);
-    font-size: 0.86rem;
-    font-weight: 500;
-    padding: 0.74rem 1.55rem;
-    cursor: pointer;
-    text-decoration: none;
-    border-right: 1px solid rgba(255,255,255,0.14);
-    transition: color 0.18s, background 0.18s;
+    gap: .42rem;
+    min-height: 30px;
+    padding: 0 .72rem;
+    border-left: 1px solid rgba(218,237,250,.18);
+    color: var(--vn-tinta-2);
+    font-size: .69rem;
     white-space: nowrap;
-    letter-spacing: 0.1px;
 }
-.nav-link:first-child {
-    border-left: 1px solid rgba(255,255,255,0.14);
+.vn-contexto-punto {
+    width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto;
+    background: var(--tono); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tono) 13%, transparent);
 }
-.nav-link:hover {
-    color: #ffffff;
-    background: rgba(255,255,255,0.05);
-}
-.nav-link.active {
-    color: #ffffff;
-    font-weight: 600;
-    background: rgba(255,255,255,0.06);
-    box-shadow: inset 0 -2px 0 rgba(255,255,255,0.55);
-}
+/* .45 daba 3.94:1 sobre la parada mas clara del degradado de la barra, por
+   debajo del 4.5 exigible a texto de 0.69rem. A .62 da 5.1:1 y sigue leyendose
+   como etiqueta secundaria frente al nombre de seccion, que va en blanco. */
+.vn-contexto-etq { color: rgba(232,238,244,.62) !important; }
+.vn-contexto strong { color: #fff; font-weight: 700; }
 
-
-.nav-user {
+/* ── Paleta de comandos: disparador ─────────────────────────────────────── */
+.vn-cmd {
     display: flex;
     align-items: center;
-    padding: 0 1.3rem;
-    color: rgba(255,255,255,0.85);
-    font-size: 1rem;
+    gap: 0.55rem;
+    margin-left: auto;
+    min-width: 210px;
+    padding: 0.38rem 0.7rem;
+    background: rgba(218, 237, 250, 0.09);
+    border: 1px solid var(--vn-filo);
+    border-radius: 7px;
+    color: var(--vn-tinta-2);
+    font-family: inherit;
+    font-size: 0.78rem;
     cursor: pointer;
-    text-decoration: none;
-    border-left: 1px solid rgba(255,255,255,0.14);
-    transition: color 0.18s;
-    flex-shrink: 0;
+    transition: background 0.18s, border-color 0.18s;
 }
-.nav-user:hover { color: #ffffff; }
+.vn-cmd:hover {
+    background: rgba(218, 237, 250, 0.16);
+    border-color: rgba(218, 237, 250, 0.34);
+    color: var(--vn-tinta);
+    box-shadow: 0 4px 16px rgba(4, 14, 24, .28);
+}
+.vn-cmd i { font-size: 0.72rem; opacity: 0.8; transition: transform .3s var(--vn-curva); }
+.vn-cmd:hover i { transform: scale(1.12); }
+.vn-cmd-txt { flex: 1; text-align: left; }
+.vn-cmd-kbd {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.64rem;
+    padding: 2px 5px;
+    border: 1px solid var(--vn-filo);
+    border-radius: 4px;
+    background: rgba(14, 38, 55, 0.44);
+    color: var(--vn-tinta-2);
+}
 
+.vn-cuenta {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(140deg, rgba(126, 182, 234, 0.26), rgba(218, 237, 250, 0.09));
+    border: 1px solid var(--vn-filo);
+    color: var(--vn-tinta-2);
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.28s var(--vn-curva);
+}
+.vn-cuenta:hover {
+    background: linear-gradient(140deg, rgba(126, 182, 234, 0.42), rgba(218, 237, 250, 0.14));
+    border-color: rgba(218, 237, 250, 0.32);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.vn-cuenta-inicial {
+    font-family: var(--font-mono, ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+}
 
-.hdr-search {
-    background: #00213a;
-    padding: 0.52rem 2.5rem;
+/* ── Paleta centrada en la barra ────────────────────────────────────────────
+   Con la paleta pegada a la derecha, la barra quedaba con dos grupos en los
+   extremos y ochocientos pixeles de nada en medio. Centrada contra la barra
+   entera —no contra el hueco sobrante, que la dejaria descentrada porque la
+   izquierda pesa mucho mas que la derecha— la barra se lee como una sola pieza.
+
+   Solo a partir de 1100px: por debajo, la marca mas el contexto llegan a tocar
+   la pastilla centrada y se solaparian. Ahi vuelve a fluir a la derecha. */
+@media (min-width: 1100px) {
+    .vn-cmd {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-left: 0;
+        min-width: 300px;
+    }
+    /* La paleta sale del flujo, asi que es el avatar quien empuja a la derecha. */
+    .vn-cuenta { margin-left: auto; }
+}
+
+/* ── Rail lateral ───────────────────────────────────────────────────────── */
+.vn-nav {
+    position: fixed;
+    top: var(--vn-barra-alto);
+    left: 0;
+    bottom: 0;
+    width: var(--vn-rail-ancho);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    /* Tres zonas: la lista arriba, el hueco elastico en medio y el pie abajo.
+       Antes eran siete elementos arriba y dos tercios de alto sin nada. */
+    justify-content: flex-start;
+    padding: 13px 0 11px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(96, 166, 226, .16), transparent 17rem),
+        linear-gradient(180deg, #16283a, #111f30 62%, #0e1a29);
+    border-right: 1px solid var(--vn-marco-filo);
+    box-shadow: 10px 0 30px rgba(4, 16, 27, .3), inset -10px 0 22px rgba(4, 18, 30, .12);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+}
+.vn-nav::-webkit-scrollbar { display: none; }
+
+/* `position: relative` es lo que hace que offsetTop de cada enlace se mida
+   contra esta caja: la aguja se coloca con ese numero. */
+.vn-nav-lista {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.vn-nav-lista::before {
+    content: "NAVEGACIÓN";
+    display: block;
+    padding: 0 4px 8px;
+    color: rgba(196, 220, 240, .44);
+    font: 700 .47rem/1 var(--font-mono, ui-monospace, monospace);
+    letter-spacing: .14em;
+    text-align: center;
+}
+
+/* ── Aguja: un solo indicador que se desliza ─────────────────────────────────
+   La posicion y la altura las mide Header.jsx sobre el DOM y llegan como --y y
+   --alto. El movimiento es lo que cuenta: el ojo sigue la barra de una seccion
+   a la otra en vez de ver aparecer y desaparecer dos marcas distintas. */
+.vn-nav-aguja {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 3px;
+    height: var(--alto, 58px);
+    border-radius: 3px 0 0 3px;
+    background: var(--tono, #7fb2e6);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--tono, #7fb2e6) 62%, transparent);
+    transform: translateY(var(--y, 0));
+    transition: transform .42s var(--vn-curva), height .42s var(--vn-curva),
+                background .3s, box-shadow .3s;
+    pointer-events: none;
+}
+
+.vn-nav-item {
+    --tono: #6f9bd1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 58px;
+    padding: 10px 5px;
+    margin: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    color: rgba(238, 246, 252, 0.76);
+    text-decoration: none;
+    font-size: 1.02rem;
+    transition: background 0.2s, color 0.2s, border-color .2s, box-shadow .2s;
+}
+.vn-nav-item i { transition: transform .3s var(--vn-curva); }
+/* Sin `translateX`: en un rail vertical un desplazamiento lateral se lee como
+   que el elemento se sale del carril. Lo que se mueve es el icono. */
+.vn-nav-item:hover {
+    background: rgba(218, 237, 250, 0.10);
+    border-color: rgba(218, 237, 250, .14);
+    color: var(--vn-tinta);
+}
+/* El icono toma el color de su seccion al acercarse. En reposo se queda neutro
+   a proposito: siete iconos de colores a la vez compiten entre si y con el
+   elemento activo, que es lo unico que deberia destacar. */
+.vn-nav-item:hover i { transform: translateY(-2px) scale(1.06); color: var(--tono); }
+.vn-nav-item:focus-visible {
+    outline: 2px solid var(--tono);
+    outline-offset: 2px;
+}
+
+/* La etiqueta va SIEMPRE visible bajo el icono, no en un globo al pasar el
+   raton: un rail de solo iconos obliga a adivinar, y aqui hay siete secciones
+   que no tienen iconos universales (que dibuja "Proteinas"?). 9px con
+   letter-spacing se lee bien y cabe en 68px. */
+.vn-nav-txt {
+    font-size: 0.61rem;
+    font-weight: 650;
+    letter-spacing: 0.025em;
+    line-height: 1.15;
+    text-align: center;
+    max-width: 100%;
+    white-space: nowrap;
+}
+
+/* En el rail se ve la abreviatura; el nombre completo sigue en el DOM, oculto
+   a la vista pero disponible para lectores de pantalla. En movil se invierte. */
+.vn-nav-largo {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.vn-nav-item.activo {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tono) 30%, #29475d 70%), rgba(218,237,250,.10));
+    border-color: color-mix(in srgb, var(--tono) 42%, rgba(218,237,250,.16));
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(8,24,37,.17), inset 0 1px rgba(255,255,255,.08);
+}
+.vn-nav-item.activo i { color: var(--tono); filter: drop-shadow(0 0 7px color-mix(in srgb, var(--tono) 48%, transparent)); }
+.vn-nav-item.activo:hover i { transform: none; }
+/* La barra por elemento se fue: ahora la dibuja .vn-nav-aguja, una sola, que se
+   desliza. La de antes ademas sobresalia (right: -9px con margin 8px la sacaba
+   un pixel por fuera del rail) y parecia un fallo de pintado, no un indicador. */
+
+/* ── Pie del rail ───────────────────────────────────────────────────────────
+   `margin-top: auto` lo empuja al fondo y de paso convierte el hueco vacio en
+   separacion deliberada. La regla de arriba dice que lo de abajo no son
+   secciones: son acciones sobre la cuenta. */
+.vn-nav-pie {
+    margin-top: auto;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-top: 1px solid rgba(150, 196, 234, .13);
+}
+.vn-nav-accion {
+    --tono: #86b4e0;
+    min-height: 46px;
+    gap: 5px;
+    padding: 7px 5px;
+    font-size: .88rem;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+}
+.vn-nav-accion .vn-nav-txt { font-size: .56rem; opacity: .82; }
+.vn-nav-salir { --tono: #e08a86; }
+.vn-nav-salir:hover { background: rgba(224, 138, 134, .13); border-color: rgba(224, 138, 134, .22); }
+.vn-nav-salir:hover i { color: #f0a7a3; }
+.vn-nav-accion:disabled { cursor: default; opacity: .6; }
+.vn-nav-accion:disabled:hover { background: none; border-color: transparent; }
+/* El icono de "saliendo" gira mientras se espera al servidor. */
+.vn-girando { animation: vn-giro 0.9s linear infinite; }
+@keyframes vn-giro { to { transform: rotate(360deg); } }
+
+/* ── Paleta de comandos: superposicion ──────────────────────────────────── */
+.vn-paleta-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
     display: flex;
     justify-content: center;
-    align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    align-items: flex-start;
+    padding: 12vh 1rem 1rem;
+    background: rgba(2, 8, 15, 0.62);
+    backdrop-filter: blur(3px);
+    animation: vn-fade 0.14s ease-out;
 }
+@keyframes vn-fade { from { opacity: 0; } to { opacity: 1; } }
 
-.search-pill {
+.vn-paleta {
+    width: 100%;
+    max-width: 560px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(84, 152, 214, .14), transparent 60%),
+        #0c1725;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 15px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(0, 0, 0, .3);
+    overflow: hidden;
+    animation: vn-sube 0.18s cubic-bezier(.2, .8, .3, 1);
+}
+@keyframes vn-sube { from { transform: translateY(-10px) scale(.985); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.vn-paleta-campo {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(130,160,220,0.16);
-    border-radius: 5px;
-    padding: 0.38rem 1.1rem;
-    cursor: text;
+    gap: 0.65rem;
+    padding: 0.95rem 1.05rem;
+    border-bottom: 1px solid var(--vn-filo);
+    transition: border-color .2s, background .2s;
+}
+/* El sitio tiene una anilla de foco global —`:is(button,a,input,…):focus-visible
+   { outline: 3px solid … }`— que le gana al `outline:none` de este campo. Aqui
+   no aporta: el campo se enfoca solo al abrir la paleta, asi que la anilla esta
+   SIEMPRE puesta y se lee como un recuadro de mas alrededor del texto. Se
+   traslada a la fila entera, que dice lo mismo y encaja con el diseño. */
+.vn-paleta-campo input:focus-visible { outline: none; }
+.vn-paleta-campo:focus-within {
+    border-bottom-color: rgba(126, 182, 234, .5);
+    background: rgba(126, 182, 234, .05);
+}
+.vn-paleta-campo > i { color: rgba(232, 238, 244, 0.5); font-size: 0.85rem; }
+.vn-paleta-limpiar {
+    display: grid;
+    place-items: center;
+    width: 22px; height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .1);
+    color: rgba(232, 238, 244, .7) !important;
+    font-size: .66rem;
+    cursor: pointer;
+    transition: background .18s, color .18s;
+}
+.vn-paleta-limpiar:hover { background: rgba(255, 255, 255, .2); color: #fff !important; }
+.vn-paleta-campo input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--vn-tinta);
+    font-family: inherit;
+    font-size: 0.94rem;
+}
+.vn-paleta-campo input::placeholder { color: rgba(232, 238, 244, 0.42); }
+.vn-paleta-campo kbd {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.6rem;
+    padding: 3px 6px;
+    border: 1px solid var(--vn-filo);
+    border-radius: 4px;
+    color: rgba(232, 238, 244, 0.55);
+}
+
+.vn-paleta-lista { list-style: none; margin: 0; padding: 7px; max-height: 52vh; overflow-y: auto; }
+
+/* Encabezado de grupo. Solo aparece con el campo vacío: al buscar, la lista va
+   ordenada por calidad de coincidencia y trocearla por grupos rompería ese
+   orden, que es justo lo que hace util a un buscador. */
+.vn-paleta-grupo {
+    padding: 0.7rem 0.8rem 0.35rem;
+    color: rgba(198, 219, 238, 0.5);
+    font: 700 0.58rem/1 var(--font-mono, ui-monospace, monospace);
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+.vn-paleta-lista > li:first-child > .vn-paleta-grupo,
+.vn-paleta-grupo:first-child { padding-top: 0.35rem; }
+
+.vn-paleta-item {
+    --tono: #6f9bd1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     width: 100%;
-    max-width: 480px;
-    transition: background 0.2s, border-color 0.2s;
+    padding: 0.62rem 0.8rem;
+    background: none;
+    border: none;
+    border-radius: 9px;
+    color: rgba(232, 238, 244, 0.85);
+    font-family: inherit;
+    font-size: 0.89rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s;
 }
-.search-pill:hover {
-    background: rgba(255,255,255,0.065);
-    border-color: rgba(130,160,220,0.28);
+/* El icono en una pastilla del color de la seccion: identifica el destino de un
+   vistazo en una lista donde todo lo demas es texto del mismo tamaño. */
+.vn-paleta-item > i {
+    display: grid;
+    place-items: center;
+    width: 27px; height: 27px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tono) 16%, transparent);
+    color: var(--tono);
+    font-size: 0.78rem;
+    transition: background 0.14s;
 }
-.search-pill i    { color: rgba(160,185,230,0.55); font-size: 0.78rem; flex-shrink: 0; }
-.search-pill span { color: rgba(160,185,230,0.45); font-size: 0.78rem; }
+.vn-paleta-txt { flex: 1; min-width: 0; }
+.vn-paleta-marca {
+    padding: 0 1px;
+    border-radius: 3px;
+    background: rgba(225, 174, 82, 0.24);
+    color: #ffdfa6;
+    font-weight: 700;
+}
+.vn-paleta-item.marcado { background: rgba(255, 255, 255, 0.09); color: #fff; }
+.vn-paleta-item.marcado > i { background: color-mix(in srgb, var(--tono) 30%, transparent); }
+.vn-paleta-ruta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.66rem;
+    color: rgba(232, 238, 244, 0.55);
+}
+.vn-paleta-ruta i { font-size: 0.58rem; opacity: .8; }
 
-/* ═══════════════════════════════════════
-   SEPARADOR cabecera → hero
-═══════════════════════════════════════ */
+.vn-paleta-vacio {
+    padding: 1.6rem 1.2rem 1.4rem;
+    color: rgba(232, 238, 244, 0.78);
+    text-align: center;
+}
+.vn-paleta-vacio > i { font-size: 1.1rem; opacity: .38; }
+.vn-paleta-vacio p { margin: 0.6rem 0 0.35rem; font-size: 0.88rem; }
+.vn-paleta-vacio small {
+    display: block;
+    color: rgba(232, 238, 244, 0.62);
+    font-size: 0.74rem;
+    line-height: 1.5;
+}
+
+/* Pie de atajos: la paleta se maneja con teclado y hasta ahora no lo decia en
+   ningun sitio. */
+.vn-paleta-pie {
+    display: flex;
+    gap: 1.1rem;
+    padding: 0.6rem 1.05rem;
+    border-top: 1px solid var(--vn-filo);
+    background: rgba(0, 0, 0, 0.22);
+    color: rgba(232, 238, 244, 0.62);
+    font-size: 0.68rem;
+}
+.vn-paleta-pie span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.vn-paleta-pie kbd {
+    min-width: 17px;
+    padding: 2px 4px;
+    border: 1px solid var(--vn-filo);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(232, 238, 244, 0.8);
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.62rem;
+    text-align: center;
+}
+
+/* ── Separador cabecera → contenido ─────────────────────────────────────── */
+/* Lo montan todas las paginas justo tras <Header/>. Antes era un degradado de
+   cuatro paradas azul-ambar de 2px; ahora es una linea de un pixel, porque el
+   peso visual lo lleva el filo de la barra. */
 .hdr-divider {
-    height: 2px;
-    background: linear-gradient(
-        90deg,
-        transparent              0%,
-        rgba(29, 78, 216, 0.65) 18%,
-        rgba(56,120,255,0.85)   50%,
-        rgba(217,119,  6, 0.5)  75%,
-        transparent             100%
-    );
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(155, 203, 238, 0.42) 30%, rgba(155, 203, 238, 0.42) 70%, transparent);
 }
 
-/* ══════════════════════════════════════════════
-   HAMBURGER + MOBILE NAV
-══════════════════════════════════════════════ */
+/* ── Hamburguesa (solo movil) ───────────────────────────────────────────── */
 .vn-hamburger {
     display: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 5px;
-    margin-left: auto;
     padding: 8px 6px;
     background: none;
     border: none;
@@ -196,7 +645,7 @@
     display: block;
     width: 22px;
     height: 2px;
-    background: rgba(255,255,255,0.9);
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 2px;
     transition: transform .25s ease, opacity .2s ease;
     transform-origin: center;
@@ -205,60 +654,102 @@
 .vn-hamburger.vn-ham-open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .vn-hamburger.vn-ham-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-@media (max-width: 768px) {
+/* ── Movil: el rail no cabe, vuelve el cajon ────────────────────────────── */
+@media (max-width: 900px) {
+    body.vn-rail { padding-left: 0; }
+
+    .vn-topbar {
+        margin-left: 0;
+        padding-left: 1rem;
+        padding-right: 0.75rem;
+        gap: 0.6rem;
+    }
+    .vn-brand { gap: .5rem; }
+    .vn-rail-cap {
+        position: static;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        background: none;
+        box-shadow: none;
+    }
+    .vn-rail-cap img { width: 30px; }
+    .vn-contexto { display: none; }
     .vn-hamburger { display: flex; }
-    .hdr-tagline  { display: none !important; }
-    .hdr-top      { padding: 0.65rem 1rem; }
-    .hdr-search   { display: none !important; }
+    .vn-cmd { min-width: 0; }
+    .vn-cmd-txt, .vn-cmd-kbd { display: none; }
+    .vn-cmd { padding: 0.42rem 0.6rem; }
 
-    .hdr-nav {
-        position: fixed;
-        inset: 0;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        gap: 0;
-        background: #001d34;
-        transform: translateX(100%);
-        transition: transform .3s cubic-bezier(.4,0,.2,1);
-        z-index: 1001;
-        overflow-y: auto;
-        border: none;
-    }
-    .hdr-nav.vn-nav-open { transform: translateX(0); }
-
-    .nav-center {
-        flex-direction: column;
-        align-items: stretch;
-        flex: 0;
+    .vn-nav {
+        /* Arranca DEBAJO de la barra para no taparla: así la marca sigue a la
+           vista y la hamburguesa se puede pulsar para cerrar. */
+        top: var(--vn-barra-alto);
         width: 100%;
-        max-width: 320px;
+        height: calc(100% - var(--vn-barra-alto));
+        flex-direction: column;
+        justify-content: center;
         gap: 0;
-        justify-content: center;
-    }
-
-    .nav-link {
-        font-size: 1.05rem;
-        font-weight: 500;
-        padding: 0.95rem 1.5rem;
-        text-align: center;
+        padding: 1.5rem 1.25rem 2rem;
+        background:
+            radial-gradient(circle at 50% 0%, rgba(96, 166, 226, .14), transparent 22rem),
+            var(--vn-navy-hondo);
         border-right: none;
-        border-left: none;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        justify-content: center;
-        white-space: normal;
+        transform: translateX(100%);
+        transition: transform .28s cubic-bezier(.4, 0, .2, 1);
+        z-index: 1001;
     }
-    .nav-link:first-child { border-left: none; }
-    .nav-link.active {
-        box-shadow: inset 4px 0 0 rgba(255,255,255,0.5);
-        background: rgba(255,255,255,0.07);
-    }
+    .vn-nav-lista::before { display: none; }
+    .vn-nav.vn-nav-open { transform: translateX(0); }
+    .vn-nav-lista { gap: 2px; }
 
-    .nav-user {
-        border-left: none;
-        margin-top: 1.8rem;
-        font-size: 1.4rem;
-        padding: 0.5rem 1.5rem;
-        justify-content: center;
+    .vn-nav-item {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 0.9rem;
+        margin: 0;
+        padding: 0.9rem 1rem;
+        border-radius: 10px;
+        font-size: 1.05rem;
     }
+    .vn-nav-item i { width: 26px; text-align: center; }
+    .vn-nav-txt { font-size: 1rem; letter-spacing: 0; }
+    /* Aqui sobra sitio: se cambia la abreviatura por el nombre completo. */
+    .vn-nav-corto { display: none; }
+    .vn-nav-largo {
+        position: static;
+        width: auto; height: auto;
+        margin: 0; overflow: visible;
+        clip: auto;
+    }
+    /* En el cajon las filas van a lo ancho, asi que la aguja pasa al borde
+       izquierdo: a la derecha quedaria colgada lejos del texto. */
+    .vn-nav-aguja { right: auto; left: 0; border-radius: 0 3px 3px 0; }
+
+    /* El pie deja de estar pegado al fondo: con el cajon centrado quedaba a una
+       pantalla de distancia de las secciones. Va justo debajo, en fila. */
+    .vn-nav-pie {
+        margin-top: 1.1rem;
+        padding-top: 0.9rem;
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+    .vn-nav-accion {
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+        padding: 0.75rem 0.4rem;
+        border: 1px solid rgba(218, 237, 250, .12);
+        font-size: 1rem;
+    }
+    .vn-nav-accion i { width: auto; }
+    .vn-nav-accion .vn-nav-txt { font-size: .72rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vn-paleta, .vn-paleta-fondo, .vn-nav { animation: none; transition: none; }
+    /* La aguja salta al sitio en vez de deslizarse; sigue indicando igual. */
+    .vn-nav-aguja { transition: none; }
+    .vn-nav-item i, .vn-rail-cap img, .vn-cmd i, .vn-cuenta { transition: none; }
+    .vn-girando { animation: none; }
 }

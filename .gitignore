@@ -36,6 +36,8 @@ backend/server.log
 backend/server-error.log
 backend/test-run.log
 backend/temp_report_*.docx
+backend/sniim-cache.json
+backend/usda_test.json
 
 # IDEs and Editors
 .idea/
@@ -97,11 +99,28 @@ pages/temp_check.js
 /_dev.log
 /_dev.err
 
-# Scripts y capturas de diagnostico de un solo uso.
-# scripts/verify-page.mjs SI se versiona: es la herramienta reutilizable que
-# comprueba una ruta renderizada en el navegador.
+# Capturas de los verificadores. Los verificadores en si SI se versionan
+# (verify-page, verify-finanzas, verify-dark, verify-mercados): son
+# herramientas reutilizables.
 scripts/_verify/
+
+# Trabajo desechable de una sesion: guiones de parcheo puntual, volcados y
+# pruebas sueltas. Se dejo esta carpeta al limpiar la raiz, que habia acumulado
+# 23 archivos de ese tipo. Si algo de ahi hace falta de verdad, sacalo y
+# versionalo con nombre y comentario; si no, se puede borrar entera.
+/_scratch/
+
+# Los guiones temporales de los verificadores se nombran asi para no colarse.
+scripts/_tmp-*
 
 # Logs locales del backend
 backend/server-current.log
 backend/server-current-error.log
+
+# Ajustes locales de la boveda de Obsidian (el contenido de notas SI se versiona
+# si se decide versionarlo; esto es solo la configuracion del editor).
+#
+# NOTA: estas ultimas lineas estaban escritas en UTF-16 y con bytes NUL, asi que
+# git trataba el .gitignore entero como BINARIO y dejaba de aplicar las reglas.
+# Es la trampa de Add-Content/Out-File en PowerShell. Reescrito en UTF-8.
+boveda_obsidian/.obsidian/

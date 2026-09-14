@@ -5,8 +5,8 @@
 // index.html legacy en la raíz, así que el despliegue servía el sitio HTML
 // antiguo por mucho que el trabajo estuviera hecho en React.
 //
-// Ahora dist/ es la app de React, más los estáticos heredados que las secciones
-// todavía no migradas necesitan (LegacyPage las trae por fetch en runtime).
+// Ahora dist/ es la app de React más /assets, de donde los componentes cargan en
+// runtime el CSS de cada sección y los motores de datos heredados.
 //
 // api/ y backend/ NO se copian: Vercel las detecta como función serverless desde
 // la raíz del repo, independientemente de este directorio.
@@ -20,22 +20,20 @@ const DIST = path.join(ROOT, 'dist');
 const FRONT = path.join(ROOT, 'frontend');
 const FRONT_DIST = path.join(FRONT, 'dist');
 
-// Estáticos heredados. `pages` y `inicio.html` siguen aquí porque las secciones
-// que aún no son React se cargan desde esos archivos; se podrán retirar cuando
-// no quede ninguna ruta usando LegacyPage.
-const DIRS = ['assets', 'pages'];
+// Estáticos heredados. `pages` desapareció al migrar Finanzas: ya no queda
+// ninguna ruta que cargue un .html en tiempo de ejecución, así que copiarlo
+// solo habría servido para publicar marcado muerto.
+//
+// `assets` sigue siendo imprescindible: los .jsx no incluyen ni el CSS de las
+// secciones ni los motores de datos (finanzas-page.js, finanzas-favro.js,
+// live-engine.js, data-service.js); los cargan desde /assets en runtime.
+const DIRS = ['assets'];
 const FILES = ['inicio.html'];
 
-// Imágenes pesadas que ya tienen versión .webp optimizada — no necesitan ir al
-// build. Esto reduce ~27 MB del directorio dist/.
-const IMG_EXCLUDE = new Set([
-    'finanzas.jpg',  // 6.3 MB  → finanzas.webp (67 KB)
-    'geo.jpg',       // 2.4 MB  → geo.webp (176 KB)
-    'mercadoP.jpg',  // 85 KB   → mercadoP.webp (96 KB)
-    'mercados.jpg',  // 242 KB  → mercados.webp (115 KB)
-    'mexico.jpg',    // 15.6 MB → mexico.webp (238 KB)
-    'mexico2.png',   // 2.5 MB  → mexico2.webp (220 KB)
-]);
+// Ya no hace falta excluir imágenes: los seis .jpg/.png pesados que duplicaban
+// a sus .webp se borraron del repositorio (26,5 MB), así que no hay nada que
+// podar. Se deja el mecanismo por si vuelve a colarse un original sin optimizar.
+const IMG_EXCLUDE = new Set([]);
 
 // ── 1. Compilar React ─────────────────────────────────────────────────────────
 // Se invoca el binario de Vite directamente: en Windows, spawn de npm.cmd falla

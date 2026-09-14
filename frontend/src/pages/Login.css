@@ -1,0 +1,674 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Login VALLNews — rediseño completo.
+
+   HOJA PROPIA, PREFIJO PROPIO
+   Antes esta pantalla compartía `assets/css/login.css` con el `index.html`
+   heredado, así que cambiar la estructura rompía la otra página. Esta hoja es
+   solo de la versión React y todo va con prefijo `lg-`: ni hereda nada de la
+   otra ni se lo puede llevar por delante.
+
+   LA IDEA
+   El panel izquierdo ya no es una lista de secciones con los datos de adorno:
+   los cuatro datos reales que la pantalla ya pedía a las APIs SON el panel, en
+   cifras grandes. Lo único que no es texto fijo aquí es eso, y es lo que el
+   producto promete.
+
+   MOVIMIENTO
+   El estado oculto del revelado cuelga de `[data-anima]`, atributo que pone
+   useRevelado(). Atributos y no clases: React reescribe `className` en cada
+   render y borraría una marca puesta desde fuera — así desaparecía la tarjeta
+   al fallar el acceso. El bloque `prefers-reduced-motion` del final lo apaga
+   todo de una vez.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.lg-wrap {
+  --lg-tinta:   #eef4f9;
+  --lg-tinta-2: rgba(222, 233, 243, 0.78);
+  /* .74 y no .64: sobre lo más claro que llega a pintar la rejilla bajo el velo
+     (~#263e58) el .64 daba 4.10:1, por debajo del 4.5 que exige texto de 11 px.
+     A .74 son 4.9 sobre el fondo y 5.4 dentro de la tarjeta. Estas etiquetas son
+     casi todas del tablero, o sea las que dicen QUÉ es cada cifra: si no se leen,
+     el tablero son cuatro números sueltos. */
+  --lg-tinta-3: rgba(201, 216, 230, 0.74);
+  --lg-oro:     #e1ae52;
+  --lg-azul:    #5d9de6;
+  --lg-verde:   #3fbd7a;
+  --lg-rojo:    #f8837c;
+  --lg-filo:    rgba(150, 196, 234, 0.18);
+  --lg-filo-2:  rgba(150, 196, 234, 0.10);
+  --lg-curva:   cubic-bezier(.22, .82, .24, 1);
+  --lg-mono:    'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --lg-serif:   'Playfair Display', Georgia, serif;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  color: var(--lg-tinta);
+  font-family: 'Inter', system-ui, sans-serif;
+  /* Fondo completo por sí solo: el lienzo es una capa de más y puede no existir
+     (sin GPU, contexto perdido, `webgl` deshabilitado). */
+  background:
+    radial-gradient(ellipse at 50% 88%, rgba(46, 110, 170, 0.30), transparent 58%),
+    linear-gradient(180deg, #0a1420 0%, #0d1c2b 46%, #0a1420 100%);
+}
+
+/* ── Fondo animado ────────────────────────────────────────────────────────── */
+.lg-lienzo {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Garantiza el contraste: el horizonte del lienzo tiene zonas claras y encima va
+   un formulario. Denso arriba y a los lados, más abierto justo en la franja del
+   horizonte, que es donde no hay texto. */
+.lg-velo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    /* Capa extra cargada a la izquierda: ahí van el titular y el tablero, y la
+       rejilla pasa justo por debajo. A la derecha se deja abierta porque la
+       tarjeta ya lleva su propio cristal. */
+    linear-gradient(100deg, rgba(8, 16, 26, 0.52) 0%, rgba(8, 16, 26, 0.34) 46%, transparent 74%),
+    linear-gradient(180deg, rgba(8, 16, 26, 0.86) 0%, rgba(8, 16, 26, 0.62) 34%,
+                            rgba(8, 16, 26, 0.50) 58%, rgba(8, 16, 26, 0.88) 100%),
+    radial-gradient(ellipse at 50% 55%, transparent 30%, rgba(8, 16, 26, 0.5) 100%);
+}
+
+/* ── Barra ────────────────────────────────────────────────────────────────── */
+.lg-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem clamp(1.1rem, 4vw, 3rem);
+  border-bottom: 1px solid var(--lg-filo-2);
+  background: rgba(8, 16, 26, 0.5);
+  backdrop-filter: blur(14px);
+}
+.lg-marca { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.lg-marca-icono { width: 36px; height: 36px; display: grid; place-items: center; }
+.lg-marca-icono img {
+  width: 100%; height: auto; object-fit: contain;
+  transition: transform .45s var(--lg-curva);
+}
+.lg-marca:hover .lg-marca-icono img { transform: scale(1.1) rotate(-6deg); }
+.lg-marca-txt {
+  font-family: var(--lg-serif);
+  font-size: 1.32rem; font-weight: 700; color: #fff; letter-spacing: -0.2px;
+}
+.lg-bar-regla { flex: 1; height: 1px; background: var(--lg-filo-2); }
+.lg-bar-estado {
+  display: inline-flex; align-items: center; gap: .5rem;
+  flex-shrink: 0;
+  color: var(--lg-tinta-2);
+  font: 700 .62rem/1 var(--lg-mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.lg-punto {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--lg-verde);
+  box-shadow: 0 0 0 4px rgba(63, 189, 122, .12), 0 0 16px rgba(63, 189, 122, .65);
+}
+
+/* ── Escena ───────────────────────────────────────────────────────────────── */
+.lg-escena {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.72fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vh, 4rem) clamp(1.1rem, 4vw, 3rem);
+}
+
+.lg-panel { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+
+.lg-eyebrow {
+  display: inline-flex; align-items: center; gap: .5rem;
+  align-self: flex-start;
+  color: var(--lg-oro);
+  font: 700 .64rem/1 var(--lg-mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.lg-eyebrow .lg-punto { background: var(--lg-oro); box-shadow: 0 0 0 4px rgba(225,174,82,.12), 0 0 16px rgba(225,174,82,.6); }
+
+/* ── Titular ──────────────────────────────────────────────────────────────── */
+.lg-titular {
+  margin: 0;
+  font-family: var(--lg-serif);
+  font-size: clamp(2.7rem, 5.4vw, 4.6rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: #f7fafd;
+}
+.lg-linea { display: block; }
+.lg-linea-em { color: var(--lg-oro); font-style: italic; font-weight: 500; }
+/* inline-block por letra: es lo que permite animarlas una a una. El espacio se
+   preserva con `white-space: pre` en la línea, no metiendo &nbsp; en el JSX. */
+.lg-linea { white-space: pre-wrap; }
+.lg-letra { display: inline-block; will-change: transform, opacity; }
+
+.lg-lead {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--lg-tinta-2);
+  font-size: clamp(.9rem, 1.2vw, 1.02rem);
+  line-height: 1.7;
+  border-left: 2px solid rgba(225, 174, 82, 0.5);
+  padding-left: .9rem;
+}
+
+/* ── Tablero en vivo ──────────────────────────────────────────────────────── */
+.lg-tablero { display: flex; flex-direction: column; }
+.lg-tablero-cab {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: .6rem;
+  border-bottom: 1px solid var(--lg-filo);
+  color: var(--lg-tinta-3);
+  font: 700 .58rem/1 var(--lg-mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.lg-tablero-hora { color: var(--lg-tinta-2); }
+
+/* Cuatro columnas separadas por una regla, no cuatro tarjetas: es lo que hace
+   que se lean como un tablero de cotizaciones y no como cuatro botones. */
+.lg-tablero-rejilla {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.lg-cifra {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  min-width: 0;
+  padding: .95rem .9rem .95rem 0;
+}
+.lg-cifra + .lg-cifra { padding-left: .9rem; border-left: 1px solid var(--lg-filo-2); }
+.lg-cifra-icono {
+  display: grid; place-items: center;
+  width: 26px; height: 26px;
+  margin-bottom: .1rem;
+  border-radius: 8px;
+  background: rgba(93, 157, 230, .12);
+  color: var(--lg-azul);
+  font-size: .68rem;
+  transition: background .4s, color .4s, transform .5s var(--lg-curva);
+}
+.lg-cifra-viva .lg-cifra-icono {
+  background: rgba(225, 174, 82, .16);
+  color: var(--lg-oro);
+}
+.lg-cifra-etq {
+  color: var(--lg-tinta-3);
+  font: 700 .58rem/1.2 var(--lg-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lg-cifra-num {
+  color: var(--lg-tinta);
+  font: 700 clamp(1.25rem, 2.4vw, 1.85rem)/1.05 var(--lg-mono);
+  letter-spacing: -.03em;
+  /* Sin esto, cada dígito que cambia durante la cuenta tiene ancho distinto y
+     la cifra entera baila de izquierda a derecha mientras sube. */
+  font-variant-numeric: tabular-nums;
+}
+.lg-cifra-espera { color: var(--lg-tinta-3); }
+.lg-cifra-fuente {
+  color: var(--lg-tinta-3);
+  font: .56rem/1.3 var(--lg-mono);
+  letter-spacing: .08em;
+}
+
+/* ── Fichas de sección ────────────────────────────────────────────────────── */
+.lg-fichas {
+  list-style: none;
+  display: flex; flex-wrap: wrap; gap: .45rem;
+  margin: 0; padding: 0;
+}
+.lg-fichas li {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .34rem .7rem;
+  border: 1px solid var(--lg-filo-2);
+  border-radius: 40px;
+  color: var(--lg-tinta-2);
+  font-size: .73rem;
+  transition: border-color .24s, color .24s, background .24s, transform .28s var(--lg-curva);
+}
+.lg-fichas li:hover {
+  border-color: rgba(225, 174, 82, .45);
+  background: rgba(225, 174, 82, .08);
+  color: var(--lg-tinta);
+  transform: translateY(-2px);
+}
+.lg-fichas i { font-size: .66rem; color: var(--lg-oro); }
+
+/* ── Tarjeta ──────────────────────────────────────────────────────────────── */
+.lg-lado { display: flex; justify-content: center; perspective: 1100px; }
+
+.lg-tarjeta {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  padding: 2.1rem 2rem 1.8rem;
+  border: 1px solid var(--lg-filo);
+  border-radius: 1.4rem;
+  /* Traslúcida y desenfocada: deja ver el horizonte moviéndose detrás sin que
+     ningún píxel del texto dependa de qué color pase por ahí. */
+  background: rgba(11, 22, 35, 0.76);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 34px 90px rgba(2, 9, 17, 0.58), inset 0 1px rgba(255, 255, 255, .07);
+  /* --rx/--ry las escribe useTilt siguiendo al puntero. Si ese JS no corre, o
+     el dispositivo es táctil, valen 0 y la tarjeta se queda quieta. */
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform .35s var(--lg-curva), box-shadow .4s;
+}
+/* Halo que gira despacio por el borde. Va en un pseudo-elemento con máscara
+   para que el degradado se vea SOLO en el filo de 1 px y no tiña la tarjeta. */
+.lg-tarjeta-halo {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--giro, 0deg),
+    transparent 0deg, rgba(225,174,82,.55) 40deg, transparent 110deg,
+    transparent 250deg, rgba(93,157,230,.5) 300deg, transparent 350deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  pointer-events: none;
+  animation: lgGiro 9s linear infinite;
+}
+@property --giro { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@keyframes lgGiro { to { --giro: 360deg; } }
+
+.lg-sacude { animation: lgSacude .5s cubic-bezier(.36,.07,.19,.97); }
+@keyframes lgSacude {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+
+.lg-tarjeta-cab { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.lg-tarjeta-tit {
+  font-family: var(--lg-serif);
+  font-size: 1.7rem; font-weight: 700; color: #f7fafd; letter-spacing: -.02em;
+}
+.lg-tarjeta-sello {
+  font: 700 .6rem/1.5 var(--lg-mono);
+  letter-spacing: .12em;
+  padding: .12rem .5rem;
+  border: 1px solid rgba(225,174,82,.34);
+  border-radius: 5px;
+  background: rgba(225,174,82,.09);
+  color: var(--lg-oro);
+}
+.lg-tarjeta-sub { margin: .35rem 0 1.8rem; color: var(--lg-tinta-2); font-size: .82rem; }
+
+/* ── Campos ───────────────────────────────────────────────────────────────── */
+.lg-campo { margin-bottom: 1.15rem; }
+.lg-campo label {
+  display: flex; align-items: center; gap: .45rem;
+  margin-bottom: .5rem;
+  color: var(--lg-tinta-2);
+  font-size: .69rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  transition: color .2s;
+}
+.lg-campo label i { color: var(--lg-oro); font-size: .74rem; transition: transform .3s var(--lg-curva); }
+.lg-campo:focus-within label { color: var(--lg-tinta); }
+.lg-campo:focus-within label i { transform: scale(1.18); }
+
+.lg-caja { position: relative; display: flex; align-items: center; }
+
+.lg-input {
+  width: 100%;
+  padding: .85rem 2.9rem .85rem 1rem;
+  border: 1.5px solid var(--lg-filo);
+  border-radius: .75rem;
+  background: rgba(255, 255, 255, .045);
+  color: var(--lg-tinta);
+  font-size: .92rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .22s, background .22s;
+}
+.lg-input::placeholder { color: rgba(190, 208, 224, .40); }
+.lg-input:focus { border-color: rgba(225, 174, 82, .45); background: rgba(255, 255, 255, .07); }
+/* La raya se dibuja desde el centro al enfocar: es un halo que no engorda la
+   caja, así que ninguna fila se mueve al recibir el foco. */
+.lg-raya {
+  position: absolute;
+  left: 50%; right: 50%; bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--lg-oro), transparent);
+  transition: left .32s var(--lg-curva), right .32s var(--lg-curva);
+  pointer-events: none;
+}
+.lg-caja:focus-within .lg-raya { left: 8%; right: 8%; }
+/* El relleno automático de Chrome pinta el campo de blanco con texto negro, que
+   sobre esta tarjeta es ilegible. No hay propiedad para cambiarlo: el truco es
+   una sombra interior enorme que tapa el fondo que dibuja el navegador. */
+.lg-input:-webkit-autofill,
+.lg-input:-webkit-autofill:hover,
+.lg-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--lg-tinta);
+  -webkit-box-shadow: 0 0 0 1000px #12222f inset;
+  caret-color: var(--lg-tinta);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.lg-ok {
+  position: absolute; right: .95rem;
+  display: grid; place-items: center;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(63, 189, 122, .18);
+  color: var(--lg-verde);
+  font-size: .56rem;
+  opacity: 0; transform: scale(.5);
+  transition: opacity .24s, transform .34s var(--lg-curva);
+  pointer-events: none;
+}
+.lg-ok.on { opacity: 1; transform: none; }
+
+.lg-ojo {
+  position: absolute; right: .5rem;
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  padding: 0; border: 0; border-radius: 8px;
+  background: none;
+  color: var(--lg-tinta-3);
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .2s, color .2s, transform .2s;
+}
+.lg-ojo:hover { background: rgba(255,255,255,.09); color: var(--lg-tinta); }
+.lg-ojo:active { transform: scale(.88); }
+
+.lg-mayus {
+  display: flex; align-items: center; gap: .38rem;
+  max-height: 0; margin: 0; overflow: hidden;
+  color: #f2c469; font-size: .72rem;
+  opacity: 0;
+  transition: max-height .28s var(--lg-curva), opacity .22s, margin-top .28s var(--lg-curva);
+}
+.lg-mayus.on { max-height: 2rem; margin-top: .5rem; opacity: 1; }
+.lg-mayus i { font-size: .64rem; }
+
+/* ── Botones ──────────────────────────────────────────────────────────────── */
+.lg-enviar {
+  position: relative;
+  width: 100%;
+  margin-top: .5rem;
+  padding: .92rem 1.2rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: .75rem;
+  background: linear-gradient(135deg, #e5a33a 0%, #c9832a 100%);
+  /* Tinta oscura sobre el oro: 6.9:1. Con blanco encima del mismo dorado se
+     quedaba en 2.2 y era el peor contraste de la pantalla. */
+  color: #16283a;
+  font: 700 .95rem/1 'Poppins', 'Inter', sans-serif;
+  letter-spacing: .02em;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12px 28px -8px rgba(201, 131, 42, .55);
+  transition: background .25s, transform .22s var(--lg-curva), box-shadow .25s, color .25s;
+}
+.lg-enviar > span { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: .55rem; }
+.lg-enviar::after {
+  content: "";
+  position: absolute; inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.45), transparent 70%);
+  transition: transform .68s var(--lg-curva);
+}
+.lg-enviar:hover:not(:disabled)::after { transform: translateX(120%); }
+.lg-enviar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f0b451 0%, #d9922f 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 34px -8px rgba(201, 131, 42, .68);
+}
+.lg-enviar:active:not(:disabled) { transform: translateY(0) scale(.985); }
+.lg-enviar:disabled { cursor: default; }
+.lg-enviar.cargando { opacity: .84; }
+/* Verde con blanco a 5.1:1. Se queda puesto el instante que tarda la plataforma
+   en arrancar, para que el salto no sea en seco. */
+.lg-enviar.hecho {
+  background: linear-gradient(135deg, #238952 0%, #1e7d4b 100%);
+  color: #fff;
+  box-shadow: 0 12px 28px -8px rgba(30, 125, 75, .6);
+  animation: lgHecho .45s var(--lg-curva);
+}
+@keyframes lgHecho { 45% { transform: scale(1.035); } }
+
+.lg-separa { display: flex; align-items: center; gap: .75rem; margin: 1.6rem 0 1.1rem; }
+.lg-separa::before, .lg-separa::after { content: ''; flex: 1; height: 1px; background: var(--lg-filo-2); }
+.lg-separa span { color: var(--lg-tinta-3); font-size: .66rem; white-space: nowrap; }
+
+.lg-secundario {
+  width: 100%;
+  padding: .68rem 1.2rem;
+  border: 1.5px solid var(--lg-filo);
+  border-radius: 2rem;
+  background: transparent;
+  color: var(--lg-tinta-2);
+  font: 600 .8rem/1 'Poppins', 'Inter', sans-serif;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  transition: border-color .22s, color .22s, background .22s, transform .22s var(--lg-curva);
+}
+.lg-secundario:hover {
+  border-color: rgba(225,174,82,.55);
+  background: rgba(225,174,82,.09);
+  color: var(--lg-oro);
+  transform: translateY(-2px);
+}
+.lg-secundario:active { transform: translateY(0) scale(.98); }
+
+.lg-seguro {
+  display: flex; align-items: center; justify-content: center; gap: .4rem;
+  margin: 1.4rem 0 0;
+  color: var(--lg-tinta-3);
+  font-size: .68rem;
+}
+.lg-seguro i { color: rgba(225,174,82,.62); }
+
+.lg-pie {
+  position: relative;
+  z-index: 1;
+  padding: 0 clamp(1.1rem, 4vw, 3rem) 1.4rem;
+  color: var(--lg-tinta-3);
+  font-size: .66rem;
+  letter-spacing: .06em;
+  text-align: center;
+}
+
+/* ── Foco visible ─────────────────────────────────────────────────────────── */
+/* Los campos NO llevan anilla: su `:focus` ya pinta borde dorado más la raya, y
+   sumarle el contorno daba dos aros concéntricos. */
+.lg-enviar:focus-visible,
+.lg-secundario:focus-visible,
+.lg-ojo:focus-visible,
+.lg-marca:focus-visible,
+.lg-fichas li:focus-visible {
+  outline: 3px solid rgba(225, 174, 82, .5);
+  outline-offset: 3px;
+}
+
+/* ── Movimiento ───────────────────────────────────────────────────────────── */
+[data-anima] [data-revelar] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .7s var(--lg-curva), transform .7s var(--lg-curva);
+  transition-delay: calc(0.05s + var(--i, 0) * 80ms);
+}
+[data-anima] [data-revelar][data-visto] { opacity: 1; transform: none; }
+
+/* El titular se arma letra a letra. `--n` es el índice global, así que el
+   barrido cruza las tres líneas seguido en vez de reiniciarse en cada una. */
+.lg-letra {
+  opacity: 0;
+  transform: translateY(0.5em) rotate(6deg);
+  animation: lgLetra .62s var(--lg-curva) forwards;
+  animation-delay: calc(0.22s + var(--n) * 0.026s);
+}
+@keyframes lgLetra { to { opacity: 1; transform: none; } }
+
+.lg-punto { animation: lgLatido 2s ease-in-out infinite; }
+@keyframes lgLatido { 50% { opacity: .4; transform: scale(.62); } }
+
+/* La cifra da un salto seco cuando el dato aterriza de verdad. */
+.lg-cifra-viva .lg-cifra-num { animation: lgAterriza .5s var(--lg-curva); }
+@keyframes lgAterriza {
+  0%   { transform: translateY(4px); opacity: .4; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* ── Adaptación ───────────────────────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .lg-escena {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 620px;
+    gap: 2.2rem;
+    align-items: start;
+  }
+  /* La tarjeta primero: se viene a entrar, no a leer la portada. */
+  .lg-lado { order: 1; }
+  .lg-panel { order: 2; }
+  .lg-titular { font-size: clamp(2rem, 8vw, 2.9rem); }
+  .lg-tarjeta { max-width: none; }
+  .lg-velo {
+    background: linear-gradient(180deg, rgba(8,16,26,.9) 0%, rgba(8,16,26,.72) 45%, rgba(8,16,26,.92) 100%);
+  }
+}
+
+@media (max-width: 720px) {
+  .lg-bar { padding-block: .7rem; }
+  .lg-marca-txt { font-size: 1.16rem; }
+  .lg-bar-estado { display: none; }
+  .lg-escena { padding-top: 1.4rem; gap: 1.8rem; }
+  .lg-tarjeta { padding: 1.5rem 1.25rem 1.4rem; border-radius: 1.15rem; }
+  .lg-tarjeta-tit { font-size: 1.5rem; }
+  .lg-input { min-height: 48px; font-size: 1rem; }
+  .lg-enviar, .lg-secundario { min-height: 48px; }
+  .lg-tablero-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lg-cifra { padding: .8rem .8rem .8rem 0; }
+  /* En dos columnas, la regla que separa va en la 2.ª y la 4.ª, no en todas: la
+     3.ª abre fila y una raya a su izquierda quedaría suelta en el aire. */
+  .lg-cifra + .lg-cifra { border-left: 0; padding-left: 0; }
+  .lg-cifra:nth-child(even) { padding-left: .9rem; border-left: 1px solid var(--lg-filo-2); }
+  .lg-cifra:nth-child(n+3) { border-top: 1px solid var(--lg-filo-2); }
+}
+
+@media (max-width: 430px) {
+  .lg-escena { padding-inline: .9rem; }
+  .lg-titular { font-size: clamp(1.9rem, 10vw, 2.4rem); }
+  .lg-lead { font-size: .84rem; }
+  .lg-fichas li { font-size: .68rem; padding: .3rem .6rem; }
+}
+
+@media (max-height: 720px) and (min-width: 1081px) {
+  .lg-escena { padding-block: 1.6rem; gap: 3rem; }
+  .lg-panel { gap: 1.1rem; }
+  .lg-tarjeta { padding: 1.6rem 1.7rem 1.4rem; }
+  .lg-tarjeta-sub { margin-bottom: 1.2rem; }
+  .lg-campo { margin-bottom: .85rem; }
+  .lg-separa { margin: 1.1rem 0 .9rem; }
+}
+
+@media (pointer: coarse) {
+  .lg-input, .lg-enviar, .lg-secundario { min-height: 44px; }
+}
+
+/* ── Aviso emergente ──────────────────────────────────────────────────────── */
+.lg-toast {
+  position: fixed;
+  left: 50%; bottom: 24px;
+  z-index: 2000;
+  display: flex; align-items: center; gap: .5rem;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  padding: .7rem 1.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(225, 174, 82, .26);
+  border-radius: 60px;
+  background: rgba(11, 22, 35, .95);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .55);
+  color: var(--lg-tinta);
+  font-size: .82rem;
+  text-align: center;
+  pointer-events: none;
+  /* Sube al aparecer en vez de solo aclararse: el movimiento es lo que hace que
+     se note un aviso que sale abajo del todo. */
+  opacity: 0;
+  transform: translate(-50%, 14px) scale(.97);
+  transition: opacity .26s var(--lg-curva), transform .32s var(--lg-curva);
+}
+.lg-toast.visible { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.lg-toast > i { color: var(--lg-azul); }
+.lg-toast.error { background: rgba(46, 12, 14, .95); border-color: rgba(248, 131, 124, .34); }
+.lg-toast.error > i { color: var(--lg-rojo); }
+
+/* Dice cuánto queda antes de que el aviso se vaya solo. Su duración tiene que
+   coincidir con TOAST_MS de Login.jsx. */
+.lg-toast-barra {
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 100%; height: 2px;
+  transform-origin: 0 50%;
+  background: var(--lg-oro);
+  animation: lgBarra 3.6s linear forwards;
+}
+.lg-toast.error .lg-toast-barra { background: var(--lg-rojo); }
+@keyframes lgBarra { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+@media (max-width: 480px) {
+  .lg-toast {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    width: calc(100vw - 1.5rem);
+    justify-content: center;
+    padding: .72rem 1rem;
+    border-radius: 14px;
+    font-size: .78rem;
+  }
+}
+
+/* Apaga TODO el movimiento de esta pantalla de una vez. El revelado no necesita
+   excepción: su estado oculto cuelga de `[data-anima]`, y useRevelado() no llega
+   a poner ese atributo cuando el usuario pide menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .lg-wrap *, .lg-wrap *::before, .lg-wrap *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .lg-tarjeta { transform: none !important; }
+}

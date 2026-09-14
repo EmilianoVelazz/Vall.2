@@ -272,10 +272,11 @@ function _vnFinObservar(observador) {
                 const showTime = !['1d','1wk','1mo'].includes(interval);
                 if (!_chart) {
                     const darkFinance = document.body.classList.contains('vn-dark-finanzas');
-                    const chartSurface = darkFinance ? '#0b1621' : '#fbfdfe';
-                    const chartText = darkFinance ? '#a7b8c5' : '#536675';
-                    const chartGrid = darkFinance ? 'rgba(167,184,197,.11)' : '#edf2f5';
-                    const chartBorder = darkFinance ? '#304354' : '#dce5ea';
+                    const bolsaSurface = getComputedStyle(document.body).getPropertyValue('--bolsa-base').trim();
+                    const chartSurface = darkFinance ? (bolsaSurface || '#35536b') : '#fbfdfe';
+                    const chartText = darkFinance ? '#acbbc7' : '#536675';
+                    const chartGrid = darkFinance ? 'rgba(172,187,199,.14)' : '#edf2f5';
+                    const chartBorder = darkFinance ? '#4c5f70' : '#dce5ea';
                     _chart = LightweightCharts.createChart(wrapper, {
                         width:  wrapper.clientWidth,
                         height: wrapper.clientHeight || 440,
@@ -528,6 +529,16 @@ function syncEnergyDashboard() {
     set('energy-pro-updated','Actualizado '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
     loadCommodityExplorer();
 }
+
+/* Panorama macro internacional (DXY, T-bill, euríbor…). Solo lo RELLENA
+   loadMacroMexico, pero syncEnergyDashboard lo LEE antes: refreshAll corre
+   loadPetroleo en la primera fase y loadMacroMexico en la segunda.
+   Sin esta declaración era un ReferenceError, y el `?.` no protege de eso —
+   el encadenamiento opcional evita leer sobre null, no sobre un identificador
+   que no existe. La excepción abortaba syncEnergyDashboard a medias y se
+   llevaba por delante los KPIs de VIX y DXY, el régimen energético y la
+   llamada a loadCommodityExplorer(). */
+var _macroIntData = {};
 
 var _commodityExplorerData = {};
 var _commodityExplorerPromise = null;
@@ -1042,7 +1053,11 @@ function openRawMetricReport(idx) {
     const pct = m.pctKey ? _rds[m.pctKey] : null;
     const value = _rdsFmtVal(m).replace(/<[^>]+>/g, '').trim() || '—';
     const interpretation = m.interp ? m.interp(numeric, pct) : 'Lectura informativa';
-    const cleanInterpretation = interpretation.replace(/^[🔴🟠🟡🟢📊]\s*/, '');
+    /* El flag `u` NO es decorativo: sin él, la clase de caracteres se interpreta
+       en unidades UTF-16, y cada emoji son DOS. La clase pasaba a contener
+       mitades sueltas de surrogate, así que borraba la mitad alta y dejaba la
+       baja huérfana: «🔴 Riesgo alto» salía como «� Riesgo alto» en el modal. */
+    const cleanInterpretation = interpretation.replace(/^[🔴🟠🟡🟢📊]\s*/u, '');
     const category = m.cat === 'tasas' ? 'Tasas bancarias' : m.cat === 'mkt' ? 'Mercados clave' : 'Riesgo y energía';
     const change = pct != null ? (pct >= 0 ? '+' : '') + Number(pct).toFixed(2) + '%' : 'Sin variación diaria disponible';
     const now = new Date();
@@ -1204,6 +1219,7 @@ async function loadFxStrip() {
 }
 
 var FX_HISTORY_CONFIG = {
+    'DX-Y.NYB': { label:'Índice DXY', color:'#56c9b0', decimals:2 },
     'EURUSD=X': { label:'EUR / USD', color:'#4d6478', decimals:4 },
     'GBPUSD=X': { label:'GBP / USD', color:'#766087', decimals:4 },
     'USDJPY=X': { label:'USD / JPY', color:'#ad7629', decimals:2 },
@@ -1226,6 +1242,7 @@ var _fxHistoryChart = null;
 var _fxOverviewChart = null;
 var _fxHistoryRequest = 0;
 var _fxHistoryState = { primary:'EURUSD=X', comparisons:['GBPUSD=X','USDJPY=X'], period:'1y', mode:'relative' };
+var _fxHistoryCardSelection = 'EURUSD=X';
 
 function renderFxOverviewTile(items) {
     const usd = Array.isArray(items) ? items.find(item => item?.pair?.ticker === 'EURUSD=X') : null;
@@ -1292,7 +1309,12 @@ function setFxHistoryLoading(kind, message) {
         : `<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>${message || 'Cargando series cambiarias…'}</span>`;
 }
 
-let _fxHistoryNoteTimer = null;
+/* var, NO let: este archivo se reejecuta en cada montaje de la sección, y un
+   let de nivel superior deja su enlace en el ámbito léxico global —que no se
+   borra al desmontar—, así que la segunda ejecución lanza "already declared" y
+   aborta el archivo ENTERO. El síntoma engaña: finTab y compañía siguen ahí de
+   la primera vez, la página parece funcionar y solo faltan las gráficas. */
+var _fxHistoryNoteTimer = null;
 function updateFxHistoryModeNote(message, warning = false, temporary = false) {
     const note = document.getElementById('fx-history-mode-note');
     if (!note) return;
@@ -1337,6 +1359,17 @@ function syncFxHistoryControls() {
         button.classList.toggle('is-active', active);
         button.setAttribute('aria-pressed', String(active));
     });
+    document.querySelectorAll('[data-fx-history-card]').forEach(card => {
+        const active = card.dataset.fxHistoryCard === _fxHistoryCardSelection;
+        card.classList.toggle('is-chart-active', active);
+        card.setAttribute('aria-pressed', String(active));
+    });
+    const periodLabels = {'5d':'5 d\u00edas','1mo':'1 mes','3mo':'3 meses','1y':'1 a\u00f1o','5y':'5 a\u00f1os'};
+    const viewLabel = document.getElementById('fx-history-view-label');
+    const seriesCount = document.getElementById('fx-history-series-count');
+    const comparisonCount = _fxHistoryState.comparisons.filter(ticker => ticker !== _fxHistoryState.primary).length;
+    if (viewLabel) viewLabel.textContent = `${FX_HISTORY_CONFIG[_fxHistoryState.primary]?.label || _fxHistoryState.primary} \u00b7 ${periodLabels[_fxHistoryState.period] || _fxHistoryState.period} \u00b7 ${_fxHistoryState.mode === 'relative' ? 'Base 100' : 'Cotizaci\u00f3n'}`;
+    if (seriesCount) seriesCount.textContent = String(1 + comparisonCount);
     updateFxHistoryModeNote();
 }
 
@@ -1346,6 +1379,7 @@ function bindFxHistoryLab() {
     lab.dataset.bound = 'true';
     document.getElementById('fx-history-primary')?.addEventListener('change', event => {
         _fxHistoryState.primary = event.target.value;
+        _fxHistoryCardSelection = _fxHistoryState.primary;
         _fxHistoryState.comparisons = _fxHistoryState.comparisons.filter(ticker => ticker !== _fxHistoryState.primary);
         syncFxHistoryControls();
         loadFxHistoricalLab();
@@ -1364,6 +1398,7 @@ function bindFxHistoryLab() {
     document.querySelectorAll('[data-fx-compare]').forEach(button => button.addEventListener('click', () => {
         if (button.disabled) return;
         const ticker = button.dataset.fxCompare;
+        _fxHistoryCardSelection = _fxHistoryState.primary;
         if (_fxHistoryState.comparisons.includes(ticker)) {
             _fxHistoryState.comparisons = _fxHistoryState.comparisons.filter(item => item !== ticker);
         } else if (_fxHistoryState.comparisons.length < 3) {
@@ -1396,6 +1431,8 @@ function renderFxHistoryResults(series) {
     const allKeys = [...new Set(series.flatMap(item => item.candles.map(candle => fxHistoryKey(candle.time))))]
         .sort((a,b) => new Date(a) - new Date(b));
     const relative = _fxHistoryState.mode === 'relative' || series.length > 1;
+    const visualTitle = document.getElementById('fx-history-visual-title');
+    if (visualTitle) visualTitle.textContent = relative ? `Rendimiento relativo \u00b7 ${series.length} ${series.length === 1 ? 'serie' : 'series'}` : `${FX_HISTORY_CONFIG[primary.ticker]?.label || primary.ticker} \u00b7 cotizaci\u00f3n hist\u00f3rica`;
     const datasets = series.map(item => {
         const cfg = FX_HISTORY_CONFIG[item.ticker] || { label:item.ticker,color:'#64748b' };
         const values = new Map(item.candles.map(candle => [fxHistoryKey(candle.time),Number(candle.close)]));
@@ -1423,8 +1460,8 @@ function renderFxHistoryResults(series) {
     if (_fxHistoryChart) _fxHistoryChart.destroy();
     const canvas = document.getElementById('fx-history-chart');
     const darkFxTheme = document.body.classList.contains('vn-dark-finanzas');
-    const fxChartInk = darkFxTheme ? '#a9bac7' : '#71838a';
-    const fxChartGrid = darkFxTheme ? 'rgba(164,188,205,.11)' : 'rgba(16,45,55,.07)';
+    const fxChartInk = darkFxTheme ? '#aebdc9' : '#71838a';
+    const fxChartGrid = darkFxTheme ? 'rgba(169,191,207,.14)' : 'rgba(16,45,55,.07)';
     _fxHistoryChart = new Chart(canvas.getContext('2d'), {
         type:'line', data:{labels,datasets},
         options:{
@@ -1474,6 +1511,37 @@ async function loadFxHistoricalLab() {
     }
 }
 
+function selectFxHistoryCard(ticker) {
+    const lab = document.getElementById('fx-history-lab');
+    if (!lab) return;
+
+    const isBreadth = ticker === 'breadth';
+    if (isBreadth) {
+        _fxHistoryState.primary = 'EURUSD=X';
+        _fxHistoryState.comparisons = ['GBPUSD=X', 'USDJPY=X', 'USDCNY=X'];
+        _fxHistoryState.mode = 'relative';
+    } else if (FX_HISTORY_CONFIG[ticker]) {
+        _fxHistoryState.primary = ticker;
+        _fxHistoryState.comparisons = _fxHistoryState.comparisons.filter(item => item !== ticker);
+        if (!_fxHistoryState.comparisons.length && ticker !== 'EURUSD=X') {
+            _fxHistoryState.comparisons = ['EURUSD=X'];
+        }
+        _fxHistoryState.mode = 'relative';
+    } else {
+        return;
+    }
+
+    _fxHistoryCardSelection = ticker;
+    syncFxHistoryControls();
+    if (isBreadth) updateFxHistoryModeNote('Amplitud global: cuatro cruces normalizados en Base 100 para comparar la dirección del dólar.', false, true);
+    loadFxHistoricalLab();
+    lab.classList.remove('is-card-target');
+    void lab.offsetWidth;
+    lab.classList.add('is-card-target');
+    window.setTimeout(() => lab.classList.remove('is-card-target'), 900);
+    lab.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
 function openFxDetail(index) {
     const item = Array.isArray(_fxData) ? _fxData[index] : null;
     if (!item) return;
@@ -1495,6 +1563,7 @@ function openInternationalFxReport(index) {
 }
 
 var _internationalFxBoard = [];
+var _fxMarketSegment = 'all';
 
 function buildInternationalFxBoard(items) {
     const find = ticker => items.find(item => item?.pair?.ticker === ticker);
@@ -1536,28 +1605,78 @@ function normalizeFxSearch(value) {
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 }
 
+/* Este archivo se vuelve a ejecutar cada vez que React monta /finanzas.
+   Debe ser `var`, igual que el resto de sus globales reentrantes: un `const`
+   permanece en el entorno léxico de la SPA aunque se retire la etiqueta script
+   y hace que la siguiente visita aborte con "Identifier already declared". */
+var FX_MATRIX_META = {
+    USD:{name:'Dólar estadounidense',country:'Estados Unidos',flag:'us',segments:['g10']},
+    EUR:{name:'Euro',country:'Eurozona Europa',flag:'eu',segments:['g10']},
+    GBP:{name:'Libra esterlina',country:'Reino Unido',flag:'gb',segments:['g10']},
+    JPY:{name:'Yen japonés',country:'Japón',flag:'jp',segments:['g10','asia']},
+    CHF:{name:'Franco suizo',country:'Suiza',flag:'ch',segments:['g10']},
+    CAD:{name:'Dólar canadiense',country:'Canadá',flag:'ca',segments:['g10']},
+    AUD:{name:'Dólar australiano',country:'Australia',flag:'au',segments:['g10']},
+    NZD:{name:'Dólar neozelandés',country:'Nueva Zelanda',flag:'nz',segments:['g10']},
+    BRL:{name:'Real brasileño',country:'Brasil',flag:'br',segments:['emerging']},
+    CNY:{name:'Yuan chino',country:'China',flag:'cn',segments:['asia','emerging']},
+    INR:{name:'Rupia india',country:'India',flag:'in',segments:['asia','emerging']}
+};
+
+function fxMatrixCurrencyMatches(code, segment) {
+    if (code === 'USD' || segment === 'all') return true;
+    return FX_MATRIX_META[code]?.segments?.includes(segment) || false;
+}
+
 function filterFxMarketBoard() {
     const input = document.getElementById('fx-market-search-input');
     const grid = document.getElementById('fx-pro-pair-grid');
     if (!input || !grid) return;
     const query = normalizeFxSearch(input.value);
-    const cards = [...grid.querySelectorAll('.fx-pro-pair')];
-    let visible = 0;
-    cards.forEach(card => {
-        const match = !query || normalizeFxSearch(card.dataset.fxSearch).includes(query);
-        card.hidden = !match;
-        if (match) visible += 1;
+    const currencies = [...grid.querySelectorAll('.fx-matrix-colhead[data-fx-code]')].map(cell => cell.dataset.fxCode);
+    const queryTokens = query.split(/[^a-z0-9]+/).filter(Boolean);
+    const queryCodes = currencies.filter(code => {
+        if (!query) return true;
+        const haystack = normalizeFxSearch(`${code} ${FX_MATRIX_META[code]?.name || ''} ${FX_MATRIX_META[code]?.country || ''}`);
+        return haystack.includes(query) || queryTokens.some(token => haystack.includes(token));
     });
+    let visibleCodes = currencies.filter(code => fxMatrixCurrencyMatches(code,_fxMarketSegment) && (!query || queryCodes.includes(code)));
+    if (query && visibleCodes.length && !visibleCodes.includes('USD')) visibleCodes.unshift('USD');
+    const visibleSet = new Set(visibleCodes);
+    grid.querySelectorAll('[data-fx-code]').forEach(cell => { cell.hidden = !visibleSet.has(cell.dataset.fxCode); });
+    grid.querySelectorAll('[data-fx-row]').forEach(row => {
+        const visible = visibleSet.has(row.dataset.fxRow);
+        row.hidden = !visible;
+        if (visible) row.style.setProperty('--fx-visible-currencies',visibleCodes.length);
+    });
+    grid.querySelector('.fx-matrix-header')?.style.setProperty('--fx-visible-currencies',visibleCodes.length);
     const status = document.getElementById('fx-market-search-status');
     const empty = document.getElementById('fx-market-search-empty');
     const clear = document.getElementById('fx-market-search-clear');
-    if (status) status.textContent = query ? `${visible} de ${cards.length} cruces coinciden con "${input.value.trim()}"` : `${cards.length} cruces prioritarios disponibles`;
-    if (empty) empty.hidden = visible !== 0;
+    const segmentLabel = _fxMarketSegment === 'all' ? 'todos los segmentos' : _fxMarketSegment === 'g10' ? 'G10' : _fxMarketSegment === 'asia' ? 'Asia' : 'emergentes';
+    const crossCount = Math.max(0,visibleCodes.length * (visibleCodes.length - 1));
+    if (status) status.textContent = query ? `${visibleCodes.length} monedas · ${crossCount} equivalencias para "${input.value.trim()}"` : `${visibleCodes.length} monedas · ${crossCount} equivalencias · ${segmentLabel}`;
+    if (empty) empty.hidden = visibleCodes.length !== 0;
     if (clear) clear.hidden = !query;
 }
 
 function bindFxMarketSearch() {
     const input = document.getElementById('fx-market-search-input');
+    const filterbar = document.getElementById('fx-market-filterbar');
+    if (filterbar && filterbar.dataset.bound !== 'true') {
+        filterbar.dataset.bound = 'true';
+        filterbar.addEventListener('click', event => {
+            const button = event.target.closest('[data-fx-segment]');
+            if (!button) return;
+            _fxMarketSegment = button.dataset.fxSegment || 'all';
+            filterbar.querySelectorAll('[data-fx-segment]').forEach(item => {
+                const active = item === button;
+                item.classList.toggle('is-active', active);
+                item.setAttribute('aria-pressed', String(active));
+            });
+            filterFxMarketBoard();
+        });
+    }
     if (!input || input.dataset.bound === 'true') return;
     input.dataset.bound = 'true';
     input.addEventListener('input', filterFxMarketBoard);
@@ -1573,6 +1692,12 @@ function bindFxMarketSearch() {
         event.preventDefault();
         input.focus();
     });
+}
+
+function openInternationalFxHistory(index) {
+    const item = Array.isArray(_internationalFxBoard) ? _internationalFxBoard[index] : null;
+    if (!item) return;
+    selectFxHistoryCard(`${item.label.replace('/', '')}=X`);
 }
 
 function renderFxProfessionalDashboard(items) {
@@ -1615,27 +1740,56 @@ function renderFxProfessionalDashboard(items) {
         const leader = globalPct.slice().sort((a,b) => +b.pct-(+a.pct))[0];
         const maxPct = Math.max(...globalPct.map(item => +item.pct));
         const minPct = Math.min(...globalPct.map(item => +item.pct));
-        set('fx-pro-largest',`${byAbs[0].flag} ${byAbs[0].label} · ${Math.abs(+byAbs[0].pct).toFixed(2)}%`);
-        set('fx-pro-pressure',`${leader.flag} ${leader.label} · ${+leader.pct >= 0 ? '+' : ''}${(+leader.pct).toFixed(2)}%`);
+        set('fx-pro-largest',`${byAbs[0].label} · ${Math.abs(+byAbs[0].pct).toFixed(2)}%`);
+        set('fx-pro-pressure',`${leader.label} · ${+leader.pct >= 0 ? '+' : ''}${(+leader.pct).toFixed(2)}%`);
         set('fx-pro-dispersion',(maxPct-minPct).toFixed(2)+' pp');
     }
 
     const grid = document.getElementById('fx-pro-pair-grid');
     if (grid && internationalBoard.length) {
-        const maxMove = Math.max(.1,...globalPct.map(item => Math.abs(+item.pct)));
-        grid.innerHTML = internationalBoard.map((item,index) => {
-            const pct = Number.isFinite(+item.pct) ? +item.pct : null;
-            const tone = pct == null ? '#94a3b8' : pct > 0 ? '#059669' : pct < 0 ? '#dc2626' : '#64748b';
-            const direction = pct == null ? 'Pendiente' : pct > 0 ? 'Base gana' : pct < 0 ? 'Base cede' : 'Estable';
-            const width = pct == null ? 12 : Math.max(10,Math.min(100,Math.abs(pct)/maxMove*100));
-            const quote = Number(item.price).toLocaleString('es-MX',{minimumFractionDigits:item.decimals,maximumFractionDigits:item.decimals});
-            return `<article class="fx-pro-pair report-card" data-fx-search="${item.label} ${item.note} ${item.search}" style="--pair-tone:${tone}" role="button" tabindex="0" title="Abrir reporte de ${item.label}" onclick="openInternationalFxReport(${index})" onkeydown="reportCardKey(event,()=>openInternationalFxReport(${index}))">
-                <div class="fx-pro-pair-head"><div class="fx-pro-pair-name"><span class="fx-pro-pair-flag">${item.flag}</span><span><strong>${item.label}</strong><small>${item.note}</small></span></div><em class="${pct != null && pct > 0 ? 'down' : 'up'}">${direction}</em></div>
-                <div class="fx-pro-pair-value"><strong>${quote}</strong><span>${pct == null ? '—' : `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`}</span></div>
-                <div class="fx-pro-pair-track"><i style="width:${width}%"></i></div>
-                <div class="fx-pro-pair-foot"><span>${item.source.startsWith('Cross-rate') ? 'Cross-rate calculado' : 'Cotización internacional'}</span><i class="fas fa-chevron-right"></i></div>
-            </article>`;
+        const unitsPerUsd = {USD:1};
+        const strengthVsUsd = {USD:0};
+        const sourceIndex = {};
+        internationalBoard.forEach((item,index) => {
+            const [base,quote] = item.label.split('/');
+            const price = +item.price;
+            if (!Number.isFinite(price) || price <= 0) return;
+            if (base === 'USD') {
+                unitsPerUsd[quote] = price;
+                strengthVsUsd[quote] = Number.isFinite(+item.pct) ? -(+item.pct) : null;
+                sourceIndex[quote] = index;
+            } else if (quote === 'USD') {
+                unitsPerUsd[base] = 1 / price;
+                strengthVsUsd[base] = Number.isFinite(+item.pct) ? +item.pct : null;
+                sourceIndex[base] = index;
+            }
+        });
+        const currencies = Object.keys(FX_MATRIX_META).filter(code => Number.isFinite(unitsPerUsd[code]));
+        const formatCross = value => {
+            if (!Number.isFinite(value)) return '—';
+            const digits = value >= 100 ? 2 : value >= 10 ? 3 : value >= 1 ? 4 : value >= .01 ? 5 : 6;
+            return value.toLocaleString('es-MX',{minimumFractionDigits:Math.min(2,digits),maximumFractionDigits:digits});
+        };
+        set('fx-pro-board-status',`${currencies.length} monedas · ${currencies.length * (currencies.length - 1)} equivalencias`);
+        const currencyLabel = code => `<span class="fx-matrix-currency"><span class="fx-matrix-flag" data-country="${FX_MATRIX_META[code].flag.toUpperCase()}"><img src="https://flagcdn.com/w40/${FX_MATRIX_META[code].flag}.png" alt="Bandera de ${FX_MATRIX_META[code].country}" loading="lazy" onerror="this.parentElement.classList.add('is-fallback');this.remove()"></span><span><strong>${code}</strong><small>${FX_MATRIX_META[code].name}</small></span></span>`;
+        const header = `<div class="fx-matrix-header" style="--fx-visible-currencies:${currencies.length}"><div class="fx-matrix-corner"><span>De</span><i class="fas fa-arrow-right"></i><span>A</span></div>${currencies.map(code=>`<div class="fx-matrix-colhead" data-fx-code="${code}">${currencyLabel(code)}</div>`).join('')}</div>`;
+        const rows = currencies.map(base => {
+            const cells = currencies.map(quote => {
+                if (base === quote) return `<div class="fx-matrix-cell is-diagonal" data-fx-code="${quote}" aria-label="${base} frente a ${quote}"><span>—</span><small>Misma moneda</small></div>`;
+                const rate = unitsPerUsd[quote] / unitsPerUsd[base];
+                const baseMove = strengthVsUsd[base];
+                const quoteMove = strengthVsUsd[quote];
+                const move = Number.isFinite(baseMove) && Number.isFinite(quoteMove) ? baseMove - quoteMove : null;
+                const state = move == null || Math.abs(move) < .005 ? 'is-flat' : move > 0 ? 'is-up' : 'is-down';
+                const moveText = move == null ? 'Variación pendiente' : `${move >= 0 ? '+' : ''}${move.toFixed(2)}% diario`;
+                const directCode = base === 'USD' ? quote : quote === 'USD' ? base : null;
+                const directIndex = directCode ? sourceIndex[directCode] : null;
+                const action = Number.isInteger(directIndex) ? ` role="button" tabindex="0" onclick="openInternationalFxHistory(${directIndex})" onkeydown="reportCardKey(event,()=>openInternationalFxHistory(${directIndex}))"` : '';
+                return `<div class="fx-matrix-cell ${state}${Number.isInteger(directIndex)?' is-actionable':''}" data-fx-code="${quote}"${action} title="1 ${base} = ${formatCross(rate)} ${quote} · ${moveText}"><strong>${formatCross(rate)}</strong><small>${moveText}</small></div>`;
+            }).join('');
+            return `<div class="fx-matrix-row" data-fx-row="${base}" style="--fx-visible-currencies:${currencies.length}"><div class="fx-matrix-rowhead" data-fx-code="${base}">${currencyLabel(base)}</div>${cells}</div>`;
         }).join('');
+        grid.innerHTML = `<div class="fx-matrix-scroll">${header}${rows}</div>`;
         bindFxMarketSearch();
         filterFxMarketBoard();
     }
@@ -2474,6 +2628,20 @@ function renderGlobalBondBoard(data) {
     setBoard('debt-board-dispersion', (max - min).toFixed(2) + ' pp');
     setBoard('debt-board-status', `${filtered.length} de ${points.length} ${points.length === 1 ? 'mercado' : 'mercados'}`);
 
+    const highest = points[0];
+    const lowest = points[points.length - 1];
+    const movers = points
+        .filter(point => point.prev != null)
+        .map(point => ({ ...point, move:(point.yield - point.prev) * 100 }))
+        .sort((a,b) => Math.abs(b.move) - Math.abs(a.move));
+    const biggestMover = movers[0];
+    setBoard('sov-high-country', highest?.country || '—');
+    setBoard('sov-high-value', highest ? `${highest.yield.toFixed(2)}% · ${highest.bond.label}` : 'Sin dato');
+    setBoard('sov-low-country', lowest?.country || '—');
+    setBoard('sov-low-value', lowest ? `${lowest.yield.toFixed(2)}% · ${lowest.bond.label}` : 'Sin dato');
+    setBoard('sov-move-country', biggestMover?.country || '—');
+    setBoard('sov-move-value', biggestMover ? `${biggestMover.move > 0 ? '+' : ''}${biggestMover.move.toFixed(0)} pb en la sesión` : 'Sin cambio disponible');
+
     const regionLabels = { all:'Global', americas:'Américas', europe:'Europa', asia:'Asia–Pacífico', emerging:'Emergente' };
 
     // Eje común para todas las filas: la longitud de cada barra sólo es comparable
@@ -2517,27 +2685,31 @@ function renderGlobalBondBoard(data) {
         }).join('');
     }
 
-    board.innerHTML = filtered.map((point,index) => {
+    board.classList.add('sov-matrix');
+    const yieldRange = Math.max(max - min, .01);
+    const maxMoveAbs = Math.max(...movers.map(point => Math.abs(point.move)), 1);
+    board.innerHTML = filtered.map(point => {
         const change = point.prev == null ? null : (point.yield - point.prev) * 100;
         const spread = point.yield - median;
         const tone = spread > 1.5 ? 'high' : spread < -1 ? 'low' : 'mid';
         const changeClass = change == null ? 'flat' : change > .5 ? 'up' : change < -.5 ? 'down' : 'flat';
-        const changeText = change == null ? '—' : `${change > 0 ? '▲ +' : change < 0 ? '▼ ' : '• '}${Math.abs(change).toFixed(0)} pb`;
+        const changeText = change == null ? '—' : `${change > 0 ? '+' : change < 0 ? '−' : ''}${Math.abs(change).toFixed(0)} pb`;
         const tierLabel = tone === 'high' ? 'Prima alta' : tone === 'low' ? 'Prima baja' : 'Zona media';
         const safeLabel = String(point.bond.label).replace(/'/g, "\\'");
-        return `<article class="sov-row tone-${tone}" role="button" tabindex="0" aria-label="${point.country}, ${point.yield.toFixed(2)} por ciento" onclick="openBondDetail('${point.key}','${safeLabel}')" onkeydown="reportCardKey(event,()=>openBondDetail('${point.key}','${safeLabel}'))">
-            <span class="sov-rank">${index + 1}</span>
-            <span class="sov-country">
-                <i class="sov-flag">${point.flag}</i>
-                <span class="sov-country-txt">
-                    <strong>${point.country}</strong>
-                    <small>${point.bond.label} · ${regionLabels[point.region] || 'Global'}${point.indicative ? '' : ' · <em>cotización directa</em>'}</small>
-                </span>
-            </span>
-            <span class="sov-bar"><span class="sov-track"><i style="width:${pct(point.yield).toFixed(2)}%"></i></span><b>${point.yield.toFixed(2)}%</b></span>
-            <span class="sov-chg ${changeClass}">${changeText}</span>
-            <span class="sov-spread"><b>${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pp</b><small>${tierLabel}</small></span>
-            <i class="fas fa-chevron-right sov-go" aria-hidden="true"></i>
+        const yieldIntensity = .16 + ((point.yield - min) / yieldRange) * .24;
+        const yieldColor = tone === 'high' ? `rgba(177,75,89,${yieldIntensity.toFixed(2)})` : tone === 'low' ? `rgba(63,119,157,${yieldIntensity.toFixed(2)})` : 'rgba(124,139,150,.16)';
+        const moveIntensity = change == null ? .08 : .14 + Math.min(1, Math.abs(change) / maxMoveAbs) * .3;
+        const moveColor = change == null ? 'rgba(124,139,150,.08)' : change > 0 ? `rgba(177,75,89,${moveIntensity.toFixed(2)})` : change < 0 ? `rgba(48,137,108,${moveIntensity.toFixed(2)})` : 'rgba(124,139,150,.12)';
+        const spreadIntensity = .14 + Math.min(1, Math.abs(spread) / Math.max(max - median, median - min, .01)) * .28;
+        const spreadColor = spread > 0 ? `rgba(177,75,89,${spreadIntensity.toFixed(2)})` : spread < 0 ? `rgba(63,119,157,${spreadIntensity.toFixed(2)})` : 'rgba(124,139,150,.12)';
+        const globalRank = points.findIndex(item => item.key === point.key) + 1;
+        return `<article class="sov-matrix-row tone-${tone}" role="button" tabindex="0" aria-label="${point.country}, rendimiento ${point.yield.toFixed(2)} por ciento" onclick="openBondDetail('${point.key}','${safeLabel}')" onkeydown="reportCardKey(event,()=>openBondDetail('${point.key}','${safeLabel}'))">
+            <span class="sov-mx-country"><i>${point.flag}</i><span><strong>${point.country}</strong><small>${regionLabels[point.region] || 'Global'} · ${point.bond.label}</small></span></span>
+            <span class="sov-mx-cell" style="--sov-cell:${yieldColor}"><strong>${point.yield.toFixed(2)}%</strong><small>${tierLabel}</small></span>
+            <span class="sov-mx-cell is-neutral"><strong>${point.prev == null ? '—' : point.prev.toFixed(2) + '%'}</strong><small>Referencia anterior</small></span>
+            <span class="sov-mx-cell is-${changeClass}" style="--sov-cell:${moveColor}"><strong>${changeText}</strong><small>${change == null ? 'Sin comparación' : change > 0 ? 'Rendimiento sube' : change < 0 ? 'Rendimiento baja' : 'Sin cambio'}</small></span>
+            <span class="sov-mx-cell" style="--sov-cell:${spreadColor}"><strong>${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pp</strong><small>${tierLabel}</small></span>
+            <span class="sov-mx-rank"><strong>#${globalRank}</strong><small>de ${points.length}</small></span>
         </article>`;
     }).join('') || '<div class="sovereign-board-empty"><i class="fas fa-filter-circle-xmark"></i><strong>Sin países en este filtro</strong><span>Selecciona otra región para continuar.</span></div>';
 }
@@ -2546,6 +2718,9 @@ function _renderBondsData(data, isRef) {
     data = enrichGlobalBondData(data);
     _globalBondData = data;
     _bondData = data;
+    window.__VN_BOND_DATA = data;
+    window.__VN_BOND_DATA_META = { isReferenceFallback: !!isRef };
+    window.dispatchEvent(new CustomEvent('vn:bond-data', { detail: { data, isReferenceFallback: !!isRef } }));
     const usEntry     = data.find(d => d.key === 'us');
     const usEl        = document.getElementById('bonds-us');
     if (usEl && usEntry) {
@@ -2707,11 +2882,12 @@ async function loadBonds() {
 }
 
 /* ── Línea del tiempo de tasas y bonos ─────────────────────────────────────────
-   20 mercados con serie histórica real y tres fuentes:
-     · México      Banxico SIE, diario, hasta 20 años (TIIE y CETES por plazo)
+   21 mercados con serie histórica real y cuatro fuentes:
      · EE.UU.      índices ^IRX/^FVX/^TNX/^TYX vía Yahoo (curva completa)
      · 18 europeos BCE, tasa de convergencia de Maastricht: rendimiento del bono
                    soberano a 10 años, mensual y homogénea entre países
+     · Japón       OCDE, bono soberano a 10 años mensual
+     · China       ChinaBond / CCDC, curva soberana oficial diaria a 10 años
    Ningún mercado aparece aquí sin serie publicada: no se interpola ni se rellena. */
 (function () {
     /* Genera la ficha de un país europeo servido por el BCE. */
@@ -2722,20 +2898,6 @@ async function loadBonds() {
     });
 
     const CFG = {
-        mx: {
-            label: 'México',
-            kind: 'banxico',
-            source: 'Banxico · Sistema de Información Económica',
-            series: [
-                { id: 'SF61745', label: 'TIIE 28 días' },
-                { id: 'SF43884', label: 'TIIE 91 días' },
-                { id: 'SF43885', label: 'TIIE 182 días' },
-                { id: 'SF43936', label: 'CETES 28 días' },
-                { id: 'SF43939', label: 'CETES 91 días' },
-                { id: 'SF43942', label: 'CETES 182 días' },
-                { id: 'SF43945', label: 'CETES 364 días' },
-            ],
-        },
         us: {
             label: 'Estados Unidos',
             kind: 'yahoo',
@@ -2746,6 +2908,14 @@ async function loadBonds() {
                 { id: '^TNX', label: 'Treasury 10 años' },
                 { id: '^TYX', label: 'Treasury 30 años' },
             ],
+        },
+        cn: {
+            label: 'China', kind: 'chinabond', source: 'ChinaBond · CCDC · China',
+            series: [{ id: 'CGB10Y', label: 'Bono soberano 10 años' }],
+        },
+        jp: {
+            label: 'Japón', kind: 'oecd', maxYears: 5, source: 'OCDE · Financial Markets · Japón',
+            series: [{ id: 'IRLTLT01JPM156N', label: 'Bono soberano 10 años' }],
         },
         de: bce('DE', 'Alemania'),
         fr: bce('FR', 'Francia'),
@@ -2769,19 +2939,30 @@ async function loadBonds() {
 
     /* Agrupación para los desplegables. */
     const REGIONES = [
-        { label: 'América', paises: ['mx', 'us'] },
+        { label: 'América', paises: ['us'] },
+        { label: 'Asia', paises: ['cn', 'jp'] },
         { label: 'Europa',  paises: ['de', 'fr', 'it', 'es', 'nl', 'be', 'at', 'pt', 'ie', 'gr', 'fi', 'bg', 'hr', 'sk', 'si', 'lt', 'lv', 'ee'] },
     ];
 
     let chart = null;
     let years = 5;
     let reqId = 0;
-    let comparacionManual = false;
+    const MAX_COUNTRIES = 5;
+    let comparisons = [];
+
+    /* La gráfica vive dentro de este IIFE, por lo que el desmontaje general no
+       podía verla. Se registra aquí para liberar el canvas al salir de Bonos o
+       al volver a ejecutar el script durante la navegación de la SPA. */
+    _vnFinLimpieza.push(function () {
+        reqId++;
+        if (chart) { try { chart.destroy(); } catch (e) { /* ya destruida */ } }
+        chart = null;
+    });
 
     const $$ = id => document.getElementById(id);
     /* Nombre con el que se anuncia una serie en leyendas, subtítulo y desplegables.
        Los europeos publican un solo plazo, así que el país ya la identifica; en
-       México y EE.UU. hace falta el plazo para no confundir CETES con TIIE. */
+       EE.UU. hace falta el plazo para distinguir los vencimientos Treasury. */
     const etiquetaSerie = (code, serieId) => {
         const cfg = CFG[code];
         if (!cfg) return serieId;
@@ -2801,9 +2982,44 @@ async function loadBonds() {
         if (!el) return;
         el.textContent = msg || '';
         el.classList.toggle('is-off', !msg);
+        $$('rate-timeline')?.setAttribute('aria-busy', msg?.startsWith('Cargando') ? 'true' : 'false');
     }
 
-    /* Los 20 mercados, agrupados por región. */
+    function clearTimelineReading(countryLabel) {
+        ['rtl-last','rtl-max','rtl-min','rtl-chg','rtl-spread','rtl-slope'].forEach(id => {
+            const el = $$(id);
+            if (el) { el.textContent = '—'; el.className = ''; }
+        });
+        ['rtl-last-date','rtl-max-date','rtl-min-date'].forEach(id => {
+            const el = $$(id);
+            if (el) el.textContent = 'Actualizando';
+        });
+        const slopeLabel = $$('rtl-slope-label');
+        if (slopeLabel) slopeLabel.textContent = `Pendiente · ${countryLabel || 'serie principal'}`;
+        const slopeNote = $$('rtl-slope-note');
+        if (slopeNote) slopeNote.textContent = 'Calculando con el periodo seleccionado';
+        const spreadNote = $$('rtl-spread-note');
+        if (spreadNote) spreadNote.textContent = 'Actualizando comparación';
+        const count = $$('rtl-count');
+        if (count) count.textContent = 'Actualizando observaciones…';
+    }
+
+    async function fetchTimelineJson(url) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 18000);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            if (error?.name === 'AbortError') throw new Error('La fuente tardó demasiado en responder');
+            throw error;
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    /* Mercados con histórico verificable, agrupados por región. */
     function fillCountrySelect() {
         const sel = $$('rtl-country');
         if (!sel) return;
@@ -2815,7 +3031,7 @@ async function loadBonds() {
             frag.appendChild(g);
         });
         sel.replaceChildren(frag);
-        sel.value = 'mx';
+        sel.value = 'us';
     }
 
     function fillSeriesSelect() {
@@ -2823,72 +3039,169 @@ async function loadBonds() {
         const cfg = CFG[country];
         const sel = $$('rtl-series');
         sel.replaceChildren(...cfg.series.map(s => new Option(s.label, s.id)));
-        sel.value = country === 'mx' ? 'SF61745' : country === 'us' ? '^TNX' : cfg.series[0].id;
-        // Con un solo plazo publicado (europeos) el selector no aporta nada.
+        sel.value = country === 'us' ? '^TNX' : cfg.series[0].id;
+        // Con un solo plazo publicado el selector no aporta nada.
         sel.closest('.rtl-field').hidden = cfg.series.length < 2;
-        fillCompareSelect();
+        const maxYears = cfg.maxYears || 10;
+        if (years > maxYears) years = maxYears;
+        $$('rtl-periods')?.querySelectorAll('button[data-years]').forEach(button => {
+            const value = Number(button.dataset.years);
+            button.disabled = value > maxYears;
+            button.title = button.disabled ? `La fuente de ${cfg.label} ofrece hasta ${maxYears} años` : '';
+            button.classList.toggle('is-active', value === years);
+        });
+        syncComparisonControls();
     }
 
-    /* Con qué se lee cada mercado por defecto: en América, el cruce TIIE–Treasury
-       es la prima de México que mide el resto del panel; en la zona euro la
-       referencia universal es el Bund alemán (y a Alemania se le opone Italia,
-       el diferencial que sigue todo el mercado). */
+    /* Comparación inicial por región: Treasury frente a China, los asiáticos
+       frente a un vecino y la zona euro frente al Bund alemán. */
     function sugerirComparacion(country) {
         const kind = CFG[country]?.kind;
-        if (kind === 'banxico') return 'us:^TNX';
-        if (kind === 'yahoo') return 'mx:SF61745';
+        if (kind === 'yahoo') return 'cn:CGB10Y';
+        if (kind === 'chinabond') return 'us:^TNX';
+        if (kind === 'oecd') return 'cn:CGB10Y';
         return country === 'de' ? 'it:IT' : 'de:DE';
     }
 
-    /* La comparación ofrece TODAS las series de los 20 mercados menos la
-       principal, agrupadas por región. */
-    function fillCompareSelect() {
-        const sel = $$('rtl-compare');
+    /* El país principal cuenta como el primero. El usuario puede sumar cuatro
+       referencias más, para un máximo de cinco países visibles a la vez. */
+    function syncComparisonControls() {
+        const sel = $$('rtl-compare-picker');
         if (!sel) return;
-        const actual = sel.value;
         const mainCountry = $$('rtl-country').value;
         const mainSerie = $$('rtl-series').value;
+        const usedCountries = new Set([mainCountry]);
+        comparisons = [...new Set(comparisons)].filter(key => {
+            const code = key.split(':')[0];
+            if (!CFG[code] || usedCountries.has(code)) return false;
+            usedCountries.add(code);
+            return true;
+        }).slice(0, MAX_COUNTRIES - 1);
+
         const frag = document.createDocumentFragment();
-        frag.appendChild(new Option('Sin comparación', ''));
+        frag.appendChild(new Option(comparisons.length >= MAX_COUNTRIES - 1 ? 'Límite de 5 países alcanzado' : 'Selecciona un país…', ''));
         REGIONES.forEach(region => {
             const grupo = document.createElement('optgroup');
             grupo.label = region.label;
             region.paises.forEach(code => {
+                if (usedCountries.has(code)) return;
                 CFG[code].series.forEach(s => {
-                    if (code === mainCountry && s.id === mainSerie) return;
-                    grupo.appendChild(new Option(etiquetaSerie(code, s.id), `${code}:${s.id}`));
+                    const key = `${code}:${s.id}`;
+                    grupo.appendChild(new Option(etiquetaSerie(code, s.id), key));
                 });
             });
             if (grupo.children.length) frag.appendChild(grupo);
         });
         sel.replaceChildren(frag);
-        /* Mientras el usuario no elija comparación propia, cada país estrena la
-           suya; en cuanto elige una (incluido "Sin comparación") se respeta. */
-        const sugerida = sugerirComparacion(mainCountry);
-        const existe = v => [...sel.options].some(o => o.value === v);
-        if (comparacionManual && existe(actual)) sel.value = actual;
-        else sel.value = existe(sugerida) ? sugerida : '';
+        sel.disabled = comparisons.length >= MAX_COUNTRIES - 1;
+        const add = $$('rtl-add-compare');
+        if (add) add.disabled = sel.disabled || !sel.value;
+
+        const chips = $$('rtl-comparisons');
+        if (chips) {
+            chips.replaceChildren(...comparisons.map(key => {
+                const [code, id] = key.split(':');
+                const chip = document.createElement('span');
+                chip.className = 'rtl-comparison-chip';
+                const label = document.createElement('b');
+                label.textContent = etiquetaSerie(code, id);
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.dataset.key = key;
+                remove.setAttribute('aria-label', `Quitar ${label.textContent}`);
+                remove.innerHTML = '<i class="fas fa-xmark" aria-hidden="true"></i>';
+                chip.append(label, remove);
+                return chip;
+            }));
+        }
+        const count = $$('rtl-compare-count');
+        if (count) count.textContent = `${comparisons.length + 1} / ${MAX_COUNTRIES} países`;
     }
+
+    function resetSuggestedComparison() {
+        const suggested = sugerirComparacion($$('rtl-country').value);
+        comparisons = suggested ? [suggested] : [];
+        syncComparisonControls();
+    }
+
+    function addComparison() {
+        const sel = $$('rtl-compare-picker');
+        const key = sel?.value || '';
+        if (!key || comparisons.includes(key) || comparisons.length >= MAX_COUNTRIES - 1) return;
+        comparisons.push(key);
+        syncComparisonControls();
+        refresh();
+    }
+
+    function syncShortcutState() {
+        const active = $$('rtl-country')?.value;
+        document.querySelectorAll('.debt-country-card[data-bond-country]').forEach(card => {
+            const selected = card.dataset.bondCountry === active;
+            card.classList.toggle('is-active', selected);
+            card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+    }
+
+    function updateShortcutYield(country, points) {
+        const value = points?.length ? points[points.length - 1]?.value : null;
+        const el = $$(`bond-shortcut-${country}-value`);
+        if (!el || !isFinite(value)) return;
+        el.textContent = fmtPct(value);
+        el.closest('.debt-country-card')?.classList.add('has-value');
+    }
+
+    function selectTimelineCountry(country, seriesId, shouldScroll = true) {
+        const cfg = CFG[country];
+        const countrySelect = $$('rtl-country');
+        if (!cfg || !countrySelect) return;
+        comparisons = [];
+        countrySelect.value = country;
+        fillSeriesSelect();
+        const seriesSelect = $$('rtl-series');
+        if (seriesId && cfg.series.some(series => series.id === seriesId)) seriesSelect.value = seriesId;
+        resetSuggestedComparison();
+        syncShortcutState();
+        refresh();
+        if (shouldScroll) {
+            const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+            setTimeout(() => $$('rate-timeline')?.scrollIntoView({ behavior, block: 'start' }), 40);
+        }
+    }
+
+    window.selectBondTimelineCountry = selectTimelineCountry;
 
     /* El BCE publica mensual: la fecha llega como "AAAA-MM". */
     async function loadEcb(area) {
-        const r = await fetch(`/api/ecb/${encodeURIComponent(area)}/history?years=${years}`);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = await r.json();
+        const j = await fetchTimelineJson(`/api/ecb/${encodeURIComponent(area)}/history?years=${years}`);
         return (j?.points || [])
             .map(p => ({ date: new Date(p.date + '-01T00:00:00'), value: +p.value }))
             .filter(p => !isNaN(p.date) && isFinite(p.value));
     }
 
+    async function loadFred(series) {
+        const j = await fetchTimelineJson(`/api/fred/${encodeURIComponent(series)}/history?years=${years}`);
+        return (j?.points || [])
+            .map(p => ({ date: new Date(`${p.date}T00:00:00`), value: +p.value }))
+            .filter(p => !isNaN(p.date) && isFinite(p.value));
+    }
+
+    async function loadChinaBond() {
+        const j = await fetchTimelineJson(`/api/chinabond/history?years=${years}`);
+        return (j?.points || [])
+            .map(p => ({ date: new Date(`${p.date}T00:00:00`), value: +p.value }))
+            .filter(p => !isNaN(p.date) && isFinite(p.value));
+    }
+
     function loadSeries(country, id) {
         const kind = CFG[country]?.kind;
-        if (kind === 'banxico') return loadMx(id);
         if (kind === 'yahoo') return loadUs(id);
+        if (kind === 'oecd') return loadFred(id);
+        if (kind === 'chinabond') return loadChinaBond();
         return loadEcb(CFG[country].area);
     }
 
-    /* Las dos fuentes tienen frecuencias distintas (Banxico es diario, Yahoo
-       semanal). Se proyecta la serie de comparación sobre las fechas de la
+    /* Las fuentes tienen frecuencias distintas (diaria, semanal y mensual).
+       Se proyecta la serie de comparación sobre las fechas de la
        principal arrastrando el último valor conocido: nunca se interpola ni se
        inventa un punto que la fuente no publicó. */
     function alinear(base, otra) {
@@ -2900,31 +3213,10 @@ async function loadBonds() {
         });
     }
 
-    /* Banxico entrega la fecha como DD/MM/AAAA, que Date no interpreta bien. */
-    function parseBanxicoDate(texto) {
-        const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(texto || '').trim());
-        return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
-    }
-
-    async function loadMx(serie) {
-        const end = new Date();
-        const start = new Date(end.getFullYear() - years, end.getMonth(), end.getDate());
-        const iso = d => d.toISOString().slice(0, 10);
-        const r = await fetch(`/api/banxico/${encodeURIComponent(serie)}/history?start=${iso(start)}&end=${iso(end)}`);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = await r.json();
-        const datos = j?.bmx?.series?.[0]?.datos || [];
-        return datos
-            .map(d => ({ date: parseBanxicoDate(d.fecha), value: parseFloat(d.dato) }))
-            .filter(p => p.date && isFinite(p.value));
-    }
-
     async function loadUs(ticker) {
         const range = years <= 1 ? '1y' : years <= 3 ? '3y' : years <= 5 ? '5y' : '10y';
         const interval = years <= 1 ? '1d' : '1wk';
-        const r = await fetch(`/api/stock-history?ticker=${encodeURIComponent(ticker)}&range=${range}&interval=${interval}`);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = await r.json();
+        const j = await fetchTimelineJson(`/api/stock-history?ticker=${encodeURIComponent(ticker)}&range=${range}&interval=${interval}`);
         return (j?.candles || [])
             .map(c => ({ date: new Date(typeof c.time === 'number' ? c.time * 1000 : c.time + 'T00:00:00'), value: +c.close }))
             .filter(p => !isNaN(p.date) && isFinite(p.value));
@@ -2934,11 +3226,20 @@ async function loadBonds() {
         const canvas = $$('rtl-canvas');
         if (!canvas || typeof Chart === 'undefined') return;
         if (chart) { chart.destroy(); chart = null; }
+        /* Cubre también una instancia huérfana dejada por una ejecución
+           anterior del script (por ejemplo, tras una actualización en caliente). */
+        const orphan = typeof Chart.getChart === 'function' ? Chart.getChart(canvas) : null;
+        if (orphan) orphan.destroy();
         const darkTheme = document.body.classList.contains('vn-dark-finanzas');
-        const chartInk = darkTheme ? '#a9bac7' : '#5b6f7e';
-        const chartLine = darkTheme ? '#304354' : '#e2eaef';
-        const chartGrid = darkTheme ? 'rgba(167,190,207,.10)' : 'rgba(16,32,46,.06)';
-        const pointRing = darkTheme ? '#0b1621' : '#ffffff';
+        const chartInk = darkTheme ? '#aebdc9' : '#5b6f7e';
+        const chartLine = darkTheme ? '#4c5f70' : '#e2eaef';
+        const chartGrid = darkTheme ? 'rgba(172,193,209,.14)' : 'rgba(16,32,46,.06)';
+        const pointRing = darkTheme ? '#1a2b3b' : '#ffffff';
+        const comparisonPalette = darkTheme
+            ? ['#e1ae52', '#ff7fa7', '#79a9ff', '#b694ff']
+            : ['#b7791f', '#b83d68', '#376fc5', '#7651b5'];
+        const comparisonDashes = [[7, 4], [3, 3], [10, 3, 2, 3], [2, 3]];
+        const compared = Array.isArray(meta.comparisons) ? meta.comparisons : [];
 
         const values = points.map(p => p.value);
         const last = points[points.length - 1];
@@ -2947,6 +3248,18 @@ async function loadBonds() {
         points.forEach(p => { if (p.value > maxP.value) maxP = p; if (p.value < minP.value) minP = p; });
         const diff = last.value - first.value;
         const sube = diff >= 0;
+        const YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
+        const slopeX = points.map(point => (point.date - first.date) / YEAR_MS);
+        const meanX = slopeX.reduce((sum, value) => sum + value, 0) / slopeX.length;
+        const meanY = values.reduce((sum, value) => sum + value, 0) / values.length;
+        const slopeDenominator = slopeX.reduce((sum, value) => sum + Math.pow(value - meanX, 2), 0);
+        const slope = slopeDenominator > 0
+            ? slopeX.reduce((sum, value, index) => sum + (value - meanX) * (values[index] - meanY), 0) / slopeDenominator
+            : null;
+        const slopeIntercept = Number.isFinite(slope) ? meanY - slope * meanX : null;
+        const trendValues = Number.isFinite(slope)
+            ? slopeX.map(value => slopeIntercept + slope * value)
+            : values.map(() => null);
 
         $$('rtl-last').textContent = fmtPct(last.value);
         $$('rtl-last-date').textContent = fmtDate(last.date);
@@ -2957,30 +3270,94 @@ async function loadBonds() {
         const chg = $$('rtl-chg');
         chg.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} pp`;
         chg.className = sube ? 'is-up' : 'is-down';
+        const slopeElement = $$('rtl-slope');
+        const slopeLabel = $$('rtl-slope-label');
+        const slopeNote = $$('rtl-slope-note');
+        if (slopeLabel) slopeLabel.textContent = `Pendiente · ${meta.countryLabel || 'serie principal'}`;
+        if (slopeElement) {
+            slopeElement.textContent = Number.isFinite(slope) ? `${slope >= 0 ? '+' : ''}${slope.toFixed(2)} pp/año` : '—';
+            slopeElement.className = !Number.isFinite(slope) || Math.abs(slope) < .02 ? '' : slope > 0 ? 'is-up' : 'is-down';
+        }
+        if (slopeNote) slopeNote.textContent = !Number.isFinite(slope) ? 'Serie principal · sin datos suficientes'
+            : Math.abs(slope) < .02 ? 'Serie principal · tendencia estable'
+            : slope > 0 ? 'Serie principal · tendencia ascendente' : 'Serie principal · tendencia descendente';
         $$('rtl-source').textContent = meta.source;
-        $$('rtl-count').textContent = `${points.length} observaciones · ${fmtDate(first.date)} → ${fmtDate(last.date)}`;
-        $$('rtl-sub').textContent = meta.compLabel
-            ? `${meta.seriesLabel} frente a ${meta.compLabel}`
-            : meta.seriesLabel;
+        $$('rtl-count').textContent = `${points.length} observaciones · ${compared.length + 1} países · ${fmtDate(first.date)} → ${fmtDate(last.date)}`;
 
-        /* Diferencial actual entre ambas series, en puntos porcentuales. */
+        /* Diferenciales actuales contra cada referencia seleccionada. */
         const celdaSpread = $$('rtl-spread-cell');
         const leyenda = $$('rtl-legend');
-        if (meta.compValues) {
-            const ultimoComp = [...meta.compValues].reverse().find(v => v != null);
+        const spreadList = $$('rtl-spread-list');
+        if (compared.length) {
+            const primaryComparison = compared[0];
+            const ultimoComp = [...primaryComparison.values].reverse().find(v => v != null);
             const spread = ultimoComp == null ? null : last.value - ultimoComp;
+            const spreadPairs = primaryComparison.values.flatMap((value, index) => value == null
+                ? []
+                : [{ x:slopeX[index], y:values[index] - value }]);
+            const spreadMeanX = spreadPairs.length ? spreadPairs.reduce((sum, point) => sum + point.x, 0) / spreadPairs.length : null;
+            const spreadMeanY = spreadPairs.length ? spreadPairs.reduce((sum, point) => sum + point.y, 0) / spreadPairs.length : null;
+            const spreadDenominator = spreadPairs.reduce((sum, point) => sum + Math.pow(point.x - spreadMeanX, 2), 0);
+            const spreadSlope = spreadDenominator > 0
+                ? spreadPairs.reduce((sum, point) => sum + (point.x - spreadMeanX) * (point.y - spreadMeanY), 0) / spreadDenominator
+                : null;
+            const spreadSlopeText = Number.isFinite(spreadSlope)
+                ? ` · pendiente ${spreadSlope >= 0 ? '+' : ''}${spreadSlope.toFixed(2)} pp/año`
+                : '';
             celdaSpread.hidden = false;
             const el = $$('rtl-spread');
             el.textContent = spread == null ? '—' : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pp`;
             el.className = spread == null ? '' : spread >= 0 ? 'is-up' : 'is-down';
             $$('rtl-spread-note').textContent = spread == null ? 'Sin dato comparable'
-                : spread >= 0 ? `${meta.seriesLabel} paga más` : `${meta.compLabel} paga más`;
+                : `vs ${primaryComparison.label}${spreadSlopeText}`;
+
+            spreadList.hidden = false;
+            spreadList.replaceChildren(...compared.map((comparison, index) => {
+                const current = [...comparison.values].reverse().find(v => v != null);
+                const value = current == null ? null : last.value - current;
+                const item = document.createElement('span');
+                item.className = 'rtl-spread-item';
+                item.style.setProperty('--rtl-series-color', comparisonPalette[index]);
+                const name = document.createElement('b');
+                name.textContent = `vs ${comparison.label}`;
+                const amount = document.createElement('strong');
+                amount.textContent = value == null ? 'Sin dato' : `${value >= 0 ? '+' : ''}${value.toFixed(2)} pp`;
+                amount.className = value == null ? '' : value >= 0 ? 'is-up' : 'is-down';
+                item.append(name, amount);
+                return item;
+            }));
+
             leyenda.hidden = false;
-            $$('rtl-lg-main').textContent = meta.seriesLabel;
-            $$('rtl-lg-comp').textContent = meta.compLabel;
+            const legendData = [{ label: meta.seriesLabel, color: darkTheme ? '#56c9b0' : '#0d6d8c', dash: false },
+                ...compared.map((comparison, index) => ({ label: comparison.label, color: comparisonPalette[index], dash: true }))];
+            leyenda.replaceChildren(...legendData.map(item => {
+                const entry = document.createElement('span');
+                entry.className = `rtl-lg${item.dash ? ' is-dashed' : ''}`;
+                entry.style.setProperty('--rtl-series-color', item.color);
+                const marker = document.createElement('i');
+                const label = document.createElement('b');
+                label.textContent = item.label;
+                entry.append(marker, label);
+                return entry;
+            }));
         } else {
             celdaSpread.hidden = true;
+            spreadList.hidden = true;
+            spreadList.replaceChildren();
             leyenda.hidden = true;
+            leyenda.replaceChildren();
+        }
+
+        if (Number.isFinite(slope)) {
+            leyenda.hidden = false;
+            const trendEntry = document.createElement('span');
+            trendEntry.className = 'rtl-lg is-dashed rtl-trend-legend';
+            trendEntry.style.setProperty('--rtl-series-color', darkTheme ? '#ff7fa7' : '#b83d68');
+            const marker = document.createElement('i');
+            const label = document.createElement('b');
+            label.textContent = `Pendiente ${meta.countryLabel || 'principal'} ${slope >= 0 ? '+' : ''}${slope.toFixed(2)} pp/año`;
+            trendEntry.append(marker, label);
+            leyenda.append(trendEntry);
         }
 
         /* Colorimetría: la serie va siempre en el teal de Favro. El rojo y el
@@ -3018,11 +3395,10 @@ async function loadBonds() {
                 datasets: [{
                     data: values,
                     borderColor: TEAL,
-                    /* Sin comparación: degradado vertical hacia la base.
-                       Con comparación: el relleno va HASTA la otra serie, así la
-                       banda sombreada ES el diferencial, y se tiñe de rojo cuando
-                       esta serie paga más y de verde cuando paga menos. */
-                    backgroundColor: meta.compValues
+                    /* Sin comparación: degradado vertical hacia la base. Con
+                       varias referencias se omite el relleno para no mezclar
+                       áreas y conservar una lectura limpia de las cinco líneas. */
+                    backgroundColor: compared.length
                         ? undefined
                         : ctx => {
                             const area = ctx.chart.chartArea;
@@ -3033,9 +3409,7 @@ async function loadBonds() {
                             return g;
                         },
                     borderWidth: 2.2,
-                    fill: meta.compValues
-                        ? { target: 1, above: darkTheme ? 'rgba(255,123,136,.15)' : 'rgba(179,38,30,.15)', below: darkTheme ? 'rgba(81,211,168,.15)' : 'rgba(14,122,64,.15)' }
-                        : true,
+                    fill: !compared.length,
                     tension: .25,
                     /* Solo se marcan el máximo y el mínimo: son las dos cifras del
                        resumen, y así el ojo las localiza sobre la curva. */
@@ -3048,20 +3422,32 @@ async function loadBonds() {
                     pointHoverBorderColor: pointRing,
                     label: meta.seriesLabel,
                 },
-                ...(meta.compValues ? [{
-                    data: meta.compValues,
-                    label: meta.compLabel,
-                    borderColor: darkTheme ? '#e1ae52' : '#c99745',
+                ...compared.map((comparison, index) => ({
+                    data: comparison.values,
+                    label: comparison.label,
+                    borderColor: comparisonPalette[index],
                     borderWidth: 2,
-                    borderDash: [6, 4],
+                    borderDash: comparisonDashes[index],
                     fill: false,
                     tension: .25,
                     pointRadius: 0,
                     pointHoverRadius: 5,
-                    pointHoverBackgroundColor: darkTheme ? '#e1ae52' : '#c99745',
+                    pointHoverBackgroundColor: comparisonPalette[index],
                     pointHoverBorderColor: pointRing,
                     spanGaps: true,
-                }] : [])],
+                })),
+                {
+                    data: trendValues,
+                    label: 'Pendiente anualizada',
+                    borderColor: darkTheme ? '#ff7fa7' : '#b83d68',
+                    borderWidth: 1.6,
+                    borderDash: [3, 5],
+                    fill: false,
+                    tension: 0,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    isTrend: true,
+                }],
             },
             options: {
                 responsive: true,
@@ -3072,18 +3458,23 @@ async function loadBonds() {
                     legend: { display: false },
                     tooltip: {
                         backgroundColor: '#071c2c', padding: 10, cornerRadius: 9,
-                        displayColors: !!meta.compValues, boxWidth: 8, boxHeight: 8, usePointStyle: true,
+                        displayColors: !!compared.length, boxWidth: 8, boxHeight: 8, usePointStyle: true,
+                        filter: item => !item.dataset.isTrend,
                         titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 12 },
                         callbacks: {
                             title: it => fmtDate(points[it[0].dataIndex].date),
-                            label: it => meta.compValues
+                            label: it => compared.length
                                 ? `${it.dataset.label}  ${fmtPct(it.parsed.y)}`
                                 : fmtPct(it.parsed.y),
-                            /* Cierra el tooltip con el diferencial de ese día. */
+                            /* Cierra el tooltip con todos los diferenciales del día. */
                             footer: it => {
-                                if (!meta.compValues || it.length < 2) return '';
-                                const d = it[0].parsed.y - it[1].parsed.y;
-                                return `Diferencial  ${d >= 0 ? '+' : ''}${d.toFixed(2)} pp`;
+                                if (!compared.length || it.length < 2) return '';
+                                const main = it.find(item => item.datasetIndex === 0);
+                                if (!main) return '';
+                                return it.filter(item => item.datasetIndex > 0).map(item => {
+                                    const d = main.parsed.y - item.parsed.y;
+                                    return `vs ${item.dataset.label}  ${d >= 0 ? '+' : ''}${d.toFixed(2)} pp`;
+                                });
                             },
                         },
                         footerFont: { family: 'JetBrains Mono', size: 11 },
@@ -3121,28 +3512,44 @@ async function loadBonds() {
         if (!country || !serie) return;
         const cfg = CFG[country];
         const seriesLabel = etiquetaSerie(country, serie);
-        const comparar = $$('rtl-compare')?.value || '';
-        const [compCountry, compSerie] = comparar ? comparar.split(':') : [];
+        const selected = comparisons.map(key => {
+            const [compCountry, compSerie] = key.split(':');
+            return { key, country: compCountry, series: compSerie };
+        });
 
+        clearTimelineReading(cfg.label);
         setState('Cargando serie histórica…');
         try {
-            const [points, compPoints] = await Promise.all([
+            const results = await Promise.allSettled([
                 loadSeries(country, serie),
-                comparar ? loadSeries(compCountry, compSerie) : Promise.resolve(null),
+                ...selected.map(item => loadSeries(item.country, item.series)),
             ]);
             if (mine !== reqId) return;
+            if (results[0].status !== 'fulfilled') throw results[0].reason;
+            const points = results[0].value;
             if (!points.length) { setState('La fuente no devolvió observaciones para este periodo.'); return; }
+            updateShortcutYield(country, points);
             setState('');
-            const compValues = compPoints && compPoints.length ? alinear(points, compPoints) : null;
-            /* Dos países europeos comparten fuente: se nombra una sola vez. */
-            const cfgComp = compValues ? CFG[compCountry] : null;
-            const fuente = !cfgComp ? cfg.source
-                : (cfg.kind === 'ecb' && cfgComp.kind === 'ecb')
-                    ? `BCE · rendimiento del bono a 10 años (${cfg.label} y ${cfgComp.label})`
-                    : `${cfg.source}  ·  ${cfgComp.source}`;
+            const loadedComparisons = selected.flatMap((item, index) => {
+                const result = results[index + 1];
+                if (result.status !== 'fulfilled' || !result.value.length) {
+                    console.warn(`Comparación ${item.key}:`, result.status === 'rejected' ? result.reason?.message : 'sin observaciones');
+                    return [];
+                }
+                updateShortcutYield(item.country, result.value);
+                return [{
+                    country: item.country,
+                    label: etiquetaSerie(item.country, item.series),
+                    values: alinear(points, result.value),
+                    source: CFG[item.country].source,
+                }];
+            });
+            const fuentes = [...new Set([cfg.source, ...loadedComparisons.map(item => item.source)])];
             render(points, {
-                source: fuente, seriesLabel,
-                compValues, compLabel: compValues ? etiquetaSerie(compCountry, compSerie) : null,
+                source: fuentes.join(' · '),
+                seriesLabel,
+                countryLabel: cfg.label,
+                comparisons: loadedComparisons,
             });
         } catch (e) {
             if (mine !== reqId) return;
@@ -3155,9 +3562,27 @@ async function loadBonds() {
         if (!$$('rate-timeline')) return;
         fillCountrySelect();
         fillSeriesSelect();
-        $$('rtl-country').addEventListener('change', () => { fillSeriesSelect(); refresh(); });
-        $$('rtl-series').addEventListener('change', () => { fillCompareSelect(); refresh(); });
-        $$('rtl-compare').addEventListener('change', () => { comparacionManual = true; refresh(); });
+        resetSuggestedComparison();
+        syncShortcutState();
+        $$('rtl-country').addEventListener('change', () => {
+            comparisons = [];
+            fillSeriesSelect();
+            resetSuggestedComparison();
+            syncShortcutState();
+            refresh();
+        });
+        $$('rtl-series').addEventListener('change', () => { syncComparisonControls(); refresh(); });
+        $$('rtl-compare-picker').addEventListener('change', e => {
+            $$('rtl-add-compare').disabled = !e.target.value || comparisons.length >= MAX_COUNTRIES - 1;
+        });
+        $$('rtl-add-compare').addEventListener('click', addComparison);
+        $$('rtl-comparisons').addEventListener('click', e => {
+            const button = e.target.closest('button[data-key]');
+            if (!button) return;
+            comparisons = comparisons.filter(key => key !== button.dataset.key);
+            syncComparisonControls();
+            refresh();
+        });
         $$('rtl-periods').addEventListener('click', e => {
             const b = e.target.closest('button[data-years]');
             if (!b) return;
@@ -3388,14 +3813,14 @@ function renderEmergingFXChart(labels,data) {
     const canvas=document.getElementById('fx-pro-emerging-chart')||document.getElementById('fx-emerging-chart');if(!canvas||typeof Chart==='undefined')return;
     if(_fxEmergingChart)_fxEmergingChart.destroy();
     const darkFxTheme=document.body.classList.contains('vn-dark-finanzas');
-    const colors=data.map(v=>v==null?(darkFxTheme?'#607586':'#cbd5e1'):v>=0?(darkFxTheme?'#51d3a8':'#16a34a'):(darkFxTheme?'#ff7b88':'#dc2626'));
+    const colors=data.map(v=>v==null?(darkFxTheme?'#7d8d9a':'#a9b7bf'):v>=0?(darkFxTheme?'rgba(86,201,176,.86)':'rgba(24,136,117,.82)'):(darkFxTheme?'rgba(233,106,121,.88)':'rgba(196,69,84,.82)'));
     const isRanking=_fxChartType==='ranking',isLine=_fxChartType==='line',isRadar=_fxChartType==='radar';
     const kind=isLine?'line':isRadar?'radar':'bar';
-    const chartInk=darkFxTheme?'#a9bac7':'#66788a',chartGrid=darkFxTheme?'rgba(164,188,205,.11)':'rgba(0,0,0,0.05)',chartLine=darkFxTheme?'#56c9b0':'#005b96';
-    const valueAxis={ticks:{color:chartInk,callback:v=>(typeof v==='number'?v.toFixed(1):v)+'%',font:{size:10},maxTicksLimit:5,autoSkip:true,maxRotation:0},grid:{color:chartGrid},border:{display:false}};
-    const categoryAxis={ticks:{color:chartInk,font:{size:10},autoSkip:false},grid:{display:false},border:{display:false}};
+    const chartInk=darkFxTheme?'#c4d0d9':'#50666d',chartGrid=darkFxTheme?'rgba(169,191,207,.14)':'rgba(58,92,88,.08)',chartLine=darkFxTheme?'#56c9b0':'#188875';
+    const valueAxis={ticks:{color:chartInk,callback:v=>(typeof v==='number'?v.toFixed(1):v)+'%',font:{size:10,weight:'600'},maxTicksLimit:6,autoSkip:true,maxRotation:0},grid:{color:ctx=>ctx.tick?.value===0?(darkFxTheme?'rgba(112,216,192,.56)':'rgba(24,136,117,.42)'):chartGrid,lineWidth:ctx=>ctx.tick?.value===0?2:1},border:{display:false}};
+    const categoryAxis={ticks:{color:chartInk,font:{size:10,weight:'600'},autoSkip:false,padding:8},grid:{display:false},border:{display:false}};
     const scales=isRadar?{r:{angleLines:{color:chartGrid},grid:{color:chartGrid},pointLabels:{color:chartInk,font:{size:9}},ticks:{display:false}}}:isRanking?{x:valueAxis,y:categoryAxis}:{x:categoryAxis,y:valueAxis};
-    _fxEmergingChart=new Chart(canvas.getContext('2d'),{type:kind,data:{labels,datasets:[{label:'Variación frente al USD (%)',data,backgroundColor:isLine?(darkFxTheme?'rgba(86,201,176,.12)':'rgba(0,91,150,.12)'):isRadar?(darkFxTheme?'rgba(86,201,176,.16)':'rgba(0,91,150,.18)'):colors,borderColor:isLine||isRadar?chartLine:colors,borderWidth:isLine||isRadar?2:1,borderRadius:5,fill:isLine||isRadar,tension:.28,pointRadius:isLine?4:isRadar?3:0,pointBackgroundColor:colors}]},options:{indexAxis:isRanking?'y':'x',responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:darkFxTheme?'#07131d':'rgba(0,0,0,.8)',titleColor:'#fff',bodyColor:'#fff',callbacks:{label:ctx=>{const value=isRanking?ctx.parsed.x:(ctx.parsed.r??ctx.parsed.y??ctx.raw);return ` ${value>=0?'+':''}${Number(value).toFixed(2)}%`;}}}},scales}});
+    _fxEmergingChart=new Chart(canvas.getContext('2d'),{type:kind,data:{labels,datasets:[{label:'Variación frente al USD (%)',data,backgroundColor:isLine?(darkFxTheme?'rgba(86,201,176,.12)':'rgba(24,136,117,.12)'):isRadar?(darkFxTheme?'rgba(86,201,176,.16)':'rgba(24,136,117,.16)'):colors,borderColor:isLine||isRadar?chartLine:colors,borderWidth:isLine||isRadar?2:1,borderRadius:7,borderSkipped:false,fill:isLine||isRadar,tension:.28,pointRadius:isLine?4:isRadar?3:0,pointHoverRadius:isLine?6:isRadar?5:0,pointBackgroundColor:colors}]},options:{indexAxis:isRanking?'y':'x',responsive:true,maintainAspectRatio:false,animation:{duration:520,easing:'easeOutQuart'},interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:darkFxTheme?'#142738':'#17312d',borderColor:darkFxTheme?'#627e71':'#4b796f',borderWidth:1,padding:11,titleColor:'#fff',bodyColor:'#fff',displayColors:false,callbacks:{label:ctx=>{const value=isRanking?ctx.parsed.x:(ctx.parsed.r??ctx.parsed.y??ctx.raw);return `Movimiento: ${value>=0?'+':''}${Number(value).toFixed(2)}% frente al USD`;}}}},scales}});
     syncFxChartTypeUI();
 }
 
@@ -3410,14 +3835,14 @@ async function loadEmergingFX() {
     if (!canvas || typeof Chart === 'undefined') return;
 
     const FX = [
-        { ticker: 'USDBRL=X', label: '🇧🇷 Real Brasileño' },
-        { ticker: 'USDCOP=X', label: '🇨🇴 Peso Colombiano' },
-        { ticker: 'USDCLP=X', label: '🇨🇱 Peso Chileno' },
-        { ticker: 'USDINR=X', label: '🇮🇳 Rupia India' },
-        { ticker: 'USDZAR=X', label: '🇿🇦 Rand Sudafricano' },
-        { ticker: 'USDTRY=X', label: '🇹🇷 Lira Turca' },
-        { ticker: 'USDIDR=X', label: '🇮🇩 Rupia Indonesia' },
-        { ticker: 'USDKRW=X', label: '🇰🇷 Won Surcoreano' },
+        { ticker: 'USDBRL=X', code:'BR', label: 'BR · Real brasileño' },
+        { ticker: 'USDCOP=X', code:'CO', label: 'CO · Peso colombiano' },
+        { ticker: 'USDCLP=X', code:'CL', label: 'CL · Peso chileno' },
+        { ticker: 'USDINR=X', code:'IN', label: 'IN · Rupia india' },
+        { ticker: 'USDZAR=X', code:'ZA', label: 'ZA · Rand sudafricano' },
+        { ticker: 'USDTRY=X', code:'TR', label: 'TR · Lira turca' },
+        { ticker: 'USDIDR=X', code:'ID', label: 'ID · Rupia indonesia' },
+        { ticker: 'USDKRW=X', code:'KR', label: 'KR · Won surcoreano' },
     ];
 
     const results = await Promise.allSettled(FX.map(f => fetchAssetData(f.ticker)));
@@ -3427,6 +3852,17 @@ async function loadEmergingFX() {
         const pct  = meta?.regularMarketChangePercent;
         return (typeof pct === 'number') ? -pct : null;
     });
+    const valid = data.map((value,index)=>({value,index})).filter(item=>Number.isFinite(item.value));
+    const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+    setText('fx-emerging-coverage',`${valid.length} de ${FX.length} mercados`);
+    if(valid.length){
+        const strongest=valid.slice().sort((a,b)=>b.value-a.value)[0];
+        const weakest=valid.slice().sort((a,b)=>a.value-b.value)[0];
+        const dispersion=strongest.value-weakest.value;
+        setText('fx-emerging-strongest',`${FX[strongest.index].code} · +${strongest.value.toFixed(2)}%`);
+        setText('fx-emerging-weakest',`${FX[weakest.index].code} · ${weakest.value>=0?'+':''}${weakest.value.toFixed(2)}%`);
+        setText('fx-emerging-dispersion',`${dispersion.toFixed(2)} pp`);
+    }
     _fxChartSnapshot={labels,data};
     renderEmergingFXChart(labels,data);
 }
@@ -3488,6 +3924,8 @@ var SECTOR_UNIVERSE = [
 
 var _sectorRows = [];
 var _sectorFilter = 'all';
+var _sectorBoardLoading = null;
+var _sectorBoardStale = false;
 
 function setSectorFilter(sector) {
     _sectorFilter = sector;
@@ -3508,26 +3946,52 @@ function openTickerInLab(ticker) {
 
 async function loadSectorBoard() {
     if (!document.getElementById('sectors-panel')) return;
-    const results = await Promise.allSettled(SECTOR_UNIVERSE.map(a => fetchAssetData(a.t)));
-    _sectorRows = SECTOR_UNIVERSE.map((a, i) => {
-        const data = results[i].status === 'fulfilled' ? results[i].value : null;
-        const pct = data?.meta?.regularMarketChangePercent;
-        return typeof pct === 'number' ? { ...a, pct } : null;
-    }).filter(Boolean);
-    paintSectorBoard();
+    if (_sectorBoardLoading) return _sectorBoardLoading;
+    _sectorBoardLoading = (async () => {
+        const cacheKey = 'vn_sector_board_v2';
+        let cached = null;
+        try { cached = JSON.parse(localStorage.getItem(cacheKey)); } catch {}
+        if (Array.isArray(cached?.rows) && cached.rows.length) {
+            _sectorRows = cached.rows;
+            _sectorBoardStale = Date.now() - Number(cached.ts || 0) > 15 * 60 * 1000;
+            paintSectorBoard();
+            if (!_sectorBoardStale) return;
+        }
+
+        const fetched = [];
+        for (let start = 0; start < SECTOR_UNIVERSE.length; start += 4) {
+            const batch = SECTOR_UNIVERSE.slice(start, start + 4);
+            const results = await Promise.allSettled(batch.map(asset => fetchAssetData(asset.t)));
+            batch.forEach((asset, index) => {
+                const data = results[index].status === 'fulfilled' ? results[index].value : null;
+                const pct = data?.meta?.regularMarketChangePercent;
+                if (typeof pct === 'number') fetched.push({ ...asset, pct });
+            });
+            if (start + 4 < SECTOR_UNIVERSE.length) await new Promise(resolve => setTimeout(resolve, 240));
+        }
+
+        if (fetched.length) {
+            const byTicker = new Map((cached?.rows || []).map(row => [row.t, row]));
+            fetched.forEach(row => byTicker.set(row.t, row));
+            _sectorRows = SECTOR_UNIVERSE.map(asset => byTicker.get(asset.t)).filter(Boolean);
+            _sectorBoardStale = fetched.length < Math.ceil(SECTOR_UNIVERSE.length * .6);
+            try { localStorage.setItem(cacheKey, JSON.stringify({ ts:Date.now(), rows:_sectorRows })); } catch {}
+        }
+        paintSectorBoard();
+    })().finally(() => { _sectorBoardLoading = null; });
+    return _sectorBoardLoading;
 }
 
 function paintSectorBoard() {
     const rows = _sectorRows;
     const statusEl = document.getElementById('sb-status');
     const setHTML = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
-    const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
     if (!rows.length) {
         if (statusEl) { statusEl.textContent = 'Sin datos'; statusEl.className = 'sb-status is-off'; }
         setHTML('sb-sectors', '<div class="sb-empty">No se pudieron obtener cotizaciones en este momento.</div>');
-        setHTML('sb-gainers', '<div class="sb-empty">Sin datos</div>');
-        setHTML('sb-losers', '<div class="sb-empty">Sin datos</div>');
+        setHTML('sb-donut', '<div class="sb-empty">Sin composición disponible</div>');
+        setHTML('sb-heatmap', '<div class="sb-empty">Sin desempeño disponible</div>');
         return;
     }
 
@@ -3538,6 +4002,7 @@ function paintSectorBoard() {
         name,
         n: items.length,
         avg: items.reduce((sum, it) => sum + it.pct, 0) / items.length,
+        items: [...items].sort((a, b) => b.pct - a.pct),
     })).sort((a, b) => b.avg - a.avg);
 
     // ── 1. Indicadores clave ────────────────────────────────────────────────
@@ -3549,63 +4014,73 @@ function paintSectorBoard() {
     const dispersion = sorted[0].pct - sorted[sorted.length - 1].pct;
     const tone = v => v > 0.05 ? 'up' : v < -0.05 ? 'down' : 'flat';
     const sign = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+    const palette = ['#5d9fa0','#718ea5','#7d8f73','#9a7d8c','#a3906d','#678aa1','#806f94','#769581'];
 
     setHTML('sb-kpis', `
-        <div class="sb-kpi ${breadth >= 60 ? 'up' : breadth <= 40 ? 'down' : 'flat'}">
-            <span>Amplitud</span><strong>${breadth}%</strong><small>${up} de ${rows.length} emisoras al alza</small></div>
-        <div class="sb-kpi ${tone(best.avg)}">
-            <span>Sector líder</span><strong>${best.name}</strong><small>${sign(best.avg)} · ${best.n} emisoras</small></div>
-        <div class="sb-kpi ${tone(worst.avg)}">
-            <span>Sector rezagado</span><strong>${worst.name}</strong><small>${sign(worst.avg)} · ${worst.n} emisoras</small></div>
-        <div class="sb-kpi flat">
-            <span>Dispersión</span><strong>${dispersion.toFixed(2)} pp</strong><small>${sorted[0].n} frente a ${sorted[sorted.length - 1].n}</small></div>`);
+        <div class="sb-summary ${breadth >= 60 ? 'up' : breadth <= 40 ? 'down' : ''}">
+            <span>Amplitud</span><strong>${breadth}% al alza</strong><small>${up} de ${rows.length} emisoras</small></div>
+        <div class="sb-summary ${tone(best.avg)}">
+            <span>Liderazgo sectorial</span><strong>${best.name} · ${sign(best.avg)}</strong><small>Rezagado: ${worst.name} · ${sign(worst.avg)}</small></div>
+        <div class="sb-summary">
+            <span>Dispersión de la sesión</span><strong>${dispersion.toFixed(2)} pp</strong><small>${sorted[0].n} frente a ${sorted[sorted.length - 1].n}</small></div>`);
 
     if (statusEl) {
-        statusEl.textContent = `${rows.length} emisoras · ${sectors.length} sectores`;
+        statusEl.textContent = `${rows.length} emisoras · ${sectors.length} sectores${_sectorBoardStale ? ' · última lectura' : ''}`;
         statusEl.className = 'sb-status ' + (breadth >= 60 ? 'is-on' : breadth <= 40 ? 'is-off' : '');
     }
+
+    let cursor = 0;
+    const stops = sectors.map((sector, index) => {
+        const start = cursor;
+        cursor += sector.n / rows.length * 100;
+        return `${palette[index % palette.length]} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+    }).join(',');
+    setHTML('sb-donut', `
+        <div class="sb-donut" style="background:conic-gradient(${stops})" role="img" aria-label="Distribución de ${rows.length} emisoras entre ${sectors.length} sectores">
+            <div class="sb-donut-center"><strong>${rows.length}</strong><small>emisoras</small></div>
+        </div>
+        <div class="sb-legend">${sectors.map((sector, index) => `
+            <button type="button" class="${_sectorFilter === sector.name ? 'is-active' : ''}" style="--sb-sector-color:${palette[index % palette.length]}"
+                    onclick="setSectorFilter('${_sectorFilter === sector.name ? 'all' : sector.name}')" aria-pressed="${_sectorFilter === sector.name}">
+                <i aria-hidden="true"></i><em>${sector.name}</em><strong>${(sector.n / rows.length * 100).toFixed(0)}%</strong>
+            </button>`).join('')}</div>`);
 
     // ── 2. Sectores. La barra crece desde el cero, no desde el mínimo, para
     //      que el signo y la magnitud se lean sin traducir. ──────────────────
     const maxAbs = Math.max(...sectors.map(s => Math.abs(s.avg)), 0.01);
-    setHTML('sb-sectors', sectors.map(s => {
-        const width = Math.max(2, Math.abs(s.avg) / maxAbs * 50);
-        const dir = s.avg >= 0 ? 'up' : 'down';
-        return `<div class="sb-sector ${tone(s.avg)}${_sectorFilter === s.name ? ' is-active' : ''}"
+    setHTML('sb-sectors', sectors.map(sector => {
+        const width = Math.max(2, Math.abs(sector.avg) / maxAbs * 50);
+        const dir = sector.avg >= 0 ? 'up' : 'down';
+        return `<div class="sb-sector ${tone(sector.avg)}${_sectorFilter === sector.name ? ' is-active' : ''}"
                      role="button" tabindex="0"
-                     onclick="setSectorFilter('${_sectorFilter === s.name ? 'all' : s.name}')"
-                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSectorFilter('${_sectorFilter === s.name ? 'all' : s.name}')}">
-            <span class="sb-sector-name">${s.name}</span>
+                     onclick="setSectorFilter('${_sectorFilter === sector.name ? 'all' : sector.name}')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setSectorFilter('${_sectorFilter === sector.name ? 'all' : sector.name}')}">
+            <span class="sb-sector-name">${sector.name}</span>
             <span class="sb-sector-track"><i class="${dir}" style="width:${width.toFixed(2)}%"></i></span>
-            <span class="sb-sector-pct">${sign(s.avg)}</span>
-            <span class="sb-sector-count">${s.n} emis.</span>
+            <span class="sb-sector-pct">${sign(sector.avg)}</span>
         </div>`;
-    }).join(''));
+    }).join('') + `<div class="sb-axis"><span>−${maxAbs.toFixed(1)}%</span><span>0</span><span>+${maxAbs.toFixed(1)}%</span></div>`);
 
-    // ── Filtro ──────────────────────────────────────────────────────────────
-    setHTML('sb-filter', [{ name: 'all', label: 'Todos' }, ...sectors.map(s => ({ name: s.name, label: s.name }))]
-        .map(f => `<button type="button" class="${_sectorFilter === f.name ? 'is-active' : ''}" onclick="setSectorFilter('${f.name}')">${f.label}</button>`)
-        .join(''));
+    const matrixSectors = _sectorFilter === 'all' ? sectors : sectors.filter(s => s.name === _sectorFilter);
+    const maxColumns = Math.min(7, Math.max(...matrixSectors.map(s => s.items.length), 1));
+    const header = Array.from({ length:maxColumns }, (_, i) => `<span>#${i + 1}</span>`).join('');
+    const matrixRows = matrixSectors.map(sector => {
+        const cells = Array.from({ length:maxColumns }, (_, index) => {
+            const item = sector.items[index];
+            if (!item) return '<span class="sb-cell-empty">—</span>';
+            const strength = (.38 + Math.min(1, Math.abs(item.pct) / Math.max(dispersion, .01)) * .48).toFixed(2);
+            return `<button type="button" class="sb-cell ${tone(item.pct)}" style="--sb-strength:${strength}"
+                    onclick="openTickerInLab('${item.t}')" title="${item.n} · ${item.t} · ${sign(item.pct)}"
+                    aria-label="Abrir ${item.n}, ${item.t}, variación ${sign(item.pct)}">
+                <strong>${sign(item.pct)}</strong><small>${item.t}</small></button>`;
+        }).join('');
+        return `<div class="sb-matrix-row"><span class="sb-matrix-label">${sector.name}</span>${cells}</div>`;
+    }).join('');
+    setHTML('sb-heatmap', `<div class="sb-matrix" style="--sb-columns:${maxColumns}">
+        <div class="sb-matrix-row sb-matrix-head"><span>Sector</span>${header}</div>${matrixRows}</div>`);
 
-    // ── 3. Consolidado, ya sin separar por país ─────────────────────────────
-    const visible = _sectorFilter === 'all' ? sorted : sorted.filter(r => r.s === _sectorFilter);
-    const gainers = visible.filter(r => r.pct > 0).slice(0, 6);
-    const losers = visible.filter(r => r.pct < 0).slice(-6).reverse();
-
-    const renderRows = (items, dir) => items.length
-        ? items.map((r, i) => `<div class="sb-row ${dir}" role="button" tabindex="0"
-                onclick="openTickerInLab('${r.t}')"
-                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTickerInLab('${r.t}')}">
-            <span class="sb-row-pos">${i + 1}</span>
-            <span class="sb-row-co"><strong>${r.f} ${r.n}</strong><small>${r.s} · ${r.t}</small></span>
-            <span class="sb-row-pct">${sign(r.pct)}</span>
-        </div>`).join('')
-        : `<div class="sb-empty">Sin emisoras ${dir === 'up' ? 'al alza' : 'a la baja'} en este filtro</div>`;
-
-    setHTML('sb-gainers', renderRows(gainers, 'up'));
-    setHTML('sb-losers', renderRows(losers, 'down'));
-    setText('sb-gain-count', `${visible.filter(r => r.pct > 0).length} al alza`);
-    setText('sb-loss-count', `${visible.filter(r => r.pct < 0).length} a la baja`);
+    const reset = document.getElementById('sb-reset');
+    if (reset) reset.hidden = _sectorFilter === 'all';
 }
 
 async function loadTopMovers() {
@@ -4236,7 +4711,10 @@ function setFinanceSectionStatus(name, state, customMessage) {
     if (!bar) return;
     if (!name || name === 'general') { bar.hidden = true; bar.dataset.section = ''; return; }
     const info = FIN_SECTION_INFO[name] || { title:'Información financiera', message:'' };
-    bar.hidden = false;
+    /* Divisas prescinde de esta barra: su propia cabecera ya identifica la
+       sección. Se conserva dataset.section para que el refresco siga sabiendo
+       qué cargar aunque la barra no se vea. */
+    bar.hidden = document.body.classList.contains('ff-detail-divisas');
     bar.dataset.section = name;
     bar.className = 'fin-section-status ' + state;
     const title = document.getElementById('fin-section-status-title');
@@ -4614,16 +5092,22 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
 
 /* ── Fin del código extraído ─────────────────────────────────────────────── */
 
-window.VNFinanzas = {
-    desmontar: function () {
-        var pendientes = _vnFinLimpieza;
-        _vnFinLimpieza = [];
-        pendientes.forEach(function (soltar) {
-            try { soltar(); } catch (e) { /* el nodo ya no existe */ }
-        });
-        /* El carrusel de noticias guarda su intervalo aparte. */
-        if (typeof _ncTimer !== 'undefined' && _ncTimer) { clearInterval(_ncTimer); _ncTimer = null; }
-        if (_fxHistoryChart) { _fxHistoryChart.destroy(); _fxHistoryChart = null; }
-        if (_fxOverviewChart) { _fxOverviewChart.destroy(); _fxOverviewChart = null; }
-    },
-};
+function _vnFinDesmontar() {
+    var pendientes = _vnFinLimpieza;
+    _vnFinLimpieza = [];
+    pendientes.forEach(function (soltar) {
+        try { soltar(); } catch (e) { /* el nodo ya no existe */ }
+    });
+    /* El carrusel de noticias guarda su intervalo aparte. */
+    if (typeof _ncTimer !== 'undefined' && _ncTimer) { clearInterval(_ncTimer); _ncTimer = null; }
+    if (_fxHistoryChart) { _fxHistoryChart.destroy(); _fxHistoryChart = null; }
+    if (_fxOverviewChart) { _fxOverviewChart.destroy(); _fxOverviewChart = null; }
+
+    /* Se retira la marca para que desde fuera se note que la sección ya no está
+       montada; si no, quedaría un VNFinanzas vivo apuntando a nada. Es lo mismo
+       que hace finanzas-favro.js. La comparación evita que el desmontaje del
+       montaje anterior borre la marca del que acaba de instalarse. */
+    if (window.VNFinanzas && window.VNFinanzas.desmontar === _vnFinDesmontar) delete window.VNFinanzas;
+}
+
+window.VNFinanzas = { desmontar: _vnFinDesmontar };

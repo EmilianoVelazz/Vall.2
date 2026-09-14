@@ -1,39 +1,101 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="VALL AI">
   <title>VALL AI</title>
+  <!--
+    Mascota de VALL AI. Rediseñada el 27/08/2026: la anterior era un robot de
+    dibujos animados —ojos blancos con pupila, sonrisa curva y antena de bolita—
+    que desentonaba en una plataforma de inteligencia financiera.
+
+    Lo que cambia y por qué:
+      · Los ojos con esclerótica y la sonrisa se van. Un rostro caricaturesco es
+        lo que más "juguete" aporta. En su lugar hay un VISOR con dos barras de
+        luz: conserva la mirada —y por tanto el carácter— sin dibujar una cara.
+      · El azul primario saturado (#3d8ae4) pasa al WINE de marca. No es un tono
+        inventado: es la variable `dp-wine` (#d16283) de dark-pilot.css —escrita
+        aquí SIN los dos guiones de CSS a propósito: un comentario XML no admite
+        la secuencia de dos guiones y el archivo entero deja de parsearse, que ya
+        pasó una vez y dejó la mascota como imagen rota—, el acento de
+        Finanzas, de la sala de noticias y del mapa mundial. El tono hondo del
+        degradado (#a84c6d) también sale de ahí —dark-pilot lo usa en el
+        degradado del mapa de bolsas—, así que la mascota queda dentro de la
+        paleta existente y no al lado de ella.
+      · El visor se queda NAVY a propósito: navy + wine es el emparejamiento de
+        marca, y es el mismo navy del encabezado del chat donde vive el avatar.
+      · La antena con bola desaparece; queda un punto de estado del mismo verde
+        (#4ade80) que el indicador «en línea» del encabezado, que ya existe. Se
+        mantiene verde y no wine porque es SEMÁNTICO: el estado no debe pintarse
+        del color de la marca o deja de leerse como estado.
+
+    RESTRICCIONES QUE IMPONE EL USO, y que explican la geometría:
+      · Se pinta a 96 px (lanzador), 36 px (cabecera) y 26 px con 3 px de relleno
+        —unos 20 px de dibujo— en cada mensaje. A 20 px solo sobrevive la
+        silueta: por eso la cabeza ocupa casi todo el lienzo y de los hombros
+        solo asoma un arco. La versión anterior gastaba un tercio del alto en un
+        busto que a ese tamaño era una mancha.
+      · El avatar de la cabecera va sobre NAVY y el de los mensajes sobre BLANCO.
+        El cuerpo tiene que ser un tono MEDIO: un navy oscuro se perdería en la
+        cabecera y uno claro en los mensajes.
+
+        Los tonos están MEDIDOS contra los dos fondos reales. El fondo efectivo
+        de la cabecera es blanco al 12% sobre #00213a, o sea #1f3c52.
+
+        El degradado del casco (#dd7c99 arriba, #a84c6d abajo) no es un adorno:
+        es lo que reparte el compromiso. Ningún color plano gana en los dos
+        fondos a la vez —el claro se lava sobre blanco y el hondo se hunde sobre
+        navy—, así que la parte alta trabaja para la cabecera (4.06:1) y la baja
+        para los mensajes (5.36:1). Medido:
+
+                        vs BLANCO   vs NAVY cabecera
+          #dd7c99 alto     2.83         4.06
+          #a84c6d bajo     5.36         2.15
+  -->
   <defs>
-    <linearGradient id="rb-body" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#3d8ae4"/>
-      <stop offset="1" stop-color="#1f56c9"/>
+    <linearGradient id="rb-shell" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dd7c99"/>
+      <stop offset="1" stop-color="#a84c6d"/>
     </linearGradient>
-    <linearGradient id="rb-face" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0f2436"/>
-      <stop offset="1" stop-color="#193249"/>
+    <linearGradient id="rb-visor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1c2c"/>
+      <stop offset="1" stop-color="#16304a"/>
+    </linearGradient>
+    <linearGradient id="rb-torso" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c2607f"/>
+      <stop offset="1" stop-color="#93435f"/>
     </linearGradient>
   </defs>
 
-  <!-- Antena -->
-  <line x1="64" y1="10" x2="64" y2="24" stroke="#1f56c9" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="64" cy="9" r="6" fill="#1baf7a"/>
+  <!-- Hombros. Lados VERTICALES y línea de hombro casi plana: con un solo arco
+       de lado a lado la figura salía acampanada, más peón de ajedrez que busto.
+       Solo asoma la parte alta del torso, para no robarle tamaño a la cabeza en
+       los avatares pequeños. -->
+  <path d="M30 128 L30 116 Q30 107 45 104 L83 104 Q98 107 98 116 L98 128 Z" fill="url(#rb-torso)"/>
 
-  <!-- Cabeza -->
-  <rect x="20" y="22" width="88" height="70" rx="20" fill="url(#rb-body)"/>
-  <!-- Orejas / laterales -->
-  <rect x="10" y="46" width="10" height="24" rx="5" fill="#1f56c9"/>
-  <rect x="108" y="46" width="10" height="24" rx="5" fill="#1f56c9"/>
+  <!-- Cuello, corto y ancho: uno fino se rompe visualmente al reducir. -->
+  <rect x="54" y="92" width="20" height="14" rx="6" fill="#93435f"/>
 
-  <!-- Visor -->
-  <rect x="31" y="35" width="66" height="42" rx="15" fill="url(#rb-face)"/>
-  <!-- Ojos -->
-  <circle cx="52" cy="55" r="7.5" fill="#ffffff"/>
-  <circle cx="76" cy="55" r="7.5" fill="#ffffff"/>
-  <circle cx="53.5" cy="56.5" r="3" fill="#0f2436"/>
-  <circle cx="77.5" cy="56.5" r="3" fill="#0f2436"/>
-  <!-- Sonrisa -->
-  <path d="M54 68 Q64 74 74 68" stroke="#1baf7a" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <!-- Casco. Esquinas muy redondeadas (rx 28) en vez de las rx 20 anteriores:
+       la curva continua lee como objeto industrial, no como bloque de juguete. -->
+  <rect x="16" y="17" width="96" height="80" rx="28" fill="url(#rb-shell)"/>
+  <!-- Luz de canto superior. Es el detalle que separa una figura plana de una
+       con volumen, y cuesta un solo trazo. -->
+  <path d="M34 21 Q64 13 94 21" stroke="#f3bdcd" stroke-width="3" stroke-linecap="round" fill="none" opacity=".6"/>
 
-  <!-- Cuello y hombros -->
-  <rect x="56" y="92" width="16" height="8" fill="#1f56c9"/>
-  <path d="M28 122 Q28 102 50 100 L78 100 Q100 102 100 122 Z" fill="url(#rb-body)"/>
-  <!-- Detalle del pecho -->
-  <circle cx="64" cy="112" r="6" fill="#0f2436" opacity=".28"/>
+  <!-- Laterales integrados: pegados al casco y del mismo tono, no "orejas"
+       despegadas como antes. -->
+  <rect x="8" y="45" width="10" height="26" rx="5" fill="#a84c6d"/>
+  <rect x="110" y="45" width="10" height="26" rx="5" fill="#a84c6d"/>
+
+  <!-- Visor: una sola pieza continua. Sustituye a los dos ojos sueltos y es lo
+       que da la silueta reconocible a 20 px. -->
+  <rect x="27" y="36" width="74" height="42" rx="19" fill="url(#rb-visor)"/>
+  <rect x="27" y="36" width="74" height="42" rx="19" fill="none" stroke="#ffd4e0" stroke-width="1.5" opacity=".28"/>
+
+  <!-- La mirada: dos barras verticales redondeadas. Geométricas, no faciales,
+       pero colocadas donde el ojo espera unos ojos — de ahí que siga leyéndose
+       como un personaje y no como un electrodoméstico. -->
+  <rect x="45" y="48" width="9" height="18" rx="4.5" fill="#ffd4e0"/>
+  <rect x="74" y="48" width="9" height="18" rx="4.5" fill="#ffd4e0"/>
+
+  <!-- Punto de estado, sobre la corona y sin varilla. Mismo verde que el
+       indicador «en línea» de la cabecera del chat. -->
+  <circle cx="64" cy="10" r="5" fill="#4ade80"/>
 </svg>

@@ -49,6 +49,22 @@ function isBcryptHash(str) {
     return typeof str === 'string' && str.startsWith('$2');
 }
 
+/**
+ * Lee las credenciales de acceso desde los nombres exclusivos de VALL y conserva
+ * USER_EMAIL/USER_PASSWORD como compatibilidad para instalaciones existentes.
+ * Los prefijos evitan que una variable heredada o integrada de un proveedor de
+ * hosting reemplace silenciosamente la configuración de inicio de sesión.
+ */
+function configuredCredentials() {
+    const emailFromVall = process.env.VALL_AUTH_EMAIL;
+    const passwordFromVall = process.env.VALL_AUTH_PASSWORD;
+    return {
+        email:    (emailFromVall || process.env.USER_EMAIL || '').trim(),
+        password: passwordFromVall || process.env.USER_PASSWORD || '',
+        source:   passwordFromVall ? 'VALL_AUTH_PASSWORD' : 'USER_PASSWORD',
+    };
+}
+
 /** Mutex simple para escrituras concurrentes al .env */
 let _envWriting = false;
 
@@ -85,7 +101,7 @@ function updateEnvPassword(newValue) {
  */
 async function migratePasswordIfNeeded(storedPassword) {
     if (!storedPassword || isBcryptHash(storedPassword)) return;
-    if (!!process.env.VERCEL) return; // Vercel usa env vars del dashboard, no archivo .env
+    if (process.env.VERCEL) return; // Vercel usa env vars del dashboard, no archivo .env
     try {
         const hashed = await bcrypt.hash(storedPassword, 10);
         updateEnvPassword(hashed);
@@ -117,8 +133,12 @@ function verifyToken(req, res, next) {
     }
 }
 
-// Migración automática al arrancar (no bloquea el startup)
-setImmediate(() => migratePasswordIfNeeded(process.env.USER_PASSWORD));
+// Migración automática al arrancar (no bloquea el startup). Las credenciales
+// administradas por el hosting no deben escribirse desde el proceso serverless.
+setImmediate(() => {
+    const credentials = configuredCredentials();
+    if (credentials.source === 'USER_PASSWORD') migratePasswordIfNeeded(credentials.password);
+});
 
 // ── Rutas ─────────────────────────────────────────────────────────────────────
 
@@ -128,8 +148,9 @@ router.post('/login', loginLimiter, async (req, res) => {
         if (!email || !password)
             return res.status(400).json({ success: false, error: 'Credenciales requeridas.' });
 
-        const validEmail    = process.env.USER_EMAIL    || '';
-        const validPassword = process.env.USER_PASSWORD || '';
+        const credentials   = configuredCredentials();
+        const validEmail    = credentials.email;
+        const validPassword = credentials.password;
 
         if (!validEmail || !validPassword)
             return res.status(503).json({ success: false, error: 'Autenticación no configurada.' });
@@ -153,7 +174,10 @@ router.post('/login', loginLimiter, async (req, res) => {
             path:     '/',
             maxAge:   8 * 60 * 60 * 1000,
         });
-        res.json({ success: true, token });
+        // La cookie httpOnly es el único portador de sesión necesario. Devolver
+        // el JWT en el cuerpo haría que el navegador tuviera que exponerlo a
+        // JavaScript (y por tanto a cualquier XSS) sin aportar nada a la API.
+        res.json({ success: true, email: validEmail });
     } catch (err) {
         console.error('/api/login error:', err.message);
         res.status(500).json({ success: false, error: 'Error interno del servidor.' });

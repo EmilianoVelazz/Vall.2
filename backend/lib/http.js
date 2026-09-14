@@ -51,9 +51,16 @@ function externalGet(url, extraHeaders = {}, timeoutMs = 9000) {
     });
 }
 
-/** Alias para GDELT con gestión de rate-limit 429 */
+/* Alias para GDELT con gestión de rate-limit 429.
+ *
+ * El plazo era de 12 000 ms y GDELT tarda ~12 s EXACTOS en devolver su 429, así
+ * que el plazo ganaba la carrera: el error que salía era siempre «timeout», el
+ * guardián de /api/gdelt comprueba /429/ sobre el mensaje, y por eso su freno de
+ * dos minutos nunca llegó a activarse ni una vez. Cada petición volvía a pagar
+ * 5 s de cola + 12 s de espera, y de ahí venían los ~68 s de
+ * /api/daily-news-markets en frío. Con 20 s el 429 llega a leerse. */
 function gdeltFetch(url) {
-    return externalGet(url, {}, 12000).then(r => {
+    return externalGet(url, {}, 20000).then(r => {
         if (r.status === 429) throw new Error('GDELT rate limit (429)');
         return r.json().catch(() => { throw new Error('GDELT respuesta no-JSON'); });
     });

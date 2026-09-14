@@ -24,7 +24,7 @@ const puppeteer = require('puppeteer');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.join(__dirname, '..');
 const SALIDA = path.join(__dirname, '_verify');
-const ORIGEN = process.env.VERIFY_ORIGIN || 'http://localhost:5173';
+const ORIGEN = process.env.VERIFY_ORIGIN || 'http://localhost:5273';
 
 // ── Credenciales desde backend/.env ───────────────────────────────────────────
 function leerEnv() {

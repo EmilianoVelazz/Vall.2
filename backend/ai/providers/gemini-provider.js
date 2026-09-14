@@ -3,9 +3,16 @@
 const { GoogleGenAI } = require('@google/genai');
 
 const MODELS = Object.freeze({
-    flash: process.env.GEMINI_MODEL_FLASH || 'gemini-2.5-flash',
-    pro: process.env.GEMINI_MODEL_PRO || 'gemini-2.5-pro',
+    // Modelos comprobados para esta cuenta el 2026-09-09. Se pueden fijar por
+    // entorno si un despliegue requiere una versión distinta.
+    flash: process.env.GEMINI_MODEL_FLASH || 'gemini-3.8-flash',
+    pro: process.env.GEMINI_MODEL_PRO || 'gemini-3.1-pro-preview',
 });
+
+const FLASH_FALLBACKS = Object.freeze([
+    process.env.GEMINI_MODEL_FLASH_FALLBACK || 'gemini-3.7-flash',
+    'gemini-3.6-flash',
+]);
 
 function normalizeProviderError(error) {
     const message = String(error?.message || error || 'Error desconocido del proveedor');
@@ -20,6 +27,21 @@ function normalizeProviderError(error) {
     return wrapped;
 }
 
+function thinkingFor(model, tier) {
+    if (/^gemini-3\.(?:7|8)-/i.test(model) || /^gemini-3\.1-pro/i.test(model)) {
+        // Los modelos Gemini 3 recientes no aceptan `minimal` en Generate
+        // Content. El informe usa reflexión alta; la conversación usa baja
+        // latencia sin desactivar el razonamiento.
+        return { thinkingLevel: tier === 'pro' ? 'high' : 'low' };
+    }
+    if (/^gemini-3\.6-/i.test(model)) return { thinkingLevel: tier === 'pro' ? 'low' : 'minimal' };
+    if (/^gemini-(?:3|[4-9])/i.test(model)) return { thinkingLevel: tier === 'pro' ? 'high' : 'low' };
+    if (/^gemini-2\.5/i.test(model)) {
+        return { thinkingBudget: tier === 'pro' ? 1024 : 0 };
+    }
+    return null;
+}
+
 class GeminiProvider {
     constructor(apiKey = process.env.GEMINI_API_KEY) {
         this.name = 'gemini';
@@ -27,6 +49,10 @@ class GeminiProvider {
     }
     isConfigured() { return Boolean(this.client); }
     modelForTier(tier) { return tier === 'pro' ? MODELS.pro : MODELS.flash; }
+    modelsForTier(tier) {
+        const candidates = tier === 'pro' ? [MODELS.pro, MODELS.flash, ...FLASH_FALLBACKS] : [MODELS.flash, ...FLASH_FALLBACKS];
+        return [...new Set(candidates.filter(Boolean))];
+    }
 
     contents(prompt, attachments = []) {
         const parts = [{ text: prompt }];
@@ -38,49 +64,71 @@ class GeminiProvider {
         return [{ role: 'user', parts }];
     }
 
-    async generate({ prompt, systemInstruction, tier = 'flash', json = false, attachments = [] }) {
+    async generate({ prompt, systemInstruction, tier = 'flash', json = false, attachments = [], tools = null, maxOutputTokens = null }) {
         if (!this.client) { const error = new Error('IA no configurada.'); error.code = 'AI_NOT_CONFIGURED'; error.status = 503; throw error; }
-        const model = this.modelForTier(tier);
-        try {
-            const response = await this.client.models.generateContent({
-                model,
-                contents: this.contents(prompt, attachments),
-                config: {
-                    systemInstruction,
-                    temperature: json ? 0.18 : 0.3,
-                    topP: 0.86,
-                    maxOutputTokens: tier === 'pro' ? 12288 : 8192,
-                    ...(json ? { responseMimeType: 'application/json' } : {}),
-                    httpOptions: { timeout: 50_000 },
-                },
-            });
-            return { text: String(response.text || '').trim(), model };
-        } catch (error) { throw normalizeProviderError(error); }
+        let lastError;
+        for (const model of this.modelsForTier(tier)) {
+            const thinkingConfig = thinkingFor(model, tier);
+            try {
+                const response = await this.client.models.generateContent({
+                    model,
+                    contents: this.contents(prompt, attachments),
+                    config: {
+                        systemInstruction,
+                        temperature: json ? 0.18 : 0.3,
+                        topP: 0.86,
+                        maxOutputTokens: maxOutputTokens || (tier === 'pro' ? 12288 : 8192),
+                        ...(thinkingConfig ? { thinkingConfig } : {}),
+                        ...(json ? { responseMimeType: 'application/json' } : {}),
+                        ...(Array.isArray(tools) && tools.length ? { tools } : {}),
+                        httpOptions: { timeout: 120_000 },
+                    },
+                });
+                return {
+                    text: String(response.text || '').trim(), model,
+                    grounding: response.candidates?.[0]?.groundingMetadata || null,
+                };
+            } catch (error) {
+                lastError = normalizeProviderError(error);
+                if (['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                console.warn(`[Gemini] ${model} no disponible; probando respaldo.`);
+            }
+        }
+        throw lastError;
     }
 
     async stream({ prompt, systemInstruction, tier = 'flash', onText, attachments = [] }) {
         if (!this.client) { const error = new Error('IA no configurada.'); error.code = 'AI_NOT_CONFIGURED'; error.status = 503; throw error; }
-        const model = this.modelForTier(tier);
-        try {
-            const response = await this.client.models.generateContentStream({
-                model,
-                contents: this.contents(prompt, attachments),
-                config: {
-                    systemInstruction,
-                    temperature: 0.3,
-                    topP: 0.86,
-                    maxOutputTokens: tier === 'pro' ? 12288 : 8192,
-                    httpOptions: { timeout: 50_000 },
-                },
-            });
+        let lastError;
+        for (const model of this.modelsForTier(tier)) {
+            const thinkingConfig = thinkingFor(model, tier);
             let text = '';
-            for await (const chunk of response) {
-                const part = String(chunk.text || '');
-                if (part) { text += part; onText?.(part, text); }
+            try {
+                const response = await this.client.models.generateContentStream({
+                    model,
+                    contents: this.contents(prompt, attachments),
+                    config: {
+                        systemInstruction,
+                        temperature: 0.3,
+                        topP: 0.86,
+                        maxOutputTokens: tier === 'pro' ? 12288 : 8192,
+                        ...(thinkingConfig ? { thinkingConfig } : {}),
+                        httpOptions: { timeout: 50_000 },
+                    },
+                });
+                for await (const chunk of response) {
+                    const part = String(chunk.text || '');
+                    if (part) { text += part; onText?.(part, text); }
+                }
+                return { text: text.trim(), model };
+            } catch (error) {
+                lastError = normalizeProviderError(error);
+                if (text || ['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                console.warn(`[Gemini] ${model} no inició; probando respaldo.`);
             }
-            return { text: text.trim(), model };
-        } catch (error) { throw normalizeProviderError(error); }
+        }
+        throw lastError;
     }
 }
 
-module.exports = { GeminiProvider, MODELS, normalizeProviderError };
+module.exports = { GeminiProvider, MODELS, FLASH_FALLBACKS, normalizeProviderError, thinkingFor };

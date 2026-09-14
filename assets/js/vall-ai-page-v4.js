@@ -35,7 +35,8 @@
         reportFormat: $('vaiReportFormat'), reportZoom: $('vaiReportZoom'), reportEditor: $('vaiReportEditor'), reportSource: $('vaiReportSource'), reportPreview: $('vaiReportPreview'),
         reportRefresh: $('vaiReportRefresh'), reportExport: $('vaiReportExport'), reportWords: $('vaiReportWords'), reportStatus: $('vaiReportStatus'),
         reportSave: $('vaiReportSave'), reportBody: document.querySelector('.vai-report-body'),
-        voiceOverlay: $('vaiVoiceOverlay'), voiceOrb: $('vaiVoiceOrb'), voiceStatus: $('vaiVoiceStatus'), voiceHangup: $('vaiVoiceHangup')
+        voiceOverlay: $('vaiVoiceOverlay'), voiceOrb: $('vaiVoiceOrb'), voiceStatus: $('vaiVoiceStatus'), voiceHangup: $('vaiVoiceHangup'),
+        voiceUserTranscript: $('vaiVoiceUserTranscript'), voiceAiTranscript: $('vaiVoiceAiTranscript')
     };
 
     let conversations = loadConversations();
@@ -44,6 +45,10 @@
     let controller = null;
     let continuousVoiceMode = false;
     let autoListenCallback = null;
+    let liveVoiceController = null;
+    let liveVoiceStart = 0;
+    let legacyVoiceStart = null;
+    let legacyVoiceStop = null;
     let mermaidReady = null;
     let reportRenderTimer = null;
     let activeReportContext = { key: 'latest', title: 'Reporte VALL AI', content: '', label: 'Última respuesta seleccionada' };
@@ -213,6 +218,12 @@
             return;
         }
         container.replaceChildren();
+        if (response.summary) {
+            const summary = document.createElement('section');
+            summary.className = 'vai-rich-summary';
+            summary.innerHTML = `<small><i class="fas fa-bolt"></i> Lectura clave</small>${markdown(response.summary)}`;
+            container.appendChild(summary);
+        }
         response.blocks.forEach((block) => {
             let node;
             if (block.type === 'heading') {
@@ -241,6 +252,34 @@
                 node = createAdvancedChart(block.spec || {});
             } else if (block.type === 'formula') {
                 node = document.createElement('pre'); node.textContent = block.content;
+            } else if (block.type === 'comparison') {
+                node = document.createElement('section'); node.className = 'vai-rich-comparison';
+                if (block.title) { const title = document.createElement('h3'); title.textContent = block.title; node.appendChild(title); }
+                const grid = document.createElement('div'); grid.className = 'vai-rich-comparison-grid';
+                (block.items || []).forEach((item) => {
+                    const card = document.createElement('article');
+                    const title = document.createElement('strong'); title.textContent = item.title || '';
+                    const content = document.createElement('p'); content.textContent = item.content || '';
+                    card.append(title, content);
+                    const addList = (label, values, className) => {
+                        if (!Array.isArray(values) || !values.length) return;
+                        const heading = document.createElement('small'); heading.className = className; heading.textContent = label;
+                        const list = document.createElement('ul');
+                        values.forEach((value) => { const li = document.createElement('li'); li.textContent = value; list.appendChild(li); });
+                        card.append(heading, list);
+                    };
+                    addList('A favor', item.pros, 'positive'); addList('A considerar', item.cons, 'caution');
+                    grid.appendChild(card);
+                });
+                node.appendChild(grid);
+            } else if (block.type === 'document') {
+                node = document.createElement('article'); node.className = 'vai-rich-document';
+                if (block.title) { const title = document.createElement('h2'); title.textContent = block.title; node.appendChild(title); }
+                (block.sections || []).forEach((section) => {
+                    const part = document.createElement('section');
+                    if (section.title) { const title = document.createElement('h3'); title.textContent = section.title; part.appendChild(title); }
+                    const content = document.createElement('div'); content.innerHTML = markdown(section.content || ''); part.appendChild(content); node.appendChild(part);
+                });
             } else {
                 node = document.createElement('div'); node.innerHTML = markdown(block.content || block.description || '');
             }
@@ -553,6 +592,11 @@
             structured: true,
         };
         const response = await fetch('/api/ai-insight-stream', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
+        if (response.status === 401) {
+            try { sessionStorage.removeItem('vn_auth'); sessionStorage.removeItem('vn_user'); } catch {}
+            window.location.replace('/');
+            throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
+        }
         if (!response.ok || !response.body) {
             const data = await response.json().catch(() => ({}));
             throw new Error(data.error || `No fue posible consultar VALL AI (${response.status}).`);
@@ -567,7 +611,15 @@
                 const event = buffer.slice(0, split); buffer = buffer.slice(split + 2);
                 const line = event.split('\n').find((item) => item.startsWith('data:')); if (!line) continue;
                 let data; try { data = JSON.parse(line.slice(5).trim()); } catch { continue; }
-                if (data.error) throw new Error(data.error);
+                if (data.error) {
+                    // El servidor puede fallar al cerrar la auditoría después de
+                    // haber transmitido el análisis. No descartamos ese texto.
+                    if (full) {
+                        console.warn('VALL AI: cierre de streaming con texto recibido.', data.error);
+                        return { text: full, rich, route };
+                    }
+                    throw new Error(data.error);
+                }
                 if (data.text) { full += data.text; onText(full); }
                 if (data.response) rich = data.response;
                 if (data.done) {
@@ -1047,7 +1099,7 @@
         els.sidebarCollapse.setAttribute('aria-label', value ? 'Desplegar historial' : 'Contraer historial');
         els.sidebarCollapse.title = value ? 'Desplegar historial' : 'Contraer historial';
         els.sidebarCollapse.querySelector('i').className = `fas fa-chevron-${value ? 'right' : 'left'}`;
-        els.historyToggle.setAttribute('aria-label', value ? 'Desplegar historial' : 'Abrir historial');
+        els.historyToggle.setAttribute('aria-label', value ? 'Desplegar historial' : 'Contraer historial');
         if (persist) localStorage.setItem(SIDEBAR_KEY, value ? '1' : '0');
     }
     function toggleSidebar() { setSidebarCollapsed(!els.sidebar.classList.contains('collapsed')); }
@@ -1073,7 +1125,7 @@
     els.newChat.addEventListener('click', startNewConversation);
     els.remove.addEventListener('click', () => { if (activeConversation()) deleteConversation(activeId); else startNewConversation(); });
     els.stop.addEventListener('click', () => controller?.abort());
-    els.historyToggle.addEventListener('click', openSidebar); els.sidebarCollapse.addEventListener('click', toggleSidebar); els.sideClose.addEventListener('click', closeSidebar); els.overlay.addEventListener('click', closeSidebar);
+    els.historyToggle.addEventListener('click', () => { if (isMobileSidebar()) openSidebar(); else toggleSidebar(); }); els.sidebarCollapse.addEventListener('click', toggleSidebar); els.sideClose.addEventListener('click', closeSidebar); els.overlay.addEventListener('click', closeSidebar);
     els.reportOpen.addEventListener('click', () => openReportStudio());
     document.querySelectorAll('[data-report-close]').forEach((button) => button.addEventListener('click', closeReportStudio));
     els.reportRefresh.addEventListener('click', renderReportPreview);
@@ -1101,15 +1153,140 @@
     document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventListener('click', () => sendMessage(button.dataset.prompt)));
     escucharGlobal(window, 'resize', () => setSidebarCollapsed(localStorage.getItem(SIDEBAR_KEY) === '1', false));
 
-    // Voice Input via Audio Attachment for Gemini
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && els.send) {
+    // Conversación nativa de audio a audio con Gemini Live. El puente React
+    // encapsula el SDK; este script conserva el historial y la interfaz legacy.
+    if (window.VNGeminiLive?.isSupported?.() && els.send) {
         const micBtn = document.createElement('button');
         micBtn.type = 'button';
         micBtn.id = 'vaiMic';
         micBtn.className = 'vai-mic-btn';
         micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        micBtn.title = "Hablar con VALL AI (Voz a Gemini)";
+        micBtn.title = 'Iniciar conversación de voz con VALL AI';
         els.send.parentNode.insertBefore(micBtn, els.send);
+
+        const setLiveState = (state, detail = '') => {
+            if (!els.voiceOverlay) return;
+            const labels = {
+                connecting: 'Conectando con VALL AI…', listening: detail || 'Te escucho…',
+                speaking: 'VALL AI está hablando…', ended: 'Llamada finalizada', error: detail || 'Error en la llamada',
+            };
+            els.voiceOverlay.hidden = state === 'ended';
+            els.voiceOverlay.className = `vai-voice-overlay state-${state === 'connecting' ? 'thinking' : state}`;
+            if (els.voiceStatus) els.voiceStatus.textContent = labels[state] || detail;
+            micBtn.classList.toggle('listening', !['ended', 'error'].includes(state));
+            micBtn.innerHTML = !['ended', 'error'].includes(state)
+                ? '<i class="fas fa-phone"></i>' : '<i class="fas fa-microphone"></i>';
+            if (state === 'ended') {
+                continuousVoiceMode = false;
+                if (els.voiceUserTranscript) els.voiceUserTranscript.textContent = '';
+                if (els.voiceAiTranscript) els.voiceAiTranscript.textContent = '';
+            }
+        };
+
+        const speakMissingLiveAudio = (text) => {
+            if (!text || !window.speechSynthesis) return;
+            const utterance = new SpeechSynthesisUtterance(text.replace(/[#*`_]/g, ''));
+            utterance.lang = 'es-MX';
+            utterance.rate = .98;
+            utterance.pitch = 1;
+            const spanishVoices = window.speechSynthesis.getVoices().filter(voice => /^es(?:-|_)/i.test(voice.lang));
+            utterance.voice = spanishVoices.find(voice => /natural|online|google/i.test(voice.name)) || spanishVoices[0] || null;
+            utterance.onstart = () => setLiveState('speaking');
+            utterance.onend = () => { if (continuousVoiceMode) setLiveState('listening'); };
+            window.speechSynthesis.speak(utterance);
+        };
+
+        const saveLiveTurn = ({ userText, modelText, audioMissing = false }) => {
+            if (!userText && !modelText) return;
+            const conversation = ensureConversation();
+            els.welcome.hidden = true;
+            if (els.welcome.parentNode === els.messages) els.welcome.remove();
+            if (userText) {
+                const message = { role: 'user', text: userText, ts: Date.now(), source: 'voice-live' };
+                conversation.messages.push(message);
+                appendMessage(message);
+            }
+            if (modelText) {
+                const message = { role: 'model', text: modelText, ts: Date.now(), source: 'voice-live' };
+                conversation.messages.push(message);
+                appendMessage(message);
+            }
+            persistConversation(conversation);
+            els.title.textContent = conversation.title;
+            renderHistory();
+            els.messages.scrollTop = els.messages.scrollHeight;
+            // Respaldo para respuestas ocasionales en las que Live entrega la
+            // transcripción pero omite el paquete de audio.
+            if (audioMissing) speakMissingLiveAudio(modelText);
+        };
+
+        const endLiveVoice = async () => {
+            liveVoiceStart += 1;
+            const current = liveVoiceController;
+            liveVoiceController = null;
+            continuousVoiceMode = false;
+            legacyVoiceStop?.();
+            await current?.stop?.();
+            setLiveState('ended');
+        };
+
+        const startLiveVoice = async () => {
+            const attempt = ++liveVoiceStart;
+            continuousVoiceMode = true;
+            setLiveState('connecting');
+            try {
+                const instance = await window.VNGeminiLive.start({
+                    onState: setLiveState,
+                    onLevel: level => {
+                        if (els.voiceOrb && els.voiceOverlay?.classList.contains('state-listening')) {
+                            els.voiceOrb.style.transform = `scale(${1 + level * .65})`;
+                        }
+                    },
+                    onInputTranscript: text => {
+                        if (els.voiceUserTranscript) els.voiceUserTranscript.textContent = text ? `Tú: ${text}` : '';
+                    },
+                    onOutputTranscript: text => {
+                        if (els.voiceAiTranscript) els.voiceAiTranscript.textContent = text ? `VALL AI: ${text}` : '';
+                    },
+                    onTurnComplete: saveLiveTurn,
+                    onError: message => {
+                        console.error('Gemini Live:', message);
+                        setLiveState('error', message);
+                    },
+                });
+                if (attempt !== liveVoiceStart || !continuousVoiceMode) return instance.stop();
+                liveVoiceController = instance;
+            } catch (error) {
+                console.warn('Gemini Live no disponible; usando modo de voz compatible:', error.message);
+                if (attempt !== liveVoiceStart || !continuousVoiceMode) return;
+                if (els.voiceStatus) els.voiceStatus.textContent = 'Modo compatible: te escucho…';
+                if (legacyVoiceStart) legacyVoiceStart();
+                else {
+                    setLiveState('error', error.message);
+                    setTimeout(endLiveVoice, 2200);
+                }
+            }
+        };
+
+        els.voiceHangup?.addEventListener('click', endLiveVoice);
+        micBtn.addEventListener('click', () => {
+            if (continuousVoiceMode) endLiveVoice();
+            else startLiveVoice();
+        });
+    }
+
+    // Respaldo por SpeechRecognition + speechSynthesis cuando Live no puede
+    // abrirse o el navegador no ofrece el audio nativo requerido.
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && els.send) {
+        const micBtn = $('vaiMic') || document.createElement('button');
+        if (!micBtn.id) {
+            micBtn.type = 'button';
+            micBtn.id = 'vaiMic';
+            micBtn.className = 'vai-mic-btn';
+            micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            micBtn.title = "Hablar con VALL AI (modo compatible)";
+            els.send.parentNode.insertBefore(micBtn, els.send);
+        }
         
         let recognition = null;
         let audioContext = null;
@@ -1243,8 +1420,10 @@
                 startRecording();
             }
         };
+        legacyVoiceStart = startRecording;
+        legacyVoiceStop = stopRecording;
 
-        if (els.voiceHangup) {
+        if (!window.VNGeminiLive?.isSupported?.() && els.voiceHangup) {
             els.voiceHangup.addEventListener('click', () => {
                 continuousVoiceMode = false;
                 stopRecording();
@@ -1253,17 +1432,19 @@
             });
         }
 
-        micBtn.addEventListener('click', () => {
-            if (continuousVoiceMode) {
-                continuousVoiceMode = false;
-                stopRecording();
-                if (els.voiceOverlay) els.voiceOverlay.hidden = true;
-                if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
-            } else {
-                continuousVoiceMode = true;
-                startRecording();
-            }
-        });
+        if (!window.VNGeminiLive?.isSupported?.()) {
+            micBtn.addEventListener('click', () => {
+                if (continuousVoiceMode) {
+                    continuousVoiceMode = false;
+                    stopRecording();
+                    if (els.voiceOverlay) els.voiceOverlay.hidden = true;
+                    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+                } else {
+                    continuousVoiceMode = true;
+                    startRecording();
+                }
+            });
+        }
     }
 
     /* Corta todo lo que sobreviviría al cambio de página en la SPA: listeners
@@ -1275,7 +1456,11 @@
         try { controller?.abort(); } catch { /* ya terminó */ }
         controller = null;
         clearTimeout(reportRenderTimer);
+        liveVoiceStart += 1;
         continuousVoiceMode = false;
+        try { liveVoiceController?.stop?.(); } catch { /* ya terminó */ }
+        liveVoiceController = null;
+        try { legacyVoiceStop?.(); } catch { /* ya terminó */ }
         try { if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); } catch { /* sin voz */ }
         if (window.VNVallAi?.desmontar === desmontar) delete window.VNVallAi;
     }

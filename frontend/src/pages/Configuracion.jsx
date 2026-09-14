@@ -4,7 +4,9 @@ import Footer from '../components/Footer.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import { apiPost } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import useTema from '../lib/tema.js';
 import './Configuracion.css';
+import { ESQUELETO } from '../lib/hojasComunes.js';
 
 /*
  * Configuración de cuenta en React idiomático (antes pages/configuracion.html).
@@ -18,10 +20,7 @@ import './Configuracion.css';
  */
 
 const HOJAS = [
-  '/assets/css/base.css',
-  '/assets/css/header.css',
-  '/assets/css/footer.css',
-  '/assets/css/responsive.css',
+  ...ESQUELETO,
 ];
 
 // Claves que dejó el antiguo selector de mascotas. El widget ya no las lee,
@@ -35,6 +34,9 @@ const CLAVES_MASCOTA = [
 export default function Configuracion() {
   usePageStyles(HOJAS);
   const { user } = useAuth();
+  /* El tercer valor permite fijar el tema desde el <select>, en vez de solo
+     alternarlo. */
+  const [tema, , setTema] = useTema();
 
   const correo = user || sessionStorage.getItem('vn_user') || localStorage.getItem('vn_user') || '';
 
@@ -110,6 +112,24 @@ export default function Configuracion() {
           <h1 className="cfg-page-title">
             <i className="fas fa-sliders" /> Configuración de cuenta
           </h1>
+
+          <div className="cfg-panel">
+            <div className="cfg-section-lbl"><i className="fas fa-palette" /> Apariencia</div>
+            <div className="cfg-form-group">
+              <label htmlFor="cfg-tema">Tema</label>
+              <select
+                id="cfg-tema"
+                value={tema}
+                onChange={(e) => setTema(e.target.value)}
+              >
+                <option value="light">Claro</option>
+                <option value="dark">Oscuro</option>
+              </select>
+              <div className="cfg-form-hint">
+                Se recuerda en este dispositivo y se aplica a todas las secciones.
+              </div>
+            </div>
+          </div>
 
           <div className="cfg-panel">
             <div className="cfg-section-lbl"><i className="fas fa-user" /> Perfil</div>

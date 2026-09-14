@@ -1,64 +1,1159 @@
-/* Estilos propios de Inicio.
-   Vienen del <style> embebido en inicio.html. El grueso del diseño sigue en las
-   hojas compartidas (hero.css, grid.css, header.css, footer.css): aquí solo está
-   lo que el HTML tenía suelto.
+/* ═══════════════════════════════════════════════════════════════════════════
+   Portada VALLNews — diario financiero instrumentado.
 
-   NO se trae el bloque .live-ticker / .tk-*: ese carrusel de cotizaciones se
-   pinta dentro de #tickerInner, un contenedor que hoy NO existe en la página, así
-   que renderTicker() de live-engine.js sale por su `if (!inner) return` y el CSS
-   nunca se aplica. Se deja fuera para no arrastrar 12 reglas muertas; si algún
-   día se recupera el ticker hay que reponer el marcado Y estos estilos. */
+   EL PROBLEMA QUE RESUELVE
+   La versión anterior era una pila de rectángulos redondeados con el mismo
+   relleno, el mismo radio y el mismo hueco. Con todo al mismo peso visual no
+   hay jerarquía: la página se lee como una cuadrícula, no como una portada.
 
-.lf-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    background: #ef4444;
-    border-radius: 50%;
-    margin-right: 4px;
-    vertical-align: middle;
-    animation: lf-pulse 1.4s ease-in-out infinite;
+   LA REGLA DE ESTA HOJA
+   La estructura la marcan REGLAS FINAS y COLUMNAS, no cajas. Solo tres cosas
+   conservan superficie propia, y cada una por un motivo: la espina de datos
+   (va sobre el fondo WebGL y necesita garantizar contraste), el panel de
+   VALL·AI (es un instrumento, no texto corrido) y la nota principal (es una
+   fotografía). Todo lo demás se separa con `border-top` de 1 px.
+
+   PALETA
+   Tokens --dp-* del piloto oscuro, con respaldo por si la hoja no llegara.
+   Los acentos de sección salen de --sec-* de base.css; aquí solo se consumen.
+
+   TIPOGRAFÍA
+   Playfair para titulares (la voz editorial), Inter para interfaz y JetBrains
+   Mono para cifras y etiquetas de dato — la monoespaciada es lo que hace que
+   una cotización se lea como un instrumento y no como un párrafo.
+
+   MOVIMIENTO
+   Todo lo que se mueve está dentro de `@media (prefers-reduced-motion: no-
+   preference)` o se anula en el bloque `reduce` del final. El revelado lo
+   dispara useRevelado() poniendo `.es-visible`; el destello de cifra lo pone
+   useCifrasVivas() con `.es-fresco`. Sin JS, ambos estados se quedan sin
+   aplicar, así que el contenido nace visible: nada depende de la animación
+   para poder leerse.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.in-main,
+.in-cinta {
+    --in-tinta:    var(--dp-text, #eef4f9);
+    --in-tinta-2:  rgba(222, 233, 243, 0.76);
+    /* .66 y no .52: al .52 las fechas y las fuentes del río daban 4.10:1
+       sobre el fondo, por debajo del mínimo legible. */
+    --in-tinta-3:  rgba(201, 216, 230, 0.66);
+    --in-filo:     rgba(160, 200, 234, 0.20);
+    --in-filo-2:   rgba(160, 200, 234, 0.11);
+    --in-oro:      var(--dp-gold, #e1ae52);
+    --in-vino:     var(--dp-wine, #d25b7e);
+    --in-verde:    #57d98a;
+    --in-rojo:     #f8837c;
+    --in-mono:     'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    --in-serif:    'Playfair Display', Georgia, serif;
+    --in-ancho:    1680px;
+    --in-curva:    cubic-bezier(.22, .82, .24, 1);
 }
 
-@keyframes lf-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: .35; transform: scale(.65); }
+/* ── Tonos de sección para fondo OSCURO ─────────────────────────────────────
+   Los --sec-* de base.css están calculados para superficies claras: sobre el
+   fondo de esta página el violeta de Geopolítica daba 2.00:1 y el verde de
+   México 3.46:1, ilegibles. Aquí van sus equivalentes claros, mismo tono y
+   saturación contenida (un color muy saturado y muy claro vibra sobre negro),
+   verificados a 4.6:1.
+
+   No se tocan los --sec-* originales: siguen mandando en las páginas claras y
+   están validados para visión con deficiencia de color. */
+.in-tono-finanzas  { --tono: #4d92e2; }
+.in-tono-mercados  { --tono: #ec7b4c; }
+.in-tono-geo       { --tono: #9689da; }
+.in-tono-proteinas { --tono: #2dbd88; }
+.in-tono-mexico    { --tono: #35ab35; }
+.in-tono-ai        { --tono: #d9a02c; }
+
+/* El fondo de la página. Más hondo que el de la versión anterior (#273b4d):
+   la cabecera lleva ahora un lienzo WebGL propio, y sobre un fondo claro ese
+   lienzo se veía como un parche pegado en vez de como la profundidad de la
+   página. */
+body.vn-dark-pilot.vn-dark-inicio {
+    --dp-bg: #14263a;
+    --dp-bg-raised: #1a2f45;
+    --dp-surface: #203950;
+    --dp-surface-2: #26415a;
+    --dp-surface-3: #2d4b66;
+    --dp-line: #486781;
+    --dp-line-soft: #3b5670;
+    background:
+        radial-gradient(circle at 82% -6%, rgba(74, 148, 214, 0.20), transparent 40rem),
+        radial-gradient(circle at 6% 58%, rgba(225, 174, 82, 0.07), transparent 32rem),
+        linear-gradient(163deg, #14263a 0%, #1a3149 54%, #112232 100%) !important;
+    background-attachment: fixed;
 }
 
-.sh-upd { font-size: .62rem; color: #667788; white-space: nowrap; }
-
-.sh-badge {
-    font-size: .58rem;
-    font-weight: 700;
-    letter-spacing: .08em;
-    padding: .12rem .5rem;
-    border-radius: 3px;
-    background: rgba(29, 78, 216, .15);
-    color: #6b7f9a;
-    white-space: nowrap;
+/* ════════════════════════════════════════════════════════════════════════════
+   1 · Cinta de cotizaciones
+   ════════════════════════════════════════════════════════════════════════════ */
+.in-cinta {
+    position: sticky;
+    top: var(--vn-barra-alto, 58px);
+    /* Por debajo de la barra (1002) y del cajón móvil (1001), por encima de
+       todo lo que scrollea. */
+    z-index: 998;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    background: rgba(6, 13, 22, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--in-filo-2);
 }
-
-.sh-badge.badge-ok { background: rgba(5, 150, 105, .2); color: #34d399; }
-
-.refresh-btn {
-    flex-shrink: 0;
-    background: none;
-    border: 1px solid rgba(0, 33, 58, .2);
-    color: #949692;
-    border-radius: 4px;
-    width: 1.65rem;
-    height: 1.65rem;
+.in-cinta-etq {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: .68rem;
-    padding: 0;
-    transition: color .2s, border-color .2s;
+    gap: 0.45rem;
+    flex-shrink: 0;
+    padding: 0.42rem 0.9rem 0.42rem 1.3rem;
+    border-right: 1px solid var(--in-filo-2);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--in-tinta-2);
+    font: 700 0.6rem/1 var(--in-mono);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+/* La pista recorta el desplazamiento y difumina los dos extremos, para que los
+   valores no aparezcan y desaparezcan de golpe contra el borde. */
+.in-cinta-pista {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+}
+.in-cinta-int {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 0.42rem 0;
+    white-space: nowrap;
+    will-change: transform;
+}
+/* live-engine duplica la fila y aplica `vn-ticker 40s linear infinite`, así
+   que el desplazamiento tiene que ser exactamente del 50 %. */
+@keyframes vn-ticker {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+.tk-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0 0.95rem;
+    font-family: var(--in-mono);
+    font-size: 0.72rem;
+}
+.tk-lbl {
+    color: var(--in-tinta-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.64rem;
+}
+.tk-val { color: var(--in-tinta); font-weight: 600; }
+/* renderTicker emite `tk-up` / `tk-dn`. La hoja anterior estilaba `.up`/`.down`,
+   que ese código no pone nunca: la cinta salía siempre en gris. */
+.tk-val.tk-up { color: var(--in-verde); }
+.tk-val.tk-dn { color: var(--in-rojo); }
+.tk-sep { color: rgba(225, 174, 82, 0.42); font-size: 0.5rem; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   2 · Retícula general
+   ════════════════════════════════════════════════════════════════════════════ */
+.in-main {
+    width: 100%;
+    max-width: var(--in-ancho);
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 2.4vw, 2.6rem) 4rem;
+    color: var(--in-tinta);
 }
 
-.refresh-btn:hover    { color: #d97706; border-color: #d97706; }
-.refresh-btn:disabled { opacity: .45; cursor: not-allowed; }
-.refresh-btn.spinning i { animation: vn-spin .75s linear infinite; }
+/* ════════════════════════════════════════════════════════════════════════════
+   3 · Cabecera editorial + fondo WebGL
+   ════════════════════════════════════════════════════════════════════════════ */
+.in-masthead {
+    position: relative;
+    isolation: isolate;
+    margin: 0 calc(clamp(1rem, 2.4vw, 2.6rem) * -1) clamp(2rem, 4vw, 3.4rem);
+    padding: 1rem clamp(1.4rem, 3.4vw, 3.6rem) clamp(2.2rem, 4.5vw, 4rem);
+    overflow: hidden;
+    border-bottom: 1px solid var(--in-filo);
+    /* Fondo completo por sí solo: el lienzo WebGL es una capa de más y puede no
+       existir (sin GPU, contexto perdido, o `webgl` deshabilitado). */
+    background:
+        radial-gradient(ellipse at 80% 8%, rgba(60, 132, 195, 0.32), transparent 62%),
+        linear-gradient(122deg, #0d1b29 0%, #143352 58%, #1b4468 100%);
+}
+.in-masthead-lienzo {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+/* El velo es lo que garantiza el contraste del titular: el lienzo tiene zonas
+   claras (hasta #3283ba, que contra blanco da 4.17:1, por debajo del mínimo).
+   Va cargado a la izquierda, donde vive el texto, y se abre a la derecha para
+   dejar ver la nube. */
+.in-masthead-velo {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        /* Costura con el resto de la página: sin esto el borde inferior del
+           masthead es un corte duro entre su fondo (#0d1b29) y el del body
+           (#14263a), y se ve como un recorte pegado encima. */
+        linear-gradient(0deg, rgba(20, 38, 58, 0.85) 0%, transparent 12%),
+        linear-gradient(100deg,
+            rgba(7, 15, 25, 0.93) 0%,
+            rgba(7, 15, 25, 0.84) 32%,
+            rgba(7, 15, 25, 0.44) 66%,
+            rgba(7, 15, 25, 0.24) 100%),
+        linear-gradient(0deg, rgba(10, 22, 34, 0.5), transparent 42%);
+}
 
-@keyframes vn-spin { to { transform: rotate(360deg); } }
+/* ── Fila de estado ─────────────────────────────────────────────────────── */
+.in-chrome {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 0 0.9rem;
+    border-bottom: 1px solid var(--in-filo-2);
+}
+.in-chrome-marca {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    color: var(--in-tinta);
+    font: 700 0.68rem/1 var(--in-mono);
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+}
+.in-punto {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--in-vino);
+    box-shadow: 0 0 0 3px rgba(210, 91, 126, 0.18);
+}
+.in-regla { flex: 1; height: 1px; min-width: 20px; background: var(--in-filo); }
+.in-fecha { flex-shrink: 0; color: var(--in-tinta-3); font-size: 0.72rem; text-transform: capitalize; }
+.in-upd   { flex-shrink: 0; color: var(--in-tinta-3); font: 0.66rem/1 var(--in-mono); }
+.in-badge {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border: 1px solid rgba(225, 174, 82, 0.35);
+    border-radius: 4px;
+    background: rgba(225, 174, 82, 0.09);
+    color: var(--in-oro);
+    font: 700 0.6rem/1.4 var(--in-mono);
+    letter-spacing: 0.1em;
+}
+.in-refresh {
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border: 1px solid var(--in-filo);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--in-tinta-2);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, transform 0.35s var(--in-curva);
+}
+.in-refresh:hover { background: rgba(255, 255, 255, 0.12); color: var(--in-tinta); transform: rotate(90deg); }
+
+/* ── Titular + espina ───────────────────────────────────────────────────── */
+.in-masthead-cuerpo {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.32fr) minmax(320px, 0.68fr);
+    align-items: center;
+    gap: clamp(1.8rem, 4vw, 4rem);
+    padding-top: clamp(2rem, 4.2vw, 3.6rem);
+}
+.in-titular { min-width: 0; }
+.in-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 1.1rem;
+    color: #b3d0ec;
+    font: 700 0.68rem/1 var(--in-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+.in-live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--in-verde);
+    box-shadow: 0 0 0 4px rgba(87, 217, 138, 0.12), 0 0 18px rgba(87, 217, 138, 0.6);
+}
+.in-titular h1 {
+    margin: 0;
+    max-width: 15ch;
+    color: #f7fafd;
+    font-family: var(--in-serif);
+    font-size: clamp(2.5rem, 5.6vw, 5.4rem);
+    font-weight: 700;
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+}
+/* Cada palabra en su propia ventana con overflow oculto: así el revelado es un
+   texto que ASOMA desde abajo, no un bloque que se desliza por la pantalla.
+
+   ── La ventana tiene que ser MÁS ALTA que la línea ──────────────────────────
+   Con `line-height: 0.98` la caja de la línea mide menos que los glifos de una
+   serif de display, y `overflow: hidden` recortaba lo que sobresalía: una
+   franja horizontal cruzaba el titular rebanando la cola de la «y» de «hoy» y
+   de la «q» de «que», y despegando la tilde de la «ñ» de «mañana» y el acento
+   de la «á» de «moverá». En castellano eso no es un caso raro: pasa en casi
+   cualquier titular.
+
+   Se le da aire arriba (tildes) y abajo (colas) con relleno, y se recoge con
+   margen negativo para que la caja exterior siga midiendo lo mismo y el titular
+   no se mueva ni un píxel: 0.98 + 0.2 + 0.26 − 0.2 − 0.2 = 0.84em de alto de
+   margen, igual que el 0.98 + 0.06 de antes.
+
+   Todo va en `em` a propósito: el tamaño es un clamp() que cambia con el ancho,
+   y en píxeles el aire dejaría de bastar en la tipografía grande.
+
+   Si se retoca cualquiera de estos valores hay que revisar también el
+   `translateY` de `.in-palabra-int` (sección 7): es lo que mantiene la palabra
+   escondida bajo una ventana que ahora es más alta. */
+.in-palabra {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding: 0.2em 0.13em 0.26em 0;
+    margin: -0.2em 0 -0.2em;
+}
+.in-palabra-int { display: inline-block; }
+.in-palabra-em  { color: var(--in-oro); font-style: italic; font-weight: 500; }
+
+.in-titular > p {
+    max-width: 52ch;
+    margin: 1.35rem 0 0;
+    color: var(--in-tinta-2);
+    font-size: clamp(0.92rem, 1.25vw, 1.06rem);
+    line-height: 1.65;
+}
+.in-acciones { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.7rem; }
+.in-cta {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem;
+    min-height: 46px;
+    padding: 0.72rem 1.15rem;
+    border-radius: 9px;
+    color: #f7fafd;
+    text-decoration: none;
+    font-size: 0.79rem;
+    font-weight: 700;
+    overflow: hidden;
+    transition: transform 0.28s var(--in-curva), background 0.24s, border-color 0.24s, box-shadow 0.28s;
+}
+.in-cta i { transition: transform 0.32s var(--in-curva); }
+.in-cta:hover { transform: translateY(-2px); }
+/* Azules medidos, no elegidos a ojo: la etiqueta va en 0.79rem con peso 700, que
+   es texto normal a efectos de WCAG y exige 4.5:1. El #2f76c4 anterior daba 4.45
+   en reposo y el #3d89da de hover bajaba a 3.46 — el estado de hover también
+   tiene que pasar, no solo el de reposo. Estos dan 6.36 y 4.99. */
+.in-cta-primary { background: #245f9c; box-shadow: 0 12px 30px rgba(19, 90, 167, 0.32); }
+.in-cta-primary:hover { background: #2a6fb4; box-shadow: 0 18px 38px rgba(19, 90, 167, 0.46); }
+.in-cta-primary:hover i { transform: translateY(3px); }
+.in-cta-ghost { border: 1px solid rgba(255, 255, 255, 0.17); background: rgba(255, 255, 255, 0.06); }
+.in-cta-ghost:hover { border-color: rgba(225, 174, 82, 0.5); background: rgba(225, 174, 82, 0.12); }
+.in-cta-ghost:hover i { transform: rotate(-14deg) scale(1.12); }
+
+/* ── Espina de datos ────────────────────────────────────────────────────────
+   Único bloque con superficie propia de toda la cabecera, y por una razón
+   concreta: se apoya en la mitad clara del lienzo, donde el velo no llega a
+   garantizar contraste. El desenfoque de fondo deja ver la nube moviéndose
+   detrás sin que ningún píxel del texto dependa de qué color pase por ahí. */
+.in-espina {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0.35rem 0 0.5rem;
+    border: 1px solid var(--in-filo);
+    border-radius: 16px;
+    background: rgba(9, 21, 34, 0.62);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 24px 60px rgba(3, 12, 22, 0.34), inset 0 1px rgba(255, 255, 255, 0.06);
+}
+.in-espina-cab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.75rem 1.1rem 0.85rem;
+    border-bottom: 1px solid var(--in-filo-2);
+    color: var(--in-oro);
+    font: 700 0.6rem/1 var(--in-mono);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+.in-espina-live {
+    display: inline-flex; align-items: center; gap: 0.42rem;
+    color: #8fdcaa;
+    letter-spacing: 0.09em;
+}
+.in-espina-live > span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--in-verde);
+    box-shadow: 0 0 9px var(--in-verde);
+}
+
+.in-cifra {
+    position: relative;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.82rem 1.1rem;
+    text-decoration: none;
+    overflow: hidden;
+    transition: background 0.25s;
+}
+.in-cifra + .in-cifra { border-top: 1px solid var(--in-filo-2); }
+/* La barra de color entra desde la izquierda al pasar por encima: sustituye al
+   borde permanente que tenían las tarjetas y no ocupa sitio en reposo. */
+.in-cifra::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--tono);
+    transform: scaleY(0);
+    transform-origin: 50% 100%;
+    transition: transform 0.34s var(--in-curva);
+}
+.in-cifra:hover { background: rgba(190, 220, 245, 0.07); }
+.in-cifra:hover::before,
+.in-cifra:focus-visible::before { transform: scaleY(1); }
+.in-cifra-icono {
+    display: grid; place-items: center;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    color: var(--tono);
+    background: color-mix(in srgb, var(--tono) 15%, transparent);
+    font-size: 0.82rem;
+    transition: transform 0.34s var(--in-curva), background 0.25s;
+}
+.in-cifra:hover .in-cifra-icono { transform: translateY(-2px) scale(1.06); background: color-mix(in srgb, var(--tono) 26%, transparent); }
+.in-cifra-texto { display: flex; flex-direction: column; gap: 0.18rem; min-width: 0; }
+.in-cifra-etq {
+    color: var(--in-tinta);
+    font: 700 0.68rem/1.2 var(--in-mono);
+    letter-spacing: 0.06em;
+}
+.in-cifra-pie {
+    overflow: hidden;
+    color: var(--in-tinta-3);
+    font-size: 0.63rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.in-cifra-valor { display: flex; align-items: baseline; gap: 0.5rem; justify-self: end; }
+.in-cifra-valor strong {
+    color: var(--in-tinta);
+    font: 700 1.12rem/1.1 var(--in-mono);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+.in-cifra-var {
+    min-width: 3.4em;
+    text-align: right;
+    color: var(--in-tinta-3);
+    font: 700 0.63rem/1 var(--in-mono);
+}
+.in-cifra-var.is-up   { color: var(--in-verde); }
+.in-cifra-var.is-down { color: var(--in-rojo); }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   4 · Portada a dos columnas
+   ════════════════════════════════════════════════════════════════════════════ */
+/* `stretch` y no `start`: la columna del río mide más que la de la nota, y con
+   `start` quedaba un socavón de ~250 px de fondo vacío bajo la nota principal.
+   Estirando, la fotografía crece hasta igualar la altura del río y el bloque se
+   lee como una portada de dos columnas y no como dos listas sueltas. */
+.in-portada {
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(340px, 0.85fr);
+    gap: clamp(1.6rem, 3vw, 3rem);
+    align-items: stretch;
+    scroll-margin-top: calc(var(--vn-barra-alto, 58px) + 3.5rem);
+}
+.in-columna-mayor { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+.in-columna-mayor .in-lead { flex: 1 1 auto; }
+.in-columna-menor { display: flex; flex-direction: column; min-width: 0; }
+
+/* ── Nota principal ─────────────────────────────────────────────────────── */
+.in-lead {
+    position: relative;
+    display: block;
+    min-height: clamp(420px, 44vw, 560px);
+    overflow: hidden;
+    border-radius: 16px;
+    border: 1px solid var(--in-filo-2);
+    text-decoration: none;
+    isolation: isolate;
+    transition: border-color 0.3s, box-shadow 0.4s var(--in-curva);
+}
+.in-lead:hover { border-color: rgba(255, 255, 255, 0.24); box-shadow: 0 30px 70px rgba(3, 12, 22, 0.42); }
+/* La foto en su propia capa, para que el hover la escale sin mover el texto.
+   Son DOS capas: `-fondo` lleva la foto de sección de reserva y el movimiento,
+   `-foto` es el nodo que reescribe live-engine y va encima. Si la imagen de la
+   noticia falla, se ve la de debajo en vez de un hueco. */
+.in-lead-fondo {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.02);
+    transition: transform 0.9s var(--in-curva), filter 0.6s;
+}
+.in-lead-foto {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+}
+.in-lead:hover .in-lead-fondo { transform: scale(1.075); filter: saturate(1.12); }
+/* Lo que hace legible el titular sobre CUALQUIER fotografía: la imagen la
+   cambia live-engine y no se sabe qué llegará. De opaco abajo a transparente
+   arriba, no un tinte plano, para no apagar la foto entera.
+
+   LAS PARADAS ESTÁN CALCULADAS, NO ELEGIDAS A OJO.
+   Con la escalera anterior (0.48 a media altura) una foto clara —salió una de
+   una fachada blanca— dejaba el titular a ~1.9:1: ilegible. El tramo donde vive
+   el texto llega ahora a 0.78 como mínimo, que sobre un blanco puro compone un
+   #3B3F45 y da 10.4:1 contra el blanco del titular. Es la única forma de
+   garantizarlo sin saber qué imagen va a llegar.
+
+   Si se suben estas paradas, hay que rehacer la cuenta: el peor caso no es la
+   foto que se ve hoy, es una foto blanca. */
+.in-lead-velo {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+        to top,
+        rgba(4, 9, 16, 0.97) 0%,
+        rgba(4, 9, 16, 0.94) 34%,
+        rgba(4, 9, 16, 0.78) 52%,
+        rgba(4, 9, 16, 0.34) 76%,
+        rgba(4, 9, 16, 0.10) 100%
+    );
+}
+.in-lead-int {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    height: 100%;
+    min-height: clamp(420px, 44vw, 560px);
+    padding: 2rem clamp(1.4rem, 3vw, 2.4rem) 1.85rem;
+    justify-content: flex-end;
+}
+.in-lead-meta { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+.in-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 4px 10px;
+    border-radius: 5px;
+    color: #fff;
+    background: var(--sec-finanzas-ink, #1f56c9);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.in-pill[data-tono="mercados"]  { background: var(--sec-mercados-ink, #b8471f); }
+.in-pill[data-tono="geo"]       { background: var(--sec-geo-ink, #4a3aa7); }
+.in-pill[data-tono="proteinas"] { background: var(--sec-proteinas-ink, #0e7a56); }
+.in-pill[data-tono="mexico"]    { background: var(--sec-mexico-ink, #008300); }
+.in-sub { color: rgba(255, 255, 255, 0.7); font: 0.63rem/1 var(--in-mono); letter-spacing: 0.14em; }
+.in-riesgo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    padding: 4px 9px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.in-riesgo-alto {
+    color: #ffdcd8;
+    background: rgba(200, 50, 40, 0.44);
+    border: 1px solid rgba(255, 120, 110, 0.42);
+}
+.in-lead-tit {
+    margin: 0;
+    max-width: 20ch;
+    color: #fff;
+    font-family: var(--in-serif);
+    font-size: clamp(1.75rem, 3.3vw, 2.9rem);
+    font-weight: 700;
+    line-height: 1.09;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+}
+.in-lead-desc {
+    margin: 0;
+    max-width: 56ch;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+.in-ir {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.45rem;
+    padding: 0.62rem 1.05rem;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 0.79rem;
+    font-weight: 600;
+    backdrop-filter: blur(6px);
+    transition: background 0.24s, gap 0.24s, border-color 0.24s;
+}
+.in-lead:hover .in-ir { background: rgba(255, 255, 255, 0.22); border-color: rgba(255, 255, 255, 0.38); gap: 0.7rem; }
+
+/* ── Banda VALL AI ───────────────────────────────────────────────────────── */
+.in-descubre {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem 0.35rem;
+    overflow: hidden;
+    border-top: 1px solid rgba(225, 174, 82, 0.3);
+    border-bottom: 1px solid rgba(225, 174, 82, 0.3);
+    color: var(--in-tinta);
+    text-decoration: none;
+    transition: border-color 0.3s;
+}
+/* El relleno dorado se pinta con un pseudo-elemento que crece desde la
+   izquierda: en reposo la banda son dos reglas y nada más, que es lo contrario
+   de una caja. */
+.in-descubre::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(100deg, rgba(225, 174, 82, 0.17), rgba(82, 153, 222, 0.14));
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    transition: transform 0.55s var(--in-curva);
+}
+.in-descubre:hover { border-color: rgba(225, 174, 82, 0.62); }
+.in-descubre:hover::before,
+.in-descubre:focus-visible::before { transform: scaleX(1); }
+.in-descubre-icono {
+    display: grid; place-items: center;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: var(--in-oro);
+    color: #101722;
+    box-shadow: 0 8px 22px rgba(225, 174, 82, 0.22);
+    transition: transform 0.4s var(--in-curva);
+}
+.in-descubre:hover .in-descubre-icono { transform: rotate(-10deg) scale(1.08); }
+.in-descubre-texto { min-width: 0; }
+.in-descubre small {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--in-oro);
+    font: 700 0.56rem/1 var(--in-mono);
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+.in-descubre strong { display: block; font-size: 0.9rem; line-height: 1.35; }
+.in-descubre-ir {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    flex-shrink: 0;
+    color: var(--in-tinta-2);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: color 0.24s, gap 0.24s;
+}
+.in-descubre:hover .in-descubre-ir { color: #fff; gap: 0.65rem; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   5 · Columna lateral
+   ════════════════════════════════════════════════════════════════════════════ */
+/* ── VALL·AI ────────────────────────────────────────────────────────────── */
+.in-vai {
+    padding: 1.1rem 1.2rem 1.2rem;
+    border: 1px solid var(--in-filo);
+    border-radius: 15px;
+    background: linear-gradient(160deg, rgba(44, 74, 99, 0.85), rgba(28, 51, 71, 0.85));
+}
+.in-vai-cab { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1rem; }
+.in-vai-marca { color: var(--in-tinta); font-family: var(--in-serif); font-size: 1.05rem; font-weight: 700; }
+.in-vai-punto { color: var(--in-oro); margin: 0 1px; }
+.in-vai-sel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 5px 10px;
+    border: 1px solid var(--in-filo);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--in-tinta-2);
+    font-size: 0.71rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.in-vai-sel:hover { background: rgba(255, 255, 255, 0.13); border-color: rgba(225, 174, 82, 0.4); color: var(--in-tinta); }
+.in-vai-sel i { font-size: 0.62rem; color: var(--in-tinta-3); }
+.in-vai-flecha { margin-left: 0.1rem; }
+.in-vai-cuerpo { display: flex; align-items: center; gap: 1.2rem; }
+.in-vai-aguja { position: relative; width: 112px; height: 112px; flex-shrink: 0; }
+.in-vai-aguja svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.in-g-bg  { fill: none; stroke: rgba(255, 255, 255, 0.09); stroke-width: 8; }
+.in-g-arc {
+    fill: none;
+    stroke: var(--in-oro);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 251.2;
+    transition: stroke-dashoffset 1.1s var(--in-curva), stroke 0.4s;
+}
+.in-g-num {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--in-tinta);
+    font: 700 1.45rem/1 var(--in-mono);
+    letter-spacing: -0.02em;
+}
+.in-vai-lectura { display: flex; flex-direction: column; gap: 0.24rem; min-width: 0; }
+.in-vai-lbl { color: var(--in-tinta-3); font: 0.6rem/1 var(--in-mono); letter-spacing: 0.15em; text-transform: uppercase; }
+.in-vai-activo { overflow: hidden; color: var(--in-tinta); font: 700 0.84rem/1.3 var(--in-mono); text-overflow: ellipsis; }
+.in-vai-veredicto { color: var(--in-oro); font-size: 1.05rem; font-weight: 700; }
+.in-vai-aviso {
+    margin: 1rem 0 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--in-filo-2);
+    color: var(--in-tinta-3);
+    font-size: 0.73rem;
+    line-height: 1.45;
+}
+
+/* ── Río de titulares ───────────────────────────────────────────────────── */
+.in-rio-cab {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 2rem 0 0;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--in-filo);
+}
+.in-rio-cab h2 { margin: 0; color: var(--in-tinta); font-family: var(--in-serif); font-size: 1.25rem; }
+.in-rio-cuenta { color: var(--in-tinta-3); font: 0.6rem/1 var(--in-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* Sin cajas: cada titular es una fila separada por una regla, como una lista
+   de sumario de periódico. */
+.in-rio { list-style: none; margin: 0; padding: 0; }
+.in-rio > li + li { border-top: 1px solid var(--in-filo-2); }
+.in-rio-item {
+    --tono: #6f9bd1;
+    position: relative;
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 0.95rem 0.55rem 0.95rem 0.75rem;
+    text-decoration: none;
+    transition: background 0.26s, padding-left 0.3s var(--in-curva);
+}
+.in-rio-item::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--tono);
+    transform: scaleY(0);
+    transform-origin: 50% 0;
+    transition: transform 0.34s var(--in-curva);
+}
+.in-rio-item:hover { background: rgba(190, 220, 245, 0.06); padding-left: 1.05rem; }
+.in-rio-item:hover::before,
+.in-rio-item:focus-visible::before { transform: scaleY(1); }
+/* Igual que la nota principal: la capa de fuera es el respaldo que live-engine
+   no toca, y es también la que lleva el filtro y el escalado. */
+.in-rio-fondo {
+    position: relative;
+    width: 62px;
+    height: 62px;
+    overflow: hidden;
+    border-radius: 9px;
+    border: 1px solid var(--in-filo-2);
+    background-color: color-mix(in srgb, var(--tono) 26%, #16283a);
+    background-size: cover;
+    background-position: center;
+    filter: saturate(0.72) brightness(0.86);
+    transition: filter 0.4s, transform 0.5s var(--in-curva);
+}
+.in-rio-foto {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+}
+.in-rio-item:hover .in-rio-fondo { filter: none; transform: scale(1.05); }
+.in-rio-texto { display: flex; flex-direction: column; min-width: 0; }
+.in-rio-linea { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.34rem; }
+.in-rio-sec {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    color: var(--tono);
+    font: 700 0.6rem/1 var(--in-mono);
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+.in-rio-fecha { color: var(--in-tinta-3); font: 0.6rem/1 var(--in-mono); white-space: nowrap; }
+.in-rio-tit {
+    display: -webkit-box;
+    margin-bottom: 0.22rem;
+    overflow: hidden;
+    color: var(--in-tinta);
+    font-size: 0.87rem;
+    font-weight: 600;
+    line-height: 1.34;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.in-rio-desc {
+    display: -webkit-box;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    color: var(--in-tinta-2);
+    font-size: 0.76rem;
+    line-height: 1.45;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.in-rio-src { color: var(--in-tinta-3); font: 0.58rem/1 var(--in-mono); letter-spacing: 0.1em; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   6 · Tira de secciones
+   ════════════════════════════════════════════════════════════════════════════ */
+.in-tira { margin-top: clamp(2.6rem, 5vw, 4.5rem); }
+.in-tira-cab {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--in-filo);
+}
+.in-tira-cab h2 {
+    margin: 0;
+    color: var(--in-tinta);
+    font-family: var(--in-serif);
+    font-size: clamp(1.4rem, 2.4vw, 2.1rem);
+    letter-spacing: -0.02em;
+}
+.in-tira-nota { color: var(--in-tinta-3); font-size: 0.78rem; }
+
+/* Acordeón: las cinco columnas reparten el ancho a partes iguales y la que
+   recibe el cursor se queda con casi el doble. Es lo que sustituye al carrusel
+   —enseña las cinco secciones a la vez en lugar de una— y el movimiento lo
+   provoca el lector, no un temporizador que se mueve solo mientras se lee. */
+.in-tira-pista {
+    display: flex;
+    gap: 0;
+    margin-top: 1.2rem;
+    border-top: 1px solid var(--in-filo-2);
+    border-bottom: 1px solid var(--in-filo-2);
+}
+.in-col {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: clamp(300px, 30vw, 400px);
+    overflow: hidden;
+    text-decoration: none;
+    isolation: isolate;
+    will-change: flex-grow;
+    transition: flex-grow 0.62s var(--in-curva);
+}
+.in-col + .in-col { border-left: 1px solid var(--in-filo-2); }
+.in-tira-pista:hover .in-col { flex-grow: 0.86; }
+.in-tira-pista .in-col:hover,
+.in-tira-pista .in-col:focus-within { flex-grow: 2.1; }
+/* La barra de color, arriba: identifica el destino antes de leer nada. Cubre
+   toda la columna desde el principio —un tramo corto se leía como un trozo
+   suelto— y lo que cambia al acercarse es la intensidad y el grosor. */
+.in-col::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--tono);
+    opacity: 0.42;
+    transition: opacity 0.45s, height 0.45s var(--in-curva), box-shadow 0.45s;
+}
+.in-col:hover::after,
+.in-col:focus-within::after {
+    opacity: 1;
+    height: 5px;
+    box-shadow: 0 0 22px color-mix(in srgb, var(--tono) 55%, transparent);
+}
+/* Dos capas otra vez: `-fondo` es el respaldo y el que se mueve, `-foto` es el
+   nodo que reescribe live-engine. */
+.in-col-fondo {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-color: color-mix(in srgb, var(--tono) 22%, #101f30);
+    background-size: cover;
+    background-position: center;
+    /* En reposo la foto está casi apagada: la tira se lee como cinco columnas
+       de texto. Al acercarse, la fotografía sube y la columna se convierte en
+       una portada. */
+    filter: saturate(0.35) brightness(0.5);
+    transform: scale(1.06);
+    transition: filter 0.6s, transform 0.85s var(--in-curva);
+}
+.in-col-foto {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+}
+.in-col:hover .in-col-fondo,
+.in-col:focus-within .in-col-fondo { filter: saturate(1.05) brightness(0.9); transform: scale(1); }
+.in-col-int {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.42rem;
+    height: 100%;
+    min-height: clamp(300px, 30vw, 400px);
+    padding: 1.15rem 1.05rem 1.25rem;
+    background: linear-gradient(to top, rgba(4, 9, 16, 0.95) 0%, rgba(4, 9, 16, 0.82) 38%, rgba(4, 9, 16, 0.42) 74%, rgba(4, 9, 16, 0.22) 100%);
+}
+.in-col-num {
+    position: absolute;
+    top: 1rem; right: 1.05rem;
+    color: rgba(255, 255, 255, 0.2);
+    font: 700 2.1rem/1 var(--in-mono);
+    letter-spacing: -0.06em;
+    transition: color 0.4s;
+}
+.in-col:hover .in-col-num { color: rgba(255, 255, 255, 0.4); }
+.in-col-etq {
+    display: inline-flex; align-items: center; gap: 0.38rem;
+    color: var(--tono);
+    font: 700 0.62rem/1 var(--in-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.in-col-tit {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.36;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+/* El resumen solo aparece en la columna abierta: en reposo cinco resúmenes a
+   la vez son ruido, y en un ancho de 1/5 no cabrían sin romperse. */
+.in-col-resumen {
+    display: -webkit-box;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    color: rgba(235, 243, 250, 0.82);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    transition: max-height 0.5s var(--in-curva), opacity 0.4s 0.08s;
+}
+.in-col:hover .in-col-resumen,
+.in-col:focus-within .in-col-resumen { max-height: 4.6rem; opacity: 1; }
+.in-col-ir {
+    display: inline-flex; align-items: center; gap: 0.38rem;
+    margin-top: 0.35rem;
+    color: rgba(255, 255, 255, 0.74);
+    font-size: 0.73rem;
+    font-weight: 600;
+    transition: color 0.24s, gap 0.24s;
+}
+.in-col:hover .in-col-ir { color: #fff; gap: 0.6rem; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   7 · Movimiento
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+    /* Revelado al entrar en pantalla.
+       El estado oculto cuelga de `[data-anima]`, atributo que pone useRevelado()
+       justo antes de empezar a observar. Si ese JS no corre, el atributo no
+       existe, nada se esconde y la portada se ve entera: el modo de fallo es
+       "sin animación", nunca "en blanco".
+
+       Atributos y no clases a propósito: React reescribe `className` en cada
+       render y borraría una marca puesta desde fuera. Ver useRevelado(). */
+    [data-anima] [data-revelar] {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 0.7s var(--in-curva), transform 0.7s var(--in-curva);
+        transition-delay: calc(var(--i, 0) * 70ms);
+    }
+    [data-anima] [data-revelar][data-visto] { opacity: 1; transform: none; }
+
+    /* Titular: cada palabra asoma desde debajo de su propia ventana.
+
+       160% y no el 105% de antes: el porcentaje se mide sobre la altura de la
+       PALABRA, pero lo que tiene que dejar atrás es el borde inferior de la
+       VENTANA, que ahora lleva 0.26em de relleno para que quepan las colas. Con
+       el 105% la palabra arrancaba ya asomando por debajo. La cuenta, en em
+       sobre una línea de 0.98: la ventana mide 1.44 y la palabra empieza a 0.2
+       del borde superior, así que hace falta pasar de 1.42 veces su alto —160%
+       deja margen para el vuelo del `rotate`. */
+    .in-palabra-int {
+        transform: translateY(160%) rotate(3deg);
+        opacity: 0;
+        animation: inPalabra 0.86s var(--in-curva) forwards;
+        animation-delay: calc(0.18s + var(--i) * 0.085s);
+    }
+    @keyframes inPalabra {
+        to { transform: none; opacity: 1; }
+    }
+
+    .in-live-dot,
+    .in-espina-live > span { animation: inLatido 2.3s ease-in-out infinite; }
+    @keyframes inLatido { 50% { opacity: 0.42; transform: scale(0.68); } }
+
+    /* Destello de cifra: lo dispara useCifrasVivas cuando el valor cambia de
+       verdad, no en cada refresco. */
+    [data-fresco] { animation: inFresco 1.3s ease-out; }
+    @keyframes inFresco {
+        0%   { color: var(--in-oro); text-shadow: 0 0 18px rgba(225, 174, 82, 0.55); }
+        100% { color: inherit; text-shadow: none; }
+    }
+
+    /* Barrido lento sobre la banda de VALL AI. */
+    .in-descubre::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        transform: translateX(-120%);
+        background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.09), transparent 70%);
+        animation: inBarrido 8s ease-in-out infinite;
+    }
+    @keyframes inBarrido {
+        0%, 62% { transform: translateX(-120%); }
+        88%, 100% { transform: translateX(120%); }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .in-cinta-int { animation: none !important; }
+    .in-cinta-pista { overflow-x: auto; }
+    .in-col, .in-col-fondo, .in-col-resumen, .in-lead-fondo,
+    .in-rio-fondo, .in-cifra::before, .in-descubre::before, .in-col::after {
+        transition: none !important;
+    }
+    .in-col-fondo { transform: none; }
+}
+
+/* ── Foco visible: se navega mucho con teclado por la paleta ────────────── */
+.in-lead:focus-visible,
+.in-rio-item:focus-visible,
+.in-col:focus-visible,
+.in-cta:focus-visible,
+.in-cifra:focus-visible,
+.in-descubre:focus-visible,
+.in-refresh:focus-visible,
+.in-vai-sel:focus-visible {
+    outline: 2px solid var(--in-oro);
+    outline-offset: 3px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   8 · Adaptación
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1240px) {
+    .in-masthead-cuerpo { grid-template-columns: minmax(0, 1fr); gap: 2.2rem; }
+    .in-titular h1 { max-width: 18ch; }
+    .in-espina { align-self: start; }
+    .in-portada { grid-template-columns: minmax(0, 1fr); }
+    .in-columna-menor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 0 2rem; align-items: start; }
+    .in-rio-cab { margin-top: 0; }
+    .in-vai { grid-row: span 2; }
+}
+@media (max-width: 900px) {
+    .in-cinta-etq { display: none; }
+    .in-columna-menor { grid-template-columns: minmax(0, 1fr); }
+    .in-vai { grid-row: auto; }
+    .in-rio-cab { margin-top: 1.6rem; }
+    /* El acordeón necesita ancho para tener sentido; por debajo pasa a una
+       cuadrícula de dos, sin crecimiento. */
+    /* Las separaciones se dibujan con el fondo de la retícula asomando por un
+       hueco de 1 px. Si el número de piezas es IMPAR la última fila queda a
+       medias y ese fondo se ve como un recuadro pálido vacío; por eso la última
+       ocupa entonces la fila entera. Con las cuatro actuales la regla no llega
+       a aplicarse, pero se queda: al añadir o quitar una sección vuelve sola.
+       `:last-child:nth-child(odd)` = "es la última Y ocupa una posición impar",
+       que es justo la definición de sobrar en una retícula de dos. */
+    .in-tira-pista {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border: 0;
+        gap: 1px;
+        background: var(--in-filo-2);
+    }
+    .in-tira-pista .in-col:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    .in-col, .in-tira-pista:hover .in-col, .in-tira-pista .in-col:hover { flex: none; }
+    .in-col + .in-col { border-left: 0; }
+    .in-col, .in-col-int { min-height: 260px; }
+    .in-col-resumen { max-height: 4.6rem; opacity: 1; }
+    .in-col::after { transform: scaleX(1); }
+}
+@media (max-width: 720px) {
+    .in-main { padding: 0 1.1rem 3rem; }
+    .in-masthead { margin-left: -1.1rem; margin-right: -1.1rem; padding: 0.8rem 1.25rem 2.4rem; }
+    .in-fecha { display: none; }
+    .in-titular h1 { font-size: clamp(2.4rem, 12vw, 3.6rem); max-width: 13ch; }
+    .in-masthead-velo {
+        background: linear-gradient(0deg, rgba(7, 15, 25, 0.94) 22%, rgba(7, 15, 25, 0.78) 62%, rgba(7, 15, 25, 0.5) 100%);
+    }
+    .in-lead, .in-lead-int { min-height: 350px; }
+    .in-lead-int { padding: 1.5rem 1.3rem 1.4rem; }
+    .in-vai-aguja { width: 92px; height: 92px; }
+    .in-tira-pista { grid-template-columns: minmax(0, 1fr); }
+    .in-col, .in-col-int { min-height: 230px; }
+}
+@media (max-width: 430px) {
+    .in-acciones { align-items: stretch; }
+    .in-cta { width: 100%; }
+    .in-cifra { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 0.6rem; padding: 0.75rem 0.85rem; }
+    .in-cifra-icono { width: 30px; height: 30px; }
+    .in-descubre { grid-template-columns: auto minmax(0, 1fr); row-gap: 0.7rem; }
+    .in-descubre-ir { grid-column: 2; }
+    .in-rio-item { grid-template-columns: 48px minmax(0, 1fr); }
+    .in-rio-fondo { width: 48px; height: 48px; }
+}

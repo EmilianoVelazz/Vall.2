@@ -4,6 +4,7 @@ import Footer from '../components/Footer.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { globalLegado } from '../lib/loadScripts.js';
 import './Mexico.css';
+import { DATOS, ESQUELETO } from '../lib/hojasComunes.js';
 
 /*
  * Sección México en React idiomático (antes pages/mexico.html).
@@ -23,16 +24,12 @@ import './Mexico.css';
  */
 
 const HOJAS = [
-  '/assets/css/base.css',
-  '/assets/css/header.css',
-  '/assets/css/footer.css',
-  '/assets/css/responsive.css',
+  ...ESQUELETO,
 ];
 
 const LIBS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js',
-  '/assets/js/api-keys.js?v=5',
-  '/assets/js/data-service.js?v=22',
+  ...DATOS,
 ];
 
 const IMGS = ['/assets/img/finanzas.webp', '/assets/img/mercados.webp', '/assets/img/mercadoP.webp'];
@@ -46,10 +43,14 @@ const CATEGORIAS = [
 
 // Datos estructurales de referencia: no vienen de ninguna API, son el contenido
 // editorial de la sección. Estaban repetidos en el markup y en las gráficas.
+/* `color` es el relleno de la barra (superficie de dato) y `tono` la clase de
+   la cifra (texto). Van separados porque no exigen lo mismo: el texto necesita
+   4.5:1 y una contraparte en tema oscuro que solo puede generarse desde la
+   hoja de estilo; la barra es un bloque de color y le vale el tono saturado. */
 const DEPENDENCIAS = [
-  { nombre: '🌽 Maíz Amarillo', pct: 85, origen: 'Origen: USA', color: '#dc2626' },
-  { nombre: '🫘 Soja', pct: 95, origen: 'Origen: USA / Brasil', color: '#dc2626' },
-  { nombre: '🧪 Fertilizantes', pct: 70, origen: 'Origen: Rusia / Canadá', color: '#d97706' },
+  { nombre: '🌽 Maíz Amarillo', pct: 85, origen: 'Origen: USA', color: '#dc2626', tono: 'critico' },
+  { nombre: '🫘 Soja', pct: 95, origen: 'Origen: USA / Brasil', color: '#dc2626', tono: 'critico' },
+  { nombre: '🧪 Fertilizantes', pct: 70, origen: 'Origen: Rusia / Canadá', color: '#d97706', tono: 'medio' },
 ];
 
 const EXPORTACIONES = [
@@ -59,7 +60,12 @@ const EXPORTACIONES = [
   { pais: '🇺🇸 Estados Unidos', pct: 10 },
 ];
 
+/* Escrita a mano: no hay fuente conectada para la tasa de la Fed (/api/fred
+   tiene lista blanca y no admite DFF ni FEDFUNDS). Se usa para calcular un
+   diferencial que SÍ se enseña en pantalla, así que va con su fecha y la
+   pantalla la rotula «ref.». Al actualizarla, mover también la fecha. */
 const TASA_FED = 4.5;
+const TASA_FED_FECHA = 'ago 2026';
 const CLAVE_CACHE = 'mex_v8';
 
 // Algunas llamadas de VDS se quedan pendientes para siempre cuando el proveedor
@@ -121,15 +127,26 @@ export default function Mexico() {
       }, MS_ESPERA_MAXIMA);
 
       try {
+        /* SP30578 y no SP74660. Banxico titula a SP74660 «Inflación Subyacente
+           (nueva definición) MENSUAL» —0.23 % en julio de 2026— y la pantalla lo
+           enseñaba como «Inflación Anualizada 0.2 %»: ni anualizada, ni general.
+           SP30578 es «Índice Nacional de Precios al consumidor variación anual»,
+           que es exactamente lo que dice el rótulo (3.12 % en la misma fecha).
+           El valor también viaja al prompt de Gemini, así que el error hacía que
+           el modelo redactara política monetaria sobre un dato falso. */
         const [fxR, tiieR, inflR] = await Promise.allSettled([
-          VDS.usdmxn(), VDS.banxico('SF61745'), VDS.banxico('SP74660'),
+          VDS.usdmxn(), VDS.banxico('SF61745'), VDS.banxico('SP30578'),
         ]);
         const valor = (r) => (r.status === 'fulfilled' && r.value != null ? r.value : null);
         const fxV = valor(fxR), tiieV = valor(tiieR), inflV = valor(inflR);
 
+        /* Los respaldos son de referencia, NO cotizaciones, y ahora se puede
+           distinguir: `*_real` viaja al render para marcarlos, igual que hace
+           Mercados con su sufijo _real. Antes la TIIE caía a «11.0» —la real es
+           6.50— sin ninguna marca que lo avisara. */
         const fx = fxV != null ? fxV.toFixed(2) : '17.20';
-        const tiie = tiieV != null ? tiieV.toFixed(2) : '11.0';
-        const infl = inflV != null ? inflV.toFixed(1) : '4.5';
+        const tiie = tiieV != null ? tiieV.toFixed(2) : '7.75';
+        const infl = inflV != null ? inflV.toFixed(1) : '3.5';
 
         const noticias = await construirNoticias(VDS, { fx, tiie, infl, fxV, tiieV, fechaFmt, hora });
         if (!vivo) return;
@@ -139,7 +156,14 @@ export default function Mexico() {
           usdmxn: fx,
           inflacion: infl,
           banxico: tiie,
-          ai_nota: `TIIE ${tiie}% vs Fed ${TASA_FED}%: diferencial ${(tiieN - TASA_FED).toFixed(2)}pp protege al peso y atrae capitales, pero encarece crédito agropecuario.`,
+          fx_real: fxV != null,
+          tiie_real: tiieV != null,
+          infl_real: inflV != null,
+          /* `ai_nota` es el texto de RESPALDO, escrito aquí. Solo lo sustituye
+             Gemini si responde, y `ai_real` es lo que permite que la pantalla
+             deje de firmar como «VALL-AI» algo que no escribió el modelo. */
+          ai_real: false,
+          ai_nota: `TIIE ${tiie}% vs Fed ${TASA_FED}% (ref. ${TASA_FED_FECHA}): diferencial ${(tiieN - TASA_FED).toFixed(2)}pp protege al peso y atrae capitales, pero encarece crédito agropecuario.`,
           fx_analisis: `USD/MXN $${fx} ${fxV ? '(tiempo real)' : '(estimado)'}. ${
             fxN > 17.5
               ? 'Beneficia exportaciones de proteína, presiona costo de granos importados.'
@@ -159,7 +183,7 @@ export default function Mexico() {
           `Eres VALL-AI, analista económico de VALLNews especializado en México. Con estos datos actuales, redacta una nota breve (2 oraciones) sobre la política monetaria y su impacto en el sector agropecuario/empresarial mexicano:\n\nUSD/MXN: ${fx}\nTIIE (Banxico): ${tiie}%\nInflación: ${infl}%\n\nSé directo, sin frases de apertura genéricas.`,
           'Eres un analista económico institucional de VALL News especializado en México. Responde en español, de forma concisa y profesional. Máximo 90 palabras.'
         )
-          .then((texto) => { if (vivo && texto) setDatos((p) => ({ ...p, ai_nota: texto })); })
+          .then((texto) => { if (vivo && texto) setDatos((p) => ({ ...p, ai_nota: texto, ai_real: true })); })
           .catch(() => { /* se queda la nota de referencia */ });
       } catch (err) {
         clearTimeout(reloj);
@@ -223,13 +247,32 @@ export default function Mexico() {
           <div className="mx-left-col">
             <div className="mx-panel">
               <div className="mx-section-lbl">Indicadores Económicos</div>
-              <Indicador nombre="Inflación Anualizada" valor={`${datos?.inflacion ?? '4.5'}%`} tono="mx-down" />
-              <Indicador nombre="Tasa Banxico (Referencia)" valor={`${datos?.banxico ?? '11.0'}%`} />
-              <Indicador nombre="Remesas Acumuladas (Q1)" valor="$5.2B USD" tono="mx-up" />
-              <Indicador nombre="Déficit Comercial" valor="-$2.1B USD" tono="mx-down" />
+              {/* `ref` distingue el dato vivo del valor de reserva. Sin él, la
+                  TIIE caía a un número escrito a mano con el mismo aspecto que
+                  una cifra de Banxico. Es el mismo criterio que ya usan Mercados
+                  y Proteínas con sus marcas «ref.» y «est.». */}
+              <Indicador
+                nombre="Inflación Anualizada (INPC)"
+                valor={`${datos?.inflacion ?? '3.5'}%`}
+                tono="mx-down"
+                esRef={!datos || !datos.infl_real}
+              />
+              <Indicador
+                nombre="Tasa Banxico (objetivo)"
+                valor={`${datos?.banxico ?? '7.75'}%`}
+                esRef={!datos || !datos.tiie_real}
+              />
+              {/* Estas dos son constantes editoriales: no hay fuente conectada
+                  para remesas ni para la balanza comercial, así que van marcadas
+                  igual que cualquier otro valor sin cotización detrás. */}
+              <Indicador nombre="Remesas Acumuladas (Q1)" valor="$15.4B USD" tono="mx-up" esRef />
+              <Indicador nombre="Déficit Comercial" valor="-$2.1B USD" tono="mx-down" esRef />
               <div className="mx-ia-note">
-                <i className="fas fa-robot" style={{ color: '#00213a' }} />
-                &nbsp;<b>VALL-AI:</b>{' '}
+                <i className={`fas ${datos?.ai_real ? 'fa-robot' : 'fa-circle-info'}`} style={{ color: '#00213a' }} />
+                {/* Firmar como «VALL-AI» un texto escrito a mano era atribuirle
+                    al modelo algo que no redactó. La firma solo aparece cuando
+                    la nota viene de verdad del modelo. */}
+                &nbsp;<b>{datos?.ai_real ? 'VALL-AI:' : 'Lectura de referencia:'}</b>{' '}
                 {datos?.ai_nota ??
                   'El diferencial de tasas MX vs US protege al peso, pero encarece el crédito para expansión de planta en el Bajío.'}
               </div>
@@ -241,7 +284,7 @@ export default function Mexico() {
                 <div>
                   <div className="mx-trade-lbl">Volumen Trimestral</div>
                   <div className="mx-trade-val">
-                    45,000 <small style={{ fontSize: '.9rem', color: '#888' }}>TON</small>
+                    45,000 <small className="mx-unidad">TON</small>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -255,7 +298,7 @@ export default function Mexico() {
                 <div className="mx-export-row" key={pais}>
                   <span>
                     {pais}
-                    {nota && <small style={{ color: '#16a34a', fontWeight: 700 }}> {nota}</small>}
+                    {nota && <small className="mx-up" style={{ fontWeight: 700 }}> {nota}</small>}
                   </span>
                   <span className="mx-export-pct">{pct}%</span>
                 </div>
@@ -288,11 +331,11 @@ export default function Mexico() {
             <div className="mx-panel">
               <div className="mx-section-lbl">Dependencia de Importaciones</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                {DEPENDENCIAS.map(({ nombre, pct, origen, color }) => (
+                {DEPENDENCIAS.map(({ nombre, pct, origen, color, tono }) => (
                   <div key={nombre}>
                     <div className="mx-dep-row-head">
                       <span>{nombre}</span>
-                      <span style={{ color }}>{pct}%</span>
+                      <span className={`mx-tono-${tono}`}>{pct}%</span>
                     </div>
                     <div className="mx-dep-bar">
                       <div className="mx-dep-fill" style={{ width: `${pct}%`, background: color }} />
@@ -320,10 +363,20 @@ export default function Mexico() {
 
 // ── Piezas ────────────────────────────────────────────────────────────────────
 
-function Indicador({ nombre, valor, tono = '' }) {
+/* `esRef` y no `ref`: `ref` es una prop reservada de React y no habría llegado
+   nunca al componente. La marca distingue una cifra viva de un valor de reserva
+   escrito a mano, que hasta ahora se veían exactamente igual. */
+function Indicador({ nombre, valor, tono = '', esRef = false }) {
   return (
     <div className="mx-indicator-row">
-      <span className="mx-ind-name">{nombre}</span>
+      <span className="mx-ind-name">
+        {nombre}
+        {esRef && (
+          <b className="mx-ind-ref" title="Valor de referencia: no hay cotización en vivo para este dato.">
+            ref.
+          </b>
+        )}
+      </span>
       <span className={`mx-ind-val ${tono}`}>{valor}</span>
     </div>
   );

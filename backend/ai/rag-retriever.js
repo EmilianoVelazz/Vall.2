@@ -1,6 +1,7 @@
 'use strict';
 
 const mysql = require('mysql2/promise');
+const { createClient } = require('@supabase/supabase-js');
 
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const SYMBOL_RULES = [
@@ -52,6 +53,9 @@ function databaseConfig() {
         connectionLimit: 12,
         queueLimit: 40,
         enableKeepAlive: true,
+        // El chat no debe quedarse esperando varios segundos si la base local
+        // de evidencia está apagada; safeQuery conserva su degradación segura.
+        connectTimeout: 1200,
     };
 }
 
@@ -323,6 +327,16 @@ function buildEconomicCharts(rows, year = null) {
 }
 
 class RagRetriever {
+    getSupabase() {
+        if (!this.supabase) {
+            const supabaseUrl = process.env.VITE_SUPABASE_URL;
+            const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+            if (supabaseUrl && supabaseKey) {
+                this.supabase = createClient(supabaseUrl, supabaseKey);
+            }
+        }
+        return this.supabase;
+    }
     constructor({ pool = null } = {}) {
         this.pool = pool;
         this.disabledUntil = 0;
@@ -358,7 +372,7 @@ class RagRetriever {
         if (!userKeyHash || !message) return [];
         const terms = expandedSearchTerms(message);
         if (!terms) return [];
-        
+
         return this.safeQuery(
             `SELECT q.question_text, q.response_text, f.rating, f.correction_text,
                     MATCH(q.question_text) AGAINST (? IN NATURAL LANGUAGE MODE) AS relevance
@@ -377,6 +391,25 @@ class RagRetriever {
         const terms = expandedSearchTerms(message);
         if (!terms) return [];
         
+        const supabase = this.getSupabase();
+        if (supabase) {
+            try {
+                // Simplified search for Supabase since MATCH AGAINST is MySQL specific
+                const searchTerms = terms.split(' ').filter(Boolean).map(t => `%${t}%`);
+                let query = supabase.from('ai_neural_rules').select('condition_trigger, learned_rule, confidence_score');
+
+                if (searchTerms.length > 0) {
+                    query = query.ilike('condition_trigger', searchTerms[0]);
+                }
+
+                const { data, error } = await query.order('confidence_score', { ascending: false }).limit(3);
+                if (!error && data) return data;
+            } catch (e) {
+                console.warn('[rag] Error querying Supabase for neural rules:', e.message);
+            }
+        }
+
+        // Fallback to MySQL if Supabase fails or not configured
         return this.safeQuery(
             `SELECT condition_trigger, learned_rule, confidence_score,
                     MATCH(condition_trigger) AGAINST (? IN NATURAL LANGUAGE MODE) AS relevance
@@ -645,7 +678,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             const url = `https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&language=es&pageSize=3&apiKey=${process.env.NEWSAPI_KEY}`;
             
             const abortController = new AbortController();
-            const timeoutId = setTimeout(() => abortController.abort(), 3500); // 3.5s timeout max for live web search
+            const timeoutId = setTimeout(() => abortController.abort(), 2200);
             
             const response = await fetch(url, { signal: abortController.signal });
             clearTimeout(timeoutId);
@@ -802,8 +835,11 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
 
     async recordEvidence(queryId, records, responseText = '') {
         if (!queryId || !Array.isArray(records) || !records.length || Date.now() < this.disabledUntil) return 0;
-        const connection = await this.getPool().getConnection();
+        let connection = null;
         try {
+            // La auditoría es complementaria: una caída de la conexión local no
+            // puede invalidar una respuesta que Gemini ya entregó al usuario.
+            connection = await this.getPool().getConnection();
             await connection.beginTransaction();
             let written = 0;
             for (const record of records) {
@@ -833,11 +869,11 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             await connection.commit();
             return written;
         } catch (error) {
-            await connection.rollback();
+            if (connection) await connection.rollback().catch(() => {});
             console.warn('[rag] No se pudo registrar retrieval_evidence:', error.message);
             return 0;
         } finally {
-            connection.release();
+            connection?.release();
         }
     }
 

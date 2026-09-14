@@ -9,7 +9,9 @@ const dotenv = require('dotenv');
 const ROOT = path.resolve(__dirname, '..');
 dotenv.config({ path: path.join(ROOT, 'backend', '.env') });
 
-const API_BASE = (process.env.VALL_API_BASE || 'http://127.0.0.1:3001').replace(/\/$/, '');
+// Debe coincidir con el puerto por defecto de backend/server.js. Se puede
+// reemplazar en despliegues o pruebas con VALL_API_BASE.
+const API_BASE = (process.env.VALL_API_BASE || 'http://127.0.0.1:3101').replace(/\/$/, '');
 const ONLY_JOB = process.argv.find(argument => argument.startsWith('--only='))?.split('=')[1]?.trim().toLowerCase() || '';
 const DB_CONFIG = {
     host: process.env.DB_HOST || process.env.MYSQL_HOST || '127.0.0.1',

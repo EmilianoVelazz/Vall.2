@@ -3,7 +3,9 @@ import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { globalLegado } from '../lib/loadScripts.js';
+import textoEnriquecido from '../lib/textoEnriquecido.js';
 import './MercadoProteinas.css';
+import { DATOS, ESQUELETO } from '../lib/hojasComunes.js';
 
 /*
  * Mercado Proteínas en React idiomático (antes pages/mercadoproteinas.html).
@@ -24,18 +26,14 @@ import './MercadoProteinas.css';
  */
 
 const HOJAS = [
-  '/assets/css/base.css',
-  '/assets/css/header.css',
-  '/assets/css/footer.css',
-  '/assets/css/responsive.css',
+  ...ESQUELETO,
 ];
 
 const LIBS = [
-  '/assets/js/api-keys.js?v=5',
-  '/assets/js/data-service.js?v=22',
+  ...DATOS,
 ];
 
-const CLAVE_CACHE = 'prot_v11';
+const CLAVE_CACHE = 'prot_v12';
 const MS_REFRESCO = 30 * 60 * 1000;
 
 const CATEGORIAS = [
@@ -91,14 +89,16 @@ async function calcular(VDS) {
     .toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
     .toUpperCase();
 
-  const [gdProtR, gdFeedR, fhR] = await Promise.allSettled([
+  const [gdProtR, gdFeedR, fhR, wholesaleR] = await Promise.allSettled([
     VDS.gdeltNews('pork poultry beef cattle hog livestock chicken meat protein', 6),
     VDS.gdeltNews('corn soybean feed cost USDA livestock grain animal', 5),
     VDS.finnhubNews('general'),
+    fetch('/api/proteinas/precios-comerciales').then(res => res.json()),
   ]);
 
   const usar = (r) => (r.status === 'fulfilled' && Array.isArray(r.value) ? r.value : []);
   const gdProt = usar(gdProtR);
+  const wholesalePrices = wholesaleR.status === 'fulfilled' ? wholesaleR.value : null;
 
   // Deduplicado por los primeros 60 caracteres del titular.
   const vistos = new Set();
@@ -218,6 +218,7 @@ async function calcular(VDS) {
       `<b>MERCADO ${fechaFmt}:</b> Cerdo ${tendencia} — $${cerdoP}/kg${hogs ? ' (AV)' : ' (ref.)'}. ` +
       (cornP > 5.2 ? 'Feed cost elevado: exportaciones bajo presión. ' : 'Feed cost en rango: exportaciones competitivas. ') +
       '<b>Filipinas y Vietnam</b> ofrecen oportunidad +10% sobre destinos actuales.',
+    wholesalePrices,
     feedTotal,
     feedChg: corn?.pct ? `${VDS.fmtPct(corn.pct)} maíz` : '—',
     consumePara:
@@ -375,6 +376,37 @@ export default function MercadoProteinas() {
               </div>
             </div>
 
+            {datos?.wholesalePrices && datos.wholesalePrices.prices && Object.keys(datos.wholesalePrices.prices).length > 0 && (
+              <div className="mp-panel">
+                <div className="mp-section-lbl">Cotizaciones Comerciales México (MXN / KG)</div>
+                {['pork', 'chicken', 'beef', 'egg'].map((key) => {
+                  const priceData = datos.wholesalePrices.prices[key];
+                  if (!priceData) return null;
+                  
+                  // Mapeo simple para filtrar si el usuario seleccionó una categoría
+                  const catMap = { pork: 'cerdo', chicken: 'pollo', beef: 'res', egg: 'pollo' };
+                  if (filtro !== 'all' && catMap[key] !== filtro) return null;
+
+                  return (
+                    <div className="mp-price-row" key={key} style={{ alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span className="mp-price-name" style={{ fontWeight: 600 }}>{priceData.label}</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748B', lineHeight: '1.1', marginTop: '2px' }}>{priceData.level}</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className="mp-price-val" style={{ color: '#00213A' }}>
+                          {priceData.displayPrice}
+                        </span>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>
+                          (fuente: {priceData.source})
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="mp-panel">
               <div className="mp-section-lbl">{datos?.exportTitulo || 'Exportaciones México · Cargando…'}</div>
               {DESTINOS.map((d) => (
@@ -392,7 +424,7 @@ export default function MercadoProteinas() {
                 </div>
               ))}
               {datos
-                ? <div className="mp-export-insight" dangerouslySetInnerHTML={{ __html: datos.exportInsight }} />
+                ? <div className="mp-export-insight" dangerouslySetInnerHTML={{ __html: textoEnriquecido(datos.exportInsight) }} />
                 : <div className="mp-export-insight">Cargando análisis de mercado…</div>}
             </div>
           </div>
@@ -407,11 +439,16 @@ export default function MercadoProteinas() {
                 {datos?.margen.valor ?? '—'}<small> /kg</small>
               </div>
               {/* El análisis trae marcado (negritas, saltos) tanto si lo calcula
-                  la página como si lo redacta Gemini. */}
+                  la página como si lo redacta Gemini. Cuando lo redacta Gemini
+                  es texto de un modelo, así que pasa por textoEnriquecido():
+                  conserva las negritas y neutraliza cualquier otra etiqueta.
+                  Ver la cabecera de lib/textoEnriquecido.js. */}
               <div
                 className="mp-margin-sub"
                 dangerouslySetInnerHTML={{
-                  __html: analisisIA || datos?.margen.analisis || 'Calculando margen de producción…',
+                  __html: textoEnriquecido(
+                    analisisIA || datos?.margen.analisis || 'Calculando margen de producción…',
+                  ),
                 }}
               />
             </div>

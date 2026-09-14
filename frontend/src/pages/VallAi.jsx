@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import Header from '../components/Header.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { cargarCadaVez } from '../lib/loadScripts.js';
+import { startGeminiLive, supportsGeminiLive } from '../lib/geminiLive.js';
 
 /*
  * VALL AI en React (antes pages/vall-ai.html).
@@ -32,10 +33,11 @@ const HOJAS = [
   '/assets/css/header.css',
   '/assets/css/responsive.css',
   '/assets/css/vall-ai-page.css?v=12',
+  '/assets/css/vall-ai-redesign.css?v=10',
 ];
 
-const DEPENDENCIAS = ['/assets/js/data-service.js?v=22'];
-const PAGINA_JS = '/assets/js/vall-ai-page-v4.js';
+const DEPENDENCIAS = ['/assets/js/data-service.js?v=24'];
+const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=11';
 
 const SUGERENCIAS = [
   { prompt: 'Dame un panorama ejecutivo de los mercados globales hoy', icono: 'fa-earth-americas', titulo: 'Panorama global', nota: 'Mercados, tasas y riesgo' },
@@ -67,6 +69,14 @@ export default function VallAi() {
   useEffect(() => {
     document.body.classList.add('vall-ai-body');
     return () => document.body.classList.remove('vall-ai-body');
+  }, []);
+
+  useEffect(() => {
+    const bridge = { start: startGeminiLive, isSupported: supportsGeminiLive };
+    window.VNGeminiLive = bridge;
+    return () => {
+      if (window.VNGeminiLive === bridge) delete window.VNGeminiLive;
+    };
   }, []);
 
   useEffect(() => {
@@ -143,6 +153,11 @@ export default function VallAi() {
               <span className="vai-eyebrow">INTELIGENCIA ECONÓMICA GENERATIVA</span>
               <h1>¿Qué quieres analizar hoy?</h1>
               <p>Consulta mercados, tasas, divisas, commodities, geopolítica o solicita un reporte estructurado.</p>
+              <div className="vai-welcome-signals" aria-label="Capacidades de VALL AI">
+                <span><i className="fas fa-database" /> Datos y contexto</span>
+                <span><i className="fas fa-chart-column" /> Análisis estructurado</span>
+                <span><i className="fas fa-file-arrow-down" /> Reportes exportables</span>
+              </div>
               <div className="vai-prompts">
                 {SUGERENCIAS.map((s) => (
                   <button key={s.titulo} type="button" data-prompt={s.prompt}>
@@ -276,6 +291,10 @@ export default function VallAi() {
           <div className="vai-voice-ring" />
         </div>
         <div className="vai-voice-status" id="vaiVoiceStatus">Escuchando...</div>
+        <div className="vai-voice-transcript" aria-live="polite">
+          <p id="vaiVoiceUserTranscript" />
+          <p id="vaiVoiceAiTranscript" />
+        </div>
         <button type="button" className="vai-voice-hangup" id="vaiVoiceHangup" title="Terminar llamada">
           <i className="fas fa-phone-slash" />
         </button>

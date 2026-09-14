@@ -1,5 +1,5 @@
-// Cliente API de VALLNews.
-// En dev, Vite hace proxy de /api → http://localhost:3001 (backend Express).
+ // Cliente API de VALLNews.
+// En dev, Vite hace proxy de /api → el backend Express (:3101 por defecto).
 // En prod, frontend y backend comparten origen, así que /api relativo funciona.
 export const API_BASE = '';
 

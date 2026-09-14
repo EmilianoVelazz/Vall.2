@@ -1,0 +1,270 @@
+/* Bolsa: una sola familia azul. Verde y rojo quedan reservados a mercado. */
+html body.vn-dark-finanzas.ff-detail-bolsa {
+    --bolsa-base: #35536b !important;
+    --bolsa-raised: #3d5b72 !important;
+    --bolsa-deep: #193a53 !important;
+    --bolsa-line: rgba(117, 165, 202, .3) !important;
+    --bolsa-muted: #b6c8d5 !important;
+    --bolsa-accent: #4d91c2 !important;
+    --bolsa-accent-strong: #65a8d7;
+}
+
+/* La portada de Bolsa ya explica el alcance; esta franja repetía el contenido. */
+html body.vn-dark-finanzas.ff-detail-bolsa #fin-section-status {
+    display: none !important;
+}
+
+html body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation,
+    #fin-section-status,
+    #ff-world-map,
+    #ff-exchange-board,
+    #bvmx-panel,
+    #ff-detail-supplement,
+    #sectors-panel
+) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+}
+
+/* Navegación y estados de sección. */
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation::before { display: none !important; }
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation :is(.ff-detail-back,.ff-detail-tabs button) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+    color: #dbe7ef !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation :is(.ff-detail-back,.ff-detail-tabs button):hover {
+    background: var(--bolsa-raised) !important;
+    color: #fff !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation .ff-detail-tabs button:is(.is-active,[aria-current="page"]) {
+    border-color: var(--bolsa-accent-strong) !important;
+    background: var(--bolsa-accent) !important;
+    color: #071e30 !important;
+    box-shadow: 0 6px 16px rgba(37,104,154,.24) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa :is(.ff-detail-eyebrow,.ff-detail-back i,.fin-section-status-icon) {
+    color: #91c2e3 !important;
+}
+
+/* Mapa: misma carcasa azul; el lienzo permanece profundo para leer países. */
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(.ffwm-toolbar,.ffwm-command,.ffwm-footer) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-map {
+    border-color: var(--bolsa-line) !important;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(77,145,194,.13), transparent 42%),
+        repeating-linear-gradient(0deg, transparent 0 54px, rgba(117,165,202,.035) 55px),
+        repeating-linear-gradient(90deg, transparent 0 74px, rgba(117,165,202,.03) 75px),
+        var(--bolsa-deep) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(.ffwm-map-tools,.ffwm-pan-hint,.ffwm-tip) {
+    border-color: var(--bolsa-line) !important;
+    background: rgba(25,58,83,.96) !important;
+    color: #e5eff5 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(.ffwm-head .ff-kicker,.ffwm-tip-head h3) {
+    color: #91c2e3 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-tip-close:hover {
+    background: var(--bolsa-accent) !important;
+    color: #071e30 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-bolsa {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-raised) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map #ffwm-select {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+    color: #edf5fa !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map #ffwm-select option {
+    background: var(--bolsa-base) !important;
+    color: #edf5fa !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(.ffwm-toolbar,.ffwm-filters) button.is-active {
+    border-color: var(--bolsa-accent-strong) !important;
+    background: rgba(77,145,194,.2) !important;
+    color: #bfe0f4 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(.ffwm-toolbar,.ffwm-filters) button:not(.is-active) {
+    color: #b6c8d5 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-tool-btn {
+    border-color: var(--bolsa-line) !important;
+    background: rgba(77,145,194,.11) !important;
+    color: #d9e8f1 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-tool-btn:hover {
+    background: rgba(77,145,194,.22) !important;
+}
+
+/* Mercados principales. */
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-exchange-row,.ff-exchange-card,.ff-exchange-data-box) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-exchange-card,.ff-exchange-data-box):hover {
+    background: var(--bolsa-raised) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card.is-selected {
+    background: var(--bolsa-raised) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa :is(.ff-exchange-header .ff-kicker,.ff-exchange-update) {
+    color: #bcd2e0 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa .ff-exchange-header label i {
+    color: #91c2e3 !important;
+}
+
+/* Selectores heredados: eliminamos el negro y los integramos al azul elevado. */
+html body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #vn-chart-type-global,
+    .ff-range-select,
+    #ff-supplement-market,
+    #supp-chart-type
+) {
+    min-height: 42px !important;
+    border: 1px solid var(--bolsa-line) !important;
+    border-radius: 11px !important;
+    background-color: var(--bolsa-raised) !important;
+    color: #f0f6fa !important;
+    box-shadow: none !important;
+    color-scheme: dark !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #vn-chart-type-global,
+    .ff-range-select,
+    #ff-supplement-market,
+    #supp-chart-type
+) option {
+    background: var(--bolsa-raised) !important;
+    color: #f0f6fa !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #vn-chart-type-global,
+    .ff-range-select,
+    #ff-supplement-market,
+    #supp-chart-type
+):is(:hover,:focus-visible) {
+    border-color: var(--bolsa-accent-strong) !important;
+    background-color: #42647d !important;
+    outline: 2px solid rgba(101,168,215,.24) !important;
+    outline-offset: 1px !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-header label {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-raised) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement #ff-supplement-market {
+    min-height: 42px !important;
+    border: 1px solid var(--bolsa-line) !important;
+    border-radius: 11px !important;
+    background-color: var(--bolsa-raised) !important;
+    color: #f0f6fa !important;
+    box-shadow: none !important;
+    color-scheme: dark !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement #ff-supplement-market:is(:hover,:focus-visible) {
+    border-color: var(--bolsa-accent-strong) !important;
+    background-color: #42647d !important;
+    outline: 2px solid rgba(101,168,215,.24) !important;
+    outline-offset: 1px !important;
+}
+
+/* Tickers de cada mercado: dejan de ser pastillas negras ajenas a la tarjeta. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card-head :is(em,.ff-badge) {
+    border: 1px solid var(--bolsa-line) !important;
+    border-radius: 9px !important;
+    background: var(--bolsa-raised) !important;
+    color: #e4eef5 !important;
+    box-shadow: none !important;
+}
+
+/* Unidad de la gráfica y encabezados tabulares en el mismo azul elevado. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement #ff-supplement-chart-unit {
+    padding: 7px 11px !important;
+    border: 1px solid var(--bolsa-line) !important;
+    border-radius: 9px !important;
+    background: var(--bolsa-raised) !important;
+    color: #e4eef5 !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement #ff-supplement-table-head th {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-raised) !important;
+    color: #dbe8f1 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap td {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap tbody tr:hover td {
+    background: var(--bolsa-raised) !important;
+}
+
+/* El fondo del laboratorio bursátil usa el azul base; las series no cambian. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel .market-chart-canvas {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+}
+
+/* Análisis, desempeño y sectores comparten las mismas superficies. */
+html body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    .market-chart-lab-head,
+    .market-chart-controls,
+    .ff-market-field,
+    .ff-market-search-field,
+    .chart-intervals,
+    .chart-type-switch,
+    .market-chart-quote,
+    .ff-chart-reading
+) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement::before {
+    background: linear-gradient(90deg,#397cac,var(--bolsa-accent),#397cac) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement :is(
+    .ff-supplement-kpi,
+    .ff-supplement-chart-card,
+    .ff-supplement-table-card
+),
+html body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel :is(.sb-status,.sb-kpi,.sb-filter button) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-raised) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement :is(.ff-supplement-chart-card,.ff-supplement-table-card) > header {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-raised) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-chart {
+    /* Esta gráfica es una tarjeta de contenido, no un mapa: conserva el mismo
+       azul medio del panel para no abrir un rectángulo oscuro dentro del flujo. */
+    background: var(--bolsa-base) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-note {
+    border-left-color: var(--bolsa-accent) !important;
+    background: rgba(77,145,194,.1) !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-filter button.is-active {
+    border-color: var(--bolsa-accent-strong) !important;
+    background: var(--bolsa-accent) !important;
+    color: #071e30 !important;
+}
+html body.vn-dark-finanzas.ff-detail-bolsa :is(
+    .ffwm-head .ff-kicker,
+    .ff-exchange-header .ff-kicker,
+    #bvmx-panel .market-chart-heading small,
+    #ff-detail-supplement .ff-kicker,
+    #sectors-panel .sb-head small
+) {
+    border-color: var(--bolsa-line) !important;
+    background: rgba(77,145,194,.12) !important;
+    color: #bcd9ec !important;
+}

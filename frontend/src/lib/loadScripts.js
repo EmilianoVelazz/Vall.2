@@ -34,7 +34,7 @@ function cargarUno(src) {
 
 export default async function loadScripts(fuentes) {
   for (const src of fuentes) {
-    // eslint-disable-next-line no-await-in-loop
+     
     await cargarUno(src);
   }
 }
@@ -80,7 +80,7 @@ export function cargarCadaVez(src, marca) {
  */
 export function globalLegado(nombre) {
   try {
-    // eslint-disable-next-line no-new-func
+     
     return new Function(`return typeof ${nombre} !== 'undefined' ? ${nombre} : undefined`)();
   } catch {
     return undefined;

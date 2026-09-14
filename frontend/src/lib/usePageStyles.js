@@ -11,14 +11,38 @@ import { useEffect } from 'react';
  * Las hojas se marcan con data-vn-page-css para poder retirarlas al desmontar y
  * evitar que el CSS de una sección se filtre a la siguiente. Si otra página ya
  * inyectó la misma hoja se reutiliza y solo se lleva la cuenta de referencias.
+ *
+ * EL ORDEN IMPORTA, y es la parte delicada. En los .html originales el bloque
+ * <style> propio de la página iba DESPUÉS de todos los <link>, así que ganaba
+ * cualquier conflicto. Al migrarlo, ese bloque pasó a ser un `import './X.css'`
+ * que Vite agrupa y coloca en el <head> al arrancar la aplicación — es decir,
+ * ANTES de que este hook llegue a añadir nada. Con un appendChild las hojas
+ * heredadas quedaban por debajo en el documento y le pisaban el diseño a la
+ * página: en Finanzas eso apagaba la tonalidad oscura, porque
+ * finanzas-favro.css y finanzas-premium.css sobrescribían sus colores.
+ *
+ * Por eso se insertan ANTES del primer nodo que gestiona Vite, y no al final.
+ * Así el orden vuelve a ser el del HTML: primero normalize y las fuentes (que
+ * vienen de index.html), luego las hojas heredadas, y el CSS propio de la
+ * sección al final.
  */
 const refs = new Map();
+
+/**
+ * Primer nodo de estilo que pertenece al bundle. En desarrollo Vite marca sus
+ * <style> con data-vite-dev-id; en producción emite un <link> a /vn-app/.
+ */
+function anclaDelBundle() {
+  return document.head.querySelector('style[data-vite-dev-id], link[href*="/vn-app/"]');
+}
 
 export default function usePageStyles(hojas) {
   const clave = hojas.join('|');
 
   useEffect(() => {
     const propias = [];
+
+    const ancla = anclaDelBundle();
 
     for (const href of hojas) {
       const n = refs.get(href) || 0;
@@ -30,7 +54,11 @@ export default function usePageStyles(hojas) {
       link.rel = 'stylesheet';
       link.href = href;
       link.dataset.vnPageCss = href;
-      document.head.appendChild(link);
+      // insertBefore con el ancla conserva el orden de `hojas` entre ellas y las
+      // deja por encima del CSS de la sección. Sin ancla (nada del bundle en el
+      // head todavía) se cae al comportamiento anterior.
+      if (ancla) document.head.insertBefore(link, ancla);
+      else document.head.appendChild(link);
     }
 
     return () => {

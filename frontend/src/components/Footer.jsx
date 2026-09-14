@@ -13,15 +13,17 @@ export default function Footer() {
         </div>
         <span className="footer-brand">VALLNews</span>
       </div>
-      {/* Las seis secciones, como en el pie de los .html. Faltaban Mercado
-          Proteínas y México, así que desde el pie no se llegaba a ellas. */}
+      {/* Las mismas secciones que el rail, y en el mismo orden: dos menús que
+          no coinciden confunden más que uno corto. Mercado Proteínas salió el
+          2026-08-18 junto con su entrada del rail y de la portada; la página
+          sigue existiendo y se llega por la paleta ⌘K. */}
       <nav className="footer-nav">
         <Link to="/inicio">Inicio</Link>
         <Link to="/finanzas">Finanzas</Link>
         <Link to="/mercados">Mercados</Link>
         <Link to="/geopolitica">Geopolítica</Link>
-        <Link to="/mercado-proteinas">Mercado Proteínas</Link>
         <Link to="/mexico">México</Link>
+        <Link to="/vall-ai">VALL AI</Link>
       </nav>
       <p className="footer-copy">
         © {new Date().getFullYear()} VALLNews · Inteligencia económica

@@ -1,0 +1,427 @@
+/*
+ * VALL AI — rediseño de interfaz.
+ * La geometría móvil (menú desplegable, alturas y panel de composición) se
+ * mantiene en la hoja original; aquí sólo se reorganiza el aspecto visual.
+ */
+
+.vall-ai-body {
+  --vai-r-ink: #dceefa;
+  --vai-r-muted: #8fa9bc;
+  --vai-r-plane: #081b2b;
+  --vai-r-surface: #102d42;
+  --vai-r-line: rgba(132, 218, 243, .24);
+  --vai-r-accent: #57d4f3;
+  --vai-r-accent-soft: #d9f7ff;
+  --vai-r-navy: #0b3046;
+  background: var(--vai-r-plane);
+  color: var(--vai-r-ink);
+}
+
+/* Paleta y lectura, válida para cualquier tamaño. */
+.vall-ai-body .vai-workspace {
+  background:
+    radial-gradient(circle at 74% -8%, rgba(87, 212, 243, .14), transparent 30%),
+    linear-gradient(145deg, #102e43 0, #081b2b 62%, #061521 100%);
+}
+
+.vall-ai-body .vai-toolbar {
+  background: rgba(16,31,48,.92);
+  border-bottom-color: var(--vai-r-line);
+  box-shadow: none;
+}
+
+.vall-ai-body .vai-toolbar-title span { color: #9fb4c9; }
+.vall-ai-body .vai-toolbar-title strong { color: #f0f5f9; }
+.vall-ai-body .vai-history-toggle,
+.vall-ai-body .vai-toolbar-actions > button,
+.vall-ai-body .vai-report-open {
+  color: #e9f7fc;
+  background: #12354b;
+  border-color: var(--vai-r-line);
+  box-shadow: none;
+}
+.vall-ai-body .vai-history-toggle i,
+.vall-ai-body .vai-toolbar-actions > button i,
+.vall-ai-body .vai-report-open i { color: #85e5fa; }
+.vall-ai-body .vai-history-toggle { display: grid; place-items: center; }
+.vall-ai-body .vai-history-toggle:hover,
+.vall-ai-body .vai-toolbar-actions > button:hover,
+.vall-ai-body .vai-report-open:hover { color: #fff; background: #1a4a63; border-color: #8ee8fa; }
+.vall-ai-body .vai-toolbar-actions > button:hover i,
+.vall-ai-body .vai-report-open:hover i { color: #fff; }
+.vall-ai-body .vai-sidebar-collapse { display: none !important; }
+
+.vall-ai-body .vai-auto-route {
+  color: #e8eef4;
+  background: #162b3f;
+  border-color: var(--vai-r-line);
+  box-shadow: none;
+}
+.vall-ai-body .vai-auto-route > i { color: #07506a; background: var(--vai-r-accent-soft); }
+.vall-ai-body .vai-auto-route small { color: #9fb4c9; }
+.vall-ai-body .vai-auto-route b { color: #e8eef4; }
+
+.vall-ai-body .vai-welcome h1 {
+  color: #f0f5f9;
+  font-family: Inter, sans-serif;
+  font-weight: 760;
+  letter-spacing: -.05em;
+}
+.vall-ai-body .vai-eyebrow { color: #8daed6; }
+.vall-ai-body .vai-welcome > p { color: #b2c3d1; }
+
+.vall-ai-body .vai-welcome-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 15px;
+  color: #b2c3d1;
+  font-size: .69rem;
+  font-weight: 700;
+}
+.vall-ai-body .vai-welcome-signals span { display: inline-flex; align-items: center; gap: 6px; }
+.vall-ai-body .vai-welcome-signals i { color: var(--vai-r-accent); }
+
+.vall-ai-body .vai-prompts button {
+  background: rgba(22,43,63,.9);
+  border-color: var(--vai-r-line);
+  box-shadow: none;
+}
+.vall-ai-body .vai-prompts button > i { color: var(--vai-r-accent); background: var(--vai-r-accent-soft); }
+.vall-ai-body .vai-prompts button b { color: #f0f5f9; }
+.vall-ai-body .vai-prompts button small { color: #a7bacb; }
+.vall-ai-body .vai-prompts button:hover {
+  border-color: #8daed6;
+  background: #1d3952;
+  box-shadow: 0 12px 22px rgba(4,14,24,.22);
+}
+
+.vall-ai-body .vai-message .vai-bubble {
+  color: #e8eef4;
+  background: #193249;
+  border-color: var(--vai-r-line);
+  box-shadow: 0 7px 18px rgba(16,43,60,.045);
+}
+.vall-ai-body .vai-message .vai-avatar {
+  color: var(--vai-r-accent);
+  background: var(--vai-r-accent-soft);
+  border-color: #c3d5e9;
+  box-shadow: none;
+}
+.vall-ai-body .vai-message.user .vai-bubble,
+.vall-ai-body .vai-message.user .vai-avatar {
+  color: #fff;
+  background: var(--vai-r-navy);
+  border-color: var(--vai-r-navy);
+}
+
+.vall-ai-body .vai-composer {
+  background: #102d42;
+  border: 1px solid rgba(132, 218, 243, .36);
+  border-radius: 20px;
+  box-shadow: 0 18px 38px rgba(4, 14, 24, .3);
+}
+.vall-ai-body .vai-composer:focus-within,
+.vall-ai-body .vai-composer:focus-visible {
+  /* El compositor no cambia de forma ni dibuja un recuadro al escribir. */
+  border-color: rgba(132, 218, 243, .36);
+  outline: none !important;
+  box-shadow: 0 18px 38px rgba(4, 14, 24, .3);
+}
+.vall-ai-body .vai-composer:before {
+  display: block;
+  color: #93e7fa;
+  background: #102d42;
+  border-color: rgba(132, 218, 243, .36);
+}
+.vall-ai-body .vai-composer textarea {
+  min-height: 60px;
+  padding: 18px 16px 7px;
+  color: #f0f5f9;
+  border: 0;
+  border-radius: 0;
+  outline: none !important;
+}
+.vall-ai-body .vai-composer textarea:focus,
+.vall-ai-body .vai-composer textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.vall-ai-body .vai-composer textarea::placeholder { color: #91a8ba; }
+.vall-ai-body .vai-compose-bottom > span,
+.vall-ai-body .vai-compose-context { color: #9fb4c9; }
+.vall-ai-body .vai-compose-bottom > span i,
+.vall-ai-body .vai-compose-context i { color: var(--vai-r-accent); }
+.vall-ai-body .vai-attach { color: #99eafa; background: #0a2536; border-color: rgba(132, 218, 243, .28); }
+.vall-ai-body .vai-attach:hover { color: #fff; background: #15445b; border-color: #79e1f7; }
+.vall-ai-body .vai-send { background: #57d4f3; color: #062434; box-shadow: 0 6px 15px rgba(3, 20, 32, .36); }
+.vall-ai-body .vai-send:hover { color: #031d2b; background: #8be6f9; }
+.vall-ai-body .vai-disclaimer { color: #8fa4b6; }
+
+/* Respuestas: escala de contraste para el lienzo oscuro. */
+.vall-ai-body .vai-message-meta,
+.vall-ai-body .vai-message-files { color: #91a8ba; }
+.vall-ai-body .vai-bubble p,
+.vall-ai-body .vai-bubble li { color: #d8e4ed; }
+.vall-ai-body .vai-bubble h2,
+.vall-ai-body .vai-bubble h3,
+.vall-ai-body .vai-bubble h4 {
+  color: #f3f8fc;
+  border-bottom-color: rgba(150,196,234,.2);
+  font-family: Inter, sans-serif;
+}
+.vall-ai-body .vai-bubble h3 { color: #c9ddf0; }
+.vall-ai-body .vai-bubble a { color: #9fc0e5; text-decoration-color: rgba(159,192,229,.52); }
+.vall-ai-body .vai-bubble a:hover { color: #d8e9fa; }
+.vall-ai-body .vai-bubble code {
+  color: #d7e8fa;
+  background: #0d1b2a;
+  border-color: rgba(150,196,234,.2);
+}
+.vall-ai-body .vai-bubble pre {
+  color: #e8f0f7;
+  background: #0b1724;
+  border: 1px solid rgba(150,196,234,.2);
+  box-shadow: none;
+}
+.vall-ai-body .vai-bubble table {
+  color: #dbe7ef;
+  background: #142b3e;
+  border-color: rgba(150,196,234,.22);
+  box-shadow: none;
+}
+.vall-ai-body .vai-bubble th {
+  color: #f1f6fa;
+  background: #0f2436;
+  border-color: rgba(150,196,234,.2);
+}
+.vall-ai-body .vai-bubble td {
+  color: #dbe7ef;
+  border-color: rgba(150,196,234,.14);
+}
+.vall-ai-body .vai-bubble tbody tr:nth-child(even) td { background: #193249; }
+.vall-ai-body .vai-bubble tbody tr:hover td { background: #20405a; }
+.vall-ai-body .vai-bubble .mermaid {
+  background: #142b3e;
+  border-color: rgba(150,196,234,.2);
+}
+.vall-ai-body .vai-message.user .vai-bubble,
+.vall-ai-body .vai-message.user .vai-bubble p,
+.vall-ai-body .vai-message.user .vai-bubble li,
+.vall-ai-body .vai-message.user .vai-bubble h2,
+.vall-ai-body .vai-message.user .vai-bubble h3,
+.vall-ai-body .vai-message.user .vai-bubble h4 { color: #f3f8fc; }
+
+.vall-ai-body .vai-thinking {
+  color: #c7d9e9;
+  background: #142b3e;
+  border-color: rgba(150,196,234,.2);
+  box-shadow: none;
+}
+.vall-ai-body .vai-thinking i { background-color: #8daed6; }
+.vall-ai-body .vai-quote {
+  color: #cbdbea;
+  background: #152d41;
+  border-left-color: #6f9bd1;
+}
+.vall-ai-body .vai-alert {
+  color: #d3e3f2;
+  background: #18334a;
+  border-left-color: #6f9bd1;
+  box-shadow: none;
+}
+.vall-ai-body .vai-alert strong { color: #bcd5ed; }
+
+.vall-ai-body .vai-rich-summary {
+  margin: 0 0 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(237, 161, 0, .32);
+  border-left: 4px solid #eda100;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(237, 161, 0, .12), rgba(255, 255, 255, .035));
+}
+.vall-ai-body .vai-rich-summary small {
+  display: block;
+  margin-bottom: .45rem;
+  color: #eab34a;
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.vall-ai-body .vai-rich-summary p { margin: 0; font-size: 1.02rem; line-height: 1.65; }
+.vall-ai-body .vai-rich-comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .8rem; }
+.vall-ai-body .vai-rich-comparison > h3 { margin: 0 0 .7rem; }
+.vall-ai-body .vai-rich-comparison article {
+  padding: 1rem;
+  border: 1px solid rgba(188, 213, 237, .16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .035);
+}
+.vall-ai-body .vai-rich-comparison article > strong { color: #f2f7fb; font-size: .95rem; }
+.vall-ai-body .vai-rich-comparison article p { color: #b9c9d6; }
+.vall-ai-body .vai-rich-comparison article small { display: block; margin-top: .65rem; font-weight: 800; }
+.vall-ai-body .vai-rich-comparison article small.positive { color: #58d39a; }
+.vall-ai-body .vai-rich-comparison article small.caution { color: #eab34a; }
+.vall-ai-body .vai-rich-comparison article ul { margin: .35rem 0 0; padding-left: 1.1rem; }
+.vall-ai-body .vai-rich-document > section { margin-top: 1rem; }
+.vall-ai-body .vai-error {
+  color: #ffd6db;
+  background: #3b202b;
+  border-color: #a75a6a;
+  box-shadow: none;
+}
+.vall-ai-body .vai-response-actions button,
+.vall-ai-body .vai-feedback-group button {
+  color: #aac0d2;
+  background: #142b3e;
+  border-color: rgba(150,196,234,.2);
+}
+.vall-ai-body .vai-response-actions button:hover,
+.vall-ai-body .vai-feedback-group button:hover { color: #f0f6fb; background: #20405a; border-color: #8daed6; }
+
+/* Gráficas y sus lecturas también se mantienen dentro de la misma escala. */
+.vall-ai-body .vai-chart-card {
+  background: #142b3e;
+  border-color: rgba(150,196,234,.22);
+  box-shadow: 0 12px 26px rgba(4,14,24,.2);
+}
+.vall-ai-body .vai-chart-head,
+.vall-ai-body .vai-chart-foot { border-color: rgba(150,196,234,.16); background: #162f44; color: #9fb4c9; }
+.vall-ai-body .vai-chart-head h3,
+.vall-ai-body .vai-chart-kpis strong { color: #edf5fa; }
+.vall-ai-body .vai-chart-head p,
+.vall-ai-body .vai-chart-kpis small { color: #9fb4c9; }
+.vall-ai-body .vai-chart-tools button,
+.vall-ai-body .vai-chart-view {
+  color: #c7d9e9;
+  background: #102438;
+  border-color: rgba(150,196,234,.2);
+}
+.vall-ai-body .vai-chart-view select { color: #dce9f3; background: #102438; }
+.vall-ai-body .vai-chart-kpis div { background: #193249; border-color: rgba(150,196,234,.16); }
+.vall-ai-body .vai-chart-insight { color: #cfdeed; background: #18344c; border-color: rgba(111,155,209,.4); }
+.vall-ai-body .vai-chart-insight > i { color: #dbeafb; background: #315879; }
+.vall-ai-body .vai-chart-insight small { color: #9fc0e5; }
+
+
+/* Escritorio: nueva composición de espacio de trabajo. */
+@media (min-width: 761px) {
+  .vall-ai-body .vai-shell {
+    /* El encabezado actual mide 60 px. La altura heredada descontaba 118 px,
+       dejando una banda vacía al final de la ventana. */
+    height: calc(100dvh - 60px);
+    min-height: 0;
+    grid-template-columns: 272px minmax(0,1fr);
+    background: var(--vai-r-plane);
+  }
+  .vall-ai-body .vai-shell.sidebar-collapsed { grid-template-columns: 82px minmax(0,1fr); }
+
+  .vall-ai-body .vai-sidebar {
+    padding: 18px 14px 14px;
+    background: linear-gradient(180deg, #1e3a52 0, #101f30 100%);
+    border-right-color: rgba(255,255,255,.08);
+    box-shadow: none;
+  }
+  .vall-ai-body .vai-sidebar:after { background: radial-gradient(circle at 16% 3%, rgba(110,178,235,.22), transparent 26%); }
+  .vall-ai-body .vai-side-brand { min-height: 56px; padding-bottom: 15px; }
+  .vall-ai-body .vai-orb { width: 38px; height: 38px; border-radius: 10px; background: #e9f0f8; border: 0; }
+  .vall-ai-body .vai-orb img { width: 31px; height: 31px; filter: brightness(0) saturate(100%) invert(16%) sepia(23%) saturate(1115%) hue-rotate(168deg) brightness(87%); }
+  .vall-ai-body .vai-side-brand strong { font-size: .78rem; letter-spacing: .13em; }
+  .vall-ai-body .vai-side-brand span { color: #a9c3ca; }
+  .vall-ai-body .vai-new { color: #16283a; background: #e9f0f8; border-color: #e9f0f8; border-radius: 8px; box-shadow: none; }
+  .vall-ai-body .vai-new:hover { color: #16283a; background: #f4f8fc; border-color: #f4f8fc; }
+  .vall-ai-body .vai-search { border-radius: 8px; }
+  .vall-ai-body .vai-history-item { border-radius: 8px; }
+  .vall-ai-body .vai-history-item.active { border-color: rgba(141,174,214,.42); background: rgba(154,193,235,.13); }
+  .vall-ai-body .vai-history-item.active:before { background: #8daed6; box-shadow: none; }
+  .vall-ai-body .vai-sidebar-collapse { border-color: #8daed6; background: #1e3a52; color: #e8eef4; box-shadow: 0 6px 18px rgba(3,17,29,.2); }
+
+  .vall-ai-body .vai-toolbar { padding: 0 30px; }
+  .vall-ai-body .vai-messages { padding-top: 28px; }
+  .vall-ai-body .vai-welcome {
+    max-width: 780px;
+    margin: clamp(10px, 4vh, 42px) auto 0;
+    text-align: left;
+  }
+  .vall-ai-body .vai-welcome-mark {
+    width: 52px;
+    height: 52px;
+    margin: 0 0 22px;
+    border: 0;
+    border-radius: 14px;
+    background: #e9f0f8;
+    box-shadow: none;
+  }
+  .vall-ai-body .vai-welcome-mark img {
+    width: 41px;
+    height: 41px;
+    filter: brightness(0) saturate(100%) invert(28%) sepia(13%) saturate(1782%) hue-rotate(169deg) brightness(91%);
+  }
+  .vall-ai-body .vai-welcome h1 { max-width: 620px; margin: 8px 0 12px; font-size: clamp(2.2rem, 4vw, 3.45rem); line-height: 1.02; }
+  .vall-ai-body .vai-welcome > p { max-width: 590px; margin: 0; font-size: .94rem; }
+  .vall-ai-body .vai-welcome-signals { margin: 22px 0 26px; }
+  .vall-ai-body .vai-prompts { margin: 0; }
+  .vall-ai-body .vai-prompts button { min-height: 86px; padding: 15px; border-radius: 10px; }
+  .vall-ai-body .vai-prompts button > i { border-radius: 8px; }
+  /* El área del escritor sólo enmarca al compositor. Sin degradado de pantalla
+     completa evita el rectángulo oscuro que hacía parecer un pie vacío. */
+  .vall-ai-body .vai-composer-wrap {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background: transparent;
+    border-top: 1px solid rgba(132, 218, 243, .13);
+  }
+}
+
+@media (max-width: 760px) {
+  .vall-ai-body .vai-composer-wrap {
+    background: transparent;
+    border-top: 1px solid rgba(132, 218, 243, .12);
+  }
+}
+
+/* Móvil: sólo detalles visuales; las reglas de disposición originales mandan. */
+@media (max-width: 760px) {
+  .vall-ai-body .vai-sidebar { background: linear-gradient(180deg, #1e3a52, #101f30); }
+  .vall-ai-body .vai-sidebar:after { background: radial-gradient(circle at 16% 3%, rgba(110,178,235,.2), transparent 26%); }
+  .vall-ai-body .vai-orb { background: #e9f0f8; border: 0; }
+  .vall-ai-body .vai-new { color: #16283a; background: #e9f0f8; border-color: #e9f0f8; }
+  .vall-ai-body .vai-welcome { text-align: left; }
+  .vall-ai-body .vai-welcome-mark { margin-left: 0; margin-right: 0; background: #e9f0f8; box-shadow: none; }
+  .vall-ai-body .vai-welcome h1 { margin-top: 9px; }
+  .vall-ai-body .vai-welcome > p { margin-left: 0; margin-right: 0; }
+  .vall-ai-body .vai-welcome-signals { margin: 17px 0; font-size: .65rem; }
+  .vall-ai-body .vai-prompts { margin-top: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vall-ai-body .vai-prompts button { transition: none; }
+}
+
+/* Llamada Gemini Live: transcripción accesible sin competir con el orbe. */
+.vall-ai-body .vai-voice-overlay {
+  position: fixed;
+  background: rgba(8, 20, 33, .9);
+  color: #eef6fb;
+}
+.vall-ai-body .vai-voice-status { color: #eef6fb; }
+.vall-ai-body .vai-voice-transcript {
+  width: min(680px, calc(100vw - 40px));
+  min-height: 72px;
+  margin-top: -1.6rem;
+  text-align: center;
+  color: #c8d9e8;
+}
+.vall-ai-body .vai-voice-transcript p {
+  margin: .35rem 0;
+  line-height: 1.45;
+}
+.vall-ai-body .vai-voice-transcript p:first-child { color: #9fc4e3; }
+.vall-ai-body .vai-voice-transcript p:last-child { color: #eef6fb; font-weight: 650; }
+
+@media (max-width: 560px) {
+  .vall-ai-body .vai-voice-overlay { gap: 2rem; }
+  .vall-ai-body .vai-voice-orb-container { width: 150px; height: 150px; }
+  .vall-ai-body .vai-voice-orb { width: 94px; height: 94px; }
+  .vall-ai-body .vai-voice-status { font-size: 1.35rem; }
+}

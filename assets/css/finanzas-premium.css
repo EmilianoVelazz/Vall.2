@@ -183,12 +183,16 @@ strong, .vn-price, .mkt-val, .bp-yld, .rds2-cval, .fx-pro-kpi strong, .hub-hdr-s
 .vn-ticker .vn-name  { color: #5b6f7e !important; }   /* #6b8090 se quedaba en 4.0 */
 .vn-ticker .vn-price { color: #0f172a !important; font-weight: 700 !important; }
 
-/* Alzas y bajas vuelven a distinguirse; tonos con contraste suficiente
-   sobre blanco (el #4ade80 original se queda en 1.7). */
+/* Alzas y bajas vuelven a distinguirse.
+   Estos tonos se eligieron para contrastar sobre BLANCO (el #4ade80 original
+   se quedaba en 1.7), pero esa premisa ya no se cumple: con el piloto oscuro
+   activo el ticker se pinta sobre #0d1621, y ahi los valores oscuros caian a
+   3.36:1 el verde y 2.78:1 el rojo. Sobre fondo oscuro hay que ACLARAR, no
+   oscurecer. Medido en /finanzas a 9.4px, que exige 4.5:1. */
 .vn-ticker .vn-chg.up,
-.vn-ticker .vn-chg.up span   { color: #0e7a40 !important; }
+.vn-ticker .vn-chg.up span   { color: #11924c !important; }
 .vn-ticker .vn-chg.down,
-.vn-ticker .vn-chg.down span { color: #b3261e !important; }
+.vn-ticker .vn-chg.down span { color: #df4a41 !important; }
 .vn-ticker .vn-sep { background: #e8eef2 !important; }
 .vn-ticker .vn-loading { color: #6b8090 !important; }
 
@@ -543,6 +547,152 @@ p, span, small {
 .ff-data-value.ff-positive-text { color: var(--ff-positive, #16825d) !important; }
 .ff-data-value.ff-negative-text { color: var(--ff-negative, #c94a56) !important; }
 
+/* Terminal unificada: la gráfica y los datos son dos zonas de una misma
+   lectura, no tarjetas independientes. */
+.ff-exchange-row {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 31%) !important;
+    gap: 0 !important;
+    border: 1px solid #dfe7ed !important;
+    border-radius: 18px !important;
+    background: #fbfcfd !important;
+    box-shadow: 0 12px 30px rgba(7,28,44,.06) !important;
+    overflow: hidden !important;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease !important;
+}
+
+.ff-exchange-row::before {
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    z-index: 4 !important;
+    width: 4px !important;
+    background: #8298a7 !important;
+    content: "" !important;
+    pointer-events: none !important;
+}
+
+.ff-exchange-row:has(.ff-exchange-card.is-up)::before { background: var(--ff-positive) !important; }
+.ff-exchange-row:has(.ff-exchange-card.is-down)::before { background: var(--ff-negative) !important; }
+.ff-exchange-row:hover {
+    border-color: #afc4d0 !important;
+    box-shadow: 0 18px 40px rgba(7,28,44,.11) !important;
+    transform: translateY(-2px) !important;
+}
+
+.ff-exchange-row .ff-exchange-card {
+    width: 100% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.ff-exchange-row .ff-exchange-card::before { display: none !important; }
+.ff-exchange-row .ff-exchange-card:hover {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.ff-exchange-row .ff-exchange-card-chart {
+    position: relative !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 3px 0 0 !important;
+    padding: 12px 14px 8px !important;
+    border: 1px solid rgba(124,153,173,.22) !important;
+    border-radius: 13px !important;
+    background:
+        linear-gradient(rgba(117,151,173,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(117,151,173,.055) 1px, transparent 1px),
+        radial-gradient(circle at 82% 20%, rgba(47,120,153,.08), transparent 42%),
+        rgba(239,246,249,.58) !important;
+    background-size: 34px 34px, 34px 34px, 100% 100%, 100% 100% !important;
+    overflow: hidden !important;
+}
+
+.ff-exchange-row .ff-exchange-card-chart::after {
+    position: absolute !important;
+    inset: 0 0 0 auto !important;
+    width: 58px !important;
+    background: linear-gradient(90deg, transparent, rgba(251,252,253,.52)) !important;
+    content: "" !important;
+    pointer-events: none !important;
+}
+
+.ff-exchange-row .ff-exchange-data-box {
+    position: relative !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 18px 22px !important;
+    border: 0 !important;
+    border-left: 1px solid #dfe7ed !important;
+    border-radius: 0 !important;
+    background:
+        linear-gradient(145deg, rgba(47,120,153,.045), transparent 50%),
+        #f6f9fb !important;
+    box-shadow: inset 12px 0 24px -22px rgba(7,28,44,.28) !important;
+    transition: background .18s ease !important;
+}
+
+.ff-exchange-row .ff-exchange-data-box::before {
+    position: absolute !important;
+    top: 50% !important;
+    left: -5px !important;
+    width: 9px !important;
+    height: 42px !important;
+    border: 1px solid #c9d8e1 !important;
+    border-radius: 999px !important;
+    background: #f6f9fb !important;
+    box-shadow: 0 0 0 5px rgba(246,249,251,.68) !important;
+    content: "" !important;
+    transform: translateY(-50%) !important;
+}
+
+.ff-exchange-row .ff-exchange-data-box:hover {
+    border-left-color: #c4d5df !important;
+    background: linear-gradient(145deg, rgba(47,120,153,.065), transparent 52%), #f6f9fb !important;
+    box-shadow: inset 12px 0 24px -22px rgba(7,28,44,.28) !important;
+}
+
+.ff-exchange-row .ff-data-box-title {
+    display: grid !important;
+    gap: 4px !important;
+    margin-bottom: 9px !important;
+    padding-bottom: 10px !important;
+}
+.ff-exchange-row .ff-data-box-title span {
+    color: #2f7896 !important;
+    font: 800 0.625rem/1 "Inter", sans-serif !important;
+    letter-spacing: .1em !important;
+    text-transform: uppercase !important;
+}
+.ff-exchange-row .ff-data-box-title strong {
+    color: var(--ff-ink, #0c2d44) !important;
+    font: 750 .88rem/1.2 "Inter", sans-serif !important;
+}
+
+@media (max-width: 900px) {
+    .ff-exchange-row {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+    }
+    .ff-exchange-row .ff-exchange-data-box {
+        border-top: 1px solid #dfe7ed !important;
+        border-left: 0 !important;
+        box-shadow: inset 0 12px 24px -22px rgba(7,28,44,.28) !important;
+    }
+    .ff-exchange-row .ff-exchange-data-box::before {
+        top: -5px !important;
+        left: 50% !important;
+        width: 42px !important;
+        height: 9px !important;
+        transform: translateX(-50%) !important;
+    }
+}
+
 /* ── Card internals ── */
 .ff-exchange-card-head {
     display: flex !important;
@@ -560,12 +710,12 @@ p, span, small {
 
 .ff-exchange-card-head strong {
     color: var(--ff-ink) !important;
-    font: 750 .7rem/1.15 "Inter", sans-serif !important;
+    font: 750 0.75rem/1.15 "Inter", sans-serif !important;
 }
 
 .ff-exchange-card-head small {
     color: var(--ff-muted) !important;
-    font: 600 .5rem/1.2 "Inter", sans-serif !important;
+    font: 600 0.75rem/1.2 "Inter", sans-serif !important;
 }
 
 /* flex-start (no space-between): con el selector de periodo son 3 elementos y
@@ -593,7 +743,7 @@ p, span, small {
     background-position: right 7px center !important;
     background-size: 10px !important;
     color: #47606f !important;
-    font: 650 .72rem/1.25 "Inter", sans-serif !important;
+    font: 650 0.75rem/1.25 "Inter", sans-serif !important;
     cursor: pointer !important;
     appearance: none !important;
     -webkit-appearance: none !important;
@@ -634,7 +784,7 @@ p, span, small {
     padding-top: 7px !important;
     border-top: 1px solid #edf1f3 !important;
     color: #758591 !important;
-    font: 650 .47rem/1.15 "Inter", sans-serif !important;
+    font: 650 0.75rem/1.15 "Inter", sans-serif !important;
 }
 
 .ff-badge {
@@ -711,7 +861,7 @@ p, span, small {
     /* ≥11px a propósito: applyFinanceTypographyFloor() en finanzas.html sube por
        MutationObserver cualquier span/em menor a 11px con un inline !important.
        Si nos quedamos por debajo, ese script reescribe estos tamaños. */
-    font: 650 .72rem/1.4 "JetBrains Mono", monospace !important;
+    font: 650 0.75rem/1.4 "JetBrains Mono", monospace !important;
 }
 
 .ff-spark-tip-when {
@@ -720,7 +870,7 @@ p, span, small {
     padding-bottom: 4px !important;
     border-bottom: 1px solid rgba(255, 255, 255, .14) !important;
     color: #9fd0e8 !important;
-    font: 700 .72rem/1.3 "Inter", sans-serif !important;
+    font: 700 0.75rem/1.3 "Inter", sans-serif !important;
 }
 
 .ff-spark-tip-row {
@@ -736,7 +886,7 @@ p, span, small {
     color: #93aabb !important;
     font-family: "Inter", sans-serif !important;
     font-weight: 600 !important;
-    font-size: .72rem !important;
+    font-size: 0.75rem !important;
 }
 
 /* Color propio y explícito: si se deja heredar, una regla de la tarjeta lo pinta
@@ -1642,7 +1792,6 @@ body.ff-detail-bolsa .eq-context-list small {
     color: #64748b !important;
     font-weight: 600 !important;
     line-height: 1.4 !important;
-}nt;
 }
 
 /* --- ORDEN DE LOS BLOQUES DE BOLSA ---
@@ -1756,7 +1905,7 @@ body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(3).up { color: #047857 !im
 body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(3).down { color: #be123c !important; }
 
 body.ff-detail-bolsa #mkt-pulse > div > div:nth-child(4) { /* Sub */
-    font-size: 0.7rem !important;
+    font-size: 0.75rem !important;
     font-weight: 600 !important;
     margin-top: 4px !important;
     color: #94a3b8 !important;
@@ -1901,7 +2050,7 @@ body.ff-detail-bolsa .eq-thesis {
 .inst-badge {
     background: rgba(255, 255, 255, 0.65) !important;
     color: #0369a1 !important;
-    font-size: 0.65rem !important;
+    font-size: 0.75rem !important;
     font-weight: 800 !important;
     padding: 4px 10px !important;
     border-radius: 4px !important;
@@ -1936,7 +2085,7 @@ body.ff-detail-bolsa .eq-thesis {
 
 #eq-updated {
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.65rem !important;
+    font-size: 0.75rem !important;
     color: #475569 !important;
     font-weight: 700 !important;
     letter-spacing: 0.5px !important;
@@ -1970,7 +2119,7 @@ body.ff-detail-bolsa .eq-thesis {
 .inst-ticker:last-child { border-right: none !important; }
 
 .inst-ticker .lbl {
-    font-size: 0.65rem !important;
+    font-size: 0.75rem !important;
     font-weight: 800 !important;
     color: #475569 !important;
 }
@@ -1984,7 +2133,7 @@ body.ff-detail-bolsa .eq-thesis {
 }
 
 .inst-ticker .sub {
-    font-size: 0.6rem !important;
+    font-size: 0.625rem !important;
     color: #64748b !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
@@ -2052,7 +2201,7 @@ body.ff-detail-bolsa .eq-thesis {
     padding: 14px 20px !important;
     background: rgba(255, 255, 255, 0.85) !important;
     border-bottom: 1px solid rgba(0,0,0,0.08) !important;
-    font-size: 0.6rem !important;
+    font-size: 0.625rem !important;
     font-weight: 800 !important;
     color: #475569 !important;
     text-transform: uppercase !important;
@@ -2115,7 +2264,7 @@ body.ff-detail-bolsa .eq-thesis {
 
 .kpi-range small {
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.6rem !important;
+    font-size: 0.75rem !important;
     color: #475569 !important;
     font-weight: 700 !important;
 }
@@ -2435,7 +2584,7 @@ body .hub-m:hover {
 body .hub-m-lbl {
     color: #64748b !important;
     font-weight: 700 !important;
-    font-size: 0.6rem !important;
+    font-size: 0.75rem !important;
 }
 
 body .hub-m-val {
@@ -2445,7 +2594,7 @@ body .hub-m-val {
 
 body .hub-m-delta {
     color: #94a3b8 !important;
-    font-size: 0.6rem !important;
+    font-size: 0.75rem !important;
 }
 
 body .hub-insight {
@@ -2821,7 +2970,7 @@ body .inst-kpi-header {
 }
 #equity-pro-panel #eq-updated {
     color: #6b8090 !important;
-    font: 600 .72rem/1.4 "Inter", sans-serif !important;
+    font: 600 0.75rem/1.4 "Inter", sans-serif !important;
     letter-spacing: 0 !important;
 }
 
@@ -2833,7 +2982,7 @@ body .inst-kpi-header {
 }
 #equity-pro-panel .inst-ticker .lbl {
     color: #5b6f7e !important;
-    font: 750 .68rem/1.3 "Inter", sans-serif !important;
+    font: 750 0.75rem/1.3 "Inter", sans-serif !important;
     letter-spacing: .04em !important;
     text-transform: none !important;
 }
@@ -2843,7 +2992,7 @@ body .inst-kpi-header {
 }
 #equity-pro-panel .inst-ticker .sub {
     color: #8598a6 !important;
-    font: 600 .64rem/1.3 "Inter", sans-serif !important;
+    font: 600 0.75rem/1.3 "Inter", sans-serif !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
 }
@@ -2864,7 +3013,7 @@ body .inst-kpi-header {
 #equity-pro-panel .inst-kpi-header {
     background: #f7fafc !important;
     color: #5b6f7e !important;
-    font: 750 .68rem/1.3 "Inter", sans-serif !important;
+    font: 750 0.75rem/1.3 "Inter", sans-serif !important;
     letter-spacing: .06em !important;
 }
 #equity-pro-panel .inst-kpi-row { border-top: 1px solid #eef3f6 !important; }
@@ -2996,7 +3145,7 @@ body .inst-kpi-header {
     white-space: normal !important;
     overflow-wrap: anywhere !important;
     color: #6b8090 !important;
-    font: 650 .68rem/1.3 "Inter", sans-serif !important;
+    font: 650 0.75rem/1.3 "Inter", sans-serif !important;
     opacity: 1 !important;
 }
 #eq-region-grid .eq-region-card strong {
@@ -3013,7 +3162,7 @@ body .inst-kpi-header {
     align-self: flex-start !important;
     padding: 2px 8px !important;
     border-radius: 6px !important;
-    font: 750 .74rem/1.35 "JetBrains Mono", monospace !important;
+    font: 750 0.75rem/1.35 "JetBrains Mono", monospace !important;
 }
 #eq-region-grid .eq-region-card.is-up   > span { color: #0e7a40 !important; background: rgba(14, 122, 64, .09) !important; }
 #eq-region-grid .eq-region-card.is-down > span { color: #b3261e !important; background: rgba(179, 38, 30, .09) !important; }
@@ -3203,7 +3352,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 }
 #favro-finance .ffm-stat em {
     color: rgba(255, 255, 255, .68) !important;
-    font: 700 .58rem/1.2 "Inter", sans-serif !important;
+    font: 700 0.625rem/1.2 "Inter", sans-serif !important;
     font-style: normal !important;
     letter-spacing: .09em !important;
     text-transform: uppercase !important;
@@ -3216,7 +3365,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 }
 #favro-finance .ffm-stat i {
     font-style: normal !important;
-    font: 750 .66rem/1.2 "JetBrains Mono", monospace !important;
+    font: 750 0.75rem/1.2 "JetBrains Mono", monospace !important;
 }
 #favro-finance .ffm-stat i.is-up   { color: #6ee7a8 !important; }
 #favro-finance .ffm-stat i.is-down { color: #ff9aa4 !important; }
@@ -3439,6 +3588,142 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     appearance: none !important; -webkit-appearance: none !important; outline: none !important;
 }
 #rate-timeline select:hover { border-color: #2f7896 !important; }
+#rate-timeline select:focus-visible,
+#rate-timeline .rtl-add-compare:focus-visible,
+#rate-timeline .rtl-comparison-chip button:focus-visible {
+    outline: 3px solid rgba(8, 119, 154, .22) !important;
+    outline-offset: 2px !important;
+}
+#rate-timeline .rtl-compare-control {
+    display: flex !important;
+    align-items: flex-end !important;
+    gap: 7px !important;
+}
+#rate-timeline .rtl-add-compare {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    min-height: 40px !important;
+    padding: 0 13px !important;
+    border: 1px solid #0d6d8c !important;
+    border-radius: 10px !important;
+    background: #0d6d8c !important;
+    color: #fff !important;
+    font: 750 .78rem/1 "Inter", sans-serif !important;
+    cursor: pointer !important;
+    transition: transform .15s ease, filter .15s ease !important;
+}
+#rate-timeline .rtl-add-compare:hover:not(:disabled) { filter: brightness(1.08) !important; transform: translateY(-1px) !important; }
+#rate-timeline .rtl-add-compare:disabled { opacity: .48 !important; cursor: not-allowed !important; }
+#rate-timeline .rtl-comparison-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    padding-top: 2px !important;
+}
+#rate-timeline .rtl-comparisons {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    flex-wrap: wrap !important;
+    min-width: 0 !important;
+}
+#rate-timeline .rtl-comparison-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    min-height: 30px !important;
+    padding: 4px 5px 4px 10px !important;
+    border: 1px solid #cfdee6 !important;
+    border-radius: 999px !important;
+    background: #f4f8fa !important;
+    color: #28485d !important;
+}
+#rate-timeline .rtl-comparison-chip b { font: 700 0.75rem/1.25 "Inter", sans-serif !important; }
+#rate-timeline .rtl-comparison-chip button {
+    display: grid !important;
+    place-items: center !important;
+    width: 22px !important;
+    height: 22px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: #e2edf2 !important;
+    color: #39596d !important;
+    cursor: pointer !important;
+}
+#rate-timeline .rtl-comparison-chip button:hover { background: #d5e5ec !important; color: #17384c !important; }
+#rate-timeline .rtl-compare-count {
+    flex: none !important;
+    padding: 5px 9px !important;
+    border-radius: 999px !important;
+    background: rgba(13, 109, 140, .09) !important;
+    color: #245b73 !important;
+    font: 750 0.75rem/1.2 "JetBrains Mono", monospace !important;
+}
+
+.debt-country-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+    gap: 1rem !important;
+    margin-bottom: 1.2rem !important;
+}
+.debt-country-card {
+    position: relative !important;
+    cursor: pointer !important;
+    overflow: hidden !important;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease !important;
+}
+.debt-country-card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 12px 24px rgba(2, 18, 31, .14) !important;
+}
+.debt-country-card:focus-visible {
+    outline: 3px solid rgba(86, 201, 176, .32) !important;
+    outline-offset: 3px !important;
+}
+.debt-country-card.is-active {
+    border-color: #56c9b0 !important;
+    background: linear-gradient(135deg, rgba(86, 201, 176, .16), rgba(24, 51, 66, .82)) !important;
+    box-shadow: inset 0 0 0 1px rgba(86, 201, 176, .22), 0 12px 28px rgba(0, 0, 0, .16) !important;
+}
+.debt-country-card.is-active::after {
+    content: "Mostrando" !important;
+    position: absolute !important;
+    top: 10px !important;
+    right: 38px !important;
+    padding: 3px 7px !important;
+    border-radius: 999px !important;
+    background: rgba(86, 201, 176, .14) !important;
+    color: #67dbc2 !important;
+    font: 800 0.625rem/1 "Inter", sans-serif !important;
+    letter-spacing: .06em !important;
+    text-transform: uppercase !important;
+}
+.debt-country-card .debt-country-flag {
+    font-size: 1.35rem !important;
+    line-height: 1 !important;
+}
+.debt-country-card .debt-country-arrow {
+    position: absolute !important;
+    right: 17px !important;
+    top: 50% !important;
+    color: #7891a2 !important;
+    font-size: 0.75rem !important;
+    transform: translateY(-50%) !important;
+    transition: color .18s ease, transform .18s ease !important;
+}
+.debt-country-card:hover .debt-country-arrow,
+.debt-country-card.is-active .debt-country-arrow {
+    color: #56c9b0 !important;
+    transform: translate(3px, -50%) !important;
+}
+.debt-country-card > div { padding-right: 48px !important; }
+.debt-country-card > div > span { white-space: normal !important; }
 
 #rate-timeline .rtl-period-group {
     display: grid !important;
@@ -3455,11 +3740,16 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     border: 0 !important; border-radius: 7px !important;
     background: transparent !important;
     color: #4a6172 !important;
-    font: 700 .74rem/1 "Inter", sans-serif !important;
+    font: 700 0.75rem/1 "Inter", sans-serif !important;
     cursor: pointer !important;
     transition: background .15s ease, color .15s ease !important;
 }
 #rate-timeline .rtl-period-group button:hover { background: #e4eef3 !important; color: #17384c !important; }
+#rate-timeline .rtl-period-group button:disabled {
+    cursor: not-allowed !important;
+    opacity: .42 !important;
+    background: transparent !important;
+}
 #rate-timeline .rtl-period-group button.is-active {
     background: #08779a !important; color: #fff !important;
     box-shadow: 0 2px 7px rgba(8, 119, 154, .28) !important;
@@ -3470,7 +3760,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
    la curva, para que la cifra y su lugar en el gráfico se asocien de un vistazo. */
 #rate-timeline .rtl-stats {
     display: grid !important;
-    grid-template-columns: 1.35fr 1fr 1fr 1fr !important;
+    grid-template-columns: 1.35fr repeat(4, 1fr) !important;
     gap: 0 !important;
     margin-bottom: 14px !important;
     border: 1px solid #e8eef2 !important;
@@ -3518,16 +3808,56 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 }
 #rate-timeline .rtl-stats strong.is-up   { color: #b3261e !important; }  /* tasa al alza = coste arriba */
 #rate-timeline .rtl-stats strong.is-down { color: #0e7a40 !important; }
-#rate-timeline .rtl-stats em { color: #8598a6 !important; font: 500 .7rem/1.3 "Inter", sans-serif !important; font-style: normal !important; }
+#rate-timeline .rtl-stats em { color: #8598a6 !important; font: 500 0.75rem/1.3 "Inter", sans-serif !important; font-style: normal !important; }
 
-/* Con comparación son 5 celdas; el diferencial cierra la fila con su acento. */
+/* Con comparación son 6 celdas: pendiente y diferencial completan la lectura. */
 #rate-timeline .rtl-stats:has(> div:not([hidden]):nth-child(5)) {
-    grid-template-columns: 1.3fr 1fr 1fr 1fr 1.1fr !important;
+    grid-template-columns: 1.3fr repeat(4, 1fr) 1.1fr !important;
 }
 #rate-timeline .rtl-stats > div[hidden] { display: none !important; }
 #rate-timeline .rtl-stats > div:nth-child(5) { background: rgba(201, 151, 69, .07) !important; }
+#rate-timeline .rtl-stats > .rtl-slope-cell {
+    background: rgba(184, 61, 104, .055) !important;
+    box-shadow: inset 0 3px 0 rgba(184, 61, 104, .45) !important;
+}
+#rate-timeline .rtl-trend-legend b { color: #8f294c !important; }
 
-/* Leyenda: identifica cada trazo y explica qué es el área sombreada. */
+/* Diferenciales y leyenda para un máximo de cinco líneas. */
+#rate-timeline .rtl-spread-list {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: -4px 0 12px !important;
+}
+#rate-timeline .rtl-spread-list[hidden] { display: none !important; }
+#rate-timeline .rtl-spread-item {
+    position: relative !important;
+    display: grid !important;
+    gap: 3px !important;
+    min-width: 0 !important;
+    padding: 9px 11px 9px 14px !important;
+    border: 1px solid #e2eaef !important;
+    border-radius: 10px !important;
+    background: #fbfdfe !important;
+    overflow: hidden !important;
+}
+#rate-timeline .rtl-spread-item::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    width: 3px !important;
+    background: var(--rtl-series-color) !important;
+}
+#rate-timeline .rtl-spread-item b {
+    overflow: hidden !important;
+    color: #5b6f7e !important;
+    font: 650 0.75rem/1.3 "Inter", sans-serif !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+#rate-timeline .rtl-spread-item strong { color: #17384c !important; font: 800 .78rem/1.2 "JetBrains Mono", monospace !important; }
+#rate-timeline .rtl-spread-item strong.is-up { color: #b3261e !important; }
+#rate-timeline .rtl-spread-item strong.is-down { color: #0e7a40 !important; }
 #rate-timeline .rtl-legend {
     display: flex !important;
     align-items: center !important;
@@ -3537,14 +3867,15 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 }
 #rate-timeline .rtl-legend[hidden] { display: none !important; }
 #rate-timeline .rtl-lg { display: inline-flex !important; align-items: center !important; gap: 7px !important; }
-#rate-timeline .rtl-lg i { width: 16px !important; height: 3px !important; border-radius: 2px !important; flex: none !important; }
+#rate-timeline .rtl-lg i { width: 18px !important; height: 3px !important; border-radius: 2px !important; flex: none !important; background: var(--rtl-series-color, #0d6d8c) !important; }
+#rate-timeline .rtl-lg.is-dashed i { background: repeating-linear-gradient(90deg, var(--rtl-series-color) 0 6px, transparent 6px 9px) !important; }
 #rate-timeline .rtl-lg-main i { background: #0d6d8c !important; }
 #rate-timeline .rtl-lg-comp i {
     background: repeating-linear-gradient(90deg, #c99745 0 6px, transparent 6px 10px) !important;
 }
 #rate-timeline .rtl-lg b { color: #17384c !important; font: 700 .76rem/1.3 "Inter", sans-serif !important; }
 /* #8598a6 sobre blanco daba 2.98:1, por debajo del mínimo AA para texto pequeño. */
-#rate-timeline .rtl-lg-note { color: #5d7180 !important; font: 500 .72rem/1.3 "Inter", sans-serif !important; }
+#rate-timeline .rtl-lg-note { color: #5d7180 !important; font: 500 0.75rem/1.3 "Inter", sans-serif !important; }
 
 #rate-timeline .rtl-chart { position: relative !important; height: 300px !important; }
 #rate-timeline .rtl-chart canvas { width: 100% !important; height: 100% !important; }
@@ -3564,23 +3895,39 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     margin-top: 12px !important; padding-top: 10px !important;
     border-top: 1px solid #eef3f6 !important;
     color: #8598a6 !important;
-    font: 600 .7rem/1.4 "Inter", sans-serif !important;
+    font: 600 0.75rem/1.4 "Inter", sans-serif !important;
 }
 
 @media (max-width: 1080px) {
     #rate-timeline .rtl-stats { grid-template-columns: 1fr 1fr !important; }
     #rate-timeline .rtl-stats > div:nth-child(3) { border-left: 0 !important; }
     #rate-timeline .rtl-stats > div:nth-child(n+3) { border-top: 1px solid #eef3f6 !important; }
+    #rate-timeline .rtl-spread-list { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 
 @media (max-width: 760px) {
     #rate-timeline .rtl-controls { width: 100% !important; }
     #rate-timeline select { min-width: 100% !important; }
     #rate-timeline .rtl-field { flex: 1 1 100% !important; }
+    #rate-timeline .rtl-compare-control { width: 100% !important; }
+    #rate-timeline .rtl-compare-control .rtl-field { flex: 1 1 auto !important; }
+    #rate-timeline .rtl-add-compare { flex: none !important; }
+    #rate-timeline .rtl-comparison-bar { align-items: flex-start !important; }
+    #rate-timeline .rtl-compare-count { margin-top: 2px !important; }
     #rate-timeline .rtl-stats { grid-template-columns: 1fr !important; }
     #rate-timeline .rtl-stats > div { border-left: 0 !important; border-top: 1px solid #eef3f6 !important; }
     #rate-timeline .rtl-stats > div:first-child { border-top: 0 !important; }
     #rate-timeline .rtl-chart { height: 240px !important; }
+    .debt-country-grid { grid-template-columns: 1fr !important; gap: .75rem !important; }
+}
+
+@media (max-width: 480px) {
+    #rate-timeline { padding: 15px 14px !important; }
+    #rate-timeline .rtl-compare-control { align-items: stretch !important; flex-direction: column !important; }
+    #rate-timeline .rtl-add-compare { width: 100% !important; }
+    #rate-timeline .rtl-comparison-bar { align-items: stretch !important; flex-direction: column !important; }
+    #rate-timeline .rtl-compare-count { align-self: flex-start !important; }
+    #rate-timeline .rtl-spread-list { grid-template-columns: 1fr !important; }
 }
 
 /* ── Selector de bolsa del panel "Lectura verificable de Bolsa" ── */
@@ -3691,7 +4038,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     background: transparent !important;
     box-shadow: none !important;
     color: #17384c !important;
-    font: 700 .72rem/1 "Inter", sans-serif !important;
+    font: 700 0.75rem/1 "Inter", sans-serif !important;
     cursor: pointer !important;
 }
 
@@ -3714,7 +4061,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     background: transparent !important;
     box-shadow: none !important;
     color: #17384c !important;
-    font: 600 .72rem/1 "Inter", sans-serif !important;
+    font: 600 0.75rem/1 "Inter", sans-serif !important;
 }
 #bvmx-panel .market-chart-controls #bmv-custom-btn {
     flex: 0 0 auto !important;
@@ -3725,7 +4072,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     border-radius: 0 !important;
     box-shadow: none !important;
     white-space: nowrap !important;
-    font: 750 .7rem/1 "Inter", sans-serif !important;
+    font: 750 0.75rem/1 "Inter", sans-serif !important;
 }
 
 /* Etiquetas al mismo tamaño. El <legend> de "Periodo" se quedaba en 7.68px
@@ -3768,7 +4115,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     border-radius: 8px !important;
     background: transparent !important;
     color: #4a6172 !important;
-    font: 700 .7rem/1 "Inter", sans-serif !important;
+    font: 700 0.75rem/1 "Inter", sans-serif !important;
     box-shadow: none !important;
     transition: background .15s ease, color .15s ease !important;
 }
@@ -3824,7 +4171,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 /* Era 15.2px, casi el tamaño del <h3> del panel (17.9px). */
 #bvmx-panel .chart-type-btn strong {
     color: inherit !important;
-    font: 700 .72rem/1 "Inter", sans-serif !important;
+    font: 700 0.75rem/1 "Inter", sans-serif !important;
 }
 #bvmx-panel .chart-type-btn:hover { background: #e4eef3 !important; color: #17384c !important; }
 #bvmx-panel .chart-type-btn.active {
@@ -3900,7 +4247,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
     white-space: normal !important;
 }
 #bvmx-panel .ff-quote-identity > span {
-    font-size: .66rem !important;
+    font-size: 0.75rem !important;
     letter-spacing: .08em !important;
 }
 
@@ -3953,18 +4300,18 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #bonds-panel .sovereign-card-head { grid-template-columns: 40px minmax(0, 1fr) auto !important; gap: .7rem !important; }
 #bonds-panel .sovereign-card-flag { width: 40px !important; height: 40px !important; font-size: 1.15rem !important; }
 #bonds-panel .sovereign-card-head > div strong { color: #0f2436 !important; font-size: .95rem !important; }
-#bonds-panel .sovereign-card-head > div small { color: #5c7180 !important; font-size: .7rem !important; }
+#bonds-panel .sovereign-card-head > div small { color: #5c7180 !important; font-size: 0.75rem !important; }
 
 /* Los distintivos (#1, DIRECTO/REFERENCIA) son etiquetas, no letra menuda. */
 #bonds-panel .sovereign-card-badges { gap: .3rem !important; }
 #bonds-panel .sovereign-card-badges > b {
     min-width: 30px !important; padding: .24rem .38rem !important;
     color: #45596b !important;  /* el #63788b original daba 4.06:1 sobre #edf2f6 */
-    font: 900 .7rem/1 'JetBrains Mono', monospace !important;
+    font: 900 0.75rem/1 'JetBrains Mono', monospace !important;
 }
 #bonds-panel .sovereign-card-head em {
     padding: .26rem .44rem !important;
-    font: 850 .7rem/1 'Inter', sans-serif !important; letter-spacing: .04em !important;
+    font: 850 0.75rem/1 'Inter', sans-serif !important; letter-spacing: .04em !important;
 }
 #bonds-panel .sovereign-card-head em.direct { color: #056646 !important; background: #e9fbf3 !important; }
 #bonds-panel .sovereign-card-head em.indicative { color: #8a5006 !important; background: #fff6e3 !important; }
@@ -3972,12 +4319,12 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #bonds-panel .sovereign-card-rate { margin: .85rem 0 .55rem !important; }
 #bonds-panel .sovereign-card-yield small {
     margin-bottom: .3rem !important; color: #5c7180 !important;
-    font: 750 .7rem/1 'Inter', sans-serif !important; letter-spacing: .04em !important;
+    font: 750 0.75rem/1 'Inter', sans-serif !important; letter-spacing: .04em !important;
 }
 #bonds-panel .sovereign-card-yield > strong { font-size: 1.6rem !important; letter-spacing: -.04em !important; }
 #bonds-panel .sovereign-card-rate > span {
     padding: .3rem .46rem !important;
-    font: 750 .7rem/1 'JetBrains Mono', monospace !important;
+    font: 750 0.75rem/1 'JetBrains Mono', monospace !important;
 }
 /* Un rendimiento que sube encarece la deuda: va en rojo, igual que en la línea
    del tiempo. Una regla .up verde de alcance general lo estaba invirtiendo. */
@@ -3986,10 +4333,10 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #bonds-panel .sovereign-card-rate .flat { color: #5c7180 !important; }
 
 #bonds-panel .sovereign-card-track { height: 6px !important; }
-#bonds-panel .sovereign-card-foot { margin-top: .75rem !important; color: #55697a !important; font-size: .72rem !important; }
-#bonds-panel .sovereign-card-foot small { gap: .4rem !important; color: #55697a !important; font-size: .72rem !important; }
+#bonds-panel .sovereign-card-foot { margin-top: .75rem !important; color: #55697a !important; font-size: 0.75rem !important; }
+#bonds-panel .sovereign-card-foot small { gap: .4rem !important; color: #55697a !important; font-size: 0.75rem !important; }
 #bonds-panel .sovereign-card-foot small b {
-    padding: .24rem .42rem !important; font-size: .7rem !important; letter-spacing: .03em !important;
+    padding: .24rem .42rem !important; font-size: 0.75rem !important; letter-spacing: .03em !important;
 }
 #bonds-panel .sovereign-card-foot small b.high { color: #8a5006 !important; }
 #bonds-panel .sovereign-card-foot small b.mid  { color: #4b5f70 !important; }
@@ -4015,16 +4362,16 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 
 /* --- Cabeceras y notas al pie -------------------------------------------- */
 #bonds-panel .sovereign-board-title p { color: #46596b !important; font-size: .78rem !important; }
-#bonds-panel .sovereign-board-summary > div > span { color: #45596b !important; font-size: .72rem !important; }
-#bonds-panel .sovereign-board-summary > div > small { color: #55697a !important; font-size: .72rem !important; }
+#bonds-panel .sovereign-board-summary > div > span { color: #45596b !important; font-size: 0.75rem !important; }
+#bonds-panel .sovereign-board-summary > div > small { color: #55697a !important; font-size: 0.75rem !important; }
 #bonds-panel .sovereign-board-toolbar > div:first-child strong { font-size: .85rem !important; }
-#bonds-panel .sovereign-board-toolbar > div:first-child small { color: #5c7180 !important; font-size: .72rem !important; }
+#bonds-panel .sovereign-board-toolbar > div:first-child small { color: #5c7180 !important; font-size: 0.75rem !important; }
 #bonds-panel .debt-global-chart-toolbar > div:first-child span { font-size: .85rem !important; }
-#bonds-panel #debt-global-coverage { color: #55697a !important; font-size: .72rem !important; }
-#bonds-panel .advanced-chart-filter small { color: #55697a !important; font-size: .7rem !important; }
+#bonds-panel #debt-global-coverage { color: #55697a !important; font-size: 0.75rem !important; }
+#bonds-panel .advanced-chart-filter small { color: #55697a !important; font-size: 0.75rem !important; }
 #bonds-panel #bond-chart-type-label { font-size: .8rem !important; }
-#bonds-panel .sovereign-yield-legend { color: #55697a !important; font-size: .72rem !important; }
-#bonds-panel .debt-block-head > span { padding: .26rem .55rem !important; font-size: .7rem !important; }
+#bonds-panel .sovereign-yield-legend { color: #55697a !important; font-size: 0.75rem !important; }
+#bonds-panel .debt-block-head > span { padding: .26rem .55rem !important; font-size: 0.75rem !important; }
 /* Insignias de estado ("Apetito Sólido", "Expansión moderada"): el verde
    #059669 sobre su fondo claro daba 3.43:1. */
 #bonds-panel #credit-status-badge,
@@ -4035,7 +4382,7 @@ body:not(.ff-detail-mode) #equity-pro-panel { display: none !important; }
 #bonds-panel #credit-ig-spread { color: #4338ca !important; }
 #bonds-panel #credit-hy-spread { color: #b3261e !important; }
 #bonds-panel .sovereign-board-footnote { padding: .72rem .85rem !important; color: #3f596e !important; font-size: .75rem !important; }
-#bonds-panel .sovereign-board-footnote small { color: #55697a !important; font-size: .72rem !important; }
+#bonds-panel .sovereign-board-footnote small { color: #55697a !important; font-size: 0.75rem !important; }
 #bonds-panel .sovereign-board-empty strong { font-size: .95rem !important; }
 #bonds-panel .sovereign-board-empty span { color: #55697a !important; font-size: .75rem !important; }
 #bonds-panel #debt-curve-copy { color: #46596b !important; font-size: .78rem !important; }
@@ -4121,12 +4468,52 @@ body.ff-detail-rendimientos [data-fin-scope="tasas"] { display: none !important;
     color: var(--ff-muted, #687887);
 }
 
+.ff-spreads-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .75rem;
+    margin: 0 0 1rem;
+}
+
+.ff-spreads-summary article {
+    min-width: 0;
+    padding: .9rem 1rem;
+    border: 1px solid var(--ff-line, #dfe7ed);
+    border-radius: 14px;
+    background: linear-gradient(145deg, #fff, #f7fafb);
+}
+
+.ff-spreads-summary span,
+.ff-spreads-summary strong,
+.ff-spreads-summary small { display: block; }
+.ff-spreads-summary span {
+    color: var(--ff-muted, #687887);
+    font: 800 0.625rem/1.3 "Inter", sans-serif;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: normal;
+}
+.ff-spreads-summary span i { margin-right: .35rem; color: #9a7040; }
+.ff-spreads-summary strong {
+    margin: .42rem 0 .22rem;
+    color: var(--ff-ink, #10202e);
+    font: 850 1.08rem/1.15 "JetBrains Mono", monospace;
+}
+.ff-spreads-summary small {
+    color: var(--ff-muted, #687887);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    white-space: normal;
+}
+
 .ff-spreads-table-wrap {
     /* La tabla tiene siete columnas: en pantallas estrechas debe desplazarse
        ella sola, nunca empujar el ancho de la página. */
     overflow-x: auto;
     border: 1px solid var(--ff-line, #dfe7ed);
     border-radius: var(--ff-radius-md, 16px);
+    scrollbar-color: #9a7040 transparent;
+    scrollbar-width: thin;
 }
 
 .ff-spreads-table {
@@ -4151,6 +4538,13 @@ body.ff-detail-rendimientos [data-fin-scope="tasas"] { display: none !important;
 }
 
 .ff-spreads-table thead th.ff-sp-country { text-align: left; }
+.ff-spreads-table :is(th, td).ff-sp-country {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--ff-surface, #fff);
+}
+.ff-spreads-table thead th.ff-sp-country { z-index: 4; background: var(--ff-surface-soft, #f4f7f9); }
 
 .ff-spreads-table thead button {
     border: none;
@@ -4195,7 +4589,7 @@ body.ff-detail-rendimientos [data-fin-scope="tasas"] { display: none !important;
     padding: .12rem .3rem;
     border-radius: 5px;
     background: rgba(15, 23, 42, .07);
-    font: 700 .66rem/1.4 "JetBrains Mono", monospace;
+    font: 700 0.75rem/1.4 "JetBrains Mono", monospace;
     letter-spacing: .04em;
     text-align: center;
     color: var(--ff-muted, #687887);
@@ -4229,8 +4623,19 @@ body.ff-detail-rendimientos [data-fin-scope="tasas"] { display: none !important;
 .ff-spreads-note i { color: var(--ff-blue, #246bfe); margin-top: 2px; flex-shrink: 0; }
 .ff-spreads-note p { margin: 0; font-size: .76rem; line-height: 1.55; color: var(--ff-muted, #687887); }
 
+@media (max-width: 1080px) {
+    .ff-spreads-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 720px) {
     .ff-spreads-board { padding: 1.2rem 1rem 1rem; }
     .ff-spreads-header { flex-direction: column; }
     .ff-spreads-tools { align-items: flex-start; }
+    .ff-spreads-tools,
+    .ff-spreads-tools label { width: 100%; }
+    .ff-spreads-tools label { justify-content: space-between; }
+}
+
+@media (max-width: 520px) {
+    .ff-spreads-summary { grid-template-columns: 1fr; }
 }

@@ -4,63 +4,52 @@ import Footer from '../components/Footer.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { cargarCadaVez } from '../lib/loadScripts.js';
 import './Finanzas.css';
+import { DARK_PILOT, DATOS, ESQUELETO } from '../lib/hojasComunes.js';
 
-/*
- * Finanzas en React (antes pages/finanzas.html: 7753 líneas, 530 KB).
- *
- * Esta página NO sigue el patrón de Mercados, donde el cálculo se reescribió
- * como funciones puras en lib/mercados.js. Aquí el motor son las 4288 líneas de
- * assets/js/finanzas-page.js — 94 funciones globales que pintan por
- * getElementById — más finanzas-favro.js y el mapa mundial de bolsas.
- * Reescribir eso como estado de React no era migrar la página: era rehacer el
- * producto. Se aplica el patrón validado con Inicio: el marcado pasa a JSX y
- * los datos los siguen trayendo los scripts del sitio.
- *
- * Funciona porque el JSX de estos nodos es constante entre renders: React solo
- * toca el DOM cuando su propia salida cambia, así que lo que escriben los
- * scripts sobrevive. La contrapartida es que los IDS SON EL CONTRATO — renombrar
- * cualquiera deja su recuadro congelado en el texto inicial, sin ningún error.
- *
- * Los manejadores en línea del HTML (onclick="finTab('general',this)") llaman a
- * globales; por eso finanzas-page.js se carga como script clásico y conserva
- * var/function de nivel superior, que sí se cuelgan de window. En el JSX quedan
- * como onClick={(e) => window.finTab('general', e.currentTarget)}.
- *
- * Ciclo de vida: los scripts legacy solo se detenían en 'beforeunload', que en
- * una SPA no ocurre nunca. finanzas-page.js y finanzas-favro.js exponen ahora
- * desmontar(), y este componente los llama al salir.
- *
- * Generado a partir del marcado original con un conversor; ver el commit.
- */
+
 
 const HOJAS = [
-  '/assets/css/base.css',
-  '/assets/css/header.css',
-  '/assets/css/footer.css',
-  '/assets/css/responsive.css',
+  ...ESQUELETO,
   '/assets/css/finanzas-redesign-v2.css?v=2.8',
-  '/assets/css/finanzas-debt-premium.css?v=3.0',
-  '/assets/css/finanzas-favro.css?v=71',
-  '/assets/css/finanzas-premium.css?v=115',
-  '/assets/css/daily-news-favro.css?v=22',
-  '/assets/css/sectors-board.css?v=1',
-  '/assets/css/finanzas-world-map.css?v=7',
+  '/assets/css/finanzas-debt-premium.css?v=3.1',
+  '/assets/css/finanzas-favro.css?v=84',
+  '/assets/css/finanzas-premium.css?v=116',
+  '/assets/css/daily-news-favro.css?v=23',
+  '/assets/css/sectors-board.css?v=2',
+  '/assets/css/finanzas-world-map.css?v=13',
+  '/assets/css/finanzas-bond-map.css?v=1',
+  '/assets/css/finanzas-currency-map.css?v=3',
   '/assets/css/finanzas-responsive-v3.css?v=1',
-  '/assets/css/finanzas-fx-workspace.css?v=13',
-  '/assets/css/dark-pilot.css?v=11',
+  /* Apartado Divisas. Son 1.646 líneas para el banco de trabajo cambiario
+     (.fx-history-*, .fx-market-search-*) y sin ellas ese panel se queda con el
+     marcado desnudo: tabla sin formato, sin las pastillas de periodo ni el
+     comparador. */
+  '/assets/css/finanzas-fx-workspace.css?v=15',
+  /* Tema general de Finanzas. Daily News añade debajo una capa estrictamente
+     acotada para que su dirección editorial no herede los colores del tablero. */
+  DARK_PILOT,
+  '/assets/css/daily-news-editorial.css?v=11',
+  '/assets/css/daily-news-coverage-window.css?v=1',
+  '/assets/css/daily-news-story-index.css?v=2',
+  '/assets/css/finanzas-map-unified.css?v=2',
+  '/assets/css/finanzas-fx-evolution.css?v=1',
+  '/assets/css/finanzas-equity-analyzer.css?v=6',
+  '/assets/css/finanzas-bolsa-harmony.css?v=10',
+  '/assets/css/finanzas-bonos-harmony.css?v=3',
+  '/assets/css/finanzas-divisas-harmony.css?v=4',
 ];
 
 /* Orden calcado del <head> original: chart.js y data-service (window.VDS) antes
    que nada, porque el resto los usa nada más evaluarse. */
 const LIBS = [
   '/assets/js/vendor/chart.umd.js?v=1',
-  '/assets/js/dark-pilot.js?v=4',
   '/assets/js/finanzas-visual.js?v=6',
-  '/assets/js/api-keys.js?v=5',
-  '/assets/js/data-service.js?v=22',
+  ...DATOS,
   '/assets/js/vendor/lightweight-charts.standalone.production.js?v=1',
   '/assets/js/world-map-data.js?v=1',
   '/assets/js/world-exchanges.js?v=3',
+  '/assets/js/world-currencies-data.js?v=1',
+  '/assets/js/world-fx-fallback.js?v=1',
 ];
 
 /* Estos tres capturan sus nodos al evaluarse, así que hay que reejecutarlos en
@@ -68,18 +57,25 @@ const LIBS = [
    orden importa — finanzas-favro.js necesita ocho globales de finanzas-page.js
    (finTab, ensureFinanceSection, refreshAll…), y el mapa va al final. */
 const POR_MONTAJE = [
-  ['/assets/js/finanzas-page.js?v=5', 'finanzas-page'],
-  ['/assets/js/finanzas-favro.js?v=118', 'finanzas-favro'],
-  ['/assets/js/finanzas-world-map.js?v=6', 'finanzas-world-map'],
+  ['/assets/js/finanzas-page.js?v=13', 'finanzas-page'],
+  ['/assets/js/finanzas-favro.js?v=127', 'finanzas-favro'],
+  ['/assets/js/finanzas-world-map.js?v=11', 'finanzas-world-map'],
+  ['/assets/js/finanzas-bond-map.js?v=1', 'finanzas-bond-map'],
+  ['/assets/js/finanzas-currency-map.js?v=10', 'finanzas-currency-map'],
+  ['/assets/js/dark-pilot.js?v=5', 'dark-pilot'],
 ];
 
 export default function Finanzas() {
   usePageStyles(HOJAS);
 
+  /* El tema oscuro de la sección se activa por clase, no por media query:
+     dark-pilot.css cuelga todo de body.vn-dark-pilot / .vn-dark-finanzas. En el
+     HTML esas clases venían escritas en <html> y <body>; aquí se ponen al
+     montar y se quitan al salir, para que no tiñan el resto de rutas. Es el
+     mismo patrón que usa Inicio. */
   useEffect(() => {
     document.documentElement.classList.add('vn-dark-pilot');
     document.body.classList.add('vn-dark-pilot', 'vn-dark-finanzas');
-    window.VNDarkPilot?.apply?.();
     return () => {
       document.documentElement.classList.remove('vn-dark-pilot');
       document.body.classList.remove('vn-dark-pilot', 'vn-dark-finanzas');
@@ -105,7 +101,7 @@ export default function Finanzas() {
       for (const [src, marca] of POR_MONTAJE) {
         retirar.push(cargarCadaVez(src, marca));
         /* En serie: cada uno depende de las globales del anterior. */
-        // eslint-disable-next-line no-await-in-loop
+         
         await new Promise((r) => setTimeout(r, 0));
       }
     })();
@@ -115,6 +111,8 @@ export default function Finanzas() {
       window.VNFavro?.desmontar?.();
       window.VNFinanzas?.desmontar?.();
       window.VNWorldMap?.desmontar?.();
+      window.VNBondMap?.desmontar?.();
+      window.VNCurrencyMap?.desmontar?.();
       retirar.forEach((quitar) => quitar());
     };
   }, []);
@@ -128,6 +126,8 @@ export default function Finanzas() {
           <div className="vn-ticker-label"><span className="vn-live-dot"></span><span>Mercados</span><small>Live</small></div>
           <div className="vn-track" id="vnTrack"><span className="vn-loading">Cargando precios en tiempo real…</span></div>
       </div>
+
+
 
       <div className="container">
 
@@ -195,38 +195,73 @@ export default function Finanzas() {
                Aquí solo van los contenedores; el marcado real no se escribe a mano. */}
           <section className="ff-world-map" id="ff-world-map" aria-labelledby="ffwm-title" hidden>
               <header className="ffwm-head">
-                  <div>
+                  <div className="fbm-heading">
                       <span className="ff-kicker"><i className="fas fa-earth-americas" aria-hidden="true"></i> Mercados globales</span>
-                      <h2 id="ffwm-title">Mapa mundial de bolsas</h2>
-                      <p>Pasa el cursor sobre un pa&iacute;s para ver sus bolsas, su &iacute;ndice principal y la hora local del mercado. Haz clic para fijar la ficha.</p>
+                      <h2 id="ffwm-title">Panorama Mundial de Bolsa</h2>
+                      <p>Explora el pulso financiero del mundo. Se&ntilde;ala o toca un mercado para consultar sus bolsas, &iacute;ndice principal y hora local.</p>
                   </div>
-                  <div className="ffwm-select-wrap">
-                      <i className="fas fa-magnifying-glass" aria-hidden="true"></i>
-                      <label htmlFor="ffwm-select">Ir a</label>
-                      <select id="ffwm-select"><option value="">Elegir pa&iacute;s&hellip;</option></select>
+                  <div className="ffwm-header-meta fbm-header-meta">
+                      <span className="ffwm-market-feed is-loading" id="ffwm-market-feed" role="status" aria-live="polite"><i className="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Conectando mercados</span>
+                      <div className="ffwm-select-wrap">
+                          <i className="fas fa-magnifying-glass" aria-hidden="true"></i>
+                          <label htmlFor="ffwm-select">Ir a un pa&iacute;s</label>
+                          <select id="ffwm-select"><option value="">Elegir pa&iacute;s&hellip;</option></select>
+                      </div>
                   </div>
               </header>
+
+              <div className="ffwm-toolbar fbm-toolbar">
+                  <div className="fbm-fixed-maturity" aria-label="Lectura de la sesión actual">
+                      <span>Lectura</span>
+                      <strong>Sesión actual</strong>
+                  </div>
+                  <div className="ffwm-direction-legend fbm-legend" aria-label="Leyenda de desempeño bursátil">
+                      <span><small>Baja</small><strong className="is-down">Negativo</strong></span>
+                      <i className="ffwm-direction-scale" aria-hidden="true"><b></b></i>
+                      <span><small>Alza</small><strong className="is-up">Positivo</strong></span>
+                  </div>
+              </div>
+
+              <div className="ffwm-command" aria-label="Filtros del mapa">
+                  <div className="ffwm-filters" role="group" aria-label="Filtrar mercados por desempe&ntilde;o">
+                      <button type="button" className="is-active" data-ffwm-filter="todos" aria-pressed="true"><i className="fas fa-layer-group" aria-hidden="true"></i> Todos</button>
+                      <button type="button" data-ffwm-filter="alza" aria-pressed="false"><i className="fas fa-arrow-trend-up" aria-hidden="true"></i> Al alza</button>
+                      <button type="button" data-ffwm-filter="baja" aria-pressed="false"><i className="fas fa-arrow-trend-down" aria-hidden="true"></i> A la baja</button>
+                      <button type="button" data-ffwm-filter="datos" aria-pressed="false"><i className="fas fa-signal" aria-hidden="true"></i> Con datos</button>
+                  </div>
+                  <span className="ffwm-filter-status fbm-filter-status" id="ffwm-filter-status" aria-live="polite">Vista global</span>
+              </div>
               {/* El mapa ocupa todo el ancho: la ficha del país ya no vive en un panel
                    lateral fijo, sino en el flotante #ffwm-tip que se coloca sobre el
                    mapa al pasar el cursor. */}
+              <div className="ffwm-workspace fbm-workspace">
               <div className="ffwm-map" id="ffwm-map">
-                  <div className="ffwm-lienzo"></div>
+                  <div className="ffwm-map-tools" role="group" aria-label="Controles de acercamiento">
+                      <span className="ffwm-tools-caption"><i className="fas fa-location-crosshairs" aria-hidden="true"></i><span>Vista</span></span>
+                      <button type="button" className="ffwm-tool-btn" data-ffwm-zoom="in" aria-label="Acercar mapa"><span>Acercar</span><i className="fas fa-plus" aria-hidden="true"></i></button>
+                      <button type="button" className="ffwm-tool-btn" data-ffwm-zoom="out" aria-label="Alejar mapa"><span>Alejar</span><i className="fas fa-minus" aria-hidden="true"></i></button>
+                      <button type="button" className="ffwm-tool-btn" data-ffwm-zoom="reset" aria-label="Restablecer mapa"><span>Centrar</span><i className="fas fa-expand" aria-hidden="true"></i></button>
+                      <output className="ffwm-zoom-value" id="ffwm-zoom-value" aria-live="polite">100%</output>
+                  </div>
+                  <div className="ffwm-stage" id="ffwm-stage" tabIndex="0" aria-label="Mapa desplazable. Usa los controles para acercar.">
+                      <div className="ffwm-lienzo"></div>
+                  </div>
+                  <div className="ffwm-pan-hint" aria-hidden="true"><i className="fas fa-hand" aria-hidden="true"></i><span className="ffwm-pan-desktop">Doble clic y arrastra</span><span className="ffwm-pan-mobile">Desliza para explorar</span></div>
                   <div className="ffwm-tip" id="ffwm-tip" role="tooltip" aria-live="polite" hidden></div>
               </div>
-              <ul className="ffwm-leyenda">
-                  <li><i className="lg-alza" aria-hidden="true"></i> &Iacute;ndice al alza</li>
-                  <li><i className="lg-baja" aria-hidden="true"></i> &Iacute;ndice a la baja</li>
-                  <li><i className="lg-plano" aria-hidden="true"></i> Sin cambio</li>
-                  <li><i className="lg-neutro" aria-hidden="true"></i> Sin cotizaci&oacute;n conectada</li>
-                  <li className="ffwm-stats" id="ffwm-stats"></li>
-              </ul>
+              </div>
+              <footer className="ffwm-footer fbm-footer">
+                  <div><span className="fbm-dot is-live"></span><strong>Dato conectado</strong><small>&Iacute;ndice consultado mediante la fuente financiera</small></div>
+                  <div><span className="fbm-dot is-ref"></span><strong>Sin cotizaci&oacute;n</strong><small>Mercado identificado sin lectura disponible</small></div>
+                  <p className="ffwm-stats" id="ffwm-stats"><i className="fas fa-circle-info" aria-hidden="true"></i> Preparando cobertura burs&aacute;til</p>
+              </footer>
           </section>
 
           <section className="ff-exchange-board" id="ff-exchange-board" aria-labelledby="ff-exchange-title" hidden>
               <header className="ff-exchange-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
                       <span className="ff-kicker"><i className="fas fa-earth-americas" aria-hidden="true"></i> Mercados globales</span>
-                      <h2 id="ff-exchange-title">Principales bolsas del mundo</h2>
+                      <h2 id="ff-exchange-title">Principales Mercados Burs&aacute;tiles</h2>
                       <p>Compara la sesi&oacute;n reciente y selecciona un &iacute;ndice para analizarlo en la gr&aacute;fica principal.</p>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.8rem' }}>
@@ -269,15 +304,15 @@ export default function Finanzas() {
               <header className="ff-supplement-header">
                   <div>
                       <span className="ff-kicker" id="ff-supplement-kicker">Cobertura de datos</span>
-                      <h2 id="ff-supplement-title">Lectura verificable de la sección</h2>
+                      <h2 id="ff-supplement-title">Desempe&ntilde;o por Mercado</h2>
                       <p id="ff-supplement-description">Resumen construido únicamente con la información disponible en las fuentes conectadas.</p>
                   </div>
                   <div className="ff-supplement-head-tools">
                       {/* Solo se muestra en el módulo Bolsa (lo controla renderSupplement). */}
                       <label className="ff-supplement-market" id="ff-supplement-market-wrap" hidden>
-                          <span>Bolsa</span>
-                          <select id="ff-supplement-market" aria-label="Elegir la bolsa que se consulta">
-                              <option value="us" selected>&#127482;&#127480; Estados Unidos</option>
+                          <span>Bolsa</span>    
+                          <select id="ff-supplement-market" aria-label="Elegir la bolsa que se consulta" defaultValue="us">
+                              <option value="us">&#127482;&#127480; Estados Unidos</option>
                               <option value="gb">&#127468;&#127463; Reino Unido</option>
                               <option value="de">&#127465;&#127466; Alemania</option>
                               <option value="fr">&#127467;&#127479; Francia</option>
@@ -349,7 +384,7 @@ export default function Finanzas() {
 
                   <section className="ff-modules" aria-label="Módulos financieros">
                       <article className="ff-module ffm-card is-active" data-module="bolsa" tabIndex="0" aria-current="true">
-                          <div className="ffm-photo"><img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer" /></div>
+                          <div className="ffm-photo"><img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerPolicy="no-referrer" /></div>
                           {/* Minigráfica real: la pinta renderMiniChart(), que ya recibía estos
                                datos pero no encontraba dónde dibujarlos. */}
                           <div className="ffm-spark" aria-hidden="true"><canvas id="ff-spark-bolsa"></canvas></div>
@@ -365,7 +400,7 @@ export default function Finanzas() {
                       </article>
 
                       <article className="ff-module ffm-card" data-module="rendimientos" tabIndex="0">
-                          <div className="ffm-photo"><img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer" /></div>
+                          <div className="ffm-photo"><img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerPolicy="no-referrer" /></div>
                           <div className="ffm-spark" aria-hidden="true"><canvas id="ff-spark-rendimientos"></canvas></div>
                           <div className="ffm-body">
                               <header><span className="ff-module-icon"><i className="fas fa-landmark"></i></span><div><small>Política monetaria y deuda</small><h2>Bonos</h2></div></header>
@@ -389,7 +424,7 @@ export default function Finanzas() {
                       </article>
 
                       <article className="ff-module ff-module-news ffm-card" data-module="noticias" tabIndex="0">
-                          <div className="ffm-photo"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerpolicy="no-referrer" /></div>
+                          <div className="ffm-photo"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&amp;q=75&amp;auto=format&amp;fit=crop" alt="" loading="lazy" referrerPolicy="no-referrer" /></div>
                           <div className="ffm-body">
                               <header><span className="ff-module-icon"><i className="fas fa-newspaper"></i></span><div><small>Noticiero financiero</small><h2>Daily News</h2></div></header>
                               <div className="ffm-foot">
@@ -399,12 +434,6 @@ export default function Finanzas() {
                           </div>
                       </article>
                   </section>
-
-                  {/* OCULTO en la portada por decisión de diseño (2026-07): la gráfica principal,
-                       la comparativa/tabla y el explicador ya no se muestran debajo de los 4 recuadros.
-                       Los elementos siguen en el DOM (el JS los referencia) y esta misma información
-                       sigue disponible en las vistas de detalle y demás páginas. Para reactivar, quita
-                       el style="display:none" de estas 3 secciones (ff-workspace, ff-analysis-grid, ff-explainer). */}
                   <section className="ff-workspace" id="ff-workspace" aria-labelledby="ff-workspace-title" style={{ display: 'none' }}>
                       <header className="ff-section-head">
                           <div><span className="ff-kicker" id="ff-workspace-kicker">Bolsa · Evolución histórica</span><h2 id="ff-workspace-title">S&amp;P 500</h2><p id="ff-workspace-description">Comportamiento del índice y comparación contra referencias relevantes.</p></div>
@@ -474,45 +503,119 @@ export default function Finanzas() {
           <div className="main-col">
               <div id="ff-newsroom-anchor" aria-hidden="true"></div>
                   <section className="ff-newsroom fnb-newsroom" aria-labelledby="ff-news-title">
-                      <header className="fnb-masthead">
-                          <div className="fnb-brand">
-                              <span className="fnb-kicker"><span className="fnb-live"></span> International Financial Newsroom</span>
-                              <h2 className="fnb-title" id="ff-news-title">Daily <em>News</em></h2>
-                              <p className="fnb-sub">El noticiero financiero internacional: mercados, bancos centrales, renta fija, divisas y materias primas en una sola lectura.</p>
+                      <section className="fnb-masthead" aria-labelledby="ff-news-title">
+                          <header className="fnb-cover-copy">
+                              <div className="fnb-brand">
+                                  <span className="fnb-kicker"><span className="fnb-live"></span> International Financial Newsroom</span>
+                                  <h2 className="fnb-title" id="ff-news-title">Daily <em>News</em></h2>
+                                  <p className="fnb-cover-statement">Lee el mercado <span>antes de que cambie.</span></p>
+                                  <p className="fnb-sub">Una edición viva que conecta el titular, su impacto y los activos que podría mover.</p>
+                              </div>
+
+                              <div className="fnb-edition" aria-live="polite">
+                                  <span>Edición internacional</span>
+                                  <strong id="fnb-updated">Preparando la edición…</strong>
+                                  <small id="fnb-source">Fuentes financieras verificadas</small>
+                              </div>
+
+                              <div className="fnb-cover-actions">
+                                  <button className="is-primary" type="button" data-news-jump="fnb-front-page"><span>Entrar a la edición</span><i className="fas fa-arrow-down" aria-hidden="true"></i></button>
+                                  <button type="button" data-news-jump="fnb-brief-section"><span>Resumen en 30 segundos</span><i className="fas fa-bolt" aria-hidden="true"></i></button>
+                              </div>
+
+                              <div className="fnb-signal" aria-hidden="true">
+                                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                              </div>
+                          </header>
+
+                          {/* El pulso del día: la edición completa como un solo campo de
+                              datos. Cada historia se coloca por hora e impacto y se colorea
+                              por sentimiento, así que la jornada se entiende antes de leer
+                              un titular. Lo pinta renderNewsPulse() en finanzas-favro.js. */}
+                          <section className="fnb-pulse" id="fnb-pulse-section" aria-labelledby="fnb-pulse-title">
+                              <header className="fnb-pulse-head">
+                                  <div className="fnb-pulse-intro">
+                                      <span className="fnb-pulse-kicker"><i className="fas fa-wave-square" aria-hidden="true"></i> Radar editorial en vivo</span>
+                                      <h3 id="fnb-pulse-title">El pulso de la sesión</h3>
+                                      <p>Explora cada punto para descubrir qué ocurrió y por qué puede mover al mercado.</p>
+                                  </div>
+                                  <dl className="fnb-pulse-stats">
+                                      <div><dt>Historias</dt><dd id="fnb-pulse-total">—</dd></div>
+                                      <div><dt>Alto impacto</dt><dd id="fnb-pulse-high">—</dd></div>
+                                      <div><dt>Sesgo</dt><dd id="fnb-pulse-bias">—</dd></div>
+                                      <div><dt>Ventana</dt><dd id="fnb-pulse-window">—</dd></div>
+                                  </dl>
+                              </header>
+
+                              <div className="fnb-pulse-plot" id="fnb-pulse-plot"></div>
+
+                              <div className="fnb-pulse-legend">
+                                  <span className="fnb-pulse-key up"><i aria-hidden="true"></i> Alza</span>
+                                  <span className="fnb-pulse-key down"><i aria-hidden="true"></i> Baja</span>
+                                  <span className="fnb-pulse-key flat"><i aria-hidden="true"></i> Neutral</span>
+                                  <span className="fnb-pulse-hint">Toca o señala un punto</span>
+                              </div>
+
+                              <article className="fnb-pulse-detail" id="fnb-pulse-detail" aria-live="polite">
+                                  <p className="fnb-pulse-empty">Selecciona un punto para leer la historia.</p>
+                              </article>
+                          </section>
+
+                          <div className="fnb-cover-scroll" aria-hidden="true"><span>Desliza para leer</span><i className="fas fa-arrow-down"></i></div>
+                      </section>
+
+                      <section className="fnb-reading-route" aria-labelledby="fnb-reading-route-title">
+                          <header className="fnb-route-head">
+                              <div className="fnb-route-heading">
+                                  <span><i className="fas fa-location-arrow" aria-hidden="true"></i> Lectura guiada</span>
+                                  <h3 id="fnb-reading-route-title">¿Cuánto tiempo tienes hoy?</h3>
+                                  <p>Elige un ritmo y entra directamente a la profundidad que necesitas.</p>
+                              </div>
+                              <button className="fnb-refresh fnb-route-refresh" type="button" id="ff-open-news" aria-label="Actualizar Daily News">
+                                  <i className="fas fa-rotate-right" aria-hidden="true"></i><span>Sincronizar edición</span>
+                              </button>
+                          </header>
+                          <div className="fnb-reading-route-track">
+                              <button className="is-flash" type="button" data-news-jump="fnb-brief-section">
+                                  <span className="fnb-route-top">
+                                      <span className="fnb-route-index">00:30</span>
+                                      <span className="fnb-route-visual" aria-hidden="true"><i className="fas fa-bolt"></i><b><span></span><span></span><span></span></b></span>
+                                  </span>
+                                  <span className="fnb-route-copy"><small>Flash ejecutivo</small><strong>Lo esencial en tres claves</strong><em>Una lectura rápida para entender qué mueve la sesión.</em></span>
+                                  <span className="fnb-route-action">Comenzar <i className="fas fa-arrow-right" aria-hidden="true"></i></span>
+                              </button>
+                              <button className="is-context" type="button" data-news-jump="fnb-front-page">
+                                  <span className="fnb-route-top">
+                                      <span className="fnb-route-index">03:00</span>
+                                      <span className="fnb-route-visual" aria-hidden="true"><i className="fas fa-chart-line"></i><b><span></span><span></span><span></span></b></span>
+                                  </span>
+                                  <span className="fnb-route-copy"><small>Contexto editorial</small><strong>La historia detrás del movimiento</strong><em>Titular, explicación e impacto en una sola secuencia.</em></span>
+                                  <span className="fnb-route-action">Entrar a portada <i className="fas fa-arrow-right" aria-hidden="true"></i></span>
+                              </button>
+                              <button className="is-explore" type="button" data-news-jump="fnb-coverage-section">
+                                  <span className="fnb-route-top">
+                                      <span className="fnb-route-index">LIBRE</span>
+                                      <span className="fnb-route-visual" aria-hidden="true"><i className="fas fa-compass"></i><b><span></span><span></span><span></span></b></span>
+                                  </span>
+                                  <span className="fnb-route-copy"><small>Exploración global</small><strong>Sigue las señales que te interesan</strong><em>Recorre mercados, análisis y cobertura a tu propio ritmo.</em></span>
+                                  <span className="fnb-route-action">Explorar edición <i className="fas fa-arrow-right" aria-hidden="true"></i></span>
+                              </button>
                           </div>
-                          <div className="fnb-edition" aria-live="polite">
-                              <span>Edición internacional</span>
-                              <strong id="fnb-updated">Preparando la edición…</strong>
-                              <small id="fnb-source">Fuentes financieras verificadas</small>
-                          </div>
-                      </header>
+                      </section>
 
                       <nav className="fnb-native-nav" id="fnb-native-nav" aria-label="Navegación de Daily News">
                           <div className="fnb-native-context"><i className="fas fa-compass" aria-hidden="true"></i><span id="fnb-native-current">Portada</span></div>
                           <div className="fnb-native-links">
                               <button className="is-active" type="button" data-news-jump="fnb-front-page"><i className="fas fa-house" aria-hidden="true"></i><span>Portada</span></button>
+                              <button type="button" data-news-jump="fnb-pulse-section"><i className="fas fa-wave-square" aria-hidden="true"></i><span>Pulso</span></button>
                               <button type="button" data-news-jump="fnb-radar-section"><i className="fas fa-tower-broadcast" aria-hidden="true"></i><span>En vivo</span></button>
                               <button type="button" data-news-jump="fnb-departments-section"><i className="fas fa-layer-group" aria-hidden="true"></i><span>Secciones</span></button>
                               <button type="button" data-news-jump="fnb-insights-section"><i className="fas fa-lightbulb" aria-hidden="true"></i><span>Claves</span></button>
                               <button type="button" data-news-jump="fnb-coverage-section"><i className="fas fa-earth-americas" aria-hidden="true"></i><span>Cobertura</span></button>
-                              <button type="button" data-news-jump="fnb-archive-section"><i className="fas fa-newspaper" aria-hidden="true"></i><span>Archivo</span></button>
+                              <button type="button" data-news-jump="fnb-archive-section"><i className="fas fa-lines-leaning" aria-hidden="true"></i><span>Índice</span></button>
                           </div>
                           <div className="fnb-native-progress" aria-hidden="true"><span id="fnb-native-progress"></span></div>
                       </nav>
-
-                      <div className="fnb-toolbar">
-                          <div className="fnb-filters" role="group" aria-label="Categorías de noticias">
-                              <button className="is-active" type="button" data-news-filter="all" aria-pressed="true">Portada</button>
-                              <button type="button" data-news-filter="markets" aria-pressed="false">Mercados</button>
-                              <button type="button" data-news-filter="rates" aria-pressed="false">Tasas</button>
-                              <button type="button" data-news-filter="bonds" aria-pressed="false">Bonos</button>
-                              <button type="button" data-news-filter="fx" aria-pressed="false">Divisas</button>
-                              <button type="button" data-news-filter="commodities" aria-pressed="false">Materias primas</button>
-                          </div>
-                          <button className="fnb-refresh" type="button" id="ff-open-news" aria-label="Actualizar Daily News">
-                              <i className="fas fa-rotate-right" aria-hidden="true"></i><span>Actualizar edición</span>
-                          </button>
-                      </div>
 
                       <div className="fnb-trending" aria-label="Temas en desarrollo">
                           <span className="fnb-trending-label"><i className="fas fa-circle" aria-hidden="true"></i> Ahora</span>
@@ -539,7 +642,7 @@ export default function Finanzas() {
                               </div>
                           </button>
 
-                          <aside className="fnb-brief" aria-label="Briefing del día">
+                          <aside className="fnb-brief" id="fnb-brief-section" aria-label="Briefing del día">
                               <span className="fnb-brief-h"><i className="fas fa-bolt" aria-hidden="true"></i> En 30 segundos</span>
                               <h3>Las claves de la jornada</h3>
                               <ol id="fnb-brief-list">
@@ -551,28 +654,64 @@ export default function Finanzas() {
                           </aside>
                       </div>
 
-                      <div className="fnb-section-head" id="fnb-radar-section">
-                          <div><span>Radar internacional</span><h3>Análisis y contexto</h3></div>
-                          <p>Las historias que están definiendo la sesión global.</p>
-                      </div>
-                      <div className="fnb-news-layout">
-                          <div className="fnb-grid" id="fnb-grid" aria-live="polite">
-                              <div className="fnb-card is-skeleton"><div className="fnb-card-media"></div><div className="fnb-card-body"><div className="fnb-sk" style={{ width: '40%' }}></div><div className="fnb-sk" style={{ width: '90%' }}></div><div className="fnb-sk" style={{ width: '70%' }}></div></div></div>
-                              <div className="fnb-card is-skeleton"><div className="fnb-card-media"></div><div className="fnb-card-body"><div className="fnb-sk" style={{ width: '40%' }}></div><div className="fnb-sk" style={{ width: '90%' }}></div><div className="fnb-sk" style={{ width: '70%' }}></div></div></div>
-                          </div>
-                          <aside className="fnb-latest" aria-labelledby="fnb-latest-title">
-                              <div className="fnb-latest-head"><div><span>Minuto a minuto</span><h3 id="fnb-latest-title">Últimas noticias</h3></div><i className="fas fa-tower-broadcast" aria-hidden="true"></i></div>
-                              <div className="fnb-stream" id="fnb-stream" aria-live="polite">
-                                  <div className="fnb-stream-skeleton"></div><div className="fnb-stream-skeleton"></div><div className="fnb-stream-skeleton"></div>
+                      <section className="fnb-radar" aria-labelledby="fnb-radar-title">
+                          <div className="fnb-section-head fnb-radar-head" id="fnb-radar-section">
+                              <div className="fnb-radar-copy">
+                                  <span>Radar internacional <b>02</b></span>
+                                  <h3 id="fnb-radar-title">Análisis y contexto <em>en movimiento.</em></h3>
+                                  <p>Las señales que explican la sesión, ordenadas por relevancia antes que por ruido.</p>
+                                  <div className="fnb-radar-legend" aria-label="Cómo leer el radar">
+                                      <span><i className="is-priority" aria-hidden="true"></i> Prioridad</span>
+                                      <span><i className="is-context" aria-hidden="true"></i> Contexto</span>
+                                      <span><i className="is-live" aria-hidden="true"></i> En vivo</span>
+                                  </div>
                               </div>
-                          </aside>
-                      </div>
+                              <div className="fnb-radar-scope" aria-label="Estado del radar editorial">
+                                  <div className="fnb-radar-scope-visual" aria-hidden="true">
+                                      <span className="fnb-scope-ring"></span>
+                                      <i className="fnb-scope-dot one"></i><i className="fnb-scope-dot two"></i><i className="fnb-scope-dot three"></i>
+                                  </div>
+                                  <div className="fnb-radar-scope-copy">
+                                      <span><i aria-hidden="true"></i> Escaneo editorial</span>
+                                      <strong><b id="fnb-radar-signal-count">—</b> señales clave</strong>
+                                      <small><b id="fnb-radar-live-count">—</b> actualizaciones en la línea temporal</small>
+                                  </div>
+                              </div>
+                          </div>
+                          <div className="fnb-news-layout">
+                              <div className="fnb-grid" id="fnb-grid" aria-live="polite">
+                                  <div className="fnb-card is-skeleton"><div className="fnb-card-media"></div><div className="fnb-card-body"><div className="fnb-sk" style={{ width: '40%' }}></div><div className="fnb-sk" style={{ width: '90%' }}></div><div className="fnb-sk" style={{ width: '70%' }}></div></div></div>
+                                  <div className="fnb-card is-skeleton"><div className="fnb-card-media"></div><div className="fnb-card-body"><div className="fnb-sk" style={{ width: '40%' }}></div><div className="fnb-sk" style={{ width: '90%' }}></div><div className="fnb-sk" style={{ width: '70%' }}></div></div></div>
+                              </div>
+                              <aside className="fnb-latest" aria-labelledby="fnb-latest-title">
+                                  <div className="fnb-latest-head">
+                                      <div><span>Minuto a minuto</span><h3 id="fnb-latest-title">Últimas noticias</h3></div>
+                                      <div className="fnb-latest-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                                  </div>
+                                  <div className="fnb-stream" id="fnb-stream" aria-live="polite">
+                                      <div className="fnb-stream-skeleton"></div><div className="fnb-stream-skeleton"></div><div className="fnb-stream-skeleton"></div>
+                                  </div>
+                              </aside>
+                          </div>
+                      </section>
 
-                      <div className="fnb-departments" id="fnb-departments-section">
+                      <section className="fnb-departments" id="fnb-departments-section" aria-labelledby="fnb-departments-title">
+                          <header className="fnb-editorial-heading fnb-departments-heading">
+                              <div className="fnb-departments-intro">
+                                  <span>La edición por dentro <b>03</b></span>
+                                  <h3 id="fnb-departments-title">Sigue el hilo <em>que más te importa.</em></h3>
+                                  <p>Mercados, política monetaria y activos conectados como una sola conversación.</p>
+                              </div>
+                              <nav className="fnb-thread-map" aria-label="Ir a un dossier de la edición">
+                                  <button className="is-active" type="button" data-thread-jump="markets" aria-current="true"><i className="fas fa-chart-line" aria-hidden="true"></i><span><small>01</small>Mercados</span></button>
+                                  <button type="button" data-thread-jump="rates"><i className="fas fa-landmark" aria-hidden="true"></i><span><small>02</small>Tasas y bonos</span></button>
+                                  <button type="button" data-thread-jump="fx"><i className="fas fa-money-bill-transfer" aria-hidden="true"></i><span><small>03</small>Divisas</span></button>
+                              </nav>
+                          </header>
                           <div className="fnb-department-host" id="fnb-department-host" aria-live="polite"></div>
                           <aside className="fnb-priority" aria-labelledby="fnb-priority-title">
                               <div className="fnb-priority-head">
-                                  <span>Selección del editor</span>
+                                  <div className="fnb-priority-status"><span>Selección del editor</span><em><i aria-hidden="true"></i> Mesa activa</em></div>
                                   <h3 id="fnb-priority-title">Prioridad editorial</h3>
                                   <p>Las noticias con mayor capacidad de mover precios, expectativas y decisiones.</p>
                               </div>
@@ -582,12 +721,23 @@ export default function Finanzas() {
                                   <li><span>03</span><p>Conectando titulares con activos financieros.</p></li>
                               </ol>
                           </aside>
-                      </div>
+                      </section>
 
                       <section className="fnb-perspectives" id="fnb-insights-section" aria-labelledby="fnb-perspectives-title">
-                          <header>
-                              <div><span>Inteligencia editorial</span><h3 id="fnb-perspectives-title">Las claves del mercado</h3></div>
-                              <p>Qué significan los titulares para empresas, inversionistas y mercados.</p>
+                          <header className="fnb-intelligence-head">
+                              <div className="fnb-intelligence-intro">
+                                  <span>Inteligencia editorial <b>04</b></span>
+                                  <h3 id="fnb-perspectives-title">Las claves <em>del mercado.</em></h3>
+                                  <p>Qué significan los titulares para empresas, inversionistas y mercados.</p>
+                              </div>
+                              <div className="fnb-intelligence-method" aria-label="Método de lectura editorial">
+                                  <div><span>Modelo de lectura</span><strong><b id="fnb-insight-count">—</b> tesis activas</strong></div>
+                                  <ol>
+                                      <li><b>01</b><span>Qué ocurrió<small>Hecho verificable</small></span></li>
+                                      <li><b>02</b><span>Por qué importa<small>Impacto conectado</small></span></li>
+                                      <li><b>03</b><span>Qué seguir<small>Próxima señal</small></span></li>
+                                  </ol>
+                              </div>
                           </header>
                           <div className="fnb-perspectives-grid" id="fnb-perspectives-grid" aria-live="polite">
                               <div className="fnb-perspective-skeleton"></div><div className="fnb-perspective-skeleton"></div><div className="fnb-perspective-skeleton"></div>
@@ -595,10 +745,17 @@ export default function Finanzas() {
                       </section>
 
                       <section className="fnb-coverage" id="fnb-coverage-section" aria-labelledby="fnb-coverage-title">
-                          <header className="fnb-editorial-heading fnb-carousel-heading">
-                              <div><span>Cobertura internacional</span><h3 id="fnb-coverage-title">El mundo financiero, historia por historia</h3></div>
+                          <header className="fnb-editorial-heading fnb-carousel-heading fnb-coverage-head">
+                              <div className="fnb-coverage-intro">
+                                  <span>Cobertura internacional <b>05</b></span>
+                                  <h3 id="fnb-coverage-title">El mundo financiero, <em>historia por historia.</em></h3>
+                                  <p>Una selección visual que conecta capitales, monedas, energía y política económica.</p>
+                              </div>
                               <div className="fnb-carousel-actions">
-                                  <p>Una selección visual de la agenda que conecta capitales, monedas, energía y política económica.</p>
+                                  <div className="fnb-world-window" aria-hidden="true">
+                                      <span className="fnb-world-orbit"></span><i className="one"></i><i className="two"></i><i className="three"></i>
+                                  </div>
+                                  <div className="fnb-coverage-instruction"><span><i aria-hidden="true"></i> Ventana global activa</span><strong>Arrastra para recorrer la edición</strong></div>
                                   <div className="fnb-carousel-controls" aria-label="Controles del carrusel de noticias">
                                       <button type="button" id="fnb-carousel-prev" aria-label="Ver noticias anteriores"><i className="fas fa-arrow-left" aria-hidden="true"></i></button>
                                       <span id="fnb-carousel-count" aria-live="polite">1 / 6</span>
@@ -607,38 +764,63 @@ export default function Finanzas() {
                               </div>
                           </header>
                           <div className="fnb-carousel-shell">
+                              <div className="fnb-coverage-console">
+                                  <span><i className="fas fa-earth-americas" aria-hidden="true"></i> Historia en foco</span>
+                                  <strong id="fnb-coverage-active-title">Preparando la cobertura internacional…</strong>
+                                  <em><i className="fas fa-hand-pointer" aria-hidden="true"></i> Desliza o usa las flechas</em>
+                              </div>
                               <div className="fnb-coverage-grid" id="fnb-coverage-grid" tabIndex="0" aria-live="polite" aria-label="Carrusel de cobertura financiera internacional">
                                   <div className="fnb-coverage-skeleton"></div><div className="fnb-coverage-skeleton"></div><div className="fnb-coverage-skeleton"></div>
                               </div>
-                              <div className="fnb-carousel-dots" id="fnb-carousel-dots" aria-label="Seleccionar noticia del carrusel"></div>
+                              <div className="fnb-coverage-navigation">
+                                  <div className="fnb-carousel-dots" id="fnb-carousel-dots" aria-label="Seleccionar noticia del carrusel"></div>
+                                  <div className="fnb-coverage-progress" aria-hidden="true"><span id="fnb-coverage-progress"></span></div>
+                                  <small>WORLD DESK · EDICIÓN GLOBAL</small>
+                              </div>
                           </div>
                       </section>
 
-                      <section className="fnb-archive" id="fnb-archive-section" aria-labelledby="fnb-archive-title">
-                          <header className="fnb-editorial-heading">
-                              <div><span>Edición completa</span><h3 id="fnb-archive-title">Todas las noticias del día</h3></div>
-                              <p id="fnb-archive-summary">Consulta el archivo internacional seleccionado por la mesa editorial.</p>
+                      <section className="fnb-archive fnb-story-index" id="fnb-archive-section" aria-labelledby="fnb-archive-title">
+                          <header className="fnb-story-index-head">
+                              <div className="fnb-story-index-chapter" aria-hidden="true"><span>ÍNDICE VIVO</span><b>06</b></div>
+                              <div className="fnb-story-index-title">
+                                  <span><i aria-hidden="true"></i>Edición completa · mesa internacional</span>
+                                  <h3 id="fnb-archive-title">La jornada, <em>noticia por noticia.</em></h3>
+                                  <p id="fnb-archive-summary">Todas las historias de la edición, organizadas para que encuentres primero lo que realmente te importa.</p>
+                              </div>
+                              <div className="fnb-story-index-state">
+                                  <span><i aria-hidden="true"></i>Actualización continua</span>
+                                  <strong>Explora a tu ritmo</strong>
+                                  <small>Busca, ordena y abre cualquier historia.</small>
+                              </div>
                           </header>
+
+                          <div className="fnb-story-feature-label"><span>01</span><strong>La historia esencial</strong><i></i><small>El punto de partida recomendado por la mesa</small></div>
                           <div className="fnb-archive-spotlight" id="fnb-archive-spotlight" aria-live="polite">
                               <div className="fnb-spotlight-skeleton" aria-hidden="true"></div>
                           </div>
-                          <div className="fnb-archive-browse-head">
-                              <div><span>Continúa explorando</span><strong>El resto de la edición</strong></div>
-                              <p>Encuentra únicamente las historias que te interesan.</p>
-                          </div>
-                          <div className="fnb-archive-console">
-                              <label className="fnb-archive-search" htmlFor="fnb-archive-search">
-                                  <i className="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                  <span className="sr-only">Buscar en las noticias del día</span>
-                                  <input id="fnb-archive-search" type="search" placeholder="Buscar empresa, mercado o tema…" autoComplete="off" />
-                                  <kbd>Ctrl K</kbd>
-                              </label>
-                              <div className="fnb-archive-sort" role="group" aria-label="Ordenar archivo de noticias">
-                                  <button className="is-active" type="button" data-archive-sort="recent" aria-pressed="true"><i className="fas fa-clock" aria-hidden="true"></i> Más recientes</button>
-                                  <button type="button" data-archive-sort="impact" aria-pressed="false"><i className="fas fa-bolt" aria-hidden="true"></i> Mayor impacto</button>
+
+                          <div className="fnb-story-desk">
+                              <div className="fnb-story-desk-label">
+                                  <span>02</span>
+                                  <div><small>Mesa de exploración</small><strong>Construye tu propia edición</strong></div>
                               </div>
-                              <div className="fnb-archive-result" aria-live="polite"><strong id="fnb-archive-count">0</strong><span>resultados</span></div>
+                              <div className="fnb-archive-console fnb-story-index-console">
+                                  <label className="fnb-archive-search" htmlFor="fnb-archive-search">
+                                      <i className="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                      <span className="sr-only">Buscar en las noticias de la edición</span>
+                                      <input id="fnb-archive-search" type="search" placeholder="Empresa, mercado o tema…" autoComplete="off" />
+                                      <kbd>Ctrl K</kbd>
+                                  </label>
+                                  <div className="fnb-archive-sort" role="group" aria-label="Ordenar noticias">
+                                      <button className="is-active" type="button" data-archive-sort="recent" aria-pressed="true"><i className="fas fa-clock" aria-hidden="true"></i> Recientes</button>
+                                      <button type="button" data-archive-sort="impact" aria-pressed="false"><i className="fas fa-bolt" aria-hidden="true"></i> Impacto</button>
+                                  </div>
+                                  <div className="fnb-archive-result" aria-live="polite"><strong id="fnb-archive-count">0</strong><span>historias</span></div>
+                              </div>
                           </div>
+
+                          <div className="fnb-story-ledger-head"><span>03</span><strong>El resto de la jornada</strong><i></i><small>Selecciona una tarjeta para abrir la historia completa</small></div>
                           <div className="fnb-archive-list" id="fnb-archive-list" aria-live="polite">
                               <div className="fnb-archive-skeleton"></div><div className="fnb-archive-skeleton"></div><div className="fnb-archive-skeleton"></div>
                           </div>
@@ -707,10 +889,70 @@ export default function Finanzas() {
 
               </div>
           </div>
-
-
-
               <section className="debt-pro" id="bonds-panel" style={{ display: 'none' }}>
+
+              <section className="fbm-shell" id="bond-world-map" data-fin-scope="bonos" aria-labelledby="fbm-title">
+                  <header className="fbm-header">
+                      <div className="fbm-heading">
+                          <span className="fbm-kicker"><i className="fas fa-earth-americas" aria-hidden="true"></i> Renta fija</span>
+                          <h3 id="fbm-title">Mapa mundial de bonos</h3>
+                          <p>Compara el rendimiento soberano por pa&iacute;s. El color representa el nivel del plazo seleccionado; selecciona un mercado para consultar su instrumento y procedencia.</p>
+                      </div>
+                      <div className="fbm-header-meta">
+                          <span className="fbm-status" id="fbm-status" role="status" aria-live="polite"><i className="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Preparando mapa</span>
+                          <label className="fbm-country-picker">
+                              <span>Ir a un pa&iacute;s</span>
+                              <select id="fbm-country" aria-label="Seleccionar pa&iacute;s en el mapa"><option value="">Elegir pa&iacute;s&hellip;</option></select>
+                          </label>
+                      </div>
+                  </header>
+
+                  <div className="fbm-toolbar">
+                      <div className="fbm-fixed-maturity" aria-label="Plazo fijo de 10 años">
+                          <span>Plazo fijo</span>
+                          <strong>10 a&ntilde;os</strong>
+                      </div>
+                      <div className="fbm-legend" aria-label="Leyenda del mapa">
+                          <span><small>Menor</small><strong id="fbm-legend-min">&mdash;</strong></span>
+                          <i aria-hidden="true"><b id="fbm-legend-marker"></b></i>
+                          <span><small>Mayor</small><strong id="fbm-legend-max">&mdash;</strong></span>
+                      </div>
+                  </div>
+
+                  <div className="fbm-command">
+                      <div className="fbm-filters" role="group" aria-label="Filtrar mercados de bonos por región">
+                          <button type="button" className="is-active" data-fbm-filter="all" aria-pressed="true"><i className="fas fa-layer-group" aria-hidden="true"></i> Todos</button>
+                          <button type="button" data-fbm-filter="americas" aria-pressed="false"><i className="fas fa-earth-americas" aria-hidden="true"></i> Américas</button>
+                          <button type="button" data-fbm-filter="europe" aria-pressed="false"><i className="fas fa-earth-europe" aria-hidden="true"></i> Europa</button>
+                          <button type="button" data-fbm-filter="asia" aria-pressed="false"><i className="fas fa-earth-asia" aria-hidden="true"></i> Asia–Pacífico</button>
+                          <button type="button" data-fbm-filter="emerging" aria-pressed="false"><i className="fas fa-arrow-trend-up" aria-hidden="true"></i> Emergentes</button>
+                      </div>
+                      <span className="fbm-filter-status" id="fbm-filter-status" aria-live="polite">Vista global</span>
+                  </div>
+
+                  <div className="fbm-workspace">
+                      <div className="fbm-map-wrap" id="fbm-map-wrap">
+                          <div className="fbm-map-tools" role="group" aria-label="Controles de acercamiento del mapa de bonos">
+                              <button type="button" data-fbm-zoom="in" aria-label="Acercar mapa"><span>Acercar</span><i className="fas fa-plus" aria-hidden="true"></i></button>
+                              <button type="button" data-fbm-zoom="out" aria-label="Alejar mapa" disabled><span>Alejar</span><i className="fas fa-minus" aria-hidden="true"></i></button>
+                              <button type="button" data-fbm-zoom="reset" aria-label="Restablecer mapa"><span>Centrar</span><i className="fas fa-expand" aria-hidden="true"></i></button>
+                              <output id="fbm-zoom-value" aria-live="polite">100%</output>
+                          </div>
+                          <div className="fbm-map-stage" id="fbm-map-stage" tabIndex="0" aria-label="Mapa interactivo de rendimientos soberanos">
+                              <div className="fbm-map-canvas" id="fbm-map-canvas"></div>
+                          </div>
+                          <div className="fbm-pan-hint" aria-hidden="true"><i className="fas fa-hand" aria-hidden="true"></i><span>Arrastra para explorar</span></div>
+                          <div className="fbm-hover-tip" id="fbm-hover-tip" role="tooltip" hidden></div>
+                          <div className="fbm-map-empty" id="fbm-map-empty" hidden><i className="fas fa-map-location-dot" aria-hidden="true"></i><strong>Sin cobertura para este plazo</strong><span>Prueba con el bono a 10 a&ntilde;os.</span></div>
+                      </div>
+                  </div>
+
+                  <footer className="fbm-footer">
+                      <div><span className="fbm-dot is-live"></span><strong>Dato conectado</strong><small>Fuente externa consultada por el backend</small></div>
+                      <div><span className="fbm-dot is-ref"></span><strong>Referencia indicativa</strong><small>Valor de apoyo; no representa una cotizaci&oacute;n en vivo</small></div>
+                      <p><i className="fas fa-circle-info" aria-hidden="true"></i> Los rendimientos no expresan por s&iacute; solos calidad crediticia ni una recomendaci&oacute;n de inversi&oacute;n.</p>
+                  </footer>
+              </section>
 
               <header className="debt-pro-hero">
                   <div>
@@ -721,22 +963,25 @@ export default function Finanzas() {
                   <div className="debt-pro-meta"><span><i className="fas fa-circle"></i> Mercado de deuda</span><small id="bonds-upd">Actualización en segundo plano</small></div>
               </header>
 
-              <div className="debt-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.2rem' }}>
-                  <article className="debt-kpi tone-front report-card" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','3 meses'); }}><span className="debt-kpi-icon"><i className="fas fa-stopwatch"></i></span><div><small>US Treasury 3M</small><strong id="debt-kpi-us3m">—</strong><span id="debt-kpi-us3m-chg">Tramo monetario</span></div></article>
-                  <article className="debt-kpi tone-front report-card" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','5 años'); }}><span className="debt-kpi-icon"><i className="fas fa-bolt"></i></span><div><small>US Treasury 5Y</small><strong id="debt-kpi-us5">—</strong><span id="debt-kpi-us5-chg">Expectativa de tasas</span></div></article>
-                  <article className="debt-kpi tone-us report-card" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','10 años'); }}><span className="debt-kpi-icon"><i className="fas fa-flag-usa"></i></span><div><small>US Treasury 10Y</small><strong id="debt-kpi-us10">—</strong><span id="debt-kpi-us10-chg">Referencia global</span></div></article>
-                  <article className="debt-kpi tone-long report-card" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','30 años'); }}><span className="debt-kpi-icon"><i className="fas fa-hourglass-half"></i></span><div><small>US Treasury 30Y</small><strong id="debt-kpi-us30">—</strong><span id="debt-kpi-us30-chg">Duración larga</span></div></article>
-                  {/* updateDebtDashboard ya calculaba la pendiente y la escribía en
-                       #debt-kpi-curve, pero esa tarjeta no existía: el dato se perdía. */}
-                  <article className="debt-kpi tone-curve report-card" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','curva'); }}><span className="debt-kpi-icon"><i className="fas fa-wave-square"></i></span><div><small>Pendiente 30Y − 5Y</small><strong id="debt-kpi-curve">—</strong><span id="debt-kpi-curve-state">Estructura de plazos</span></div></article>
-                  <article className="debt-kpi tone-credit report-card is-estimate" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','ig'); }}><span className="debt-kpi-icon"><i className="fas fa-city"></i></span><div><small>US IG Corp <em className="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-ig">—</strong><span id="debt-kpi-ig-chg">Grado de Inversión</span></div></article>
-                  <article className="debt-kpi tone-credit report-card is-estimate" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','high yield'); }}><span className="debt-kpi-icon"><i className="fas fa-building"></i></span><div><small>US High Yield <em className="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-hy">—</strong><span id="debt-kpi-hy-chg">Riesgo crediticio</span></div></article>
-                  <article className="debt-kpi tone-inflation report-card is-estimate" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','tips'); }}><span className="debt-kpi-icon"><i className="fas fa-leaf"></i></span><div><small>US 10Y TIPS <em className="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-tips">—</strong><span id="debt-kpi-tips-chg">Tasa Real</span></div></article>
-                  <article className="debt-kpi tone-inflation report-card is-estimate" data-fin-scope="bonos" role="button" tabIndex="0" onClick={(e) => { window.openBondDetail('us','breakeven'); }}><span className="debt-kpi-icon"><i className="fas fa-fire-flame-curved"></i></span><div><small>US 10Y Breakeven <em className="debt-kpi-est" title="Valor de referencia fijo en el código: no hay fuente en vivo conectada para este instrumento">est.</em></small><strong id="debt-kpi-bk">—</strong><span id="debt-kpi-bk-chg">Inflación esperada</span></div></article>
-                  {/* Bund alemán: referencia de la deuda europea, igual que el Treasury
-                       10Y lo es de la global. Sale de /api/bond-spreads (dato del BCE). */}
-                  <article className="debt-kpi tone-us report-card" data-fin-scope="bonos"><span className="debt-kpi-icon"><i className="fas fa-landmark-dome"></i></span><div><small>Bund Alemania 10A</small><strong id="debt-kpi-bund">—</strong><span id="debt-kpi-bund-chg">Referencia europea</span></div></article>
-                  <article className="debt-kpi tone-carry report-card" data-fin-scope="bonos"><span className="debt-kpi-icon"><i className="fas fa-arrows-left-right"></i></span><div><small>Diferencial US − Bund</small><strong id="debt-kpi-usbund">—</strong><span id="debt-kpi-usbund-chg">Prima transatlántica</span></div></article>
+              <div className="debt-kpi-grid debt-country-grid" aria-label="Países disponibles en la gráfica histórica">
+                  {[
+                    ['us','^TNX','🇺🇸','Estados Unidos','Treasury 10A','tone-us'],
+                    ['cn','CGB10Y','🇨🇳','China','ChinaBond 10A','tone-front'],
+                    ['jp','IRLTLT01JPM156N','🇯🇵','Japón','JGB 10A','tone-inflation'],
+                    ['de','DE','🇩🇪','Alemania','Bund 10A','tone-us'],
+                    ['fr','FR','🇫🇷','Francia','OAT 10A','tone-front'],
+                    ['it','IT','🇮🇹','Italia','BTP 10A','tone-inflation'],
+                    ['es','ES','🇪🇸','España','Bono 10A','tone-long'],
+                    ['nl','NL','🇳🇱','Países Bajos','DSL 10A','tone-front'],
+                    ['gr','GR','🇬🇷','Grecia','Bono 10A','tone-credit'],
+                    ['pt','PT','🇵🇹','Portugal','OT 10A','tone-carry'],
+                  ].map(([country,series,flag,name,instrument,tone]) => (
+                    <article key={country} className={`debt-kpi debt-country-card ${tone} report-card`} data-fin-scope="bonos" data-bond-country={country} role="button" tabIndex="0" aria-pressed="false" onClick={() => window.selectBondTimelineCountry?.(country,series)} onKeyDown={(e) => window.reportCardKey?.(e,()=>window.selectBondTimelineCountry?.(country,series))}>
+                        <span className="debt-kpi-icon debt-country-flag" aria-hidden="true">{flag}</span>
+                        <div><small>{name}</small><strong id={`bond-shortcut-${country}-value`}>—</strong><span>{instrument} · Abrir gráfica</span></div>
+                        <i className="fas fa-arrow-right debt-country-arrow" aria-hidden="true"></i>
+                    </article>
+                  ))}
 
                   {/* ── Indicadores de tasas de referencia ──────────────────────────
                        Solo se muestran en "Tasas y bonos". Vienen de Banxico vía
@@ -751,34 +996,37 @@ export default function Finanzas() {
               </div>
 
               {/* ── Línea del tiempo de tasas y bonos ──────────────────────────────
-                   Series históricas reales: México vía /api/banxico/:serie/history
-                   (Banxico SIE, hasta 20 años) y EE.UU. vía /api/stock-history con los
-                   índices ^IRX/^FVX/^TNX/^TYX. Solo se ofrecen los países cuyas fuentes
-                   entregan histórico de verdad; los demás mercados del panel no lo
-                   tienen y por eso no aparecen aquí. */}
+                   Series históricas soberanas verificables de EE.UU., Europa y Asia.
+                   China se obtiene de la curva oficial ChinaBond/CCDC; México queda
+                   fuera de esta visualización por decisión editorial. */}
               <section className="rate-timeline" id="rate-timeline" aria-labelledby="rtl-title">
                   <header className="rtl-head">
                       <div className="rtl-copy">
-                          <small>Serie histórica</small>
-                          <h3 id="rtl-title">Línea del tiempo de tasas y bonos</h3>
-                          <p id="rtl-sub">Evolución del rendimiento a lo largo del periodo seleccionado.</p>
+                          <small>Renta fija</small>
+                          <h3 id="rtl-title">Evoluci&oacute;n hist&oacute;rica</h3>
                       </div>
                       <div className="rtl-controls">
                           <label className="rtl-field">
                               <span>País</span>
-                              <select id="rtl-country" aria-label="País de la serie">
-                                  <option value="mx" selected>&#127474;&#127485; M&eacute;xico</option>
+                              <select id="rtl-country" aria-label="País de la serie" defaultValue="us">
                                   <option value="us">&#127482;&#127480; Estados Unidos</option>
+                                  <option value="cn">&#127464;&#127475; China</option>
                               </select>
                           </label>
                           <label className="rtl-field">
                               <span>Serie</span>
                               <select id="rtl-series" aria-label="Instrumento"></select>
                           </label>
-                          <label className="rtl-field">
-                              <span>Comparar con</span>
-                              <select id="rtl-compare" aria-label="Serie de comparación"></select>
-                          </label>
+                          <div className="rtl-compare-control">
+                              <label className="rtl-field">
+                                  <span>Agregar comparación</span>
+                                  <select id="rtl-compare-picker" aria-label="País o serie para comparar"></select>
+                              </label>
+                              <button type="button" className="rtl-add-compare" id="rtl-add-compare">
+                                  <i className="fas fa-plus" aria-hidden="true"></i>
+                                  Agregar
+                              </button>
+                          </div>
                           <fieldset className="rtl-field rtl-periods">
                               <legend>Periodo</legend>
                               <div className="rtl-period-group" id="rtl-periods" role="group" aria-label="Periodo">
@@ -789,6 +1037,10 @@ export default function Finanzas() {
                               </div>
                           </fieldset>
                       </div>
+                      <div className="rtl-comparison-bar" aria-label="Países seleccionados para comparar">
+                          <div className="rtl-comparisons" id="rtl-comparisons"></div>
+                          <span className="rtl-compare-count" id="rtl-compare-count">1 / 5 países</span>
+                      </div>
                   </header>
 
                   <div className="rtl-stats" id="rtl-stats">
@@ -797,13 +1049,11 @@ export default function Finanzas() {
                       <div><span>Mínimo del periodo</span><strong id="rtl-min">—</strong><em id="rtl-min-date">—</em></div>
                       <div><span>Variación</span><strong id="rtl-chg">—</strong><em>Inicio a último</em></div>
                       <div id="rtl-spread-cell" hidden><span>Diferencial</span><strong id="rtl-spread">—</strong><em id="rtl-spread-note">—</em></div>
+                      <div className="rtl-slope-cell"><span id="rtl-slope-label">Pendiente de la serie principal</span><strong id="rtl-slope">&mdash;</strong><em id="rtl-slope-note">Tendencia anualizada</em></div>
                   </div>
 
-                  <div className="rtl-legend" id="rtl-legend" hidden>
-                      <span className="rtl-lg rtl-lg-main"><i></i><b id="rtl-lg-main">—</b></span>
-                      <span className="rtl-lg rtl-lg-comp"><i></i><b id="rtl-lg-comp">—</b></span>
-                      <span className="rtl-lg-note">El área sombreada es la distancia entre ambas series.</span>
-                  </div>
+                  <div className="rtl-spread-list" id="rtl-spread-list" hidden></div>
+                  <div className="rtl-legend" id="rtl-legend" hidden></div>
 
                   <div className="rtl-chart">
                       <div className="rtl-state" id="rtl-state">Cargando serie histórica…</div>
@@ -821,8 +1071,8 @@ export default function Finanzas() {
           <section className="ff-spreads-board" id="ff-spreads-board" data-fin-scope="bonos" aria-labelledby="ff-spreads-title" hidden>
               <header className="ff-spreads-header">
                   <div>
-                      <span className="ff-kicker"><i className="fas fa-scale-balanced" aria-hidden="true"></i> Deuda soberana</span>
-                      <h2 id="ff-spreads-title">Diferenciales a 10 años</h2>
+                      <span className="ff-kicker"><i className="fas fa-scale-balanced" aria-hidden="true"></i> Renta fija</span>
+                      <h2 id="ff-spreads-title">Diferenciales soberanos</h2>
                       <p>Rendimiento del bono a 10 años de cada país y su diferencia, en puntos base, frente a las referencias que elijas.</p>
                   </div>
                   <div className="ff-spreads-tools">
@@ -833,16 +1083,19 @@ export default function Finanzas() {
                       <span className="ff-spreads-asof" id="ff-spreads-asof" aria-live="polite">Consultando…</span>
                   </div>
               </header>
+              <div className="ff-spreads-summary" aria-label="Resumen de diferenciales soberanos">
+                  <article><span><i className="fas fa-earth-americas" aria-hidden="true"></i> Cobertura</span><strong id="ff-spreads-universe">&mdash;</strong><small>Mercados soberanos</small></article>
+                  <article><span><i className="fas fa-arrow-trend-up" aria-hidden="true"></i> Mayor rendimiento</span><strong id="ff-spreads-high">&mdash;</strong><small id="ff-spreads-high-note">Dentro del universo</small></article>
+                  <article><span><i className="fas fa-arrows-left-right-to-line" aria-hidden="true"></i> M&aacute;s cercano</span><strong id="ff-spreads-tight">&mdash;</strong><small id="ff-spreads-tight-note">Frente a la referencia</small></article>
+                  <article><span><i className="fas fa-triangle-exclamation" aria-hidden="true"></i> Mayor prima</span><strong id="ff-spreads-wide">&mdash;</strong><small id="ff-spreads-wide-note">Frente a la referencia</small></article>
+              </div>
               <div className="ff-spreads-table-wrap">
                   <table className="ff-spreads-table">
                       <thead>
                           <tr>
                               <th className="ff-sp-country"><button type="button" data-spread-sort="name">País</button></th>
                               <th className="ff-sp-num"><button type="button" data-spread-sort="yield">Rend. 10A</button></th>
-                              {/* "Var." a secas: para los países europeos es la variación
-                                   respecto del mes anterior y para Estados Unidos respecto
-                                   de la sesión previa, porque sus fuentes tienen cortes
-                                   distintos. Cada celda lo aclara en su title. */}
+
                               <th className="ff-sp-num"><button type="button" data-spread-sort="chg" title="Variación frente a la observación anterior de cada fuente">Var.</button></th>
                               <th className="ff-sp-num" id="ff-sp-h1"></th>
                               <th className="ff-sp-num" id="ff-sp-h2"></th>
@@ -861,16 +1114,11 @@ export default function Finanzas() {
               </aside>
           </section>
 
-              {/* ── Ficha por país ──────────────────────────────────────────────────
-                   El resto del panel muestra los datos dentro de gráficas o de la
-                   línea del tiempo. Aquí se exponen los números crudos del mercado
-                   que el usuario elija: qué instrumento es exactamente, su
-                   rendimiento, el cierre previo, la variación y la fuente. */}
               <section className="cf-block" id="country-factsheet" data-fin-scope="bonos" aria-labelledby="cf-title">
                   <header className="cf-head">
                       <div className="cf-copy">
-                          <small>Datos duros por mercado</small>
-                          <h3 id="cf-title">Ficha del país</h3>
+                          <small>Renta fija</small>
+                          <h3 id="cf-title">Perfil de pa&iacute;s</h3>
                           <p>Qué instrumento se está midiendo en cada país, con su rendimiento, cierre previo y fuente declarada.</p>
                       </div>
                       <label className="cf-picker">
@@ -912,7 +1160,7 @@ export default function Finanzas() {
 
                   <article className="debt-block debt-global-block">
                       <div className="debt-block-head sovereign-board-hero">
-                          <div className="sovereign-board-title"><span className="sovereign-board-title-icon"><i className="fas fa-globe"></i></span><div><small>Mesa internacional de renta fija</small><h3>Tasas soberanas globales</h3><p>Compara rendimiento, movimiento diario y prima relativa de cada mercado.</p></div></div>
+                          <div className="sovereign-board-title"><span className="sovereign-board-title-icon"><i className="fas fa-globe"></i></span><div><small>Renta fija</small><h3>Tasas soberanas globales</h3><p>Compara rendimiento, movimiento diario y prima relativa de cada mercado.</p></div></div>
                           <span id="debt-board-status">Cargando mercados</span>
                       </div>
                       <div className="sovereign-board-summary">
@@ -921,12 +1169,24 @@ export default function Finanzas() {
                           <div><span><i className="fas fa-scale-balanced"></i> Mediana global</span><strong id="debt-board-median">—</strong><small>Referencia para primas relativas</small></div>
                           <div><span><i className="fas fa-arrow-down-up-across-line"></i> Dispersión</span><strong id="debt-board-dispersion">—</strong><small>Máximo menos mínimo</small></div>
                       </div>
-                      {/* El filtro de plazo vivía en el comparativo internacional que se
-                           retiró, pero renderGlobalBondBoard depende de _globalBondMaturity
-                           para elegir qué bono muestra de cada país: se movió aquí. */}
-                      {/* El plazo queda fijo en 10 años: es el único vencimiento con
-                           cobertura en los 21 mercados. En 1Y/2Y/5Y/30Y sólo responden
-                           EE. UU. y un puñado más, así que el tablero se vaciaba. */}
+                      <div className="sovereign-board-insights" aria-label="Lecturas destacadas del mercado soberano">
+                          <article className="sov-insight is-high">
+                              <span><i className="fas fa-arrow-trend-up"></i> Mayor rendimiento</span>
+                              <strong id="sov-high-country">—</strong>
+                              <small id="sov-high-value">Esperando datos</small>
+                          </article>
+                          <article className="sov-insight is-low">
+                              <span><i className="fas fa-shield-halved"></i> Menor rendimiento</span>
+                              <strong id="sov-low-country">—</strong>
+                              <small id="sov-low-value">Esperando datos</small>
+                          </article>
+                          <article className="sov-insight is-move">
+                              <span><i className="fas fa-wave-square"></i> Mayor movimiento</span>
+                              <strong id="sov-move-country">—</strong>
+                              <small id="sov-move-value">Esperando datos</small>
+                          </article>
+                      </div>
+
                       <div className="sovereign-board-controls">
                           <div className="sov-filter-row">
                               <span className="sov-filter-label">Región</span>
@@ -941,29 +1201,24 @@ export default function Finanzas() {
                           <span className="sov-fixed-note"><i className="fas fa-lock"></i> Plazo fijo: bono soberano a 10 años</span>
                       </div>
 
-                      {/* Desagregación por región: no trae datos nuevos, agrega los
-                           mismos 21 mercados de la tabla para responder qué bloque
-                           paga más. Se calcula en renderGlobalBondBoard. */}
-                      <div className="sov-regions" id="sov-regions" data-fin-scope="bonos" aria-label="Mediana de rendimiento por región"></div>
-
-                      <div className="sov-table-head" aria-hidden="true">
-                          <span className="sov-th-rank">#</span>
-                          <span className="sov-th-country">Mercado</span>
-                          <span className="sov-th-bar">Rendimiento anual <em id="sov-axis-note">— eje común</em></span>
-                          <span className="sov-th-chg">Sesión</span>
-                          <span className="sov-th-spread">vs mediana</span>
+                      <div className="sov-matrix-head" aria-hidden="true">
+                          <span>Mercado soberano</span>
+                          <span>Rendimiento 10A</span>
+                          <span>Cierre previo</span>
+                          <span>Movimiento diario</span>
+                          <span>Prima vs mediana</span>
+                          <span>Posición global</span>
                       </div>
                       <div id="bonds-global" className="sovereign-board-table">
                           <div className="sk-block" style={{ height: '46px' }}></div>
                           <div className="sk-block" style={{ height: '46px' }}></div>
                           <div className="sk-block" style={{ height: '46px' }}></div>
                       </div>
-                      <div className="sovereign-board-footnote"><i className="fas fa-circle-info"></i><span>Todas las barras comparten el mismo eje, así que su longitud sí es comparable entre países. El color indica la posición frente a la mediana del plazo seleccionado, no contra un país específico.</span><small>Selecciona una fila para abrir su reporte.</small></div>
+                      {/* Desagregación por región: resume los mismos mercados de la
+                           matriz y queda después de la comparación principal. */}
+                      <div className="sov-regions" id="sov-regions" data-fin-scope="bonos" aria-label="Mediana de rendimiento por región"></div>
+                      <div className="sovereign-board-footnote"><i className="fas fa-circle-info"></i><span>La intensidad compara cada métrica dentro del universo visible. En movimiento diario, rojo indica aumento del rendimiento y verde una disminución.</span><small>Selecciona cualquier celda para abrir el reporte del país.</small></div>
                   </article>
-
-
-
-
               </div>
 
               <div id="bonds-loading" style={{ display: 'none', textAlign: 'center', color: '#bbb', fontSize: '.74rem', padding: '1.2rem 0', fontFamily: '\'Inter\',sans-serif' }}></div>
@@ -1105,38 +1360,44 @@ export default function Finanzas() {
           <section className="sb-panel" id="sectors-panel" aria-labelledby="sb-title">
               <header className="sb-head">
                   <div>
-                      <small>Renta variable global</small>
-                      <h3 id="sb-title">Emisoras por sector</h3>
-                      <p>Todas las acciones en una sola lista, agrupadas por sector económico y ordenadas por su variación de la sesión.</p>
+                      <small>Mercados globales</small>
+                      <h3 id="sb-title">An&aacute;lisis Sectorial</h3>
+                      <p>Composición, desempeño relativo y detalle de cada emisora en una sola lectura de la sesión.</p>
                   </div>
-                  <span className="sb-status" id="sb-status">Cargando…</span>
+                  <div className="sb-head-meta">
+                      <span className="sb-status" id="sb-status">Cargando…</span>
+                      <small>Periodo <strong>1D</strong></small>
+                  </div>
               </header>
 
-              <div className="sb-kpis" id="sb-kpis"></div>
+              <div className="sb-overview" id="sb-kpis" aria-label="Resumen sectorial"></div>
 
-              <div className="sb-section-title">
-                  <span>Comportamiento por sector</span>
-                  <small>Variación media de la sesión · barra sobre el cero</small>
-              </div>
-              <div className="sb-sectors" id="sb-sectors">
-                  <div className="sb-skeleton"></div><div className="sb-skeleton"></div><div className="sb-skeleton"></div>
-              </div>
-
-              <div className="sb-filter" id="sb-filter"></div>
-
-              <div className="sb-columns">
-                  <section className="sb-col gain">
-                      <header><span><i className="fas fa-arrow-up" aria-hidden="true"></i> Mayores ganancias</span><small id="sb-gain-count">—</small></header>
-                      <div id="sb-gainers"><div className="sb-skeleton"></div><div className="sb-skeleton"></div><div className="sb-skeleton"></div></div>
+              <div className="sb-dashboard">
+                  <section className="sb-visual sb-weighting" aria-labelledby="sb-weighting-title">
+                      <header>
+                          <div><span id="sb-weighting-title">Distribución sectorial</span><small>Participación por número de emisoras</small></div>
+                      </header>
+                      <div className="sb-donut-layout" id="sb-donut"><div className="sb-skeleton is-round"></div></div>
                   </section>
-                  <section className="sb-col loss">
-                      <header><span><i className="fas fa-arrow-down" aria-hidden="true"></i> Mayores pérdidas</span><small id="sb-loss-count">—</small></header>
-                      <div id="sb-losers"><div className="sb-skeleton"></div><div className="sb-skeleton"></div><div className="sb-skeleton"></div></div>
+
+                  <section className="sb-visual sb-performance" aria-labelledby="sb-performance-title">
+                      <header>
+                          <div><span id="sb-performance-title">Comparación de desempeño</span><small>Variación media · sesión actual</small></div>
+                      </header>
+                      <div className="sb-sectors" id="sb-sectors"><div className="sb-skeleton"></div><div className="sb-skeleton"></div><div className="sb-skeleton"></div></div>
+                  </section>
+
+                  <section className="sb-visual sb-matrix-panel" aria-labelledby="sb-matrix-title">
+                      <header>
+                          <div><span id="sb-matrix-title">Desempeño por emisora</span><small>Ordenadas de mayor a menor dentro del sector</small></div>
+                          <button type="button" className="sb-reset" id="sb-reset" onClick={() => window.setSectorFilter?.('all')} hidden>Ver todos</button>
+                      </header>
+                      <div className="sb-matrix-scroll" id="sb-heatmap"><div className="sb-skeleton"></div><div className="sb-skeleton"></div><div className="sb-skeleton"></div></div>
                   </section>
               </div>
 
               <footer className="sb-foot">
-                  <span><i className="fas fa-circle-info" aria-hidden="true"></i> El sector de cada emisora está definido en el propio código con la clasificación estándar del mercado: la API de cotizaciones no lo entrega. La variación por sector es la media simple de sus emisoras, no una media ponderada por capitalización.</span>
+                  <span><i className="fas fa-circle-info" aria-hidden="true"></i> La distribución representa cantidad de emisoras, no capitalización. La variación sectorial es la media simple del universo disponible.</span>
                   <small id="sb-source">Cotizaciones vía Yahoo Finance</small>
               </footer>
           </section>
@@ -1193,7 +1454,7 @@ export default function Finanzas() {
          <div id="bvmx-panel-anchor" aria-hidden="true"></div>
          <div className="panel market-chart-lab ff-market-terminal" id="bvmx-panel">
               <div className="market-chart-lab-head">
-                  <div className="market-chart-heading"><span><i className="fas fa-chart-area"></i></span><div><small>Centro de an&aacute;lisis burs&aacute;til</small><h3>Finanzas y gr&aacute;ficas</h3><p>Analiza acciones, &iacute;ndices, divisas, materias primas y cripto desde una sola vista.</p></div></div>
+                  <div className="market-chart-heading"><span><i className="fas fa-chart-area"></i></span><div><small>Mercados globales</small><h3>An&aacute;lisis Hist&oacute;ricos de Activo</h3><p>Analiza acciones, &iacute;ndices, divisas, materias primas y cripto desde una sola vista.</p></div></div>
                   <div className="ff-chart-head-status"><span><i aria-hidden="true"></i> Datos de mercado</span><small id="ch-updated">Preparando consulta&hellip;</small></div>
                   <div className="market-chart-controls">
                       <label className="ff-market-control ff-market-control-type">
@@ -1209,9 +1470,9 @@ export default function Finanzas() {
                       <label className="ff-market-control ff-market-control-asset">
                           <span>Instrumento</span>
                           <span className="ff-market-field"><i className="fas fa-magnifying-glass-chart" aria-hidden="true"></i>
-                      <select id="bmv-symbol" aria-label="Seleccionar instrumento financiero">
+                      <select id="bmv-symbol" aria-label="Seleccionar instrumento financiero" defaultValue="AAPL">
                           <optgroup label="🇺🇸 Estados Unidos (NYSE / NASDAQ)">
-                              <option value="AAPL" selected>Apple</option>
+                              <option value="AAPL">Apple</option>
                               <option value="MSFT">Microsoft</option>
                               <option value="NVDA">NVIDIA</option>
                               <option value="AMZN">Amazon</option>
@@ -1362,7 +1623,8 @@ export default function Finanzas() {
                            ocupaba una fila propia de 1394px para 539px de contenido.
                            #chart-type-title y #chart-type-note se conservan ocultos a la vista
                            (no a lectores de pantalla) porque syncChartTypeUI() escribe en ellos
-                           sin comprobar que existan, y alimentan el aria-label de la gráfica. */}
+                           sin comprobar que existan, y alimentan el aria-label de la gráfica ademas de agrtegan paramtrso para futura conexion a la api de gemini
+                           se tiene que contabilizar essos datos estadisticos para . */}
                       <fieldset className="ff-market-control ff-market-control-chart">
                           <legend>Gr&aacute;fico</legend>
                           <div className="chart-type-switch" id="chart-type-switch" role="group" aria-label="Tipo de gráfica">
@@ -1417,155 +1679,167 @@ export default function Finanzas() {
 
           </div>
           <section className="fx-pro" id="fx-pro-panel" style={{ marginBottom: '.7rem', display: 'none' }}>
-              <header className="fx-pro-hero">
-                  <div className="fx-pro-hero-copy">
-                      <span className="fx-pro-eyebrow"><i className="fas fa-money-bill-transfer"></i> Inteligencia cambiaria global</span>
-                      <h2>Mercado <em>Cambiario</em></h2>
-                      <p>Fortaleza del dólar, cruces internacionales, liquidez global y diferenciales de tasas en una sola mesa de análisis.</p>
-                  </div>
-                  <div className="fx-pro-hero-side">
-                      <span className="fx-session-status"><i></i> Mercado Forex</span>
-                      <small id="fx-pro-updated">Actualización en segundo plano</small>
-                  </div>
-              </header>
+              <section className="fcm-shell ff-world-map" id="currency-world-map" aria-labelledby="fcm-title">
+                  <header className="fcm-header ffwm-head">
+                      <div className="fcm-heading fbm-heading">
+                          <span className="fcm-kicker ff-kicker"><i className="fas fa-earth-americas" aria-hidden="true"></i> Conversor global</span>
+                          <h2 id="fcm-title">Mapa mundial de divisas</h2>
+                          <p>Elige una moneda base y señala un país para conocer la equivalencia con su moneda oficial. Invierte el cruce cuando quieras comparar en sentido contrario.</p>
+                      </div>
+                      <div className="fcm-header-meta fbm-header-meta">
+                          <span className="fcm-status fbm-status is-loading" id="fcm-status" role="status" aria-live="polite"><i className="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Conectando divisas</span>
+                          <label className="fcm-country-picker fbm-country-picker">
+                              <span>Ir a un país</span>
+                              <select id="fcm-country" aria-label="Seleccionar país en el mapa de divisas"><option value="">Elegir país&hellip;</option></select>
+                          </label>
+                      </div>
+                  </header>
 
-              <div className="fx-pro-kpi-grid" id="fx-pro-kpi-grid">
-                  <article className="fx-pro-kpi tone-eur report-card" role="button" tabIndex="0" onClick={(e) => { window.openFxDetail(0); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxDetail(0)); }}><span><i className="fas fa-euro-sign"></i></span><div><small>EUR / USD</small><strong id="fx-pro-eurusd">—</strong><em id="fx-pro-eurusd-chg">Euro frente al dólar</em></div></article>
-                  <article className="fx-pro-kpi tone-gbp report-card" role="button" tabIndex="0" onClick={(e) => { window.openFxDetail(1); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxDetail(1)); }}><span><i className="fas fa-sterling-sign"></i></span><div><small>GBP / USD</small><strong id="fx-pro-gbpusd">—</strong><em id="fx-pro-gbpusd-chg">Libra frente al dólar</em></div></article>
-                  <article className="fx-pro-kpi tone-dollar report-card" role="button" tabIndex="0" onClick={(e) => { window.openFxDetail(2); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxDetail(2)); }}><span><i className="fas fa-yen-sign"></i></span><div><small>USD / JPY</small><strong id="fx-pro-usdjpy">—</strong><em id="fx-pro-usdjpy-chg">Dólar frente al yen</em></div></article>
-                  <article className="fx-pro-kpi tone-dollar report-card" role="button" tabIndex="0" onClick={(e) => { window.openMacroDetail('dxy'); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openMacroDetail('dxy')); }}><span><i className="fas fa-chart-line"></i></span><div><small>Índice DXY</small><strong id="fx-pro-dxy">—</strong><em id="fx-pro-dxy-chg">Fortaleza del dólar</em></div></article>
-                  <article className="fx-pro-kpi tone-carry report-card" role="button" tabIndex="0" onClick={(e) => { window.openFxDetail(4); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxDetail(4)); }}><span><i className="fas fa-shield-halved"></i></span><div><small>USD / CHF</small><strong id="fx-pro-usdchf">—</strong><em id="fx-pro-usdchf-chg">Dólar frente al franco</em></div></article>
-                  <article className="fx-pro-kpi tone-breadth report-card" role="button" tabIndex="0" title="Abrir reporte de amplitud cambiaria" onClick={(e) => { window.openFxSectionReport('breadth'); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxSectionReport('breadth')); }}><span><i className="fas fa-earth-americas"></i></span><div><small>Amplitud del dólar</small><strong id="fx-pro-breadth">—</strong><em id="fx-pro-breadth-note">Cruces frente al USD</em></div></article>
-              </div>
+                  <div className="fcm-toolbar fbm-toolbar">
+                      <label className="fcm-base-control">
+                          <span>Moneda base</span>
+                          <select id="fcm-base" aria-label="Seleccionar moneda base"><option value="USD">USD · Dólar estadounidense</option></select>
+                      </label>
+                      <div className="fcm-converter" aria-label="Conversión seleccionada">
+                          <div><small id="fcm-from-code">USD</small><strong id="fcm-from-value">1</strong></div>
+                          <button type="button" id="fcm-invert" aria-label="Invertir conversión"><i className="fas fa-right-left" aria-hidden="true"></i></button>
+                          <div><small id="fcm-to-code">Selecciona un país</small><strong id="fcm-to-value">—</strong></div>
+                      </div>
+                  </div>
+
+                  <div className="fcm-color-key" aria-label="Leyenda de variación diaria">
+                      <span className="is-up"><i className="fas fa-arrow-trend-up" aria-hidden="true"></i><strong>Verde</strong> se fortalece</span>
+                      <span className="is-down"><i className="fas fa-arrow-trend-down" aria-hidden="true"></i><strong>Rojo</strong> se debilita</span>
+                      <span className="is-flat"><i className="fas fa-minus" aria-hidden="true"></i><strong>Gris</strong> sin comparación</span>
+                      <small id="fcm-color-base">Cambio diario frente a USD</small>
+                  </div>
+
+                  <div className="fcm-command ffwm-command">
+                      <div className="fcm-filters fbm-filters" role="group" aria-label="Filtrar países por región">
+                          <button type="button" className="is-active" data-fcm-filter="all" aria-pressed="true"><i className="fas fa-layer-group" aria-hidden="true"></i> Todos</button>
+                          <button type="button" data-fcm-filter="americas" aria-pressed="false"><i className="fas fa-earth-americas" aria-hidden="true"></i> Américas</button>
+                          <button type="button" data-fcm-filter="europe" aria-pressed="false"><i className="fas fa-earth-europe" aria-hidden="true"></i> Europa</button>
+                          <button type="button" data-fcm-filter="asia" aria-pressed="false"><i className="fas fa-earth-asia" aria-hidden="true"></i> Asia–Pacífico</button>
+                          <button type="button" data-fcm-filter="africa" aria-pressed="false"><i className="fas fa-earth-africa" aria-hidden="true"></i> África</button>
+                      </div>
+                      <span className="fcm-filter-status fbm-filter-status" id="fcm-filter-status" aria-live="polite">Vista global</span>
+                  </div>
+
+                  <div className="fcm-workspace fbm-workspace">
+                      <div className="fcm-map-wrap fbm-map-wrap" id="fcm-map-wrap">
+                          <div className="fcm-map-tools fbm-map-tools" role="group" aria-label="Controles de acercamiento del mapa de divisas">
+                              <button type="button" data-fcm-zoom="in" aria-label="Acercar mapa"><span>Acercar</span><i className="fas fa-plus" aria-hidden="true"></i></button>
+                              <button type="button" data-fcm-zoom="out" aria-label="Alejar mapa" disabled><span>Alejar</span><i className="fas fa-minus" aria-hidden="true"></i></button>
+                              <button type="button" data-fcm-zoom="reset" aria-label="Restablecer mapa"><span>Centrar</span><i className="fas fa-expand" aria-hidden="true"></i></button>
+                              <output id="fcm-zoom-value" aria-live="polite">100%</output>
+                          </div>
+                          <div className="fcm-map-stage fbm-map-stage" id="fcm-map-stage" tabIndex="0" aria-label="Mapa interactivo de equivalencias monetarias">
+                              <div className="fcm-map-canvas fbm-map-canvas" id="fcm-map-canvas"></div>
+                          </div>
+                          <div className="fcm-pan-hint fbm-pan-hint" aria-hidden="true"><i className="fas fa-hand" aria-hidden="true"></i><span>Arrastra para explorar</span></div>
+                          <div className="fcm-hover-tip fbm-hover-tip" id="fcm-hover-tip" role="tooltip" hidden></div>
+                          <div className="fcm-map-empty fbm-map-empty" id="fcm-map-empty" hidden><i className="fas fa-coins" aria-hidden="true"></i><strong>Sin equivalencia disponible</strong><span>Selecciona otra moneda base.</span></div>
+                      </div>
+                  </div>
+
+                  <footer className="fcm-footer fbm-footer">
+                      <div><span className="fbm-dot is-live"></span><strong>Verde: moneda sube</strong><small>Se fortalece frente a la base seleccionada</small></div>
+                      <div><span className="fbm-dot is-ref"></span><strong>Rojo: moneda baja</strong><small>Se debilita frente a la base seleccionada</small></div>
+                      <p><i className="fas fa-circle-info" aria-hidden="true"></i> Referencia informativa; puede diferir del precio bancario, efectivo o comisiones.</p>
+                  </footer>
+              </section>
+
 
               <section className="fx-history-lab" id="fx-history-lab" aria-labelledby="fx-history-title">
                   <header className="fx-history-head">
-                      <div>
-                          <span className="fx-history-eyebrow"><i className="fas fa-chart-line" aria-hidden="true"></i> Hist&oacute;rico y comparador</span>
+                      <div className="fx-history-head-copy">
+                          <span className="fx-history-eyebrow"><i className="fas fa-chart-line" aria-hidden="true"></i> Mercado global</span>
                           <h3 id="fx-history-title">Evoluci&oacute;n de monedas internacionales</h3>
                           <p>Selecciona un cruce, cambia el horizonte y comp&aacute;ralo contra otras monedas sobre una base com&uacute;n.</p>
                       </div>
-                      <span className="fx-history-live" id="fx-history-updated"><i></i> Consultando mercado</span>
+                      <div className="fx-history-head-side">
+                          <span className="fx-history-live" id="fx-history-updated"><i></i> Consultando mercado</span>
+                          <div className="fx-history-view-state" aria-live="polite">
+                              <span><small>Vista actual</small><strong id="fx-history-view-label">EUR / USD &middot; 1 a&ntilde;o &middot; Base 100</strong></span>
+                              <span><small>Series</small><strong id="fx-history-series-count">3</strong></span>
+                          </div>
+                      </div>
                   </header>
 
-                  <div className="fx-history-toolbar">
-                      <label className="fx-history-field">
-                          <span>Cruce principal</span>
-                          <select id="fx-history-primary" aria-label="Elegir cruce principal" defaultValue="EURUSD=X">
-                              <option value="EURUSD=X">EUR / USD</option>
-                              <option value="GBPUSD=X">GBP / USD</option><option value="USDJPY=X">USD / JPY</option>
-                              <option value="USDCAD=X">USD / CAD</option><option value="USDBRL=X">USD / BRL</option>
-                              <option value="USDCNY=X">USD / CNY</option><option value="USDCHF=X">USD / CHF</option>
-                              <option value="AUDUSD=X">AUD / USD</option><option value="NZDUSD=X">NZD / USD</option><option value="USDINR=X">USD / INR</option>
-                          </select>
-                      </label>
-                      <fieldset className="fx-history-periods" id="fx-history-periods">
-                          <legend>Periodo</legend>
-                          <button type="button" data-fx-period="5d">5D</button><button type="button" data-fx-period="1mo">1M</button>
-                          <button type="button" data-fx-period="3mo">3M</button><button type="button" className="is-active" data-fx-period="1y">1A</button>
-                          <button type="button" data-fx-period="5y">5A</button>
-                      </fieldset>
-                      <fieldset className="fx-history-modes" id="fx-history-modes">
-                          <legend>Lectura</legend>
-                          <button type="button" data-fx-mode="quote">Cotizaci&oacute;n</button>
-                          <button type="button" className="is-active" data-fx-mode="relative">Base 100</button>
-                      </fieldset>
-                  </div>
-
-                  <div className="fx-history-compare">
-                      <div><span>Comparar con</span><small>Activa hasta tres cruces adicionales</small></div>
-                          <div className="fx-history-chips" id="fx-history-chips" role="group" aria-label="Monedas para comparar">
-                              <button type="button" className="is-active" data-fx-compare="GBPUSD=X" aria-pressed="true">GBP / USD</button>
-                              <button type="button" className="is-active" data-fx-compare="USDJPY=X" aria-pressed="true">USD / JPY</button>
-                          <button type="button" data-fx-compare="USDBRL=X" aria-pressed="false">USD / BRL</button>
-                          <button type="button" data-fx-compare="USDCAD=X" aria-pressed="false">USD / CAD</button>
-                          <button type="button" data-fx-compare="USDCNY=X" aria-pressed="false">USD / CNY</button>
+                  <div className="fx-history-control-deck">
+                      <div className="fx-history-toolbar">
+                          <label className="fx-history-field">
+                              <span><b>1</b> Cruce principal</span>
+                              <select id="fx-history-primary" aria-label="Elegir cruce principal">
+                                  <option value="DX-Y.NYB">&Iacute;ndice DXY</option><option value="EURUSD=X">EUR / USD</option><option value="GBPUSD=X">GBP / USD</option><option value="USDJPY=X">USD / JPY</option><option value="USDCAD=X">USD / CAD</option><option value="USDBRL=X">USD / BRL</option><option value="USDCNY=X">USD / CNY</option><option value="USDCHF=X">USD / CHF</option><option value="AUDUSD=X">AUD / USD</option><option value="NZDUSD=X">NZD / USD</option><option value="USDINR=X">USD / INR</option>
+                              </select>
+                          </label>
+                          <fieldset className="fx-history-periods" id="fx-history-periods">
+                              <legend><b>2</b> Horizonte</legend>
+                              <button type="button" data-fx-period="5d">5D</button><button type="button" data-fx-period="1mo">1M</button><button type="button" data-fx-period="3mo">3M</button><button type="button" className="is-active" data-fx-period="1y">1A</button><button type="button" data-fx-period="5y">5A</button>
+                          </fieldset>
+                          <fieldset className="fx-history-modes" id="fx-history-modes">
+                              <legend><b>3</b> Lectura</legend>
+                              <button type="button" data-fx-mode="quote">Cotizaci&oacute;n</button><button type="button" className="is-active" data-fx-mode="relative">Base 100</button>
+                          </fieldset>
                       </div>
+                      <div className="fx-history-compare">
+                          <div><span><i className="fas fa-layer-group" aria-hidden="true"></i> Comparar con</span><small>Activa hasta tres cruces adicionales</small></div>
+                          <div className="fx-history-chips" id="fx-history-chips" role="group" aria-label="Monedas para comparar">
+                              <button type="button" className="is-active" data-fx-compare="GBPUSD=X" aria-pressed="true">GBP / USD</button><button type="button" className="is-active" data-fx-compare="USDJPY=X" aria-pressed="true">USD / JPY</button><button type="button" data-fx-compare="USDBRL=X" aria-pressed="false">USD / BRL</button><button type="button" data-fx-compare="USDCAD=X" aria-pressed="false">USD / CAD</button><button type="button" data-fx-compare="USDCNY=X" aria-pressed="false">USD / CNY</button>
+                          </div>
+                      </div>
+                      <p className="fx-history-mode-note" id="fx-history-mode-note" role="status" aria-live="polite"><i className="fas fa-circle-info" aria-hidden="true"></i> Base 100 muestra el rendimiento relativo de todas las monedas desde un mismo punto de partida.</p>
                   </div>
-                  <p className="fx-history-mode-note" id="fx-history-mode-note" role="status" aria-live="polite">
-                      <i className="fas fa-circle-info" aria-hidden="true"></i>
-                      Base 100 muestra el rendimiento relativo de todas las monedas desde un mismo punto de partida.
-                  </p>
 
                   <div className="fx-history-stats" aria-label="Resumen del cruce principal">
-                      <div><span>&Uacute;ltimo</span><strong id="fx-history-last">&mdash;</strong><small id="fx-history-last-label">EUR / USD</small></div>
-                      <div><span>Variaci&oacute;n</span><strong id="fx-history-change">&mdash;</strong><small>En el periodo seleccionado</small></div>
-                      <div><span>M&aacute;ximo</span><strong id="fx-history-high">&mdash;</strong><small>Mayor cierre observado</small></div>
-                      <div><span>M&iacute;nimo</span><strong id="fx-history-low">&mdash;</strong><small>Menor cierre observado</small></div>
-                      <div><span>Volatilidad</span><strong id="fx-history-vol">&mdash;</strong><small>Desviaci&oacute;n anualizada</small></div>
+                      <div className="is-primary"><i className="fas fa-bullseye" aria-hidden="true"></i><span>&Uacute;ltimo</span><strong id="fx-history-last">&mdash;</strong><small id="fx-history-last-label">EUR / USD</small></div>
+                      <div><i className="fas fa-arrow-trend-up" aria-hidden="true"></i><span>Variaci&oacute;n</span><strong id="fx-history-change">&mdash;</strong><small>Periodo seleccionado</small></div>
+                      <div><i className="fas fa-angles-up" aria-hidden="true"></i><span>M&aacute;ximo</span><strong id="fx-history-high">&mdash;</strong><small>Mayor cierre</small></div>
+                      <div><i className="fas fa-angles-down" aria-hidden="true"></i><span>M&iacute;nimo</span><strong id="fx-history-low">&mdash;</strong><small>Menor cierre</small></div>
+                      <div><i className="fas fa-wave-square" aria-hidden="true"></i><span>Volatilidad</span><strong id="fx-history-vol">&mdash;</strong><small>Desviaci&oacute;n anualizada</small></div>
                   </div>
 
-                  <div className="fx-history-chart-shell">
-                      <canvas id="fx-history-chart" role="img" aria-label="Gr&aacute;fica hist&oacute;rica comparativa de divisas"></canvas>
-                      <div className="fx-history-state" id="fx-history-state" role="status"><i className="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Cargando series cambiarias&hellip;</span></div>
-                  </div>
-                  <div className="fx-history-legend" id="fx-history-legend" aria-label="Series mostradas"></div>
-                  <div className="fx-history-table-wrap">
-                      <table>
-                          <thead><tr><th>Moneda</th><th>&Uacute;ltimo</th><th>Periodo</th><th>M&aacute;ximo</th><th>M&iacute;nimo</th><th>Observaciones</th></tr></thead>
-                          <tbody id="fx-history-table-body"><tr><td colSpan={6}>Esperando informaci&oacute;n de mercado&hellip;</td></tr></tbody>
-                      </table>
-                  </div>
+                  <section className="fx-history-visual" aria-labelledby="fx-history-visual-title">
+                      <header><div><small>Trayectoria comparada</small><strong id="fx-history-visual-title">Rendimiento relativo</strong></div><div className="fx-history-legend" id="fx-history-legend" aria-label="Series mostradas"></div></header>
+                      <div className="fx-history-chart-shell"><canvas id="fx-history-chart" role="img" aria-label="Gr&aacute;fica hist&oacute;rica comparativa de divisas"></canvas><div className="fx-history-state" id="fx-history-state" role="status"><i className="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Cargando series cambiarias&hellip;</span></div></div>
+                  </section>
+                  <details className="fx-history-data">
+                      <summary><span><i className="fas fa-table" aria-hidden="true"></i> Ver datos de la comparaci&oacute;n</span><small>Detalle num&eacute;rico</small><i className="fas fa-chevron-down" aria-hidden="true"></i></summary>
+                      <div className="fx-history-table-wrap"><table><thead><tr><th>Moneda</th><th>&Uacute;ltimo</th><th>Periodo</th><th>M&aacute;ximo</th><th>M&iacute;nimo</th><th>Observaciones</th></tr></thead><tbody id="fx-history-table-body"><tr><td colSpan="6">Esperando informaci&oacute;n de mercado&hellip;</td></tr></tbody></table></div>
+                  </details>
                   <footer><span><i className="fas fa-shield-halved" aria-hidden="true"></i> Series del proveedor financiero conectado</span><span>Base 100 compara rendimiento relativo; no iguala el nivel nominal de cada moneda.</span></footer>
               </section>
 
               <div className="fx-pro-main-grid">
                   <article className="fx-pro-block fx-pro-board-block">
-                      <div className="fx-pro-block-head"><div><small>Mesa global de divisas</small><h3>Cotizaciones internacionales</h3></div><span id="fx-pro-board-status">10 cruces globales</span></div>
+                      <div className="fx-pro-block-head"><div><small>Mercado global</small><h3>Cotizaciones internacionales</h3><p>Matriz de equivalencias cruzadas: cada celda indica cuántas unidades de la moneda de la columna equivale una unidad de la moneda de la fila.</p></div><span id="fx-pro-board-status">10 cruces globales</span></div>
                       <div className="fx-market-search" role="search" aria-label="Buscar monedas y cruces relevantes">
-                          <div className="fx-market-search-copy"><span><i className="fas fa-magnifying-glass" aria-hidden="true"></i></span><div><small>Explorador de monedas</small><strong>Busca por cruce, moneda o pa&iacute;s</strong><p>Universo curado de divisas l&iacute;quidas comparadas exclusivamente contra el d&oacute;lar estadounidense.</p></div></div>
+                          <div className="fx-market-search-copy"><span><i className="fas fa-magnifying-glass" aria-hidden="true"></i></span><div><small>Explorador de monedas</small><strong>Busca por cruce, moneda o pa&iacute;s</strong><p>Universo curado de divisas l&iacute;quidas con equivalencias cruzadas calculadas desde sus cotizaciones frente al d&oacute;lar.</p></div></div>
                           <div className="fx-market-search-control"><i className="fas fa-magnifying-glass" aria-hidden="true"></i><input id="fx-market-search-input" type="search" autoComplete="off" placeholder="Ej. EUR/USD, Brasil, yen, franco&hellip;" aria-describedby="fx-market-search-status" /><button id="fx-market-search-clear" type="button" aria-label="Limpiar b&uacute;squeda" hidden><i className="fas fa-xmark" aria-hidden="true"></i></button><kbd>/</kbd></div>
                           <span className="fx-market-search-status" id="fx-market-search-status" aria-live="polite">Mostrando cruces prioritarios</span>
                       </div>
-                      <div className="fx-pro-summary">
-                          <div><span>Mayor movimiento</span><strong id="fx-pro-largest">—</strong><small>Variación absoluta diaria</small></div>
-                          <div><span>Liderazgo global</span><strong id="fx-pro-pressure">—</strong><small>Divisa base con mayor avance</small></div>
-                          <div><span>Dispersión global</span><strong id="fx-pro-dispersion">—</strong><small>Rango entre cruces internacionales</small></div>
+                      <div className="fx-market-filterbar" id="fx-market-filterbar">
+                          <div><span>Explorar por segmento</span><small>Filtra la mesa sin perder el contexto del d&oacute;lar</small></div>
+                          <div role="group" aria-label="Filtrar cotizaciones por segmento">
+                              <button type="button" className="is-active" data-fx-segment="all" aria-pressed="true">Todos</button>
+                              <button type="button" data-fx-segment="g10" aria-pressed="false">G10</button>
+                              <button type="button" data-fx-segment="asia" aria-pressed="false">Asia</button>
+                              <button type="button" data-fx-segment="emerging" aria-pressed="false">Emergentes</button>
+                          </div>
                       </div>
-                      <div className="fx-pro-pair-grid" id="fx-pro-pair-grid">
+                      <div className="fx-pro-summary">
+                          <div><i className="fas fa-bolt" aria-hidden="true"></i><span>Mayor movimiento</span><strong id="fx-pro-largest">—</strong><small>Variación absoluta diaria</small></div>
+                          <div><i className="fas fa-ranking-star" aria-hidden="true"></i><span>Liderazgo global</span><strong id="fx-pro-pressure">—</strong><small>Divisa base con mayor avance</small></div>
+                          <div><i className="fas fa-arrows-left-right" aria-hidden="true"></i><span>Dispersión global</span><strong id="fx-pro-dispersion">—</strong><small>Rango entre cruces internacionales</small></div>
+                      </div>
+                      <div className="fx-matrix-legend" aria-label="Leyenda de la matriz cambiaria"><span><i className="is-up"></i> Moneda base gana</span><span><i className="is-down"></i> Moneda base cede</span><small>Señala una celda para consultar el cruce y su variación diaria.</small></div>
+                      <div className="fx-pro-pair-grid fx-rate-matrix" id="fx-pro-pair-grid" aria-label="Matriz de cotizaciones internacionales">
                           <div className="sk-block" style={{ height: '126px' }}></div><div className="sk-block" style={{ height: '126px' }}></div><div className="sk-block" style={{ height: '126px' }}></div>
                       </div>
                       <p className="fx-market-search-empty" id="fx-market-search-empty" hidden><i className="fas fa-magnifying-glass" aria-hidden="true"></i><strong>No encontramos ese cruce.</strong><span>Prueba con una moneda, un pa&iacute;s o una clave como USD, EUR, GBP o JPY.</span></p>
                   </article>
 
-                  <article className="fx-pro-block fx-pro-regime-block report-card" id="fx-pro-regime-panel" role="button" tabIndex="0" title="Abrir reporte del régimen cambiario" onClick={(e) => { window.openFxSectionReport('regime'); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxSectionReport('regime')); }}>
-                      <div className="fx-pro-block-head"><div><small>Modelo de lectura</small><h3>Régimen global del dólar</h3></div><span id="fx-pro-regime-badge">Evaluando</span></div>
-                      <div className="fx-regime-dashboard">
-                          <div className="fx-regime-gauge"><div><small>Fortaleza</small><strong id="fx-pro-score">50</strong><span>/100</span></div></div>
-                          <div className="fx-regime-copy"><span>Lectura actual</span><strong id="fx-pro-regime-title">Mercado equilibrado</strong><p id="fx-pro-regime-copy">El dólar se evaluará con el DXY, la amplitud global y el movimiento medio de sus principales cruces.</p></div>
-                      </div>
-                      <div className="fx-regime-scale"><i id="fx-pro-regime-marker"></i><div><span>Presión</span><span>Neutral</span><span>Fortaleza</span></div></div>
-                      <div className="fx-regime-signals">
-                          <div><i className="fas fa-dollar-sign"></i><span><small>Dólar global</small><strong id="fx-pro-signal-dollar">Pendiente</strong></span></div>
-                          <div><i className="fas fa-percent"></i><span><small>Amplitud USD</small><strong id="fx-pro-signal-breadth">Pendiente</strong></span></div>
-                          <div><i className="fas fa-wave-square"></i><span><small>Sesión global</small><strong id="fx-pro-signal-session">Pendiente</strong></span></div>
-                      </div>
-                  </article>
-
-                  <article className="fx-pro-block fx-pro-catalyst-block report-card" role="button" tabIndex="0" title="Abrir reporte de catalizadores cambiarios" onClick={(e) => { window.openFxSectionReport('catalysts'); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxSectionReport('catalysts')); }}>
-                      <div className="fx-pro-block-head"><div><small>Transmisión macro</small><h3>Catalizadores del mercado</h3></div><span>Qué vigilar</span></div>
-                      <div className="fx-catalyst-list">
-                          <div><span className="fx-catalyst-icon fed"><i className="fas fa-landmark"></i></span><div><small>Fed y bancos centrales</small><strong id="fx-catalyst-rates">Diferenciales de tasas pendientes</strong><p>La distancia entre la tasa de la Fed y las tasas globales guía el atractivo relativo del dólar.</p></div></div>
-                          <div><span className="fx-catalyst-icon dollar"><i className="fas fa-dollar-sign"></i></span><div><small>Dólar global</small><strong id="fx-catalyst-dollar">Esperando DXY</strong><p>Un dólar firme suele restringir liquidez y elevar presión sobre monedas emergentes.</p></div></div>
-                          <div><span className="fx-catalyst-icon oil"><i className="fas fa-water"></i></span><div><small>Liquidez y flujos</small><strong>Demanda internacional de dólares</strong><p>Comercio, deuda, reservas y cobertura corporativa determinan la demanda estructural de USD.</p></div></div>
-                          <div><span className="fx-catalyst-icon risk"><i className="fas fa-shield-halved"></i></span><div><small>Apetito de riesgo</small><strong id="fx-catalyst-risk">Volatilidad bajo observación</strong><p>Los episodios de aversión al riesgo pueden acelerar la demanda de dólares como activo refugio.</p></div></div>
-                      </div>
-                  </article>
-
-                  <article className="fx-pro-block fx-pro-emerging-block report-card" role="button" tabIndex="0" title="Abrir reporte de divisas emergentes" onClick={(e) => { window.openFxSectionReport('emerging'); }} onKeydown={(e) => { window.reportCardKey(e,()=>window.openFxSectionReport('emerging')); }}>
-                      <div className="fx-pro-block-head"><div><small>Comparación regional</small><h3>Divisas emergentes frente al dólar</h3></div><span>Variación diaria</span></div>
-                      <div className="advanced-chart-filter compact-filter" onClick={(e) => { e.stopPropagation(); }} onKeydown={(e) => { e.stopPropagation(); }}>
-                          <div><span className="advanced-chart-filter-icon"><i className="fas fa-sliders"></i></span><span><small>Tipo de gráfica</small><strong id="fx-chart-type-label">Ranking horizontal</strong></span></div>
-                          <div className="visual-type-switch" role="group" aria-label="Tipo de gráfica de divisas emergentes">
-                              <button type="button" className="active" data-fx-chart="ranking" onClick={(e) => { window.setFxChartType('ranking',e.currentTarget); }} aria-pressed="true"><i className="fas fa-bars-staggered"></i><span>Ranking</span></button>
-                              <button type="button" data-fx-chart="columns" onClick={(e) => { window.setFxChartType('columns',e.currentTarget); }} aria-pressed="false"><i className="fas fa-chart-column"></i><span>Columnas</span></button>
-                              <button type="button" data-fx-chart="line" onClick={(e) => { window.setFxChartType('line',e.currentTarget); }} aria-pressed="false"><i className="fas fa-chart-line"></i><span>Línea</span></button>
-                              <button type="button" data-fx-chart="radar" onClick={(e) => { window.setFxChartType('radar',e.currentTarget); }} aria-pressed="false"><i className="fas fa-bullseye"></i><span>Radar</span></button>
-                          </div>
-                      </div>
-                      <div className="fx-emerging-legend"><span><i className="positive"></i> Se fortalece frente al USD</span><span><i className="negative"></i> Se debilita frente al USD</span></div>
-                      <div className="fx-pro-chart-wrap"><canvas id="fx-pro-emerging-chart"></canvas></div>
-                  </article>
               </div>
 
           </section>
@@ -1583,15 +1857,6 @@ export default function Finanzas() {
                       <span style={{ color: '#94a3b8' }}><i className="fas fa-spinner fa-spin"></i> Cargando Ticker de Wall Street...</span>
                   </div>
               </div>
-
-              {/* HEADER */}
-              <header className="fx-pro-hero" style={{ marginBottom: '2rem' }}>
-                  <div className="fx-pro-hero-copy">
-                      <span className="fx-pro-eyebrow" style={{ color: '#0ea5e9', fontWeight: '900', letterSpacing: '1px', fontSize: '0.75rem' }}><i className="fas fa-satellite-dish"></i> Centro de Comando de Élite</span>
-                      <h2>Mercados <em className="gradient-text">Globales</em></h2>
-                      <p style={{ fontSize: '1.1rem' }}>Arquitectura Bento Box con análisis de micro-tendencias en tiempo real.</p>
-                  </div>
-              </header>
 
               {/* FASE 2: BENTO BOX ARCHITECTURE */}
               <div className="bento-grid">
@@ -1716,6 +1981,8 @@ export default function Finanzas() {
                           <aside><small>Monitor clave</small><strong id="energy-driver-monitor">Cuotas OPEP+ · producción no OPEP</strong><span id="energy-driver-signal">Menor oferta → presión alcista</span></aside>
                       </div>
                   </section>
+
+
 
           <div className="bottom-grid" id="fin-bottom-grid" style={{ display: 'none' }}>
               <div className="left-col">
@@ -2021,6 +2288,9 @@ export default function Finanzas() {
                   </div>
               </div>
           </div>
+
+
+
       <Footer />
     </>
   );

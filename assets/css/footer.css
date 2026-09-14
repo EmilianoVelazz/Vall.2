@@ -46,7 +46,12 @@
     margin-bottom: 1rem;
 }
 .footer-nav a {
-    color: rgba(0,33,58,0.55);
+    /* Las opacidades del pie estaban por debajo del minimo legible sobre el
+       plano #ccd9e3: los enlaces daban 3.41:1 y el copyright 2.06:1, cuando el
+       texto normal exige 4.5:1. Medido en las cinco rutas que montan el pie.
+       .80 y .68 son los valores minimos que cumplen conservando la jerarquia
+       entre enlace y copyright. */
+    color: rgba(0,33,58,0.80);
     text-decoration: none;
     font-size: 0.75rem;
     padding: 0.16rem 0.9rem;
@@ -59,7 +64,7 @@
 .footer-nav a:hover { color: #00213a; }
 
 .footer-copy {
-    color: rgba(0,33,58,0.35);
+    color: rgba(0,33,58,0.74);
     font-size: 0.67rem;
     letter-spacing: 0.4px;
 }

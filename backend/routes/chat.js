@@ -2,12 +2,16 @@
 const crypto = require('crypto');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const { GoogleGenAI } = require('@google/genai');
 const { genAI, modelForTier } = require('../lib/gemini');
 const { verifyToken } = require('./auth');
 const { orchestrator } = require('../ai/orchestrator');
 const { ragRetriever } = require('../ai/rag-retriever');
 const { getAttachments } = require('./attachments');
 const { selectModelTier } = require('../ai/prompt-builder');
+const { MODES } = require('../ai/response-schema');
+const { VOICE_DOMAIN_INSTRUCTION } = require('../ai/domain-policy');
+const { resolveCurrencyConversion } = require('../ai/currency-converter');
 
 const router = express.Router();
 // El historial, contexto y referencias de adjuntos pueden superar el parser
@@ -20,6 +24,81 @@ const aiLimiter = rateLimit({
     legacyHeaders: false,
     message: { error: 'Demasiadas solicitudes de IA. Intenta nuevamente en 15 minutos.' },
 });
+const liveTokenLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Demasiadas llamadas de voz. Intenta nuevamente en 15 minutos.' },
+});
+
+// `latest` es la variante de audio nativa habilitada para esta cuenta; la
+// configuración sigue pudiendo fijarse por entorno para despliegues futuros.
+const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-2.5-flash-native-audio-latest';
+const liveAi = process.env.GEMINI_API_KEY
+    ? new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        // La versión instalada del SDK crea y consume tokens efímeros en v1alpha.
+        httpOptions: { apiVersion: 'v1alpha' },
+    })
+    : null;
+
+function liveFxInstruction(conversion) {
+    if (!conversion) {
+        return 'No hay una cotización USD/MXN verificada disponible al inicio de esta llamada. Si preguntan por un tipo actual, dilo con claridad y no inventes ni repitas una cifra de memoria.';
+    }
+    const rate = conversion.rate.toLocaleString('en-US', { maximumFractionDigits: 4 });
+    const timestamp = conversion.updatedAt ? ` Actualización del proveedor: ${conversion.updatedAt}.` : '';
+    return `COTIZACIÓN USD/MXN VERIFICADA PARA ESTA LLAMADA: 1 USD = ${rate} MXN. Fuente: ${conversion.source}.${timestamp} Si preguntan cuánto equivale un dólar, responde esta cifra exacta primero. Para otro importe, multiplícalo por ${rate}; nunca sustituyas este dato por una cotización de memoria. Aclara brevemente que bancos, tarjetas y casas de cambio aplican spread o comisiones.`;
+}
+
+function liveSessionConfig(fxConversion = null) {
+    return {
+        responseModalities: ['AUDIO'],
+        // 2.5 permite apagar el razonamiento previo para empezar a hablar antes;
+        // 3.x usa el nivel equivalente "minimal".
+        thinkingConfig: LIVE_MODEL.startsWith('gemini-2.5')
+            ? { thinkingBudget: 0 }
+            : { thinkingLevel: 'minimal' },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
+        realtimeInputConfig: {
+            automaticActivityDetection: {
+                disabled: false,
+                startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
+                endOfSpeechSensitivity: 'END_SENSITIVITY_HIGH',
+                prefixPaddingMs: 80,
+                silenceDurationMs: 350,
+            },
+            activityHandling: 'START_OF_ACTIVITY_INTERRUPTS',
+            turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
+        },
+        contextWindowCompression: {
+            triggerTokens: '12000',
+            slidingWindow: { targetTokens: '6000' },
+        },
+        sessionResumption: {},
+        speechConfig: {
+            voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: process.env.GEMINI_LIVE_VOICE || 'Sulafat' },
+            },
+        },
+        systemInstruction: [
+            'Eres VALL AI, un asistente profesional de inteligencia económica.',
+            VOICE_DOMAIN_INSTRUCTION,
+            'RESPONDE EN ESPAÑOL DE MÉXICO. DEBES RESPONDER INEQUÍVOCAMENTE EN ESPAÑOL.',
+            'Habla como un colega inteligente, cálido y espontáneo, no como locutor, robot, formulario ni texto leído.',
+            'Usa entonación expresiva, ritmo relajado, pausas naturales y pequeñas variaciones de cadencia. No recites encabezados, listas Markdown ni etiquetas.',
+            'Puedes reconocer brevemente lo que dijo la persona y luego contestar. Usa palabras cotidianas y frases fluidas; evita repetir siempre la misma entrada o cierre.',
+            'Antes de contestar, identifica en silencio la pregunta concreta, el periodo, el mercado o país y la decisión implícita. Da primero la respuesta útil y luego la razón; evita definiciones de manual y generalidades.',
+            'Responde directamente y conserva el contexto de toda la llamada. Si la pregunta es sencilla, contesta en 2 a 4 frases. Si es compleja, desarrolla una explicación clara con: conclusión, dos o tres factores específicos, riesgo principal y qué dato vigilar.',
+            'Si algo no quedó claro, haz una pregunta breve y natural en vez de asumir. Permite que el usuario te interrumpa y retoma sin reclamarle.',
+            'Si te piden un informe, ofrece un resumen ejecutivo concreto y desarrolla los puntos prioritarios que el usuario pida. Indica que el chat escrito genera el informe completo de al menos 900 palabras, con datos, fuentes, tablas y exportación.',
+            liveFxInstruction(fxConversion),
+            'No inventes cifras actuales ni fuentes. Cuando exista una cotización verificada en esta instrucción, úsala antes que tu memoria. Si no puedes verificar otro dato durante la llamada, dilo claramente y propone consultarlo en el chat escrito de VALL AI.',
+        ].join(' '),
+    };
+}
 
 function publicAiError(err) {
     if (err?.code === 'AI_RATE_LIMIT' || /429|quota/i.test(err?.message || '')) return { status: 429, message: 'Cuota de IA agotada temporalmente. Intenta más tarde.' };
@@ -32,12 +111,13 @@ function publicAiError(err) {
 function structuredInput(body = {}, user = null) {
     const message = String(body.message || body.prompt || body.query || body.text || '').trim().slice(0, 12000);
     const attachments = getAttachments(body.attachmentIds, user);
+    const requestedMode = MODES.has(body.mode) ? body.mode : 'auto';
     return {
         message,
         context: String(body.context || '').trim().slice(0, 18000),
         history: Array.isArray(body.history) ? body.history.slice(-16) : [],
-        mode: 'auto',
-        tier: selectModelTier({ message, mode: 'auto', attachments }),
+        mode: requestedMode,
+        tier: selectModelTier({ message, mode: requestedMode, attachments }),
         attachments,
         userKeyHash: hashUser(user),
     };
@@ -49,6 +129,37 @@ function hashUser(user) {
         ? crypto.createHash('sha256').update(`vall-ai:${identity}`).digest('hex')
         : null;
 }
+
+// Token efímero para Gemini Live. La credencial permanente permanece en el
+// servidor; el token solo abre una llamada, con modelo y configuración fijados.
+router.post('/ai-live-token', chatJson, verifyToken, liveTokenLimiter, async (_req, res) => {
+    if (!liveAi) return res.status(503).json({ success: false, error: 'Voz con IA no configurada en el servidor.' });
+
+    const now = Date.now();
+    const expiresAt = new Date(now + 30 * 60 * 1000).toISOString();
+    const newSessionExpiresAt = new Date(now + 2 * 60 * 1000).toISOString();
+    try {
+        // Gemini Live no tiene herramientas de mercado conectadas dentro del
+        // socket de audio. Inyectamos la referencia actual al abrir la llamada
+        // para impedir cotizaciones inventadas o desactualizadas.
+        const fxConversion = await resolveCurrencyConversion('Convierte 1 dólar estadounidense a pesos mexicanos');
+        const config = liveSessionConfig(fxConversion);
+        const token = await liveAi.authTokens.create({
+            config: {
+                uses: 1,
+                expireTime: expiresAt,
+                newSessionExpireTime: newSessionExpiresAt,
+                liveConnectConstraints: { model: LIVE_MODEL, config },
+            },
+        });
+        if (!token?.name) throw new Error('El proveedor no devolvió un token efímero.');
+        res.json({ success: true, token: token.name, model: LIVE_MODEL, config, expiresAt });
+    } catch (err) {
+        console.error('/api/ai-live-token error:', err.message);
+        const safe = publicAiError(err);
+        res.status(safe.status).json({ success: false, error: safe.message });
+    }
+});
 
 router.post('/chat', chatJson, verifyToken, aiLimiter, async (req, res) => {
     const message = (req.body?.message || '').toString().trim().slice(0, 12000);
@@ -135,7 +246,8 @@ router.post('/ai-insight', chatJson, verifyToken, aiLimiter, async (req, res) =>
 router.post('/ai-insight-stream', chatJson, verifyToken, aiLimiter, async (req, res) => {
     const prompt       = (req.body?.prompt || req.body?.message || req.body?.query || '').toString().trim().slice(0, 12000);
     const systemPrompt = (req.body?.systemPrompt || '').toString().trim().slice(0, 6000);
-    const tier          = selectModelTier({ message: prompt, mode: 'auto' });
+    const requestedMode = MODES.has(req.body?.mode) ? req.body.mode : 'auto';
+    const tier          = selectModelTier({ message: prompt, mode: requestedMode });
     const wantsStructured = req.body?.structured === true || Boolean(req.body?.message && !req.body?.systemPrompt);
     const richInput = structuredInput(req.body, req.user);
     if (!(wantsStructured ? richInput.message : prompt)) return res.status(400).json({ error: 'Prompt vacío' });
@@ -173,7 +285,10 @@ router.post('/ai-insight-stream', chatJson, verifyToken, aiLimiter, async (req, 
                 finalText: result.text });
         } catch (err) {
             console.error('/api/ai-insight-stream structured error:', err.message);
-            send({ error: publicAiError(err).message, code: err.code || 'AI_ERROR' });
+            // Si ya hubo texto en pantalla, conservarlo es preferible a
+            // reemplazar una respuesta útil por un fallo de cierre/persistencia.
+            if (sentText) send({ done: true, tier: richInput.tier, mode: richInput.mode, warning: publicAiError(err).message });
+            else send({ error: publicAiError(err).message, code: err.code || 'AI_ERROR' });
         } finally {
             res.end();
         }
@@ -223,3 +338,6 @@ module.exports = router;
 // Exportación auxiliar para probar el contrato sin levantar el servidor.
 module.exports.structuredInput = structuredInput;
 module.exports.hashUser = hashUser;
+module.exports.liveSessionConfig = liveSessionConfig;
+module.exports.LIVE_MODEL = LIVE_MODEL;
+module.exports.liveFxInstruction = liveFxInstruction;

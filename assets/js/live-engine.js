@@ -3,8 +3,12 @@
 (function VallLive() {
 
     // ── Configuración ──────────────────────────────────────────
-    // Relative URL on Vercel (same domain); localhost for local dev.
-    const BACKEND = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    // Siempre relativo. Antes apuntaba a http://localhost:3001 en desarrollo,
+    // pero eso es una URL cruzada que fija el puerto del backend: al moverlo
+    // este motor seguia llamando a un puerto vacio. En relativo, Vite lo pasa
+    // por su proxy y Express lo sirve desde su propio origen. En Vercel ya era
+    // relativo, asi que ese caso no cambia.
+    const BACKEND = '';
     // Nota: VDS.load() ya retorna de inmediato si el caché de 12h sigue vigente,
     // sin tocar la red — revisar seguido no gasta cuota, solo permite detectar
     // a tiempo el momento exacto en que el caché expira durante una sesión larga.
@@ -430,9 +434,27 @@
             if (isNum(crude?.price))    items.push({ lbl:'WTI',        val:`$${fmt(crude.price)}/bbl`,   cls: pctCls(crude.pct) });
             if (isNum(qqq?.price))      items.push({ lbl:'NASDAQ QQQ', val:`$${fmt(qqq.price)}`,         cls: pctCls(qqq.pct) });
 
+            // El pulso permanece aunque la cinta bursátil superior ya no se
+            // monte: consume el mismo estado sin repetir consultas.
+            const rateForPulse = isNum(fix) ? fix : (isNum(usdmxn) ? usdmxn : null);
+            if (isNum(rateForPulse)) set('pulse-usdmxn', `$${fmt(rateForPulse)}`);
+            if (isNum(tiie)) set('pulse-tiie', `${fmt(tiie)}%`);
+            if (isNum(corn?.price)) set('pulse-corn', `$${fmt(corn.price)}`);
+            if (isNum(crude?.price)) set('pulse-wti', `$${fmt(crude.price)}`);
+
+            const setPulseChange = (id, pct) => {
+                const el = $(id);
+                if (!el || !isNum(pct)) return;
+                el.textContent = `${pct >= 0 ? '+' : ''}${fmt(pct)}%`;
+                el.classList.toggle('is-up', pct >= 0);
+                el.classList.toggle('is-down', pct < 0);
+            };
+            setPulseChange('pulse-corn-change', corn?.pct);
+            setPulseChange('pulse-wti-change', crude?.pct);
+
+            // Compatibilidad con páginas heredadas que todavía monten la cinta.
             const inner = $('tickerInner');
             if (!inner || !items.length) return;
-
             const esc = s => String(s).replace(/[<>&]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;' }[c]));
             const mkItem = ({ lbl, val, cls }) =>
                 `<span class="tk-item"><span class="tk-lbl">${esc(lbl)}</span><span class="tk-val ${cls}">${esc(val)}</span></span>`;

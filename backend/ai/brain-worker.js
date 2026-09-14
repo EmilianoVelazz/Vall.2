@@ -1,6 +1,11 @@
 'use strict';
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+
+// Este worker produce propuestas de mejora. Ninguna propuesta altera prompts ni
+// reglas activas hasta que una persona la revise y la publique explícitamente.
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 const { GeminiProvider } = require('./providers/gemini-provider');
 
 let pool = null;
@@ -14,34 +19,29 @@ function getPool() {
             password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || '',
             database: process.env.DB_NAME || process.env.DB_DATABASE || process.env.MYSQL_DATABASE || 'vall_',
             charset: 'utf8mb4',
-            connectionLimit: 4
+            connectionLimit: 4,
         });
-    }
+    }                   Q
     return pool;
 }
 
-const SYSTEM_INSTRUCTION = `Eres el "Cerebro Crítico" de VALL-AI. Tu trabajo es analizar interacciones pasadas entre un usuario y la IA, y determinar si la respuesta de la IA fue óptima, o si se puede extraer una regla heurística (lección) para mejorar en el futuro.
-Evalúa:
-1. ¿La respuesta fue genérica?
-2. ¿Se ignoró el contexto implícito?
-3. ¿Pudo ser más precisa o mejor formateada?
+const SYSTEM_INSTRUCTION = `Eres el Cerebro Crítico de VALL-AI. Evalúa una interacción pasada y, si hay una mejora generalizable, propone una regla para revisión humana. No cambies configuraciones ni declares que la regla está aprobada.
+Devuelve exclusivamente JSON válido: {"needsRule":false} o {"needsRule":true,"condition_trigger":"...","learned_rule":"..."}.`;
 
-Si la respuesta fue perfecta, devuelve:
-{"needsRule": false}
-
-Si encuentras una oportunidad clara de mejora, destila una regla universal y devuelve:
-{
-  "needsRule": true,
-  "condition_trigger": "Palabras clave o condición donde aplica (ej. 'hablar de tasas de interés' o 'comparar monedas')",
-  "learned_rule": "La instrucción precisa y atemporal que la IA debe seguir en el futuro para no cometer este error."
+function saveRuleProposal(rule) {
+    const output = path.join(__dirname, '../cache/brain-proposals.json');
+    let proposals = [];
+    try { proposals = JSON.parse(fs.readFileSync(output, 'utf8')); } catch { /* primera propuesta */ }
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+    proposals.push({ ...rule, status: 'pending_human_review', created_at: new Date().toISOString() });
+    fs.writeFileSync(output, JSON.stringify(proposals.slice(-200), null, 2), 'utf8');
 }
-Devuelve EXCLUSIVAMENTE un objeto JSON válido.`;
 
 async function evaluateQueries() {
     const db = getPool();
     try {
         const [queries] = await db.execute(
-            `SELECT q.id, q.question_text, q.response_text, f.correction_text, f.rating
+            `SELECT q.id, q.question_text, q.response_text, f.correction_text
              FROM ai_queries q
              LEFT JOIN ai_feedback f ON f.query_id = q.id
              WHERE q.evaluated_by_brain = FALSE AND q.response_text IS NOT NULL
@@ -52,31 +52,26 @@ async function evaluateQueries() {
         const ai = new GeminiProvider();
         if (!ai.isConfigured()) return;
 
-        for (const q of queries) {
-            const prompt = `[PREGUNTA DEL USUARIO]\n${q.question_text}\n\n[RESPUESTA DE LA IA]\n${q.response_text}\n\n${q.correction_text ? `[CORRECCIÓN DEL USUARIO]\n${q.correction_text}\n` : ''}\nEvalúa y extrae una regla si es necesario.`;
-            
+        for (const query of queries) {
+            const prompt = `[PREGUNTA DEL USUARIO]\n${query.question_text}\n\n[RESPUESTA DE LA IA]\n${query.response_text}\n\n${query.correction_text ? `[CORRECCIÓN DEL USUARIO]\n${query.correction_text}\n` : ''}\nEvalúa y extrae una propuesta si es necesaria.`;
+            let evaluated = false;
             try {
-                const response = await ai.generate({
-                    prompt,
-                    systemInstruction: SYSTEM_INSTRUCTION,
-                    tier: 'flash',
-                    json: true
-                });
-                
+                const response = await ai.generate({ prompt, systemInstruction: SYSTEM_INSTRUCTION, tier: 'flash', json: true });
                 const result = JSON.parse(response.text);
                 if (result.needsRule && result.condition_trigger && result.learned_rule) {
-                    await db.execute(
-                        `INSERT INTO ai_neural_rules (condition_trigger, learned_rule, source_query_id) VALUES (?, ?, ?)`,
-                        [result.condition_trigger, result.learned_rule, q.id]
-                    );
-                    console.log(`[Cerebro] Nueva regla aprendida: "${result.condition_trigger}"`);
+                    saveRuleProposal({
+                        condition_trigger: String(result.condition_trigger).slice(0, 200),
+                        learned_rule: String(result.learned_rule).slice(0, 800),
+                        source_query_id: query.id,
+                    });
+                    console.log(`[Cerebro] Propuesta guardada para revisión humana: "${result.condition_trigger}"`);
                 }
+                evaluated = true;
             } catch (error) {
-                console.error(`[Cerebro] Error evaluando query ${q.id}:`, error.message);
+                console.error(`[Cerebro] Error evaluando query ${query.id}:`, error.message);
             }
-            
-            // Mark as evaluated regardless of success to avoid infinite loops
-            await db.execute(`UPDATE ai_queries SET evaluated_by_brain = TRUE WHERE id = ?`, [q.id]);
+            // Los errores se reintentan después; no se descartan consultas sin revisar.
+            if (evaluated) await db.execute(`UPDATE ai_queries SET evaluated_by_brain = TRUE WHERE id = ?`, [query.id]);
         }
     } catch (error) {
         if (!['ECONNREFUSED', 'PROTOCOL_CONNECTION_LOST'].includes(error.code)) {
@@ -85,13 +80,17 @@ async function evaluateQueries() {
     }
 }
 
-function startWorker(intervalMs = 600000) { // Default: 10 mins
-    console.log('[Cerebro] Worker de aprendizaje autónomo iniciado.');
-    // Ejecutar una vez al inicio (después de 30s) y luego cíclicamente
+function startWorker(intervalMs = 600000) {
+    if (process.env.VALL_BRAIN_ENABLED !== 'true') {
+        console.log('[Cerebro] Worker desactivado. Define VALL_BRAIN_ENABLED=true tras habilitar una revisión humana de reglas.');
+        return false;
+    }
+    console.log('[Cerebro] Worker consultivo iniciado.');
     setTimeout(() => {
         evaluateQueries();
         setInterval(evaluateQueries, intervalMs);
     }, 30000);
+    return true;
 }
 
-module.exports = { startWorker, evaluateQueries };
+module.exports = { evaluateQueries, startWorker };

@@ -219,10 +219,10 @@
 
     const colors = { blue: '#246bfe', cyan: '#40a6c7', navy: '#0c2d44', gold: '#c99745', green: '#16825d', red: '#c94a56', grid: 'rgba(16,32,46,.08)' };
 
-    /* Paleta propia de las minigráficas de bolsas: vino y azul en lugar de rojo y
-       verde. Deliberadamente separada de `colors`, que alimenta ~15 gráficas más
-       de la página (barras, curvas, otros sparklines) y debe seguir igual. */
-    const EXCHANGE_CHART_COLORS = { up: '#1d63b8', down: '#9b2a45' };
+    /* En Bolsa, verde y rojo tienen un único significado: recorrido positivo o
+       negativo. Se evita el azul eléctrico para que las minigráficas compartan
+       el mismo lenguaje semántico que el mapa mundial. */
+    const EXCHANGE_CHART_COLORS = { up: '#5ec9b1', down: '#ef7d8a' };
 
     function hexToRgba(hex, alpha) {
         const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -729,10 +729,10 @@
                 .filter((c, i, arr) => i === 0 || c.t !== arr[i - 1].t);
 
             const darkFinance = document.body.classList.contains('vn-dark-finanzas');
-            const axisInk  = darkFinance ? '#9fb0be' : '#64748b';
-            const gridLine = darkFinance ? 'rgba(159,176,190,.11)' : 'rgba(15,42,64,.07)';
-            const crosshairLine = darkFinance ? 'rgba(201,215,226,.3)' : 'rgba(15,42,64,.32)';
-            const crosshairLabel = darkFinance ? '#702b45' : '#0c2d44';
+            const axisInk  = darkFinance ? '#a6b5c1' : '#64748b';
+            const gridLine = darkFinance ? 'rgba(166,181,193,.14)' : 'rgba(15,42,64,.07)';
+            const crosshairLine = darkFinance ? 'rgba(204,217,227,.34)' : 'rgba(15,42,64,.32)';
+            const crosshairLabel = darkFinance ? '#843f59' : '#0c2d44';
 
             const chart = LightweightCharts.createChart(container, {
                 width: w,
@@ -958,7 +958,7 @@
             const dataBox = document.createElement('div');
             dataBox.className = 'ff-exchange-data-box';
             dataBox.innerHTML = `
-                <h4 class="ff-data-box-title">${exchange.name}</h4>
+                <div class="ff-data-box-title"><span>Datos de sesión</span><strong>${exchange.name}</strong></div>
                 <ul class="ff-data-box-list">
                     <li><span class="ff-data-label">Región</span><span class="ff-data-value">${exchange.region}</span></li>
                     <li><span class="ff-data-label">Mercado</span><span class="ff-data-value">${exchange.market}</span></li>
@@ -1356,11 +1356,12 @@
         });
         if ($('ff-card-cetes91')) $('ff-card-cetes91').textContent = formatYield(state.mxRates?.cetes?.find(item => item.label === '91D')?.yield);
         if ($('ff-card-premium')) $('ff-card-premium').textContent = Number.isFinite(premium) ? `${premium >= 0 ? '+' : ''}${premium.toFixed(2)} pp` : '—';
-        $('ff-card-curve').textContent = Number.isFinite(curve) ? `${curve >= 0 ? '+' : ''}${curve.toFixed(2)} pp` : '—';
-        $('ff-q-curve').textContent = $('ff-card-curve').textContent;
-        $('ff-card-real').textContent = Number.isFinite(real) ? `${real >= 0 ? '+' : ''}${real.toFixed(2)}%` : '—';
-        $('ff-card-carry').textContent = Number.isFinite(carry) ? `${carry >= 0 ? '+' : ''}${carry.toFixed(2)} pp` : '—';
-        $('ff-card-curve-state').textContent = !Number.isFinite(curve) ? 'Esperando curva' : curve < 0 ? 'Curva invertida' : curve < .35 ? 'Curva plana' : 'Curva positiva';
+        const curveText = Number.isFinite(curve) ? `${curve >= 0 ? '+' : ''}${curve.toFixed(2)} pp` : '—';
+        escribir('ff-card-curve', curveText);
+        escribir('ff-q-curve', curveText);
+        escribir('ff-card-real', Number.isFinite(real) ? `${real >= 0 ? '+' : ''}${real.toFixed(2)}%` : '—');
+        escribir('ff-card-carry', Number.isFinite(carry) ? `${carry >= 0 ? '+' : ''}${carry.toFixed(2)} pp` : '—');
+        escribir('ff-card-curve-state', !Number.isFinite(curve) ? 'Esperando curva' : curve < 0 ? 'Curva invertida' : curve < .35 ? 'Curva plana' : 'Curva positiva');
         const daily = isNumeric(us10?.prev) ? +us10.yield - +us10.prev : null;
         const dailyText = Number.isFinite(daily) ? `${daily >= 0 ? '+' : ''}${daily.toFixed(2)} pp vs. anterior` : 'Rendimiento actual';
         if ($('ff-card-us10y-delta')) $('ff-card-us10y-delta').textContent = dailyText;
@@ -1412,13 +1413,13 @@
            ya existe un módulo heredado con la clave "bonos" (legacySection) y
            renombrarla aquí haría que ambos colisionaran. */
         rendimientos: {
-            eyebrow: 'Renta fija · análisis de curva',
-            title: 'Bonos',
-            description: 'Tasas monetarias, CETES, bonos soberanos, diferenciales a 10 años y series históricas de renta fija.',
+            eyebrow: 'Renta fija',
+            title: 'Bonos y Tasas',
+            description: '',
             legacySection: 'bonos',
         },
         divisas: {
-            eyebrow: 'Mercado cambiario global',
+            eyebrow: 'Mercado global',
             title: 'Divisas',
             description: 'Tipos de cambio en tiempo real, series históricas y comparación relativa entre monedas internacionales.',
             legacySection: 'mexico',
@@ -1440,7 +1441,11 @@
         const cfg = detailConfig[name];
         $('ff-detail-eyebrow').textContent = cfg.eyebrow;
         $('ff-detail-title').textContent = cfg.title;
-        $('ff-detail-description').textContent = cfg.description;
+        /* Bonos ya no lleva bajada: sin ocultar el <p>, el vacío seguiría
+           reservando su margen bajo el título. */
+        const detalle = $('ff-detail-description');
+        detalle.textContent = cfg.description;
+        detalle.hidden = !cfg.description;
         document.querySelectorAll('[data-detail-module]').forEach(button => {
             const active = button.dataset.detailModule === name;
             button.classList.toggle('is-active', active);
@@ -1464,7 +1469,7 @@
     function setLegacyBondView(name) {
         const presentation = {
             rendimientos: {
-                eyebrow: 'Monitor de curvas y diferenciales',
+                eyebrow: 'Renta fija',
                 title: 'Bonos',
                 copy: 'Pendiente de la curva, primas por plazo, rendimiento por vencimiento y señales del ciclo financiero.',
                 chartTitle: 'Estructura global de rendimientos',
@@ -1596,6 +1601,11 @@
             if (legacyLayout) legacyLayout.style.display = 'none';
             if (equityChart) equityChart.style.display = 'none';
             if (fxPanel) fxPanel.style.display = '';
+            /* Igual que Daily News, Divisas no muestra la barra de estado; se
+               oculta ya aquí para que no parpadee con el texto de la sección
+               anterior antes de que setFinanceSectionStatus la reevalúe. */
+            const fxStatus = $('fin-section-status');
+            if (fxStatus) fxStatus.hidden = true;
             if (typeof window.loadFxHistoricalLab === 'function') window.loadFxHistoricalLab();
         }
         // El tablero por sector vive en el script en línea de finanzas.html, así
@@ -1731,8 +1741,8 @@
         
         const options = chartDefaults();
         const darkFinance = document.body.classList.contains('vn-dark-finanzas');
-        const supplementAxis = darkFinance ? '#9fb0be' : '#687887';
-        const supplementGrid = darkFinance ? 'rgba(159,176,190,.12)' : colors.grid;
+        const supplementAxis = darkFinance ? '#a6b5c1' : '#687887';
+        const supplementGrid = darkFinance ? 'rgba(166,181,193,.15)' : colors.grid;
         options.animation.duration = 260;
         options.plugins.legend.display = isPie ? true : datasets.length > 1;
         options.plugins.legend.position = isPie ? 'right' : 'bottom';
@@ -1744,8 +1754,11 @@
             
             datasets.forEach(d => {
                 if (Array.isArray(d.data)) {
-                    d.backgroundColor = d.data.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 55%)`);
-                    d.borderColor = darkFinance ? '#121f2c' : '#ffffff';
+                    if (!Array.isArray(d.backgroundColor)) {
+                        const tonos = ['#d16283', '#7893a8', '#607d93', '#4d6a80', '#91a8b9', '#3f5b70'];
+                        d.backgroundColor = d.data.map((_, i) => tonos[i % tonos.length]);
+                    }
+                    d.borderColor = darkFinance ? '#243546' : '#ffffff';
                     d.borderWidth = 2;
                 }
             });
@@ -1763,13 +1776,8 @@
             datasets.forEach(d => {
                 d.fill = true;
                 d.tension = 0.35;
-                if (!Array.isArray(d.backgroundColor)) {
-                    d.backgroundColor = 'rgba(14, 165, 233, 0.15)';
-                    d.borderColor = '#0ea5e9';
-                } else {
-                    d.backgroundColor = 'rgba(16, 185, 129, 0.15)';
-                    d.borderColor = '#10b981';
-                }
+                d.backgroundColor = 'rgba(209, 98, 131, 0.14)';
+                d.borderColor = '#d16283';
             });
         }
         
@@ -1861,8 +1869,8 @@
         if (select) select.disabled = true;
 
         setSupplementCopy(
-            'Cobertura bursátil',
-            'Lectura verificable de Bolsa',
+            'Mercados globales',
+            'Desempe\u00f1o por Mercado',
             `Precios y variación de la sesión de las emisoras disponibles de ${cfg.label}.`,
             `${cfg.market} · consultando…`,
             'Variación diaria',
@@ -1883,8 +1891,8 @@
 
         if (!rows.length) {
             setSupplementCopy(
-                'Cobertura bursátil',
-                'Lectura verificable de Bolsa',
+                'Mercados globales',
+                'Desempe\u00f1o por Mercado',
                 `No hay cotizaciones disponibles ahora mismo para ${cfg.label}.`,
                 `${cfg.market} · sin datos`,
                 'Variación diaria',
@@ -1906,8 +1914,8 @@
         const fecha    = key === 'mx' && state.bmvTimestamp ? ` · ${safeDate(state.bmvTimestamp)}` : '';
 
         setSupplementCopy(
-            'Cobertura bursátil',
-            'Lectura verificable de Bolsa',
+            'Mercados globales',
+            'Desempe\u00f1o por Mercado',
             `Precios y variación de la sesión de las emisoras disponibles de ${cfg.label}.`,
             `${cfg.market}${fecha}`,
             'Variación diaria',
@@ -1943,7 +1951,7 @@
        europeos, Yahoo ^TNX para Estados Unidos). Los diferenciales se calculan
        aquí porque son una resta: pedirlos al servidor obligaría a rehacer la
        petición cada vez que se cambia de referencia. */
-    const SPREAD_REFS_POR_DEFECTO = ['DE', 'US', 'FR', 'IT'];
+    const SPREAD_REFS_POR_DEFECTO = ['DE', 'US', 'CN', 'IT'];
     let _spreads = null;
     let _spreadRef = 'DE';
     let _spreadSort = { campo: 'yield', asc: true };
@@ -1957,6 +1965,9 @@
                 const data = await fetchJson('/api/bond-spreads', 20000);
                 _spreads = Array.isArray(data?.countries) ? data : null;
                 if (_spreads) {
+                    if (!_spreads.countries.some(country => country.code === _spreadRef)) {
+                        _spreadRef = _spreads.countries[0]?.code || 'CN';
+                    }
                     /* El Bund alemán alimenta dos tarjetas del panel de indicadores.
                        Se escriben aquí en lugar de pedir a updateDebtDashboard() que
                        repinte: esa función recibe los datos por parámetro y llamarla
@@ -2048,6 +2059,26 @@
 
         document.querySelectorAll('[data-spread-sort]').forEach(b =>
             b.classList.toggle('is-sorted', b.dataset.spreadSort === campo));
+
+        const candidatos = _spreads.countries.filter(pais => pais.code !== refPais.code);
+        const mayor = _spreads.countries.reduce((best, pais) => !best || pais.yield > best.yield ? pais : best, null);
+        const cercano = candidatos.reduce((best, pais) => {
+            const spread = pais.yield - refPais.yield;
+            return !best || Math.abs(spread) < Math.abs(best.spread) ? { pais, spread } : best;
+        }, null);
+        const amplio = candidatos.reduce((best, pais) => {
+            const spread = pais.yield - refPais.yield;
+            return !best || spread > best.spread ? { pais, spread } : best;
+        }, null);
+        const setSummary = (id, value) => { const element = $(id); if (element) element.textContent = value; };
+        const fmtBp = value => `${value >= 0 ? '+' : ''}${(value * 100).toFixed(1)} bp`;
+        setSummary('ff-spreads-universe', `${_spreads.countries.length} países`);
+        setSummary('ff-spreads-high', mayor ? `${mayor.yield.toFixed(2)}%` : '—');
+        setSummary('ff-spreads-high-note', mayor ? mayor.name : 'Dentro del universo');
+        setSummary('ff-spreads-tight', cercano ? fmtBp(cercano.spread) : '—');
+        setSummary('ff-spreads-tight-note', cercano ? `${cercano.pais.name} vs ${refPais.name}` : 'Frente a la referencia');
+        setSummary('ff-spreads-wide', amplio ? fmtBp(amplio.spread) : '—');
+        setSummary('ff-spreads-wide-note', amplio ? `${amplio.pais.name} vs ${refPais.name}` : 'Frente a la referencia');
 
         cuerpo.innerHTML = filas.map(pais => {
             const celdas = refs.map(codigo => celdaSpread(pais.yield - porCodigo.get(codigo).yield)).join('');
@@ -2471,16 +2502,18 @@
         return img;
     }
 
-    function buildNewsCard(item) {
+    function buildNewsCard(item, index = 0) {
         const k = _newsCatKey(item);
         const card = document.createElement('button');
-        card.className = 'fnb-card'; card.type = 'button';
+        card.className = `fnb-card${index === 0 ? ' is-radar-lead' : ''}`; card.type = 'button';
+        card.dataset.radarRank = String(index + 1).padStart(2, '0');
 
         const media = document.createElement('div'); media.className = 'fnb-card-media';
         if (_isNewsImg(item.image)) media.appendChild(_newsImage(item.image, () => media.prepend(_newsFallback('fnb-card-fallback', k))));
         else media.appendChild(_newsFallback('fnb-card-fallback', k));
         const cat = document.createElement('span'); cat.className = 'fnb-cat'; cat.dataset.cat = k; cat.textContent = _newsCatLabel(item);
-        media.appendChild(cat);
+        const rank = document.createElement('span'); rank.className = 'fnb-card-rank'; rank.textContent = `Señal ${String(index + 1).padStart(2, '0')}`;
+        media.append(cat, rank);
 
         const body = document.createElement('div'); body.className = 'fnb-card-body';
         const h = document.createElement('h4'); h.textContent = item.title || '';
@@ -2560,26 +2593,32 @@
         const title = document.createElement('h4'); title.textContent = item.title || '';
         const summary = document.createElement('p'); summary.textContent = item.description || item.insight || '';
         const meta = document.createElement('small'); meta.textContent = `${item.source || 'Fuente'} · ${item.fecha || safeDate(item.publishedAt)}`;
-        copy.append(cat, title, summary, meta); button.append(media, copy);
+        const action = document.createElement('span'); action.className = 'fnb-department-lead-action'; action.innerHTML = 'Abrir historia <i class="fas fa-arrow-right" aria-hidden="true"></i>';
+        copy.append(cat, title, summary, meta, action); button.append(media, copy);
         button.addEventListener('click', () => _openNews(item));
         return button;
     }
 
-    function buildDepartment(definition, items) {
+    function buildDepartment(definition, items, index = 0) {
         const section = document.createElement('section'); section.className = 'fnb-department';
+        section.id = `fnb-department-${definition.accent}`;
+        section.dataset.threadIndex = String(index + 1).padStart(2, '0');
         const head = document.createElement('header'); head.className = 'fnb-department-head'; head.dataset.cat = definition.accent;
+        const titleWrap = document.createElement('div'); titleWrap.className = 'fnb-department-title';
+        const eyebrow = document.createElement('span'); eyebrow.className = 'fnb-department-eyebrow'; eyebrow.textContent = `Dossier ${String(index + 1).padStart(2, '0')}`;
         const title = document.createElement('h3'); title.textContent = definition.title;
-        const label = document.createElement('span'); label.textContent = `${items.length} historias`;
-        head.append(title, label);
+        const label = document.createElement('span'); label.className = 'fnb-department-count'; label.textContent = `${items.length} historias conectadas`;
+        titleWrap.append(eyebrow, title); head.append(titleWrap, label);
         const grid = document.createElement('div'); grid.className = 'fnb-department-grid';
         grid.appendChild(buildDepartmentLead(items[0]));
         const list = document.createElement('div'); list.className = 'fnb-department-list'; list.dataset.cat = definition.accent;
-        items.slice(1, 5).forEach(item => {
+        items.slice(1, 5).forEach((item, itemIndex) => {
             const button = document.createElement('button'); button.type = 'button';
+            const rank = document.createElement('span'); rank.className = 'fnb-department-list-index'; rank.textContent = String(itemIndex + 2).padStart(2, '0');
             const wrap = document.createElement('div');
             const itemTitle = document.createElement('h4'); itemTitle.textContent = item.title || '';
             const meta = document.createElement('small'); meta.textContent = `${_newsCatLabel(item)} · ${item.source || 'Fuente'}`;
-            wrap.append(itemTitle, meta); button.appendChild(wrap);
+            wrap.append(itemTitle, meta); button.append(rank, wrap);
             button.addEventListener('click', () => _openNews(item)); list.appendChild(button);
         });
         grid.appendChild(list); section.append(head, grid);
@@ -2602,7 +2641,7 @@
             host.innerHTML = '<div class="fnb-empty">No hay bloques temáticos disponibles para este filtro.</div>';
             return;
         }
-        host.replaceChildren(...sections.map(group => buildDepartment(group.definition, group.items)));
+        host.replaceChildren(...sections.map((group, index) => buildDepartment(group.definition, group.items, index)));
     }
 
     function renderNewsPriority(items) {
@@ -2616,6 +2655,7 @@
         }).slice(0, 5);
         host.replaceChildren(...priority.map((item, index) => {
             const li = document.createElement('li');
+            li.dataset.impact = _newsImpact(item);
             const number = document.createElement('span'); number.textContent = String(index + 1).padStart(2, '0');
             const wrap = document.createElement('div');
             const button = document.createElement('button'); button.type = 'button'; button.textContent = item.title || '';
@@ -2635,29 +2675,46 @@
             host.innerHTML = '<div class="fnb-empty">La mesa editorial está preparando las claves de esta edición.</div>';
             return;
         }
-        host.replaceChildren(...selected.map(item => {
+        if ($('fnb-insight-count')) $('fnb-insight-count').textContent = String(selected.length).padStart(2, '0');
+        host.replaceChildren(...selected.map((item, index) => {
             const k = _newsCatKey(item);
-            const article = document.createElement('article'); article.className = 'fnb-perspective'; article.dataset.cat = k;
+            const impact = _newsImpact(item);
+            const article = document.createElement('article'); article.className = `fnb-perspective${index === 0 ? ' is-primary' : ''}`; article.dataset.cat = k; article.dataset.insightRank = String(index + 1).padStart(2, '0');
+            const top = document.createElement('div'); top.className = 'fnb-perspective-top';
+            const rank = document.createElement('span'); rank.className = 'fnb-perspective-rank'; rank.textContent = String(index + 1).padStart(2, '0');
             const category = document.createElement('span'); category.textContent = `${_newsCatLabel(item)} · Lectura editorial`;
+            category.className = 'fnb-perspective-category';
+            const strength = document.createElement('span'); strength.className = `fnb-insight-strength ${impact}`; strength.setAttribute('aria-label', `Impacto ${impact}`); strength.innerHTML = '<i></i><i></i><i></i>';
+            top.append(rank, category, strength);
             const title = document.createElement('h4'); title.textContent = item.title || '';
             const insight = document.createElement('blockquote'); insight.textContent = item.insight || item.description || 'Consulta la noticia para conocer el contexto completo.';
+            const insightWrap = document.createElement('div'); insightWrap.className = 'fnb-perspective-thesis';
+            const insightLabel = document.createElement('span'); insightLabel.textContent = index === 0 ? 'Tesis principal' : 'Lectura complementaria';
+            insightWrap.append(insightLabel, insight);
+            const foot = document.createElement('footer'); foot.className = 'fnb-perspective-foot';
+            const source = document.createElement('small'); source.textContent = item.source || 'Mesa editorial';
             const button = document.createElement('button'); button.type = 'button'; button.innerHTML = 'Profundizar <i class="fas fa-arrow-right"></i>';
             button.addEventListener('click', () => _openNews(item));
-            article.append(category, title, insight, button);
+            foot.append(source, button); article.append(top, title, insightWrap, foot);
             return article;
         }));
     }
 
-    function buildCoverageCard(item) {
+    function buildCoverageCard(item, index = 0) {
         const k = _newsCatKey(item);
         const button = document.createElement('button'); button.type = 'button'; button.className = 'fnb-coverage-card'; button.dataset.cat = k;
+        button.setAttribute('aria-label', `Abrir historia ${index + 1}: ${item.title || 'Noticia financiera internacional'}`);
         if (_isNewsImg(item.image)) button.appendChild(_newsImage(item.image, () => button.prepend(_newsFallback('fnb-card-fallback', k))));
         else button.appendChild(_newsFallback('fnb-card-fallback', k));
+        const state = document.createElement('span'); state.className = 'fnb-coverage-state'; state.textContent = `Historia ${String(index + 1).padStart(2, '0')}`;
         const copy = document.createElement('div'); copy.className = 'fnb-coverage-copy';
         const category = document.createElement('span'); category.textContent = _newsCatLabel(item);
         const title = document.createElement('h4'); title.textContent = item.title || '';
+        const summary = document.createElement('p'); summary.className = 'fnb-coverage-summary'; summary.textContent = item.description || item.insight || 'Abre la historia para consultar el contexto editorial completo.';
         const meta = document.createElement('small'); meta.textContent = `${item.source || 'Fuente'} · ${item.fecha || safeDate(item.publishedAt)}`;
-        copy.append(category, title, meta); button.appendChild(copy);
+        const foot = document.createElement('div'); foot.className = 'fnb-coverage-foot';
+        const action = document.createElement('span'); action.className = 'fnb-coverage-open'; action.innerHTML = 'Leer historia <i class="fas fa-arrow-right" aria-hidden="true"></i>';
+        foot.append(meta, action); copy.append(category, title, summary, foot); button.append(state, copy);
         button.addEventListener('click', () => _openNews(item));
         return button;
     }
@@ -2673,7 +2730,7 @@
             updateNewsCarouselUI();
             return;
         }
-        host.replaceChildren(...selected.map(buildCoverageCard));
+        host.replaceChildren(...selected.map((item, index) => buildCoverageCard(item, index)));
         host.scrollLeft = 0;
         requestAnimationFrame(updateNewsCarouselUI);
     }
@@ -2793,10 +2850,271 @@
         if (moreProgress) moreProgress.style.width = `${visible.length ? Math.min(100, ((shown.length + 1) / visible.length) * 100) : 0}%`;
     }
 
+    /* ── El pulso del día ─────────────────────────────────────────────────────
+       La edición completa dibujada como un solo campo: eje X la hora real de
+       publicación, eje Y el impacto editorial, color el sentimiento. Debajo, una
+       curva de intensidad acumulada — la "onda" de la jornada — que es lo que
+       hace legible de un golpe si el día fue plano o si hubo un pico.
+
+       Se dibuja en SVG y no en canvas a propósito: cada punto tiene que ser
+       enfocable con el tabulador y anunciable por un lector de pantalla, cosa
+       imposible en un lienzo. */
+    const _PULSE_VB_W = 1000, _PULSE_VB_H = 320;
+    /* `abajo` reserva la franja inferior para dos cosas distintas: el rótulo de
+       horas y, más abajo, la onda de intensidad. Cuando compartían banda, la
+       curva cruzaba por encima de las horas y no se leía ninguna de las dos. */
+    const _PULSE_PAD = { izq: 78, der: 26, arriba: 26, abajo: 94 };
+    const _PULSE_ONDA_BASE = _PULSE_VB_H - 6, _PULSE_ONDA_ALTO = 42;
+    const _PULSE_BANDAS = [
+        { key: 'alto',  etiqueta: 'Alto',  radio: 10 },
+        { key: 'medio', etiqueta: 'Medio', radio: 7.5 },
+        { key: 'bajo',  etiqueta: 'Bajo',  radio: 5.5 },
+    ];
+    const _PULSE_PESO = { alto: 3, medio: 2, bajo: 1 };
+    const _SVG = 'http://www.w3.org/2000/svg';
+    const _svg = (nombre, atributos = {}) => {
+        const nodo = document.createElementNS(_SVG, nombre);
+        for (const [k, v] of Object.entries(atributos)) nodo.setAttribute(k, v);
+        return nodo;
+    };
+    /* Reloj de 24 h: en el eje, "02:11 a.m." ocupa el doble y obliga a quitar
+       marcas. Además es el formato que usa el resto del terminal. */
+    const _pulseHora = (t) => new Date(t).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    function _pulseSentimiento(item) {
+        if (['positive', 'negative', 'neutral'].includes(item.sentiment)) return item.sentiment;
+        const [etiqueta] = impactFor(item);
+        return etiqueta === 'Positivo' ? 'positive' : etiqueta === 'Negativo' ? 'negative' : 'neutral';
+    }
+
+    /** Marcas de tiempo utilizables; si la fuente no trae hora, se reparten sobre
+     *  la ventana para que el orden editorial siga siendo legible. */
+    function _pulseMarcas(items) {
+        const crudas = items.map((item) => {
+            const t = item.publishedAt ? Date.parse(item.publishedAt) : NaN;
+            return Number.isFinite(t) ? t : null;
+        });
+        const validas = crudas.filter((t) => t !== null);
+        const ahora = Date.now();
+        let min = validas.length ? Math.min(...validas) : ahora - 8 * 36e5;
+        let max = validas.length ? Math.max(...validas) : ahora;
+        if (max - min < 36e5) { min -= 18e5; max += 18e5; }
+        return {
+            min, max,
+            marcas: crudas.map((t, i) => t !== null ? t : min + ((i + 0.5) / crudas.length) * (max - min)),
+            conHora: validas.length,
+        };
+    }
+
+    function renderNewsPulse(items) {
+        const lienzo = $('fnb-pulse-plot');
+        const detalle = $('fnb-pulse-detail');
+        if (!lienzo) return;
+
+        const lista = (items || []).filter(Boolean);
+        lienzo.replaceChildren();
+        if (!lista.length) {
+            const vacio = document.createElement('p');
+            vacio.className = 'fnb-pulse-empty';
+            vacio.textContent = 'Todavía no hay historias en esta selección.';
+            lienzo.appendChild(vacio);
+            if (detalle) detalle.replaceChildren(vacio.cloneNode(true));
+            return;
+        }
+
+        const { min, max, marcas } = _pulseMarcas(lista);
+        const ancho = _PULSE_VB_W - _PULSE_PAD.izq - _PULSE_PAD.der;
+        const alto = _PULSE_VB_H - _PULSE_PAD.arriba - _PULSE_PAD.abajo;
+        const x = (t) => _PULSE_PAD.izq + ((t - min) / (max - min || 1)) * ancho;
+        const yBanda = (i) => _PULSE_PAD.arriba + (alto / _PULSE_BANDAS.length) * (i + 0.5);
+
+        const puntos = lista.map((item, i) => {
+            const impacto = _newsImpact(item);
+            const banda = Math.max(0, _PULSE_BANDAS.findIndex((b) => b.key === impacto));
+            return {
+                item, impacto, banda,
+                t: marcas[i],
+                x: x(marcas[i]),
+                y: yBanda(banda),
+                r: _PULSE_BANDAS[banda].radio,
+                sentimiento: _pulseSentimiento(item),
+                categoria: _newsCatKey(item),
+            };
+        });
+
+        /* Reparto horizontal: dos noticias del mismo minuto y del mismo impacto se
+           taparían por completo. Se separan lo justo dentro de su banda. */
+        _PULSE_BANDAS.forEach((_, banda) => {
+            const fila = puntos.filter((p) => p.banda === banda).sort((a, b) => a.x - b.x);
+            fila.forEach((p, i) => {
+                if (!i) return;
+                const previo = fila[i - 1];
+                const minima = previo.r + p.r + 3;
+                if (p.x - previo.x < minima) p.x = previo.x + minima;
+            });
+            const desborde = fila.length ? fila[fila.length - 1].x - (_PULSE_VB_W - _PULSE_PAD.der) : 0;
+            if (desborde > 0) fila.forEach((p) => { p.x -= desborde; });
+        });
+
+        const svg = _svg('svg', {
+            class: 'fnb-pulse-svg',
+            viewBox: `0 0 ${_PULSE_VB_W} ${_PULSE_VB_H}`,
+            preserveAspectRatio: 'xMidYMid meet',
+            role: 'group',
+            'aria-label': `Mapa de ${puntos.length} historias por hora e impacto`,
+        });
+
+        const defs = _svg('defs');
+        const grad = _svg('linearGradient', { id: 'fnb-pulse-grad', x1: '0', y1: '0', x2: '0', y2: '1' });
+        grad.append(
+            _svg('stop', { offset: '0%', 'stop-color': 'var(--fnb-pulse-wave)', 'stop-opacity': '.42' }),
+            _svg('stop', { offset: '100%', 'stop-color': 'var(--fnb-pulse-wave)', 'stop-opacity': '0' }),
+        );
+        defs.appendChild(grad);
+        svg.appendChild(defs);
+
+        // Bandas de impacto y su rótulo.
+        const rejilla = _svg('g', { class: 'fnb-pulse-grid' });
+        _PULSE_BANDAS.forEach((banda, i) => {
+            const y = yBanda(i);
+            rejilla.appendChild(_svg('line', { x1: _PULSE_PAD.izq - 12, y1: y, x2: _PULSE_VB_W - _PULSE_PAD.der, y2: y }));
+            const texto = _svg('text', { x: _PULSE_PAD.izq - 22, y: y + 4, class: 'fnb-pulse-band-label' });
+            texto.textContent = banda.etiqueta.toUpperCase();
+            rejilla.appendChild(texto);
+        });
+        svg.appendChild(rejilla);
+
+        /* Onda de intensidad: cada historia reparte su peso sobre las cubetas
+           vecinas, de modo que varias noticias fuertes en la misma hora levantan
+           un pico visible en lugar de un escalón. */
+        const CUBETAS = 64;
+        const cubetas = new Array(CUBETAS).fill(0);
+        puntos.forEach((p) => {
+            const centro = ((p.x - _PULSE_PAD.izq) / ancho) * (CUBETAS - 1);
+            for (let i = 0; i < CUBETAS; i++) {
+                const d = (i - centro) / 3.2;
+                cubetas[i] += (_PULSE_PESO[p.impacto] || 1) * Math.exp(-d * d);
+            }
+        });
+        const tope = Math.max(...cubetas, 1);
+        const baseOnda = _PULSE_ONDA_BASE;
+        const alturaOnda = _PULSE_ONDA_ALTO;
+        const puntosOnda = cubetas.map((v, i) => [
+            _PULSE_PAD.izq + (i / (CUBETAS - 1)) * ancho,
+            baseOnda - (v / tope) * alturaOnda,
+        ]);
+        const d = puntosOnda.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ');
+        svg.appendChild(_svg('path', {
+            class: 'fnb-pulse-wave-fill',
+            d: `${d} L${_PULSE_VB_W - _PULSE_PAD.der},${baseOnda} L${_PULSE_PAD.izq},${baseOnda} Z`,
+            fill: 'url(#fnb-pulse-grad)',
+        }));
+        svg.appendChild(_svg('path', { class: 'fnb-pulse-wave-line', d }));
+
+        // Eje de horas.
+        const ejes = _svg('g', { class: 'fnb-pulse-axis' });
+        const TICKS = 6;
+        for (let i = 0; i < TICKS; i++) {
+            const t = min + ((max - min) * i) / (TICKS - 1);
+            const px = x(t);
+            ejes.appendChild(_svg('line', { x1: px, y1: _PULSE_PAD.arriba - 8, x2: px, y2: _PULSE_VB_H - _PULSE_PAD.abajo + 6, class: 'fnb-pulse-tick' }));
+            const rotulo = _svg('text', { x: px, y: _PULSE_VB_H - _PULSE_PAD.abajo + 26, class: 'fnb-pulse-tick-label' });
+            rotulo.textContent = _pulseHora(t);
+            ejes.appendChild(rotulo);
+        }
+        svg.appendChild(ejes);
+
+        // Puntos.
+        const capa = _svg('g', { class: 'fnb-pulse-nodes' });
+        const seleccionar = (punto, nodo) => {
+            capa.querySelectorAll('.is-active').forEach((n) => n.classList.remove('is-active'));
+            nodo.classList.add('is-active');
+            _pulseDetalle(punto);
+        };
+        puntos
+            .slice()
+            .sort((a, b) => a.t - b.t)
+            .forEach((punto, orden) => {
+                const nodo = _svg('g', {
+                    class: `fnb-pulse-node s-${punto.sentimiento} i-${punto.impacto}`,
+                    'data-cat': punto.categoria,
+                    tabindex: '0',
+                    role: 'button',
+                    'aria-label': `${_pulseHora(punto.t)}, ${_newsCatLabel(punto.item)}, impacto ${punto.impacto}: ${punto.item.title || 'historia'}`,
+                });
+                nodo.style.setProperty('--fnb-pulse-delay', `${Math.min(orden * 45, 1400)}ms`);
+                nodo.appendChild(_svg('circle', { class: 'fnb-pulse-halo', cx: punto.x, cy: punto.y, r: punto.r + 7 }));
+                nodo.appendChild(_svg('circle', { class: 'fnb-pulse-dot', cx: punto.x, cy: punto.y, r: punto.r }));
+                nodo.addEventListener('mouseenter', () => seleccionar(punto, nodo));
+                nodo.addEventListener('focus', () => seleccionar(punto, nodo));
+                nodo.addEventListener('click', () => _openNews(punto.item));
+                nodo.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _openNews(punto.item); }
+                });
+                capa.appendChild(nodo);
+            });
+        svg.appendChild(capa);
+        lienzo.appendChild(svg);
+
+        // Resumen de cabecera.
+        const altos = puntos.filter((p) => p.impacto === 'alto').length;
+        const alza = puntos.filter((p) => p.sentimiento === 'positive').length;
+        const baja = puntos.filter((p) => p.sentimiento === 'negative').length;
+        const fijar = (id, valor) => { const n = $(id); if (n) n.textContent = valor; };
+        fijar('fnb-pulse-total', String(puntos.length));
+        fijar('fnb-pulse-high', `${altos} de ${puntos.length}`);
+        fijar('fnb-pulse-bias', alza === baja ? 'Equilibrado' : alza > baja ? 'Al alza' : 'A la baja');
+        fijar('fnb-pulse-window', `${_pulseHora(min)} – ${_pulseHora(max)}`);
+
+        // Arranca sobre la historia más fuerte del día, no sobre la primera.
+        const destacada = puntos.slice().sort((a, b) =>
+            (_PULSE_PESO[b.impacto] - _PULSE_PESO[a.impacto]) || (b.t - a.t))[0];
+        const nodoDestacado = [...capa.children].find((n) => n.getAttribute('aria-label')?.includes(destacada.item.title || ''));
+        if (nodoDestacado) nodoDestacado.classList.add('is-active');
+        _pulseDetalle(destacada);
+    }
+
+    function _pulseDetalle(punto) {
+        const caja = $('fnb-pulse-detail');
+        if (!caja || !punto) return;
+        const { item } = punto;
+        caja.dataset.cat = punto.categoria;
+        caja.dataset.sent = punto.sentimiento;
+
+        const meta = document.createElement('div');
+        meta.className = 'fnb-pulse-detail-meta';
+        const hora = document.createElement('time'); hora.textContent = _pulseHora(punto.t);
+        const cat = document.createElement('span'); cat.className = 'fnb-pulse-detail-cat'; cat.textContent = _newsCatLabel(item);
+        const imp = document.createElement('span'); imp.className = `fnb-pulse-detail-impact ${punto.impacto}`; imp.textContent = `Impacto ${punto.impacto}`;
+        meta.append(hora, cat, imp);
+
+        const titulo = document.createElement('h4');
+        titulo.textContent = item.title || 'Historia de la edición';
+
+        const insight = document.createElement('p');
+        insight.className = 'fnb-pulse-detail-insight';
+        const etiqueta = document.createElement('span'); etiqueta.textContent = 'Qué significa';
+        const cuerpo = document.createTextNode(item.insight || item.description || 'Consulta la ficha completa para el detalle de esta historia.');
+        insight.append(etiqueta, cuerpo);
+
+        const pie = document.createElement('div');
+        pie.className = 'fnb-pulse-detail-foot';
+        const fuente = document.createElement('small'); fuente.textContent = item.source || 'Fuente financiera';
+        const leer = document.createElement('button');
+        leer.type = 'button';
+        leer.className = 'fnb-pulse-detail-read';
+        leer.textContent = 'Leer la historia';
+        leer.addEventListener('click', () => _openNews(item));
+        pie.append(fuente, leer);
+
+        caja.replaceChildren(meta, titulo, insight, pie);
+    }
+
     function renderNews() {
         updateNewsModuleCard();
         const filtered = state.news.filter(item => state.newsFilter === 'all' || classifyNews(item) === state.newsFilter);
         updateNewsDesk(filtered);
+        renderNewsPulse(filtered);
         renderNewsTrending(filtered);
         renderNewsDepartments(filtered.slice(1));
         renderNewsPriority(filtered);
@@ -2864,7 +3182,9 @@
         }
         const featured = items.slice(0, 4);
         const latest = items.slice(4);
-        grid.replaceChildren(...featured.map(buildNewsCard));
+        if ($('fnb-radar-signal-count')) $('fnb-radar-signal-count').textContent = String(featured.length).padStart(2, '0');
+        if ($('fnb-radar-live-count')) $('fnb-radar-live-count').textContent = String(latest.length).padStart(2, '0');
+        grid.replaceChildren(...featured.map((item, index) => buildNewsCard(item, index)));
         if (latest.length) stream.replaceChildren(...latest.map(buildNewsStreamItem));
         else stream.innerHTML = '<div class="fnb-empty">Esta edición no tiene más titulares.</div>';
     }
@@ -3053,6 +3373,65 @@
         updateProgress();
     }
 
+    function setupDailyNewsExperience() {
+        const newsroom = document.querySelector('.fnb-newsroom');
+        const cover = newsroom?.querySelector('.fnb-masthead');
+        if (!newsroom || newsroom.dataset.experienceBound === 'true') return;
+        newsroom.dataset.experienceBound = 'true';
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        if (cover && !reducedMotion.matches) {
+            let frame = 0;
+            escuchar(cover, 'pointermove', event => {
+                window.cancelAnimationFrame(frame);
+                frame = window.requestAnimationFrame(() => {
+                    const rect = cover.getBoundingClientRect();
+                    const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / Math.max(1, rect.width)) * 100));
+                    const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / Math.max(1, rect.height)) * 100));
+                    cover.style.setProperty('--fnb-pointer-x', `${x.toFixed(1)}%`);
+                    cover.style.setProperty('--fnb-pointer-y', `${y.toFixed(1)}%`);
+                });
+            }, { passive: true });
+            escuchar(cover, 'pointerleave', () => {
+                cover.style.setProperty('--fnb-pointer-x', '72%');
+                cover.style.setProperty('--fnb-pointer-y', '24%');
+            }, { passive: true });
+            _limpieza.push(() => window.cancelAnimationFrame(frame));
+        }
+
+        newsroom.querySelectorAll('[data-thread-jump]').forEach(button => {
+            escuchar(button, 'click', () => {
+                const target = document.getElementById(`fnb-department-${button.dataset.threadJump}`);
+                if (!target) return;
+                newsroom.querySelectorAll('[data-thread-jump]').forEach(item => {
+                    const active = item === button;
+                    item.classList.toggle('is-active', active);
+                    if (active) item.setAttribute('aria-current', 'true');
+                    else item.removeAttribute('aria-current');
+                });
+                target.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'start' });
+            });
+        });
+
+        const revealables = [...newsroom.querySelectorAll([
+            '.fnb-reading-route', '.fnb-radar', '.fnb-departments',
+            '.fnb-perspectives', '.fnb-coverage', '.fnb-archive',
+        ].join(','))];
+        revealables.forEach(node => node.classList.add('fnb-reveal'));
+        if (!('IntersectionObserver' in window) || reducedMotion.matches) {
+            revealables.forEach(node => node.classList.add('is-visible'));
+            return;
+        }
+        const revealObserver = observar(new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-visible');
+                revealObserver.unobserve(entry.target);
+            });
+        }, { rootMargin: '0px 0px -12% 0px', threshold: .08 }));
+        revealables.forEach(node => revealObserver.observe(node));
+    }
+
     function getNewsCarouselState() {
         const track = $('fnb-coverage-grid');
         const cards = track ? [...track.querySelectorAll('.fnb-coverage-card')] : [];
@@ -3089,9 +3468,15 @@
         const dots = [...document.querySelectorAll('#fnb-carousel-dots button')];
         if (track) track.dataset.carouselIndex = String(index);
         if (count) count.textContent = cards.length ? `${index + 1} / ${cards.length}` : '0 / 0';
+        const activeTitle = $('fnb-coverage-active-title');
+        const progress = $('fnb-coverage-progress');
+        if (activeTitle) activeTitle.textContent = cards[index]?.querySelector('h4')?.textContent || 'Cobertura internacional';
+        if (progress) progress.style.width = cards.length ? `${((index + 1) / cards.length) * 100}%` : '0%';
         cards.forEach((card, cardIndex) => {
             const active = cardIndex === index;
             card.classList.toggle('is-active', active);
+            const state = card.querySelector('.fnb-coverage-state');
+            if (state) state.textContent = active ? `En foco · ${String(cardIndex + 1).padStart(2, '0')}` : `Historia ${String(cardIndex + 1).padStart(2, '0')}`;
             if (active) card.setAttribute('aria-current', 'true');
             else card.removeAttribute('aria-current');
         });
@@ -3408,6 +3793,161 @@
         });
     }
 
+    let executiveReports = [];
+    let executiveReportsLoaded = false;
+    let activeExecutiveReport = null;
+    let executiveLiveReader = null;
+
+    function execElement(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = String(text);
+        return node;
+    }
+
+    function formatExecutiveTime(value) {
+        const time = new Date(value);
+        if (Number.isNaN(time.getTime())) return 'Corte disponible';
+        return `Corte ${time.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}`;
+    }
+
+    function renderExecutiveReport(report) {
+        const host = $('fin-exec-report');
+        if (!host || !report) return;
+        activeExecutiveReport = report;
+        host.replaceChildren();
+        host.append(execElement('p', 'fin-exec-selection', `${report.title} seleccionado · ${formatExecutiveTime(report.generatedAt)}`));
+        const actions = execElement('div', 'fin-exec-actions');
+        const download = execElement('button', '', 'Descargar DOCX');
+        download.type = 'button'; download.innerHTML = '<i class="fas fa-file-word" aria-hidden="true"></i> Descargar DOCX';
+        download.addEventListener('click', () => downloadExecutiveReport(download));
+        const listen = execElement('button', '', 'Escuchar con VALL AI');
+        listen.type = 'button'; listen.innerHTML = '<i class="fas fa-headphones" aria-hidden="true"></i> Escuchar con VALL AI';
+        listen.addEventListener('click', () => toggleExecutiveReading(listen));
+        actions.append(download, listen);
+        host.append(actions, execElement('p', 'fin-exec-live-status', 'El contenido completo sólo se entrega al descargarlo o escucharlo.'));
+    }
+
+    function executiveText(report) {
+        if (report?.content) return String(report.content).slice(0, 11_500);
+        const lines = [`# ${report.title}`, report.eyebrow || '', report.summary || ''];
+        (report.metrics || []).forEach(metric => lines.push(`- ${metric.label}: ${metric.value}${metric.change ? ` (${metric.change})` : ''}`));
+        (report.sections || []).forEach(section => lines.push(`## ${section.heading}\n${section.text}`));
+        lines.push(`Fuentes: ${(report.sources || []).join(', ') || 'sin fuente disponible'}.`);
+        lines.push('Documento informativo. No constituye una recomendación de inversión.');
+        return lines.filter(Boolean).join('\n\n').slice(0, 11_500);
+    }
+
+    function executiveStatus(message) {
+        const status = document.querySelector('#fin-exec-report .fin-exec-live-status');
+        if (status) status.textContent = message;
+    }
+
+    async function downloadExecutiveReport(button) {
+        if (!activeExecutiveReport || button.disabled) return;
+        button.disabled = true;
+        executiveStatus('Preparando documento Word…');
+        try {
+            const response = await fetch('/api/report-export', {
+                method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: `VALLNEWS · ${activeExecutiveReport.title}`, content: executiveText(activeExecutiveReport), format: 'docx' }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'No se pudo generar el documento.');
+            const link = document.createElement('a');
+            link.href = data.downloadUrl; link.download = data.filename || `${activeExecutiveReport.key}.docx`;
+            document.body.append(link); link.click(); link.remove();
+            executiveStatus('Documento DOCX listo para descargar.');
+        } catch (error) {
+            executiveStatus(error.message || 'No se pudo descargar el documento.');
+        } finally { button.disabled = false; }
+    }
+
+    async function stopExecutiveReading() {
+        const reader = executiveLiveReader;
+        executiveLiveReader = null;
+        await reader?.stop?.().catch(() => {});
+        executiveStatus('Lectura detenida.');
+        document.querySelector('#fin-exec-report [data-fin-exec-listen]')?.replaceChildren(Object.assign(document.createElement('i'), { className: 'fas fa-headphones', ariaHidden: 'true' }), document.createTextNode(' Escuchar con VALL AI'));
+    }
+
+    async function toggleExecutiveReading(button) {
+        if (executiveLiveReader) return stopExecutiveReading();
+        const bridge = window.VNFinanceGeminiLive;
+        if (!activeExecutiveReport || !bridge?.isSupported?.()) {
+            executiveStatus('La lectura con VALL AI requiere una conexión segura (HTTPS) y un navegador compatible.');
+            return;
+        }
+        button.disabled = true;
+        button.dataset.finExecListen = 'true';
+        executiveStatus('Conectando con VALL AI…');
+        try {
+            const reader = await bridge.start({
+                captureMicrophone: false,
+                onState: state => executiveStatus({ connecting: 'Conectando con VALL AI…', listening: 'VALL AI está listo para leer el informe.', speaking: 'VALL AI está leyendo el informe…' }[state] || 'Lectura finalizada.'),
+                onError: message => { executiveLiveReader = null; executiveStatus(`Lectura no disponible: ${message}`); },
+            });
+            executiveLiveReader = reader;
+            button.innerHTML = '<i class="fas fa-stop" aria-hidden="true"></i> Detener lectura';
+            reader.speak(`Lee en voz alta este informe financiero de forma clara, natural y profesional. No agregues cifras, fuentes ni consejos que no estén en el texto. ${executiveText(activeExecutiveReport)}`);
+        } catch (error) {
+            executiveStatus(error.message || 'No se pudo iniciar VALL AI.');
+        } finally { button.disabled = false; }
+    }
+
+    function renderExecutiveReports(payload) {
+        executiveReports = Array.isArray(payload?.data) ? payload.data : [];
+        const list = $('fin-exec-list');
+        if (!list) return;
+        list.replaceChildren();
+        if (!executiveReports.length) {
+            list.append(execElement('p', '', 'No hay informes disponibles en este momento.'));
+            return;
+        }
+        executiveReports.forEach(report => {
+            const button = execElement('button', '', report.title);
+            button.type = 'button';
+            button.dataset.finExecKey = report.key;
+            button.addEventListener('click', () => {
+                list.querySelectorAll('button').forEach(item => item.classList.toggle('is-active', item === button));
+                renderExecutiveReport(report);
+            });
+            list.append(button);
+        });
+        const overview = executiveReports.find(report => report.key === 'overview') || executiveReports[0];
+        list.querySelector(`[data-fin-exec-key="${overview.key}"]`)?.classList.add('is-active');
+        renderExecutiveReport(overview);
+    }
+
+    async function loadExecutiveReports() {
+        if (executiveReportsLoaded) return;
+        try {
+            const response = await fetch('/api/finance-executive-reports', { credentials: 'include' });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) throw new Error(payload.error || 'No disponible');
+            executiveReportsLoaded = true;
+            renderExecutiveReports(payload);
+        } catch (error) {
+            const host = $('fin-exec-report');
+            if (host) host.replaceChildren(execElement('p', '', 'No fue posible cargar el último corte. Puedes continuar usando los tableros de Finanzas.'));
+        }
+    }
+
+    function bindExecutiveReports() {
+        const toggle = $('fin-exec-toggle');
+        const popover = $('fin-exec-popover');
+        const close = $('fin-exec-close');
+        if (!toggle || !popover) return;
+        const setOpen = open => {
+            toggle.setAttribute('aria-expanded', String(open));
+            popover.hidden = !open;
+            if (open) loadExecutiveReports();
+        };
+        toggle.addEventListener('click', () => setOpen(popover.hidden));
+        close?.addEventListener('click', () => setOpen(false));
+        escuchar(document, 'keydown', event => { if (event.key === 'Escape' && !popover.hidden) setOpen(false); });
+    }
+
     function init() {
         if (!$('favro-finance')) return;
         if ($('ff-table-search')) $('ff-table-search').value = '';
@@ -3416,6 +3956,7 @@
         document.querySelectorAll('[data-returns-years]').forEach(button => button.setAttribute('aria-pressed', String(button.classList.contains('is-active'))));
         bindEvents();
         setupNativeNewsNavigation();
+        setupDailyNewsExperience();
         setupNewsCoverageCarousel();
         renderInsights();
         updateControls();
@@ -3431,9 +3972,10 @@
        lienzos y sus propios observadores, y dejarlos vivos retiene memoria del
        tamaño de la serie. */
     function desmontar() {
+        stopExecutiveReading();
         _limpieza.splice(0).forEach((soltar) => { try { soltar(); } catch { /* ya suelto */ } });
 
-        Object.values(state.miniCharts || {}).forEach((c) => { try { c.remove(); } catch { /* ya destruida */ } });
+        Object.values(state.miniCharts || {}).forEach((c) => { try { c.destroy(); } catch { /* ya destruida */ } });
         state.miniCharts = {};
         ['mainChart', 'breakdownChart', 'contextChart', 'supplementChart',
             'returnsChart', 'returnsHistoryChart', 'returnsGlobalChart'].forEach((clave) => {

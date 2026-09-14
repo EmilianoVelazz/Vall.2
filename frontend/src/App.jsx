@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import LegacyPage from './components/LegacyPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { iniciarTema } from './lib/tema.js';
 import Login from './pages/Login.jsx';
 import Configuracion from './pages/Configuracion.jsx';
 import Mexico from './pages/Mexico.jsx';
@@ -12,75 +13,52 @@ import Mercados from './pages/Mercados.jsx';
 import Finanzas from './pages/Finanzas.jsx';
 
 /*
- * Fase 1 de la migración: React se queda con el enrutado, la sesión y el shell.
- * El contenido de cada sección lo sigue sirviendo su HTML actual, montado por
- * LegacyPage (patrón Strangler Fig).
+ * Migración terminada: las nueve rutas son componentes de React.
  *
- * LegacyPage hace fetch del HTML EN TIEMPO DE EJECUCIÓN: no congela una copia.
- * Esa distinción es la que importa — el intento anterior incrustó el markup en
- * archivos .js y quedó obsoleto en tres semanas (~22.000 líneas de diferencia).
- * Aquí cualquier cambio en los .html aparece en React sin tocar nada.
- *
- * Migrar una sección a React idiomático más adelante consiste en sustituir su
- * entrada de esta tabla por un componente propio. El resto sigue funcionando.
+ * Ya no queda LegacyPage ni la tabla SECCIONES que montaba los .html en tiempo
+ * de ejecución. Finanzas fue la última en salir; con ella se fueron también los
+ * archivos de pages/, para que no vuelva a haber dos copias del mismo marcado
+ * separándose sin que nadie lo note — que es como fracasó el primer intento.
  */
-const SECCIONES = [
-  { ruta: '/finanzas',          html: '/pages/finanzas.html' },
+/* Las ocho rutas con sesión. En tabla y no ocho bloques calcados: así añadir
+   una sección es una línea, y no hay forma de que a una se le olvide el
+   ProtectedRoute — que es el fallo silencioso que importa aquí. */
+const PROTEGIDAS = [
+  ['/inicio', Inicio],
+  ['/finanzas', Finanzas],
+  ['/mercados', Mercados],
+  ['/geopolitica', Geopolitica],
+  ['/mercado-proteinas', MercadoProteinas],
+  ['/mexico', Mexico],
+  ['/vall-ai', VallAi],
+  ['/configuracion', Configuracion],
 ];
 
 export default function App() {
+  /* Aquí y no en cada página: la hoja del tema tiene que estar en el <head>
+     valga cual valga la ruta, y añadida al final para ganarle a los !important
+     de las hojas heredadas. Ver lib/tema.js. */
+  useEffect(() => { iniciarTema(); }, []);
+
   return (
-    <Routes>
-      {/* Migrada a React idiomático: ya no pasa por LegacyPage. */}
-      <Route path="/" element={<Login />} />
-      <Route path="/login" element={<Navigate to="/" replace />} />
+    <>
+      <Routes>
+        {/* Login es la única pública; el resto exige sesión. */}
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
 
-      <Route
-        path="/inicio"
-        element={<ProtectedRoute><Inicio /></ProtectedRoute>}
-      />
-      <Route
-        path="/configuracion"
-        element={<ProtectedRoute><Configuracion /></ProtectedRoute>}
-      />
-      <Route
-        path="/mexico"
-        element={<ProtectedRoute><Mexico /></ProtectedRoute>}
-      />
-      <Route
-        path="/vall-ai"
-        element={<ProtectedRoute><VallAi /></ProtectedRoute>}
-      />
-      <Route
-        path="/mercado-proteinas"
-        element={<ProtectedRoute><MercadoProteinas /></ProtectedRoute>}
-      />
-      <Route
-        path="/geopolitica"
-        element={<ProtectedRoute><Geopolitica /></ProtectedRoute>}
-      />
-      <Route
-        path="/mercados"
-        element={<ProtectedRoute><Mercados /></ProtectedRoute>}
-      />
-      <Route
-        path="/finanzas"
-        element={<ProtectedRoute><Finanzas /></ProtectedRoute>}
-      />
+        {PROTEGIDAS.map(([ruta, Pagina]) => (
+          <Route
+            key={ruta}
+            path={ruta}
+            element={<ProtectedRoute><Pagina /></ProtectedRoute>}
+          />
+        ))}
 
-      {SECCIONES.map(({ ruta, html }) => (
-        <Route
-          key={ruta}
-          path={ruta}
-          element={
-            <ProtectedRoute>
-              <LegacyPage src={html} />
-            </ProtectedRoute>
-          }
-        />
-      ))}
-
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Cualquier otra cosa vuelve al login, que ya redirige a /inicio si
+            hay sesión válida. Cubre también las URLs .html antiguas. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

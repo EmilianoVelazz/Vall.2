@@ -1,0 +1,197 @@
+/* Global Story Window v8
+   Capa final y aislada para preservar la composición cinematográfica del
+   carrusel frente a los estilos históricos de Daily News. */
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage {
+    padding:clamp(3.3rem,6vw,6rem) 0 clamp(3rem,5.5vw,5rem)!important;
+    border-color:rgba(169,198,214,.18)!important;
+    background:
+        radial-gradient(circle at 6% 8%,rgba(209,98,131,.13),transparent 27rem),
+        radial-gradient(circle at 92% 86%,rgba(106,157,187,.12),transparent 32rem),
+        linear-gradient(180deg,#304b60 0%,#294357 54%,#263f53 100%)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage::before {
+    content:"05 / WORLD DESK"!important;
+    top:.14em!important;
+    right:.03em!important;
+    color:rgba(177,204,219,.05)!important;
+    font:900 clamp(6rem,16vw,16rem)/1 "JetBrains Mono",monospace!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-head {
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(430px,.72fr)!important;
+    align-items:end!important;
+    gap:clamp(1.5rem,3.5vw,3.8rem)!important;
+    margin:0 clamp(1rem,2.2vw,2rem) clamp(1.4rem,2.8vw,2.3rem)!important;
+    padding:0 0 clamp(1.25rem,2vw,1.75rem)!important;
+    border-color:rgba(171,200,216,.2)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-intro {
+    display:grid!important;
+    gap:.42rem!important;
+    padding:0!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-intro::before { display:none!important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-intro h3 {
+    max-width:14ch!important;
+    color:#f1f5f7!important;
+    font:750 clamp(2.1rem,4.8vw,4.5rem)/.93 "Playfair Display",serif!important;
+    letter-spacing:-.058em!important;
+    -webkit-text-fill-color:#f1f5f7!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-intro h3 em {
+    display:block!important;
+    color:#e786a3!important;
+    -webkit-text-fill-color:#e786a3!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-intro>p {
+    color:#aabcc5!important;
+    text-align:left!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-actions {
+    display:grid!important;
+    grid-template-columns:76px minmax(0,1fr) auto!important;
+    align-items:center!important;
+    gap:.9rem!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-controls {
+    padding:.35rem!important;
+    border-color:rgba(169,198,214,.22)!important;
+    border-radius:999px!important;
+    background:#213d50!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-controls button {
+    width:40px!important;
+    height:40px!important;
+    border-color:rgba(166,196,212,.22)!important;
+    border-radius:50%!important;
+    color:#e8eff3!important;
+    background:#2c485d!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-controls button:hover {
+    border-color:#df819e!important;
+    color:#f9edf1!important;
+    background:#a94361!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-controls>span {
+    min-width:48px!important;
+    color:#efafc1!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-shell::before {
+    width:clamp(18px,4vw,56px)!important;
+    background:linear-gradient(90deg,#294357,rgba(41,67,87,0))!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-shell::after {
+    width:clamp(18px,4vw,56px)!important;
+    background:linear-gradient(270deg,#294357,rgba(41,67,87,0))!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-grid {
+    display:flex!important;
+    overflow-x:auto!important;
+    gap:clamp(.8rem,1.6vw,1.25rem)!important;
+    min-height:545px!important;
+    padding:1rem clamp(1rem,7vw,7rem) 1.4rem!important;
+    scroll-padding-inline:clamp(1rem,7vw,7rem)!important;
+    scroll-snap-type:x mandatory!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card:first-child,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card:nth-child(n) {
+    flex:0 0 min(650px,72vw)!important;
+    min-height:505px!important;
+    border-color:rgba(168,198,214,.24)!important;
+    border-radius:28px 2px 28px 2px!important;
+    background:#1d394b!important;
+    opacity:.58!important;
+    filter:saturate(.72) brightness(.76)!important;
+    transform:scale(.925) rotateY(2.4deg)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card.is-active {
+    border-color:rgba(231,137,165,.58)!important;
+    opacity:1!important;
+    filter:none!important;
+    transform:scale(1) rotateY(0)!important;
+    box-shadow:0 42px 88px -48px rgba(2,14,24,.98),0 0 0 1px rgba(209,98,131,.08)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-card::after {
+    background:
+        linear-gradient(180deg,rgba(7,22,34,.02) 8%,rgba(7,22,34,.25) 40%,rgba(11,31,44,.97) 100%),
+        linear-gradient(90deg,rgba(13,36,50,.56),transparent 68%)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-copy {
+    display:flex!important;
+    min-height:58%!important;
+    padding:clamp(1.2rem,2.8vw,2.2rem)!important;
+    flex-direction:column!important;
+    justify-content:flex-end!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-copy h4,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-card:first-child h4 {
+    max-width:22ch!important;
+    color:#f4f7f9!important;
+    font:750 clamp(1.55rem,3.1vw,3rem)/1.02 "Playfair Display",serif!important;
+    letter-spacing:-.035em!important;
+    -webkit-text-fill-color:#f4f7f9!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-copy>span:first-child { color:#f0a1b8!important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-state {
+    border-color:rgba(180,205,219,.28)!important;
+    color:#dce8ed!important;
+    background:rgba(25,52,69,.72)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-card.is-active .fnb-coverage-state {
+    border-color:rgba(236,145,172,.56)!important;
+    color:#f6d7e0!important;
+    background:rgba(169,67,97,.82)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-dots button { background:#5d7789!important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-dots button.is-active {
+    width:30px!important;
+    background:linear-gradient(90deg,#d16283,#e891aa)!important;
+}
+
+@media(max-width:1050px){
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-head {
+        grid-template-columns:minmax(0,1fr) minmax(390px,.82fr)!important;
+    }
+}
+@media(max-width:760px){
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-head { grid-template-columns:1fr!important; }
+}
+@media(max-width:620px){
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage { padding:2.8rem 0 3.2rem!important; }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-head { margin:0 1rem 1.25rem!important; }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-intro h3 {
+        max-width:12ch!important;
+        font-size:clamp(2.2rem,10.5vw,3.45rem)!important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-actions {
+        grid-template-columns:54px minmax(0,1fr)!important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-carousel-controls {
+        grid-column:1/-1!important;
+        justify-self:stretch!important;
+        justify-content:space-between!important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-grid {
+        min-height:445px!important;
+        padding:.7rem 8vw 1.1rem!important;
+        scroll-padding-inline:8vw!important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card,
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card:first-child,
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card:nth-child(n) {
+        flex-basis:84vw!important;
+        min-height:415px!important;
+        opacity:.68!important;
+        transform:scale(.96)!important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-coverage-card.is-active {
+        opacity:1!important;
+        transform:scale(1)!important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-copy h4,
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-coverage-card:first-child h4 {
+        font-size:clamp(1.35rem,7vw,1.85rem)!important;
+    }
+}

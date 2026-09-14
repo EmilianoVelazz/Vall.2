@@ -131,7 +131,8 @@
 
 .cfg-form-hint {
     font-size: 0.72rem;
-    color: #94a3b8;
+    /* #94a3b8 daba 2.56:1 sobre la tarjeta blanca; el minimo es 4.5:1. */
+    color: #63738a;
     margin-top: 0.3rem;
 }
 

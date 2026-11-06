@@ -160,15 +160,10 @@ const catalogo = leerCatalogo();
 const proyeccion = geoNaturalEarth1();
 const trazar = geoPath(proyeccion);
 
-/* Países que no se dibujan. Se descartan ANTES de encuadrar, así que también
-   dejan de influir en el centrado del mapa.
-     Antarctica  no tiene bolsas y su masa empuja el resto del mundo hacia
-                 arriba, dejando el mapa descentrado.
-     Mexico      excluido por decisión de producto (2026-08-07), no por
-                 geometría: se pidió retirarlo del mapa por completo. Para
-                 devolverlo basta con quitarlo de esta lista, volver a añadir su
-                 entrada en CENTROS y su bloque en world-exchanges.js. */
-const EXCLUIDOS = new Set(['Antarctica', 'Mexico']);
+/* Antarctica no tiene bolsas y su masa empuja el resto del mundo hacia arriba,
+   dejando el mapa descentrado. México permanece en la geometría principal para
+   que Bolsa, Bonos y Divisas compartan exactamente la misma cartografía. */
+const EXCLUIDOS = new Set(['Antarctica']);
 const geometrias = topo.objects.countries.geometries.filter(g => !EXCLUIDOS.has(g.properties?.name));
 
 const coleccion = {
@@ -189,22 +184,9 @@ for (const feature of coleccion.features) {
     paises.push({ ne: nombre, d: redondear(d) });
 }
 
-/* Geometrías que no pertenecen al mapa bursátil, pero que otros módulos
-   financieros necesitan. Se proyectan con el mismo encuadre y se publican por
-   separado: así el mapa de Bolsa sigue respetando sus exclusiones y el mapa de
-   Bonos puede recuperar el territorio sin mantener una segunda cartografía. */
+/* Reserva para geometrías auxiliares de módulos futuros. Los territorios con
+   cobertura actual —incluido México— viven directamente en `paises`. */
 const suplementos = {};
-for (const nombre of ['Mexico']) {
-    const geom = topo.objects.countries.geometries.find(g => g.properties?.name === nombre);
-    if (!geom) continue;
-    const feature = { type: 'Feature', properties: geom.properties, geometry: aGeometria(geom, arcos) };
-    const d = trazar(feature);
-    const xy = proyeccion(nombre === 'Mexico' ? [-99.13, 19.43] : [0, 0]);
-    if (d && xy) suplementos[nombre] = {
-        d: redondear(d),
-        centro: { x: +xy[0].toFixed(DECIMALES), y: +xy[1].toFixed(DECIMALES) },
-    };
-}
 
 /* Marcadores del centro financiero, proyectados al mismo lienzo. */
 const centros = {};

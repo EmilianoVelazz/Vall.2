@@ -1409,6 +1409,50 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-g
     grid-template-columns:repeat(12,minmax(0,1fr))!important;
     gap:.85rem!important;
 }
+/* En Finanzas estas piezas son botones; en las ediciones React son enlaces a
+   la fuente original. El navegador añadía su subrayado nativo a titulares,
+   fechas, etiquetas y fuentes, haciendo que la tarjeta pareciera rota. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom a {
+    text-decoration:none!important;
+    text-decoration-line:none!important;
+}
+/* Fotografías compartidas por Finanzas, Mercados y México. Antes estas dos
+   capas vivían sólo en Mercados.css; México generaba el elemento pero no tenía
+   ninguna regla que lo posicionara, por eso portada y cobertura quedaban lisas. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-news-photo {
+    display:block!important;
+    overflow:hidden!important;
+    background:#29465a!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-news-photo>img {
+    display:block!important;
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+    object-position:center!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-news-photo.is-fallback {
+    display:grid!important;
+    place-items:center!important;
+    color:rgba(224,239,246,.32)!important;
+    background:radial-gradient(circle at 25% 10%,#42637a,#29465a 65%)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-news-photo.is-fallback>i {
+    font-size:2rem!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-foto,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-cob-foto {
+    position:absolute!important;
+    z-index:0!important;
+    inset:0!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-foto::after,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-cob-foto::after {
+    position:absolute!important;
+    inset:0!important;
+    content:""!important;
+    background:linear-gradient(180deg,rgba(10,20,29,.05) 12%,rgba(10,20,29,.28) 48%,rgba(10,20,29,.94) 100%)!important;
+}
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-card,
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-newsroom .fnb-card:nth-child(n) {
     position:relative!important;
@@ -3488,6 +3532,19 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-pulse-wave-line
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-pulse-dot {
     stroke:#29485b!important;
 }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-pulse-node {
+    cursor:pointer!important;
+    outline:none!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-pulse-hit {
+    fill:transparent!important;
+    pointer-events:all!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-pulse-node:focus-visible .fnb-pulse-halo {
+    stroke:#fff!important;
+    stroke-width:3!important;
+    stroke-opacity:.95!important;
+}
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-pulse-node.is-active .fnb-pulse-halo {
     animation:fnb-node-halo 1.8s ease-out infinite!important;
 }
@@ -4757,6 +4814,28 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-route-action {
 }
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-route-action i {
     transition:transform .25s ease!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-retry-btn {
+    display:inline-flex!important;
+    align-items:center!important;
+    gap:.5rem!important;
+    width:max-content!important;
+    margin-top:.85rem!important;
+    padding:.55rem .78rem!important;
+    border:1px solid rgba(236,193,206,.28)!important;
+    border-radius:7px!important;
+    color:#ecc1ce!important;
+    font:inherit!important;
+    font-size:.625rem!important;
+    font-weight:800!important;
+    cursor:pointer!important;
+    background:rgba(236,193,206,.07)!important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-retry-btn:hover,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-retry-btn:focus-visible {
+    border-color:rgba(236,193,206,.62)!important;
+    color:#fff4f7!important;
+    outline:none!important;
 }
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .fnb-reading-route-track>button:hover .fnb-route-action i {
     transform:translateX(5px)!important;

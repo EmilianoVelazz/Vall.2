@@ -1,0 +1,44 @@
+'use strict';
+const assert = require('node:assert/strict');
+const { createScheduledReportDelivery, normalizeAiCustomization } = require('../backend/services/report-scheduled-delivery');
+const { UserReportAgent } = require('../backend/ai/user-report-agent');
+const collections = require('../shared/report-collections.json');
+const settings = { audience:'purchasing', depth:'detailed', decisionHorizon:'month', objective:'Revisar compras', customTitle:'Informe para compras', recipientName:'Jefatura de prueba', organization:'Empresa de prueba', confidentiality:'shareable', sections:{indicators:false,charts:false,tables:false,risks:false,sources:false}, aiCustomization:{enabled:true,instructions:'Mantener las condiciones de entrega',tone:'simple'} };
+const base = {key:'mx_proteins', title:'Corte vigente', summary:'Pollo de prueba a 40 MXN/kg.', sections:[{heading:'Referencia',text:'Dato proporcionado para simulación.'}],metrics:[{label:'Pollo',value:'40 MXN/kg'}], sourceLinks:[{label:'Prueba',url:'https://example.org'}]};
+async function main() {
+    const records=[],deliveries=[],requests=[];let loads=0, generated=0;
+    const agent = new UserReportAgent({provider:{isConfigured:()=>true,generate:async request=>{
+        requests.push(request);generated++;await new Promise(resolve=>setTimeout(resolve,15));
+        return {model:'fixture',text:JSON.stringify({title:'Otra propuesta',summary:'Lectura para compras',sections:[{heading:'Decisiones',text:'Confirmar proveedor y entrega.'}],dataSelection:{metrics:[0],tables:[],visuals:[]},watchlist:['Riesgo']})};
+    }}});
+    const schedule={id:'fixture',ownerEmail:'fixture@example.invalid',area:'mexico',reportKey:'mx_proteins',preferences:settings,delivery:{frequency:'weekly',time:'08:00',weekday:1}};
+    const deps={collections,store:{due:async()=>[schedule],record:async(id,value)=>records.push({id,...value})},loadSnapshot:async()=>{loads++;return {reports:[base]};},generate:request=>agent.generate(request),personalize:()=>{throw Error('No usar la personalización antigua para una programación IA');},prepare:report=>report,deliver:async value=>deliveries.push(value)};
+    const run=createScheduledReportDelivery(deps);
+    const [first,second]=await Promise.all([run(),run()]);assert.strictEqual(first,second);assert.equal(first.sent,1);assert.equal(generated,1);assert.equal(loads,1);assert.equal(deliveries.length,1,'El cron y el temporizador no duplican la entrega concurrente');
+    for(const value of ['Compras y abastecimiento','Detallado con evidencia','Próximos 30 días','Revisar compras','Informe para compras','Jefatura de prueba','Empresa de prueba','shareable','Mantener las condiciones de entrega','Claro y sencillo']) assert(requests[0].prompt.includes(value),'La IA recibe '+value);
+    const report=deliveries[0].executive;assert.equal(report.title,settings.customTitle);assert.deepEqual(report.aiEdition.preferences.sections,settings.sections);for(const key of ['metrics','tables','visuals','watchlist','sourceLinks']) assert.deepEqual(report[key],[]);
+    assert.equal(records[0].delivery.frequency,'weekly');assert(records[0].sentAt);
+    assert.equal(deliveries[0].recipient,schedule.ownerEmail,'Las programaciones anteriores conservan su destino');
+    const external={...schedule,preferences:{...settings,emailRecipient:'jefe@example.invalid'}};
+    await createScheduledReportDelivery({...deps,store:{...deps.store,due:async()=>[external]}})();assert.equal(deliveries.at(-1).recipient,'jefe@example.invalid','El motor usa el destinatario guardado');
+    let learningOwner;
+    const interests={providerEnabled:true,status:'ready',interests:[{kind:'product',id:'pork',source:'history'}]};
+    const personalized=createScheduledReportDelivery({...deps,store:{...deps.store,due:async()=>[external]},generate:(request,{ownerEmail})=>{learningOwner=ownerEmail;return agent.generate(request,{userContext:interests});}});
+    await personalized();assert.equal(learningOwner,external.ownerEmail,'Se recupera el perfil del propietario, no del destinatario');assert.match(requests.at(-1).prompt,/PERFIL DE INTERESES DEL USUARIO/);assert.equal(deliveries.at(-1).executive.aiEdition.profileUse.interests[0].id,'pork');
+    interests.providerEnabled=false;await personalized();assert(!requests.at(-1).prompt.includes('PERFIL DE INTERESES DEL USUARIO'),'Desactivar el perfil se respeta en la siguiente entrega');
+    const beforeFailure=deliveries.length;
+    const invalid={...external,preferences:{...settings,emailRecipient:'a@example.invalid,b@example.invalid'}};
+    await createScheduledReportDelivery({...deps,store:{...deps.store,due:async()=>[invalid]}})();assert.equal(deliveries.length,beforeFailure,'Un destino inválido no provoca un envío');
+    await createScheduledReportDelivery({...deps,generate:async()=>{throw Error('IA no disponible');}})();
+    assert.equal(deliveries.length,beforeFailure,'Una IA caída no envía silenciosamente el informe base');assert.match(records.at(-1).error,/IA no disponible/);
+    const deferred=await createScheduledReportDelivery({...deps,now:(()=>{let time=0;return ()=>time+=100000;})()})();assert.equal(deferred.deferred,1);assert.equal(deliveries.length,beforeFailure);
+    assert.throws(()=>normalizeAiCustomization({enabled:true,instructions:'x'.repeat(4001)}),error=>error.status===400);
+    assert.deepEqual(normalizeAiCustomization(),{enabled:false});
+    const byRequest={...schedule,preferences:{...settings,aiCustomization:{enabled:true,instructions:'Resume sin quitar las gráficas',tone:'simple',mode:'instructions'}}};
+    let interpretedRequest;
+    await createScheduledReportDelivery({...deps,store:{...deps.store,due:async()=>[byRequest]},generate:async request=>{interpretedRequest=request;return base;}})();
+    assert.equal(interpretedRequest.options.mode,'instructions','Las nuevas entregas interpretan el pedido sin imponer controles anteriores');assert.equal(interpretedRequest.instructions,'Resume sin quitar las gráficas');
+    assert.throws(()=>normalizeAiCustomization({enabled:true,mode:'instructions',instructions:' '}),error=>error.status===400);
+    console.log('Report AI delivery: OK · ajustes completos, corte vigente, pedido, tono, bloques, identidad, frecuencia, concurrencia, plazos y fallo sin envío; todos los correos simulados');
+}
+main().catch(error=>{console.error(error);process.exitCode=1;});

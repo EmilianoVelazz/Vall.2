@@ -1,0 +1,27 @@
+'use strict';
+process.env.NODE_ENV='test';
+const assert=require('node:assert/strict');
+const {markets,parseAms,parseCanada,parseChile,parseArgentina,parseColombia,parsePeru,loadAmericasProteins}=require('../backend/lib/report-americas-proteins');
+const item=ticker=>markets.find(item=>item.ticker===ticker),row=cells=>'<tr>'+cells.map(cell=>'<td>'+cell+'</td>').join('')+'</tr>';
+(async()=>{
+ const us=item('AMS-PORK-CUTOUT');assert.deepEqual(parseAms({reportSection:us.section,results:[{slug_id:'2498',report_date:'10/19/2026',pork_carcass:'79.39'},{slug_id:'2453',report_date:'10/19/2026',pork_carcass:'999'}]},us),[{date:'2026-10-19',value:79.39}]);assert.throws(()=>parseAms({reportSection:'Other',results:[]},us));
+ const ca='<tr><th>Prix global final<BR>($CAN/100 kg)</th><td><a href="javascript:fjs_affiche_detail_prix(\'2026-10-19\',\'0\',\'GLOBAL\')">$197.55</a></td><td><a href="javascript:fjs_affiche_detail_prix(\'2026-10-21\',\'0\',\'GLOBAL\')">$200.83</a></td><td>$999.00</td></tr>';
+ assert.equal(parseCanada(ca).length,2,'No usar el promedio semanal como dato diario');assert.throws(()=>parseCanada(ca.replace('CAN/100 kg','US/100 lb')));
+ const cl='Región Metropolitana Semana del 13 al 16 de octubre de 2026 Precio promedio canal tradicional<table>'+row(['Pollo Entero','kg','4.189','-2','4.490','9'])+'</table>Región del Maule<table>'+row(['Pollo Entero','kg','999.999'])+'</table>';
+ assert.deepEqual(parseChile(cl,item('CL-RETAIL-0')),[{date:'2026-10-16',value:4189}]);assert.equal(parseChile(cl.replace('Pollo Entero','Otro producto'),item('CL-RETAIL-0')).length,0);
+ const ar='RESUMEN ESTADISTICO DE PRECIOS DESDE EL MARTES 20/10/2026 AL MARTES 20/10/2026 HACIENDA VACUNA TIPO FAENA<table>'+row(['','NOVILLITOS','','','$5100,000','$2500,000','$4421,425','$4550,000','2.135'])+'</table>';
+ assert.deepEqual(parseArgentina(ar,item('AR-CATTLE-0')),[{date:'2026-10-20',value:4421.425}]);assert.throws(()=>parseArgentina(ar.replace('AL MARTES 20','AL MARTES 19'),item('AR-CATTLE-0')));assert.equal(parseArgentina(ar.replace('$4421,425','$9999,000'),item('AR-CATTLE-0')).length,0);
+ const co=[{text:'Cuadro 7. 10 al 16 de octubre 2026 Pesos por kilogramo',columns:[['Pollo entero fresco sin vísceras','Bogotá, D.C., Paloquemao 14.000 14.500 14.350 -'],['Pechuga de pollo','Bogotá, D.C., Paloquemao 18.000 19.000 18.800 +']]}];
+ assert.deepEqual(parseColombia(co,item('CO-CHICKEN-0')),[{date:'2026-10-16',value:14350}]);assert.equal(parseColombia([{...co[0],text:co[0].text.replace('kilogramo','unidad')}],item('CO-CHICKEN-0')).length,0);
+ const pe=[{text:'lunes, 19 de octubre de 2026 LIMA METROPOLITANA Precio de pollo S/ por kg dom 18 lun 19 Var.',lines:['Mayorista (centros de distribucion) 4.34 4.00 3.90 -2.5%','Huevo rosado 5.61 5.55 5.53 -0.4%']}];
+ assert.deepEqual(parsePeru(pe,item('PE-AVES-0')),[{date:'2026-10-18',value:4},{date:'2026-10-19',value:3.9}]);assert.throws(()=>parsePeru([{...pe[0],text:pe[0].text.replace('dom 18','dom 17')}],item('PE-AVES-0')));
+ const quotes=await loadAmericasProteins({cutoff:'2026-10-20T16:00:00Z',get:async()=>{throw Error('offline fixture');},read:async url=>{if(url.includes('accesporcqc'))return ca;throw Error('offline fixture');}});
+ const canadian=quotes.find(quote=>quote.ticker==='QC-PORK-GLOBAL');assert.deepEqual(canadian.series,[{date:'2026-10-19',value:197.55}],'Excluir fechas futuras aunque el portal ya las muestre');assert.equal(canadian.change,null);
+ const historical={...canadian,series:[{date:'2020-01-06',value:150},...canadian.series]};
+ const refreshed=await loadAmericasProteins({cutoff:'2026-10-22T16:00:00Z',previous:[historical],get:async()=>{throw Error('offline fixture');},read:async url=>{if(url.includes('accesporcqc'))return ca;throw Error('offline fixture');}});
+ const updated=refreshed.find(quote=>quote.ticker===canadian.ticker);assert.equal(updated.quoteStatus,'verified');assert.deepEqual(updated.series,[{date:'2020-01-06',value:150},{date:'2026-10-19',value:197.55},{date:'2026-10-21',value:200.83}],'Una consulta exitosa conserva la historia compatible y añade la publicación nueva');
+ const changed=await loadAmericasProteins({cutoff:'2026-10-22T16:00:00Z',previous:[{...historical,unit:'USD/lb'}],get:async()=>{throw Error('offline fixture');},read:async url=>{if(url.includes('accesporcqc'))return ca;throw Error('offline fixture');}});
+ assert(!changed.find(quote=>quote.ticker===canadian.ticker).series.some(point=>point.date.startsWith('2020')),'Una unidad distinta no hereda historia');
+ const fallback=await loadAmericasProteins({cutoff:'2026-10-20T16:00:00Z',previous:quotes,get:async()=>{throw Error('offline fixture');},read:async()=>{throw Error('offline fixture');}});assert.equal(fallback.find(quote=>quote.ticker===canadian.ticker).quoteStatus,'preserved');assert.deepEqual(fallback.find(quote=>quote.ticker===canadian.ticker).series,canadian.series);assert(fallback.filter(quote=>quote.ticker!==canadian.ticker).every(quote=>quote.quoteStatus==='unavailable' && quote.value===null));
+ console.log('América: OK · identidad, monedas y unidades, canales, rangos, columnas PDF, fechas, exclusión de futuros y promedios semanales, conservación ante fallos.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

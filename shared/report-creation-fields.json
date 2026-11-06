@@ -1,0 +1,5 @@
+[
+  "audience", "depth", "decisionHorizon", "customTitle", "recipientName",
+  "organization", "confidentiality", "objective", "sections.indicators",
+  "sections.charts", "sections.tables", "sections.risks", "sections.sources"
+]

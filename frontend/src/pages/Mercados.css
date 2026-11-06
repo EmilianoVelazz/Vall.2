@@ -3851,3 +3851,418 @@ i.pa-animal { background: var(--mk-proteinas); }
 }
 
   
+/* Daily News Mercados: conserva la composición editorial, pero evita que sus
+   capas translúcidas, paneles sticky y animaciones repinten toda la página en
+   cada cuadro del desplazamiento. No se usa content-visibility porque la altura
+   real de las secciones cambia y produce saltos al materializarlas. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-newsroom *,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-newsroom *::before,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-newsroom *::after {
+  animation-duration: .001ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-newsroom :is(.fnb-native-nav,.fnb-pulse,.fnb-radar-scope,.fnb-latest,.fnb-priority,.fnb-card-rank,.fnb-world-window) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-newsroom :is(.fnb-latest,.fnb-priority) {
+  position: relative !important;
+  top: auto !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-newsroom :is(.fnb-pulse-dot,.fnb-company-spark path) {
+  filter: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias .mkt-newsroom :is(.fnb-route-section,.fnb-front-page,.fnb-radar,.fnb-departments,.fnb-perspectives,.fnb-coverage,.fnb-story-index) {
+  contain: layout paint;
+}
+
+/* Auditoría responsiva transversal de Mercados. Las matrices conservan sus
+   columnas y se desplazan dentro de su propio marco; nunca ensanchan la página. */
+.mkt-wrap,
+.mkt-detail-nav,
+.mkt-newsroom,
+.grain-chart-card,
+.mkt-sim,
+.mkt-global-card {
+    min-width: 0;
+    max-width: 100%;
+}
+
+:is(.cmt-scroll,.pm-scroll,.ma-scroll,.put-esc-scroll,.grain-table-scroll,.mkt-table-wrap,.oi-table-wrap) {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px) {
+    .mkt-wrap { width: 100%; padding-inline: 1rem; }
+    .mkt-detail-nav { gap: .85rem; padding: 1rem; }
+    :is(.grain-card-head,.grain-chart-toolbar,.mkt-sim-head,.grain-balance-head,.mkt-global-card>header) {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 720px) {
+    .mkt-wrap { padding-inline: .72rem; }
+
+    .mkt-detail-nav {
+        display: grid;
+        grid-template-columns: 44px minmax(0,1fr);
+        gap: .65rem;
+        padding: .8rem;
+        border-radius: 15px;
+    }
+
+    .mkt-detail-back {
+        width: 44px;
+        min-width: 44px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .mkt-detail-back span { display: none; }
+    .mkt-detail-heading { min-width: 0; }
+    .mkt-detail-heading h1 { font-size: clamp(1.35rem,7vw,1.8rem); }
+
+    .mkt-detail-tabs {
+        grid-column: 1 / -1;
+        display: flex !important;
+        grid-template-columns: none !important;
+        flex-wrap: nowrap;
+        gap: .42rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        padding: .1rem 0 .25rem;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: none;
+    }
+
+    .mkt-detail-tabs::-webkit-scrollbar { display: none; }
+    .mkt-detail-tabs button {
+        flex: 0 0 104px;
+        min-width: 104px;
+        min-height: 48px;
+        scroll-snap-align: start;
+    }
+
+    :is(.grain-view-switch,.chart-intervals,.mkt-tabs-row,.mkt-sim-presets,.mxh-chart-switches) {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: none;
+    }
+
+    :is(.grain-view-switch,.chart-intervals,.mkt-tabs-row,.mkt-sim-presets,.mxh-chart-switches)::-webkit-scrollbar { display: none; }
+
+    .grain-chart-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .grain-period-control { width: 100%; }
+    .grain-chart-canvas { min-height: 250px; }
+}
+
+@media (max-width: 480px) {
+    .mkt-wrap { padding-inline: .55rem; }
+    .hub-hero { padding: 1rem !important; }
+    .mkt-detail-heading p { font-size: .7rem; }
+    .mkt-family-head { align-items: flex-start; }
+    .mkt-family-head > i { flex: 0 0 30px; }
+    .mkt-sim-slider { grid-template-columns: minmax(0,1fr) auto; }
+    .mkt-sim-slider input { grid-column: 1 / -1; width: 100%; }
+}
+
+/* ========================================================================== */
+/* PALETA EJECUTIVA 2026 · MERCADOS                                            */
+/*
+   Capa final compartida con la nueva dirección visual de Finanzas. Se limita
+   a Mercados mediante la clase de ruta: la hoja está incluida en el bundle y
+   no debe cambiar otras páginas cuando este componente ya no está montado.
+
+   Las cuatro fotografías del resumen siguen siendo el contenido principal de
+   cada tarjeta. Esta capa únicamente neutraliza sus velos y el cromo que las
+   rodea; no las sustituye, oculta ni convierte en fondos planos.
+   ========================================================================== */
+html.vn-dark-mercados body.vn-dark-mercados {
+    --mk-bg: #111827;
+    --mk-bg-raised: #111827;
+    --mk-surface: #1F2937;
+    --mk-surface-2: #1F2937;
+    --mk-surface-3: #4B5563;
+    --mk-line: #4B5563;
+    --mk-line-strong: #9CA3AF;
+    --mk-line-soft: rgba(156, 163, 175, .28);
+    --mk-text: #EDEDED;
+    --mk-text-2: #EDEDED;
+    --mk-muted: #9CA3AF;
+
+    /* Las familias conservan su identidad por nombre e icono, pero dejan de
+       introducir una paleta paralela en paneles, tablas y navegación. */
+    --mk-general: #9CA3AF;
+    --mk-general-ink: #EDEDED;
+    --mk-granos: #9CA3AF;
+    --mk-granos-ink: #EDEDED;
+    --mk-energia: #9CA3AF;
+    --mk-energia-ink: #EDEDED;
+    --mk-metales: #9CA3AF;
+    --mk-metales-ink: #EDEDED;
+    --mk-proteinas: #9CA3AF;
+    --mk-proteinas-ink: #EDEDED;
+    --mk-proteinas-foco: #EDEDED;
+    --mk-general-soft: rgba(156, 163, 175, .13);
+    --mk-granos-soft: rgba(156, 163, 175, .13);
+    --mk-energia-soft: rgba(156, 163, 175, .13);
+    --mk-metales-soft: rgba(156, 163, 175, .13);
+    --mk-proteinas-soft: rgba(156, 163, 175, .13);
+
+    background: #111827 !important;
+    background-image: none !important;
+    color: #EDEDED;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-ticker {
+    background: #111827;
+    border-color: rgba(156, 163, 175, .26);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .tk-lbl { color: #9CA3AF; }
+
+html.vn-dark-mercados body.vn-dark-mercados .hub-hero {
+    border: 1px solid #4B5563;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .24);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .hub-hero::before,
+html.vn-dark-mercados body.vn-dark-mercados .hub-hero::after {
+    background: radial-gradient(circle, rgba(156, 163, 175, .14), transparent 70%);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .hub-hero-title {
+    background: none;
+    color: #EDEDED;
+    -webkit-text-fill-color: currentColor;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .hub-hero-eyebrow,
+html.vn-dark-mercados body.vn-dark-mercados .hub-hero-sub { color: #9CA3AF; }
+
+html.vn-dark-mercados body.vn-dark-mercados .hub-hero-accent-mkt {
+    background: linear-gradient(90deg, #4B5563, #9CA3AF, #4B5563);
+}
+
+/* Los tres apartados forman una sola fila; en móvil se recorren deslizando. */
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-inline: contain;
+    padding-block: 6px 14px;
+}
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-grid > .mkt-hub-card {
+    flex: 1 1 0;
+    min-width: 0;
+    scroll-snap-align: start;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-card {
+    min-height: clamp(320px, 22vw, 380px);
+    border: 1px solid #4B5563;
+    border-radius: 14px;
+    background: #1F2937;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .24);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-body {
+    flex: 1;
+    height: auto;
+    padding: clamp(24px, 2vw, 34px);
+    gap: 18px;
+}
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-body > header {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+}
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-body > header h2 {
+    font-size: clamp(2rem, 2.4vw, 2.5rem);
+    line-height: 1.15;
+}
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-body > header small {
+    font-size: .72rem;
+    line-height: 1.5;
+}
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-body > header .mkt-hub-badge {
+    grid-column: 2;
+    justify-self: start;
+    margin-left: 0;
+}
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-stat strong {
+    font-size: 1.45rem;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-card:hover {
+    border-color: #9CA3AF;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .34);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-photo,
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-photo img {
+    object-fit: cover;
+    filter: saturate(.72) contrast(1.04);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-card[class*="mhc-"] .mkt-hub-photo::after {
+    background: linear-gradient(180deg,
+        rgba(17, 24, 39, .76) 0%,
+        rgba(17, 24, 39, .30) 40%,
+        rgba(17, 24, 39, .38) 58%,
+        rgba(17, 24, 39, .92) 100%);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-icon,
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-card[class*="mhc-"]:hover .mkt-hub-icon {
+    border-color: rgba(237, 237, 237, .28);
+    background: rgba(31, 41, 55, .72);
+    color: #EDEDED;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-badge {
+    border-color: rgba(237, 237, 237, .24);
+    background: rgba(17, 24, 39, .66);
+    color: #EDEDED;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-link {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: .85rem;
+    border-color: rgba(237, 237, 237, .28);
+    background: rgba(17, 24, 39, .72);
+    color: #EDEDED;
+}
+
+/* Navegación y cabeceras interiores: misma profundidad y radios que Finanzas. */
+html.vn-dark-mercados body.vn-dark-mercados .mkt-detail-nav {
+    border-color: #4B5563;
+    border-radius: 14px;
+    background: linear-gradient(120deg, #111827, #1F2937);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .24);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-detail-back,
+html.vn-dark-mercados body.vn-dark-mercados .mkt-detail-tabs button {
+    border-color: #4B5563;
+    background: #1F2937;
+    color: #9CA3AF;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-detail-back:hover,
+html.vn-dark-mercados body.vn-dark-mercados .mkt-detail-tabs button:hover {
+    border-color: #9CA3AF;
+    background: #4B5563;
+    color: #EDEDED;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .mkt-detail-tabs button.is-active {
+    border-color: #9CA3AF;
+    background: #EDEDED;
+    color: #111827;
+    box-shadow: none;
+}
+
+/* Las portadas internas mantienen sus fotografías; solo cambia el filtro de
+   color que había encima de ellas. */
+html.vn-dark-mercados body.vn-dark-mercados :is(.grain-hero, .energy-hero, .metal-hero, .protein-hero) {
+    border-color: #4B5563;
+    border-left-color: #9CA3AF;
+    border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .24);
+    background-blend-mode: normal;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados :is(
+    .grain-pressure-card,
+    .energy-pressure-card,
+    .metal-cycle-score,
+    .protein-hero-score
+) {
+    border-color: rgba(156, 163, 175, .52);
+    background: rgba(17, 24, 39, .76);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados :is(
+    .grain-chart-card,
+    .grain-news-card,
+    .grain-panel,
+    .grain-signal-card,
+    .energy-scenario-panel,
+    .energy-exposure-panel,
+    .protein-panel,
+    .mkt-panel,
+    .mkt-terms,
+    .mkt-sim,
+    .oi-panel
+) {
+    border-color: #4B5563;
+    border-radius: 12px;
+    background-color: #1F2937;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .18);
+}
+
+html.vn-dark-mercados body.vn-dark-mercados :is(
+    input,
+    select,
+    textarea,
+    .chart-int-btn,
+    .grain-view-switch button
+) {
+    border-color: #4B5563;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados :is(input, select, textarea):focus-visible,
+html.vn-dark-mercados body.vn-dark-mercados button:focus-visible,
+html.vn-dark-mercados body.vn-dark-mercados [role="button"]:focus-visible {
+    outline-color: #EDEDED;
+}
+
+html.vn-dark-mercados body.vn-dark-mercados .footer {
+    border-color: #4B5563;
+    background: #111827;
+}
+
+@media (max-width: 900px) {
+    html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-grid > .mkt-hub-card {
+        flex: 0 0 clamp(260px, 82vw, 360px);
+    }
+}
+
+@media (max-width: 720px) {
+    html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-grid {
+        gap: 12px;
+    }
+
+    html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-card { min-height: 310px; }
+    html.vn-dark-mercados body.vn-dark-mercados .mkt-hub-body { padding: 22px; }
+}

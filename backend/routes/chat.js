@@ -9,27 +9,53 @@ const { orchestrator } = require('../ai/orchestrator');
 const { ragRetriever } = require('../ai/rag-retriever');
 const { getAttachments } = require('./attachments');
 const { selectModelTier } = require('../ai/prompt-builder');
+const { orionModel } = require('../ai/orion-models');
+const { conversationFocus } = require('../ai/conversation-context');
 const { MODES } = require('../ai/response-schema');
-const { VOICE_DOMAIN_INSTRUCTION } = require('../ai/domain-policy');
+const { VOICE_DOMAIN_INSTRUCTION, domainDecision, domainRedirectText } = require('../ai/domain-policy');
 const { resolveCurrencyConversion } = require('../ai/currency-converter');
+const { wantsStatisticalAnalysis, buildStatisticalModel, statisticalResponse } = require('../ai/statistical-analysis');
+const profileStore = require('../services/user-profile-store');
+const { accountKey, createWorkGate, boundedJson } = require('../lib/resource-limits');
+const {chatCredits,exempt}=require('../services/chat-credits');
+const {chatMeter}=require('../lib/chat-credit-context');
 
 const router = express.Router();
 // El historial, contexto y referencias de adjuntos pueden superar el parser
 // global de 10 KB. Este límite solo se aplica a las rutas de IA.
-const chatJson = express.json({ limit: '128kb' });
+const chatJson = boundedJson({ limit: '128kb' });
+const aiWork = createWorkGate({ maxActive: 12, maxPerUser: 2 }).wrap;
 const aiLimiter = rateLimit({
+    keyGenerator: accountKey,
     windowMs: 15 * 60 * 1000,
     max: 30,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Demasiadas solicitudes de IA. Intenta nuevamente en 15 minutos.' },
 });
+const statisticsLimiter = rateLimit({
+    keyGenerator: accountKey,
+    windowMs: 15 * 60 * 1000,
+    max: 40,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Demasiadas solicitudes estadísticas. Intenta nuevamente en 15 minutos.' },
+});
 const liveTokenLimiter = rateLimit({
+    keyGenerator: accountKey,
     windowMs: 15 * 60 * 1000,
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: 'Demasiadas llamadas de voz. Intenta nuevamente en 15 minutos.' },
+});
+const liveTurnLimiter = rateLimit({
+    keyGenerator: accountKey,
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Demasiados turnos de voz. Intenta nuevamente en unos minutos.' },
 });
 
 // `latest` es la variante de audio nativa habilitada para esta cuenta; la
@@ -84,7 +110,7 @@ function liveSessionConfig(fxConversion = null) {
             },
         },
         systemInstruction: [
-            'Eres VALL AI, un asistente profesional de inteligencia económica.',
+            'Eres ORION, el asistente profesional de inteligencia económica de VALLNews.',
             VOICE_DOMAIN_INSTRUCTION,
             'RESPONDE EN ESPAÑOL DE MÉXICO. DEBES RESPONDER INEQUÍVOCAMENTE EN ESPAÑOL.',
             'Habla como un colega inteligente, cálido y espontáneo, no como locutor, robot, formulario ni texto leído.',
@@ -95,15 +121,18 @@ function liveSessionConfig(fxConversion = null) {
             'Si algo no quedó claro, haz una pregunta breve y natural en vez de asumir. Permite que el usuario te interrumpa y retoma sin reclamarle.',
             'Si te piden un informe, ofrece un resumen ejecutivo concreto y desarrolla los puntos prioritarios que el usuario pida. Indica que el chat escrito genera el informe completo de al menos 900 palabras, con datos, fuentes, tablas y exportación.',
             liveFxInstruction(fxConversion),
-            'No inventes cifras actuales ni fuentes. Cuando exista una cotización verificada en esta instrucción, úsala antes que tu memoria. Si no puedes verificar otro dato durante la llamada, dilo claramente y propone consultarlo en el chat escrito de VALL AI.',
+            'No inventes cifras actuales ni fuentes. Cuando exista una cotización verificada en esta instrucción, úsala antes que tu memoria. Si no puedes verificar otro dato durante la llamada, dilo claramente y propone consultarlo en el chat escrito de ORION.',
         ].join(' '),
     };
 }
 
 function publicAiError(err) {
+    if(err?.code?.startsWith('CHAT_'))return {status:err.status || 503,message:err.message,details:{code:err.code,resetsAt:err.resetsAt,usage:err.usage}};
     if (err?.code === 'AI_RATE_LIMIT' || /429|quota/i.test(err?.message || '')) return { status: 429, message: 'Cuota de IA agotada temporalmente. Intenta más tarde.' };
     if (err?.code === 'AI_SAFETY') return { status: 400, message: 'El proveedor no pudo procesar esta solicitud de forma segura.' };
     if (err?.code === 'AI_NOT_CONFIGURED' || err?.code === 'AI_AUTH') return { status: 503, message: 'IA no configurada correctamente en el servidor.' };
+    if (err?.code === 'AI_INCOMPLETE_RESPONSE') return { status: 502, message: 'La IA no terminó la respuesta. Puedes volver a intentarlo.' };
+    if (err?.code === 'AI_EMPTY_RESPONSE') return { status: 502, message: 'La IA no devolvió contenido. Puedes volver a intentarlo.' };
     if (err?.code === 'AI_TIMEOUT') return { status: 504, message: 'La IA tardó demasiado en responder.' };
     return { status: err?.status || 500, message: 'Error al procesar la solicitud de IA.' };
 }
@@ -112,15 +141,40 @@ function structuredInput(body = {}, user = null) {
     const message = String(body.message || body.prompt || body.query || body.text || '').trim().slice(0, 12000);
     const attachments = getAttachments(body.attachmentIds, user);
     const requestedMode = MODES.has(body.mode) ? body.mode : 'auto';
+    const history = Array.isArray(body.history) ? body.history.slice(-24) : [];
+    const focus = conversationFocus(message, history);
+    const classificationMessage = focus.followUp && focus.anchor
+        ? `${focus.anchor}\n${message}`
+        : message;
+    const selectedModel = orionModel(body.modelProfile);
     return {
         message,
         context: String(body.context || '').trim().slice(0, 18000),
-        history: Array.isArray(body.history) ? body.history.slice(-16) : [],
+        // Doce intercambios permiten conservar el tema y varias correcciones
+        // sin convertir toda la conversación en contexto ilimitado.
+        history,
+        conversationMemory: body.conversationMemory || null,
+        businessProfile: user?.preferences?.businessProfile || null,
         mode: requestedMode,
-        tier: selectModelTier({ message, mode: requestedMode, attachments }),
+        tier: selectedModel?.tier || selectModelTier({ message: classificationMessage, mode: requestedMode, attachments }),
+        modelProfile: selectedModel ? body.modelProfile : null,
         attachments,
         userKeyHash: hashUser(user),
+        conversationId: String(body.conversationId || '').trim().slice(0, 100),
     };
+}
+
+async function hydratedInput(body, user) {
+    const input = structuredInput(body,user);
+    if (user?.sub) {
+        let timer;
+        try {
+            const profile = await Promise.race([profileStore.findById(user.sub), new Promise(resolve=>{ timer=setTimeout(()=>resolve(null),1500); })]);
+            input.businessProfile = profile?.preferences?.businessProfile || null;
+        } catch { /* El perfil opcional no debe impedir responder. */ }
+        finally { clearTimeout(timer); }
+    }
+    return input;
 }
 
 function hashUser(user) {
@@ -130,9 +184,93 @@ function hashUser(user) {
         : null;
 }
 
+async function persistTrainingTurn(user, input, result) {
+    if (!user?.sub || user.trainingOptIn === false || !input?.message || !result?.text) return;
+    try{const current=await profileStore.findById(user.sub);if(!current?.active || current.trainingOptIn!==true)return;}
+    catch{return;}
+    await profileStore.recordTrainingQuery(user.sub, {
+        conversationId: input.conversationId,
+        query: input.message,
+        response: result.text,
+        model: result.model || result.tier || '',
+        queryId: result.queryId,
+        metadata: { mode: result.mode || input.mode, tier: result.tier || input.tier, evidenceCount: result.evidenceCount || 0, citations: result.citations || [] },
+    }).catch(error => console.warn('[chat-history] No se guardó la consulta para entrenamiento:', error.message));
+}
+
+// Registro operativo separado del entrenamiento: conserva quién consultó,
+// el hilo y el modelo elegido sin depender de que la persona acepte entrenar
+// con sus mensajes. El fallo de Supabase nunca bloquea una respuesta útil.
+async function persistOrionTurn(user, input, result, scope = null) {
+    if (!user?.sub || !input?.message) return;
+    const decision = scope || domainDecision({ message: input.message, history: input.history, attachments: input.attachments });
+    const meta = result?.response?.meta || {};
+    await profileStore.recordOrionQuery(user.sub, {
+        userEmail: user.email,
+        userDisplayName: user.displayName || user.name || '',
+        conversationId: input.conversationId,
+        query: input.message,
+        response: result?.text || '',
+        mode: result?.mode || input.mode,
+        tier: result?.tier || input.tier,
+        model: result?.model || '',
+        domainAllowed: decision.allowed,
+        domainReason: decision.reason,
+        queryId: result?.queryId,
+        latencyMs: meta.latencyMs,
+        metadata: {
+            modelProfile: input.modelProfile || null,
+            modelFallback: !!result?.modelFallback,
+            evidenceCount: result?.evidenceCount || 0,
+            retrievalStrategy: result?.retrievalStrategy || '',
+            attachmentCount: Array.isArray(input.attachments) ? input.attachments.length : 0,
+        },
+    }).catch(error => console.warn('[orion-audit] No se guardó la consulta:', error.message));
+}
+
+router.get('/chat-conversations', verifyToken, async (req, res) => {
+    try {
+        if (!req.user.sub) return res.json({ success: true, data: [] });
+        const rows = await profileStore.listConversations(req.user.sub);
+        res.set('Cache-Control', 'private, no-store');
+        res.json({ success: true, data: rows.map(row => ({ id: row.id, title: row.title, messages: row.messages, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at) })) });
+    } catch (error) {
+        console.error('/api/chat-conversations:', error.message);
+        res.status(500).json({ success: false, error: 'No se pudo cargar el historial.' });
+    }
+});
+
+router.post('/chat-conversations', verifyToken, chatJson, async (req, res) => {
+    try {
+        if (!req.user.sub) return res.status(409).json({ success: false, error: 'Vuelve a iniciar sesión para activar tu historial personal.' });
+        const conversation = req.body?.conversation;
+        if (!conversation?.id || !Array.isArray(conversation.messages)) return res.status(400).json({ success: false, error: 'Conversación no válida.' });
+        await profileStore.saveConversation(req.user.sub, conversation);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('/api/chat-conversations POST:', error.message);
+        res.status(500).json({ success: false, error: 'No se pudo guardar la conversación.' });
+    }
+});
+
+router.post('/chat-conversations/delete', verifyToken, chatJson, async (req, res) => {
+    try {
+        if (req.user.sub) await profileStore.deleteConversation(req.user.sub, String(req.body?.conversationId || '').slice(0, 100));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('/api/chat-conversations/delete:', error.message);
+        res.status(500).json({ success: false, error: 'No se pudo eliminar la conversación.' });
+    }
+});
+
 // Token efímero para Gemini Live. La credencial permanente permanece en el
 // servidor; el token solo abre una llamada, con modelo y configuración fijados.
-router.post('/ai-live-token', chatJson, verifyToken, liveTokenLimiter, async (_req, res) => {
+router.get('/chat-usage',verifyToken,async(req,res)=>{
+    try{res.json({success:true,usage:await chatCredits.status(req.user)});}
+    catch(error){const safe=publicAiError(error);res.status(safe.status).json({success:false,error:safe.message,...safe.details});}
+});
+router.post('/ai-live-token', verifyToken, liveTokenLimiter, chatJson, aiWork(async (_req, res) => {
+    if(!exempt(_req.user))return res.status(403).json({success:false,code:'CHAT_REALTIME_UNAVAILABLE',error:'La voz en tiempo real aún no permite validar el consumo. Puedes usar el chat escrito o el dictado.'});
     if (!liveAi) return res.status(503).json({ success: false, error: 'Voz con IA no configurada en el servidor.' });
 
     const now = Date.now();
@@ -157,43 +295,98 @@ router.post('/ai-live-token', chatJson, verifyToken, liveTokenLimiter, async (_r
     } catch (err) {
         console.error('/api/ai-live-token error:', err.message);
         const safe = publicAiError(err);
-        res.status(safe.status).json({ success: false, error: safe.message });
+        res.status(safe.status).json({ success: false, error: safe.message,...safe.details });
     }
+}));
+
+// Gemini Live procesa el audio directamente, por lo que la transcripción no
+// pasa por /ai-insight-stream. Este endpoint conserva cada turno de voz en la
+// misma auditoría privada que el chat escrito.
+router.post('/orion-live-turn', verifyToken, liveTurnLimiter, chatJson, async (req, res) => {
+    const message = String(req.body?.message || '').trim().slice(0, 12000);
+    if (!message) return res.status(400).json({ success: false, error: 'Mensaje de voz vacío.' });
+    const input = structuredInput({ ...req.body, message }, req.user);
+    const scope = domainDecision({ message, history: input.history });
+    await persistOrionTurn(req.user, input, {
+        text: String(req.body?.response || '').trim().slice(0, 50000),
+        tier: 'flash', mode: 'normal', model: LIVE_MODEL, response: { meta: {} },
+    }, scope);
+    res.json({ success: true });
 });
 
-router.post('/chat', chatJson, verifyToken, aiLimiter, async (req, res) => {
+router.post('/chat', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
     const message = (req.body?.message || '').toString().trim().slice(0, 12000);
     if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
     if (!orchestrator.isConfigured()) return res.status(503).json({ error: 'IA no configurada.' });
 
     try {
-        const result = await orchestrator.generateStructured({ ...structuredInput(req.body, req.user), message });
+        const input = { ...await hydratedInput(req.body, req.user), message };
+        const result = await orchestrator.generateStructured(input);
+        await persistOrionTurn(req.user, input, result);
+        await persistTrainingTurn(req.user, input, result);
         res.json({ success: true, reply: result.text, response: result.response, tier: result.tier,
+            modelProfile: input.modelProfile, modelFallback: !!result.modelFallback,
             mode: result.mode, queryId: result.queryId, evidenceCount: result.evidenceCount,
             citations: result.citations, retrievalStrategy: result.retrievalStrategy });
     } catch (err) {
         console.error('/api/chat error:', err.message);
         const safe = publicAiError(err);
-        res.status(safe.status).json({ success: false, error: safe.message });
+        res.status(safe.status).json({ success: false, error: safe.message,...safe.details });
     }
-});
+}));
 
 // Respuesta rica no transmitida: útil para integraciones, documentos y pruebas.
-router.post('/ai-rich', chatJson, verifyToken, aiLimiter, async (req, res) => {
-    const input = structuredInput(req.body, req.user);
+router.post('/ai-rich', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
+    const input = await hydratedInput(req.body, req.user);
     if (!input.message) return res.status(400).json({ success: false, error: 'Mensaje vacío.' });
     if (!orchestrator.isConfigured()) return res.status(503).json({ success: false, error: 'IA no configurada.' });
     try {
         const result = await orchestrator.generateStructured(input);
+        await persistOrionTurn(req.user, input, result);
+        await persistTrainingTurn(req.user, input, result);
         res.json({ success: true, ...result });
     } catch (err) {
         console.error('/api/ai-rich error:', err.message);
         const safe = publicAiError(err);
-        res.status(safe.status).json({ success: false, error: safe.message });
+        res.status(safe.status).json({ success: false, error: safe.message,...safe.details });
     }
-});
+}));
 
-router.post('/ai-feedback', chatJson, verifyToken, aiLimiter, async (req, res) => {
+// Cálculo reproducible e independiente del proveedor generativo. El cliente
+// lo consulta solo si el streaming no entrega los bloques estructurados.
+router.post('/statistical-analysis', verifyToken, statisticsLimiter, chatJson, aiWork(async (req, res) => {
+    const message = (req.body?.message || req.body?.prompt || '').toString().trim().slice(0, 12000);
+    if (!message) return res.status(400).json({ success: false, error: 'Mensaje vacío.' });
+    const input = structuredInput({ ...req.body, message }, req.user);
+    const scope = domainDecision({ message, history: input.history });
+    if (!scope.allowed) {
+        const text = domainRedirectText(scope.reason);
+        await persistOrionTurn(req.user, input, { text, tier: 'flash', mode: 'quick', model: 'orion-domain-guard', response: { meta: {} } }, scope);
+        return res.status(400).json({ success: false, error: text });
+    }
+    if (!wantsStatisticalAnalysis(message)) {
+        return res.status(400).json({ success: false, error: 'La consulta no solicita un análisis estadístico o una regresión lineal.' });
+    }
+    try {
+        const model = await buildStatisticalModel(message);
+        const response = statisticalResponse(model);
+        await persistOrionTurn(req.user, input, {
+            text: response.markdown, response, tier: input.tier, mode: 'technical',
+            model: 'orion-statistical-engine', evidenceCount: response.meta?.statisticalModel?.available ? 1 : 0,
+        }, scope);
+        res.json({
+            success: true,
+            available: response.meta?.statisticalModel?.available === true,
+            text: response.markdown,
+            response,
+        });
+    } catch (err) {
+        console.error('/api/statistical-analysis error:', err.message);
+        res.status(502).json({ success: false, error: 'No fue posible calcular el análisis estadístico verificable.' });
+    }
+}));
+
+router.post('/ai-feedback', verifyToken, aiLimiter, chatJson, async (req, res) => {
     const queryId = Number(req.body?.queryId);
     const score = value => value == null || value === '' ? null : Number(value);
     const rating = score(req.body?.rating);
@@ -224,8 +417,8 @@ router.post('/ai-feedback', chatJson, verifyToken, aiLimiter, async (req, res) =
 });
 
 // ── Análisis genérico bajo demanda (migrado al orquestador con RAG) ──────────
-router.post('/ai-insight', chatJson, verifyToken, aiLimiter, async (req, res) => {
-    const input = structuredInput(req.body, req.user);
+router.post('/ai-insight', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
+    const input = await hydratedInput(req.body, req.user);
     // Soporte retrocompatible: el campo legacy era 'prompt', el orquestador usa 'message'
     if (!input.message && req.body?.prompt) input.message = String(req.body.prompt).trim().slice(0, 12000);
     if (!input.message) return res.status(400).json({ error: 'Prompt vacío' });
@@ -233,23 +426,25 @@ router.post('/ai-insight', chatJson, verifyToken, aiLimiter, async (req, res) =>
 
     try {
         const result = await orchestrator.generateStructured(input);
+        await persistOrionTurn(req.user, input, result);
+        await persistTrainingTurn(req.user, input, result);
         res.json({ reply: result.text, response: result.response, tier: result.tier });
     } catch (err) {
         console.error('/api/ai-insight error:', err.message);
         const safe = publicAiError(err);
-        res.status(safe.status).json({ error: safe.message });
+        res.status(safe.status).json({ error: safe.message,...safe.details });
     }
-});
+}));
 
 // ── Igual que /ai-insight, pero transmite la respuesta por fragmentos (SSE) para
 //    que el chat pueda mostrar el texto llegando en vivo en lugar de esperar el total. ──
-router.post('/ai-insight-stream', chatJson, verifyToken, aiLimiter, async (req, res) => {
+router.post('/ai-insight-stream', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
     const prompt       = (req.body?.prompt || req.body?.message || req.body?.query || '').toString().trim().slice(0, 12000);
     const systemPrompt = (req.body?.systemPrompt || '').toString().trim().slice(0, 6000);
     const requestedMode = MODES.has(req.body?.mode) ? req.body.mode : 'auto';
     const tier          = selectModelTier({ message: prompt, mode: requestedMode });
-    const wantsStructured = req.body?.structured === true || Boolean(req.body?.message && !req.body?.systemPrompt);
-    const richInput = structuredInput(req.body, req.user);
+    const wantsStructured = Boolean(chatMeter()) || req.body?.structured === true || Boolean(req.body?.message && !req.body?.systemPrompt);
+    const richInput = await hydratedInput(req.body, req.user);
     if (!(wantsStructured ? richInput.message : prompt)) return res.status(400).json({ error: 'Prompt vacío' });
     if (wantsStructured ? !orchestrator.isConfigured() : !genAI) return res.status(503).json({ error: 'IA no configurada.' });
 
@@ -258,38 +453,50 @@ router.post('/ai-insight-stream', chatJson, verifyToken, aiLimiter, async (req, 
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders?.();
 
-    const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+    const send = (obj) => { if (!res.destroyed && !res.writableEnded) res.write(`data: ${JSON.stringify(obj)}\n\n`); };
 
     if (wantsStructured) {
+        const generationController = new AbortController();
+        const cancelGeneration = () => { if (!res.writableEnded) generationController.abort(); };
+        res.once('close', cancelGeneration);
         let sentText = false;
         try {
             send({ status: 'analyzing', mode: richInput.mode });
             let result;
             try {
                 result = await orchestrator.stream({
-                    ...richInput,
+                    ...richInput, signal: generationController.signal,
                     onText(part, full) { sentText = true; send({ text: part, partialLength: full.length }); },
+                    onStatus(status) { send({ status }); },
                 });
             } catch (err) {
-                if (richInput.tier === 'pro' && err.code === 'AI_RATE_LIMIT' && !sentText) {
+                if (richInput.tier === 'pro' && orchestrator.provider?.name !== 'gemini' && err.code === 'AI_RATE_LIMIT' && !sentText) {
                     send({ status: 'fallback', tier: 'flash' });
                     result = await orchestrator.stream({
-                        ...richInput, tier: 'flash',
+                        ...richInput, tier: 'flash', signal: generationController.signal,
                         onText(part, full) { sentText = true; send({ text: part, partialLength: full.length }); },
+                        onStatus(status) { send({ status }); },
                     });
+                    result.modelFallback = true;
                 } else throw err;
             }
+            if (generationController.signal.aborted) return;
+            await persistOrionTurn(req.user, richInput, result);
+            await persistTrainingTurn(req.user, richInput, result);
             send({ response: result.response, done: true, tier: result.tier, mode: result.mode,
-                model: result.model, queryId: result.queryId, evidenceCount: result.evidenceCount,
+                model: result.model, modelProfile: richInput.modelProfile, modelFallback: !!result.modelFallback,
+                queryId: result.queryId, evidenceCount: result.evidenceCount,
                 citations: result.citations, retrievalStrategy: result.retrievalStrategy,
                 finalText: result.text });
         } catch (err) {
+            if (generationController.signal.aborted) return;
             console.error('/api/ai-insight-stream structured error:', err.message);
             // Si ya hubo texto en pantalla, conservarlo es preferible a
             // reemplazar una respuesta útil por un fallo de cierre/persistencia.
             if (sentText) send({ done: true, tier: richInput.tier, mode: richInput.mode, warning: publicAiError(err).message });
             else send({ error: publicAiError(err).message, code: err.code || 'AI_ERROR' });
         } finally {
+            res.removeListener('close', cancelGeneration);
             res.end();
         }
         return;
@@ -332,7 +539,7 @@ router.post('/ai-insight-stream', chatJson, verifyToken, aiLimiter, async (req, 
     } finally {
         res.end();
     }
-});
+}));
 
 module.exports = router;
 // Exportación auxiliar para probar el contrato sin levantar el servidor.

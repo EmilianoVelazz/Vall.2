@@ -1,10 +1,8 @@
 /*
  * Arranca backend (:3101) y React/Vite (:5273) juntos.
  *
- * Existe porque `npm run dev` levantaba solo Express, y Express sirve los .html
- * desde la raiz: al abrir el puerto del backend se ve el sitio antiguo y parece
- * que React no funciona. React vive en su propio puerto y consume el backend
- * por el proxy de Vite.
+ * Express sirve la API y /assets; las pantallas actuales son componentes de
+ * React. Vite sirve la SPA y consume el backend mediante su proxy.
  *
  * Los puertos son PROPIOS de VALLNews y no los 3001/5173 de siempre: el 5173 lo
  * toma cualquier otro proyecto con Vite de esta maquina, y con los dos abiertos
@@ -27,6 +25,7 @@ const VITE = path.join(ROOT, 'frontend', 'node_modules', 'vite', 'bin', 'vite.js
 
 const PUERTO_API = Number(process.env.VN_API_PORT) || 3101;
 const PUERTO_WEB = Number(process.env.VN_WEB_PORT) || 5273;
+const HOST_WEB = process.env.VN_WEB_HOST || '127.0.0.1';
 
 /* Avisa ANTES de lanzar nada. Si no, Express muere con un EADDRINUSE enterrado
    entre el ruido de arranque y Vite se queda solo, sirviendo una app cuyo proxy
@@ -51,28 +50,40 @@ const COLOR = { backend: '\x1b[36m', react: '\x1b[35m', reset: '\x1b[0m' };
 const hijos = [];
 
 function lanzar(nombre, args, cwd, env) {
-    const p = spawn(process.execPath, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
     const marca = `${COLOR[nombre]}[${nombre}]${COLOR.reset} `;
+    let p;
+    try {
+        const trustFlags = process.execArgv.filter(flag => flag === '--use-system-ca');
+        p = spawn(process.execPath, [...trustFlags, ...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
+    } catch (error) {
+        console.error(`${marca}no se pudo iniciar: ${error.message}`);
+        cerrar(1);
+        return;
+    }
     const pinta = (buf) => String(buf).split('\n').filter(Boolean).forEach(l => console.log(marca + l));
     p.stdout.on('data', pinta);
     p.stderr.on('data', pinta);
+    p.on('error', error => {
+        console.error(`${marca}no se pudo iniciar: ${error.message}`);
+        cerrar(1);
+    });
     p.on('exit', (code) => {
         console.log(`${marca}terminado (codigo ${code})`);
-        cerrar();
+        cerrar(code || 1);
     });
     hijos.push(p);
     return p;
 }
 
 let cerrando = false;
-function cerrar() {
+function cerrar(code = 0) {
     if (cerrando) return;
     cerrando = true;
     for (const p of hijos) { try { p.kill(); } catch { /* ya murio */ } }
-    process.exit(0);
+    process.exit(code);
 }
-process.on('SIGINT', cerrar);
-process.on('SIGTERM', cerrar);
+process.on('SIGINT', () => cerrar());
+process.on('SIGTERM', () => cerrar());
 
 for (const [puerto, quien] of [[PUERTO_API, 'backend'], [PUERTO_WEB, 'React']]) {
     if (await ocupado(puerto)) {
@@ -90,7 +101,7 @@ lanzar('backend', [path.join(ROOT, 'backend', 'server.js')], ROOT, {
     PORT: String(PUERTO_API),
     SPA_ORIGIN: `http://localhost:${PUERTO_WEB}`,
 });
-lanzar('react', [VITE, '--port', String(PUERTO_WEB)], path.join(ROOT, 'frontend'), {
+lanzar('react', [VITE, '--host', HOST_WEB, '--port', String(PUERTO_WEB)], path.join(ROOT, 'frontend'), {
     VN_WEB_PORT: String(PUERTO_WEB),
     VN_API_PORT: String(PUERTO_API),
 });
@@ -98,7 +109,8 @@ lanzar('react', [VITE, '--port', String(PUERTO_WEB)], path.join(ROOT, 'frontend'
 setTimeout(() => {
     console.log('');
     console.log('  ────────────────────────────────────────────────');
-    console.log(`   Abre  \x1b[1mhttp://localhost:${PUERTO_WEB}\x1b[0m   ← React`);
+    const hostVisible = HOST_WEB === '0.0.0.0' ? '<IP-de-esta-PC>' : HOST_WEB;
+    console.log(`   Abre  \x1b[1mhttp://${hostVisible}:${PUERTO_WEB}\x1b[0m   ← React`);
     console.log(`   El :${PUERTO_API} es el backend; sirve los .html antiguos.`);
     console.log('  ────────────────────────────────────────────────');
     console.log('');

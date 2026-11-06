@@ -77,6 +77,28 @@ async function persistRuleProposals(proposals, trainingRunId) {
     return rows.length;
 }
 
+async function persistTrainingEvent(event, trainingRunId) {
+    const supabase = getSupabase();
+    if (!supabase || !trainingRunId || !event?.event_key) return false;
+    const row = {
+        training_run_id: trainingRunId,
+        event_key: cleanText(event.event_key, 180),
+        attempt_number: Math.max(1, Number(event.attempt_number) || 1),
+        topic: cleanText(event.topic, 200),
+        status: event.status === 'failed' ? 'failed' : 'completed',
+        model: cleanText(event.model, 120) || null,
+        sources: Array.isArray(event.sources) ? event.sources : [],
+        evidence: event.evidence && typeof event.evidence === 'object' ? event.evidence : {},
+        output: event.output && typeof event.output === 'object' ? event.output : null,
+        error_code: cleanText(event.error_code, 120) || null,
+        started_at: new Date(event.started_at || Date.now()).toISOString(),
+        ended_at: new Date(event.ended_at || Date.now()).toISOString(),
+    };
+    const { error } = await supabase.from('ml_training_events').upsert(row, { onConflict: 'event_key' });
+    if (error) throw error;
+    return true;
+}
+
 async function persistMarketReview(review) {
     const supabase = getSupabase();
     if (!supabase || !review) return false;
@@ -91,4 +113,4 @@ async function persistMarketReview(review) {
     return true;
 }
 
-module.exports = { createTrainingRun, finishTrainingRun, persistRuleProposals, persistMarketReview, normalizeProposal, fingerprint };
+module.exports = { createTrainingRun, finishTrainingRun, persistRuleProposals, persistTrainingEvent, persistMarketReview, normalizeProposal, fingerprint };

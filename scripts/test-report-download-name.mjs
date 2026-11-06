@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {reportDownloadName,reportDocumentTitle} from '../shared/report-download-name.mjs';
+import {createRequire} from 'node:module';
+const catalog=createRequire(import.meta.url)('../shared/report-library.json');
+const base={key:'proteins',collection:'markets',title:'Mercado de proteínas',generatedAt:'2026-11-05T15:00:00Z'};
+assert.equal(reportDownloadName(base),'VALLNews-Mercados-Mercado-de-proteinas-Diario-2026-11-05.pdf');
+assert.equal(reportDownloadName({...base,analysisPeriod:'weekly'}),'VALLNews-Mercados-Mercado-de-proteinas-Semanal-2026-11-05.pdf');
+assert.equal(reportDownloadName({...base,periodType:'annual',reportYear:2024}),'VALLNews-Mercados-Mercado-de-proteinas-Anual-2024.pdf');
+assert.equal(reportDownloadName({...base,title:'Proteínas · informe anual 2024',periodType:'annual',reportYear:2024}),'VALLNews-Mercados-Mercado-de-proteinas-Anual-2024.pdf');
+assert.equal(reportDownloadName({...base,key:'draft',title:'Compras para comité',userEdition:true,baseReport:{collection:'markets',key:'proteins'}}),'VALLNews-Mercados-Compras-para-comite-Diario-2026-11-05.pdf');
+assert.equal(reportDownloadName({...base,title:'',key:'draft',baseReport:{collection:'finance',key:'bonds'}}),'VALLNews-Finanzas-Bonos-Diario-2026-11-05.pdf');
+assert.equal(reportDownloadName({...base,personalization:{customTitle:'Plan de compras'}}),'VALLNews-Mercados-Plan-de-compras-Diario-2026-11-05.pdf');
+assert.equal(reportDocumentTitle({...base,personalization:{customTitle:'Plan de compras'}},{title:'Nombre anterior'}),'Plan de compras · Mercados · Diario · 2026-11-05 · VALLNews','The configured personal title wins over a stale Spanish label');
+assert.equal(reportDownloadName({...base,generatedAt:'2026-11-05T02:00:00Z'}),'VALLNews-Mercados-Mercado-de-proteinas-Diario-2026-11-04.pdf','The cutoff date follows Mexico City, not UTC or today');
+assert.equal(reportDownloadName({...base,generatedAt:'2024-02-30'}),'VALLNews-Mercados-Mercado-de-proteinas-Diario.pdf');
+assert.equal(reportDownloadName({...base,generatedAt:'2026-11-05T09:00:00'}),'VALLNews-Mercados-Mercado-de-proteinas-Diario.pdf','Do not infer the timezone of an ambiguous timestamp');
+assert.equal(reportDownloadName(base,'xlsx'),'VALLNews-Mercados-Mercado-de-proteinas-Diario-2026-11-05-Datos.xlsx');
+assert.equal(reportDownloadName(base,'pdf',{language:'en',title:'Protein market'}),'VALLNews-Markets-Protein-market-Daily-2026-11-05-en.pdf');
+assert.equal(reportDownloadName(base,'pdf',{language:'EN',title:'Protein market'}),reportDownloadName(base,'pdf',{language:'en',title:'Protein market'}));
+for(const [language,title,period]of [['fr','Marché des protéines','Hebdomadaire'],['it','Mercato delle proteine','Settimanale'],['de','Proteinmarkt','Wöchentlich'],['ja','タンパク質市場','週次']])assert(reportDocumentTitle({...base,analysisPeriod:'weekly'},{language,title}).includes(period),'The PDF title uses its selected language');
+assert.equal(reportDocumentTitle(base),'Mercado de proteínas · Mercados · Diario · 2026-11-05 · VALLNews');
+assert.equal(reportDocumentTitle({...base,analysisPeriod:'weekly',periodType:'annual',reportYear:2022}),'Mercado de proteínas · Mercados · Anual · 2022 · VALLNews','Annual identity takes precedence over the weekly analysis flag');
+for(const title of ['../../informe\r\nBcc: a@b.com','CON','<html>"test"\0','☃','x'.repeat(200)]){const name=reportDownloadName({...base,title,userEdition:true});assert(/^[A-Za-z0-9-]+\.pdf$/.test(name));assert(name.startsWith('VALLNews-'));assert(name.length<160);}
+const all=Object.entries(catalog.reports).flatMap(([collection,reports])=>Object.keys(reports).map(key=>reportDownloadName({...base,collection,key,title:'Panorama general'})));
+assert.equal(all.length,14);assert.equal(new Set(all).size,14,'Every base report has its own name, even when stored titles are generic');
+console.log('Download identities: 14 distinct reports, family, canonical and custom titles, daily/weekly/annual editions, CDMX dates, localized labels, safe filenames and PDF viewer titles.');

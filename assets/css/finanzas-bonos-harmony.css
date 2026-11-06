@@ -7,13 +7,13 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #fin-section-status
 /* Bonos: la misma familia azul de Bolsa.
    Verde y rojo se reservan a movimiento; dorado, a referencias de renta fija. */
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija {
-    --bond-base: #35536b;
-    --bond-raised: #3d5b72;
-    --bond-deep: #193a53;
-    --bond-line: rgba(117, 165, 202, .3);
-    --bond-muted: #b6c8d5;
-    --bond-accent: #4d91c2;
-    --bond-accent-strong: #65a8d7;
+    --bond-base: #171717;
+    --bond-raised: #303030;
+    --bond-deep: #101010;
+    --bond-line: #4a4a4a;
+    --bond-muted: #a3a3a3;
+    --bond-accent: #3d3d3d;
+    --bond-accent-strong: #a3a3a3;
 }
 
 /* Navegación y superficies principales. */
@@ -38,7 +38,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigati
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigation :is(.ff-detail-back,.ff-detail-tabs button) {
     border-color: var(--bond-line) !important;
     background: var(--bond-base) !important;
-    color: #dbe7ef !important;
+    color: #d6d6d6 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigation :is(.ff-detail-back,.ff-detail-tabs button):hover {
@@ -49,17 +49,17 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigati
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigation .ff-detail-tabs button:is(.is-active,[aria-current="page"]) {
     border-color: var(--bond-accent-strong) !important;
     background: var(--bond-accent) !important;
-    color: #071e30 !important;
-    box-shadow: 0 6px 16px rgba(37,104,154,.24) !important;
+    color: #101010 !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,.20) !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(.ff-detail-eyebrow,.ff-detail-back i,.fin-section-status-icon) {
-    color: #91c2e3 !important;
+    color: #a3a3a3 !important;
 }
 
 /* Mapa soberano: carcasa azul y lienzo profundo, igual que el mapa de Bolsa. */
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bond-world-map {
-    color: #eef5f9 !important;
+    color: #ededed !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bond-world-map :is(.fbm-header,.fbm-toolbar,.fbm-command,.fbm-footer) {
@@ -81,50 +81,50 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bond-world-map .fb
     border-color: var(--bond-line) !important;
     background-color: var(--bond-deep) !important;
     background-image:
-        radial-gradient(circle at 50% 42%, rgba(77,145,194,.13), transparent 42%),
-        repeating-linear-gradient(0deg, transparent 0 54px, rgba(117,165,202,.035) 55px),
-        repeating-linear-gradient(90deg, transparent 0 74px, rgba(117,165,202,.03) 75px) !important;
+        radial-gradient(circle at 50% 42%, rgba(163,163,163,.10), transparent 42%),
+        repeating-linear-gradient(0deg, transparent 0 54px, rgba(163,163,163,.035) 55px),
+        repeating-linear-gradient(90deg, transparent 0 74px, rgba(163,163,163,.03) 75px) !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bond-world-map :is(.fbm-map-tools,.fbm-pan-hint,.fbm-hover-tip) {
     border-color: var(--bond-line) !important;
-    background: rgba(25,58,83,.96) !important;
-    color: #e5eff5 !important;
+    background: #101010 !important;
+    color: #d6d6d6 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bond-world-map :is(.fbm-status,.fbm-country-picker select,.fbm-fixed-maturity,.fbm-filters button) {
     border-color: var(--bond-line) !important;
     background: var(--bond-raised) !important;
-    color: #dce9f1 !important;
+    color: #d6d6d6 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bond-world-map .fbm-filters button:is(.is-active,[aria-pressed="true"]) {
     border-color: var(--bond-accent-strong) !important;
     background: var(--bond-accent) !important;
-    color: #071e30 !important;
+    color: #101010 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bond-world-map :is(.fbm-kicker,.fbm-country-picker > span) {
-    color: #bcd9ec !important;
+    color: #a3a3a3 !important;
 }
 
 /* Encabezado y accesos a países. */
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-pro-hero {
     border-color: var(--bond-line) !important;
     background:
-        radial-gradient(circle at 88% 0, rgba(77,145,194,.15), transparent 24rem),
-        linear-gradient(122deg, var(--bond-base), #3d5870) !important;
+        radial-gradient(circle at 88% 0, rgba(163,163,163,.10), transparent 24rem),
+        linear-gradient(122deg, var(--bond-base), #303030) !important;
     box-shadow: none !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-pro-hero::before {
-    background: linear-gradient(90deg,#397cac,var(--bond-accent),#397cac) !important;
+    background: linear-gradient(90deg,#4a4a4a,var(--bond-accent),#4a4a4a) !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel :is(.debt-pro-eyebrow,.debt-pro-meta span) {
     border-color: var(--bond-line) !important;
-    background: rgba(77,145,194,.12) !important;
-    color: #bcd9ec !important;
+    background: rgba(163,163,163,.10) !important;
+    color: #a3a3a3 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-kpi {
@@ -135,13 +135,13 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-kpi:hover {
     border-color: var(--bond-accent-strong) !important;
-    background: #42647d !important;
+    background: #3d3d3d !important;
     box-shadow: 0 10px 22px rgba(15,39,57,.16) !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-kpi-icon {
     border-color: var(--bond-line) !important;
-    background: rgba(77,145,194,.14) !important;
+    background: rgba(163,163,163,.12) !important;
 }
 
 /* Evolución histórica. */
@@ -154,14 +154,14 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #rate-timeline :is(
 ) {
     border-color: var(--bond-line) !important;
     background: var(--bond-raised) !important;
-    color: #e4eef5 !important;
+    color: #d6d6d6 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #rate-timeline .rtl-period-group button:is(.is-active,[aria-pressed="true"]),
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #rate-timeline .rtl-add-compare:not(:disabled) {
     border-color: var(--bond-accent-strong) !important;
     background: var(--bond-accent) !important;
-    color: #071e30 !important;
+    color: #101010 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #rate-timeline :is(.rtl-stats,.rtl-chart) {
@@ -175,7 +175,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #rate-timeline .rtl
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #rate-timeline .rtl-copy small {
-    color: #bcd9ec !important;
+    color: #a3a3a3 !important;
 }
 
 /* Diferenciales soberanos. */
@@ -187,7 +187,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board .
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board :is(.ff-spreads-tools label,.ff-spreads-tools select,.ff-spreads-summary article) {
     border-color: var(--bond-line) !important;
     background: var(--bond-raised) !important;
-    color: #e4eef5 !important;
+    color: #d6d6d6 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board .ff-spreads-table-wrap {
@@ -232,7 +232,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #country-factsheet 
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #country-factsheet .cf-copy small {
-    color: #bcd9ec !important;
+    color: #a3a3a3 !important;
 }
 
 /* Mesa internacional de renta fija. */
@@ -259,13 +259,13 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel :is(.s
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .sov-filter-group button {
     border-color: var(--bond-line) !important;
     background: var(--bond-raised) !important;
-    color: #dce9f1 !important;
+    color: #d6d6d6 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .sov-filter-group button:is(.active,[aria-pressed="true"]) {
     border-color: var(--bond-accent-strong) !important;
     background: var(--bond-accent) !important;
-    color: #071e30 !important;
+    color: #101010 !important;
 }
 
 /* Texto compartido y estados neutrales. */

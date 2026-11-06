@@ -1,0 +1,54 @@
+/* Chart typography uses the measured plot width so it stays legible on mobile. */
+.erh-studio .erh-company-reader .erh-market-visual-grid>.erh-chart { padding:16px; border:1px solid #d7e1ed; border-radius:12px; background:#fff; box-shadow:0 3px 12px #19375808; overflow:hidden; }
+.erh-studio .erh-company-reader .erh-market-visual-grid { align-items:stretch; gap:16px; }
+.erh-studio .erh-market-visual-grid figcaption { display:flex; flex-direction:column; align-items:flex-start; gap:7px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid #e4ebf3; }
+.erh-studio .erh-market-visual-grid figcaption>span { color:#193758; font-size:13px; font-weight:700; line-height:1.5; }
+.erh-studio .erh-market-visual-grid figcaption>span>i { color:#315785; }
+.erh-studio .erh-market-visual-grid figcaption>small { display:block; max-width:100%; padding:4px 8px; border-radius:5px; background:#edf3f9; color:#526882; font-size:10px; line-height:1.5; overflow-wrap:anywhere; }
+.erh-chart-canvas { min-width:0; width:100%; margin-top:6px; }
+.erh-chart-groups { min-width:0; padding:14px; border:1px solid #d7e1ed; border-radius:12px; background:#fff; }
+.erh-chart-groups>.erh-chart { margin:0; padding:12px 0 0; border:0; box-shadow:none; }
+.erh-chart-group-controls { display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:10px; }
+.erh-chart-group-controls>label { display:grid; flex:1 1 220px; gap:6px; min-width:0; color:#526882; font-size:11px; }
+.erh-chart-group-controls select { width:100%; min-width:0; min-height:38px; padding:7px 10px; border:1px solid #cbd8e6; border-radius:6px; background:#f5f8fb; color:#193758; font:inherit; text-overflow:ellipsis; }
+.erh-chart-group-controls>div { display:flex; align-items:center; gap:10px; color:#526882; font-size:11px; }
+.erh-chart-group-controls button { min-width:36px; min-height:38px; border:1px solid #cbd8e6; border-radius:6px; background:#f5f8fb; color:#315785; cursor:pointer; }
+.erh-chart-group-controls button:disabled { opacity:.4; cursor:default; }
+.erh-chart-group-controls :is(button,select):focus-visible { outline:2px solid #315785; outline-offset:2px; }
+.erh-studio .erh-chart-group-note { margin:10px 0 0; color:#63758d; font-size:11px; line-height:1.6; }
+.erh-chart-plot-bg { fill:#f8fafc; }
+.erh-studio .erh-chart-axis { fill:#526882; font:10.5px 'Inter',system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+.erh-studio .erh-chart-grid { stroke:#dce5ef; stroke-width:.8; }
+.erh-chart-grid-vertical { stroke:#e4ebf3; stroke-width:.8; stroke-dasharray:3 4; }
+.erh-studio .erh-chart-baseline { stroke:#7890ad; stroke-width:1.15; stroke-dasharray:4 3; }
+.erh-chart-end-label { font:600 10px 'Inter',system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+.erh-series-path { transition:opacity .15s ease; }
+.erh-chart-period { display:flex; flex-wrap:wrap; gap:8px 16px; margin:4px 0 10px; color:#526882; font-size:10px; font-variant-numeric:tabular-nums; }
+.erh-chart-period>span { display:flex; align-items:center; gap:5px; }
+.erh-chart-period i { width:8px; height:8px; border-radius:50%; background:#315785; border:1.5px solid #315785; }
+.erh-chart-period i.erh-point-previous { background:#fff; }
+.erh-studio .erh-market-visual-grid .erh-chart-legend { display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:5px; margin:8px 0 0; padding:12px 0 0; border-top:1px solid #e4ebf3; }
+.erh-studio .erh-chart-legend button { display:flex; align-items:center; gap:7px; min-width:0; min-height:34px; padding:6px 7px; border:1px solid transparent; border-radius:6px; color:#3f5570; background:#f5f8fc; font:500 10.5px/1.4 'Inter',system-ui,sans-serif; text-align:left; overflow-wrap:anywhere; cursor:pointer; }
+.erh-studio .erh-chart-legend button>i { width:15px; height:3px; flex-shrink:0; border-radius:3px; }
+.erh-studio .erh-chart-legend button:hover,.erh-studio .erh-chart-legend button[aria-pressed=true] { border-color:#b5c8df; background:#eaf1fa; color:#193758; }
+.erh-studio .erh-chart-legend button.is-muted { opacity:.6; }
+.erh-studio .erh-chart-legend button:focus-visible { outline:2px solid #315785; outline-offset:2px; }
+.erh-studio .erh-company-reader .erh-bars { max-height:none; overflow:visible; gap:10px; margin-top:10px; }
+.erh-studio .erh-company-reader .erh-bars>.erh-bar-row { display:grid; grid-template-columns:minmax(65px,.75fr) minmax(40px,1.25fr) var(--erh-value-width,60px); gap:6px 12px; align-items:center; min-height:36px; padding:5px 0; color:#526882; font-size:11px; }
+.erh-studio .erh-bars .erh-bar-reference { grid-column:1/-1; height:auto; margin:8px 0 1px; color:#193758; background:none; font-size:11px; font-weight:600; line-height:1.5; }
+.erh-studio .erh-bars .erh-bar-track { position:relative; grid-column:auto; grid-row:auto; height:12px; overflow:visible; border-radius:3px; background:repeating-linear-gradient(90deg,#edf2f8 0,#edf2f8 calc(25% - 1px),#dce5ef calc(25% - 1px),#dce5ef 25%); }
+.erh-studio .erh-bars .erh-bar-track>b { height:100%; border-radius:2px; }
+.erh-studio .erh-bar-track>em { position:absolute; top:3px; width:6px; height:6px; border-radius:50%; transform:translateX(-50%); z-index:1; }
+.erh-studio .erh-bars .erh-bar-row.is-unavailable .erh-bar-track { background:repeating-linear-gradient(135deg,#f3f5f8 0,#f3f5f8 4px,#e3e9f0 4px,#e3e9f0 5px); }
+.erh-studio .erh-bars strong { justify-self:end; color:#193758; font-size:11px; font-weight:650; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.erh-studio .erh-bars-signed .erh-bar-track::after { top:-4px; bottom:-4px; background:#8c9fb7; }
+.erh-bar-axis { display:grid; grid-template-columns:minmax(65px,.75fr) minmax(40px,1.25fr) var(--erh-value-width,60px); gap:10px; margin:10px 0 0; padding-top:8px; color:#63758d; font-size:9px; font-variant-numeric:tabular-nums; }
+.erh-bar-axis>div { grid-column:2; display:flex; justify-content:space-between; border-top:1px solid #dce5ef; padding-top:7px; }
+.erh-studio .erh-market-visual-grid .erh-chart-scale { margin-top:8px; font-size:9px; color:#6b7e96; }
+@container(max-width:620px) {
+  .erh-studio .erh-company-reader .erh-market-visual-grid>.erh-chart { padding:13px; }
+  .erh-studio .erh-chart-legend button { min-height:40px; }
+}
+@media(prefers-reduced-motion:reduce) { .erh-series-path { transition:none; } }
+
+.erh-studio .erh-chart-legend button>svg { width:24px; height:8px; flex:0 0 24px; }

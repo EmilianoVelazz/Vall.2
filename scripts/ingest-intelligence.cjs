@@ -1,10 +1,10 @@
 'use strict';
 
 const crypto = require('crypto');
-const fs = require('fs/promises');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
+const { loadLocalDocuments } = require('./lib/local-knowledge.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
 dotenv.config({ path: path.join(ROOT, 'backend', '.env') });
@@ -38,15 +38,7 @@ const COMMODITIES = {
     CORN: 'Maíz', SOYBEANS: 'Soya', WHEAT: 'Trigo', CRUDE_OIL: 'Petróleo crudo WTI',
     COPPER: 'Cobre', NATURAL_GAS: 'Gas natural', ALUMINUM: 'Aluminio',
 };
-const LOCAL_PAGES = [
-    ['inicio.html', 'Inicio VALLNews'],
-    ['pages/finanzas.html', 'Finanzas'],
-    ['pages/mercados.html', 'Mercados'],
-    ['pages/geopolitica.html', 'Geopolítica'],
-    ['pages/mercadoproteinas.html', 'Mercado de proteínas'],
-    ['pages/mexico.html', 'México'],
-    ['pages/vall-ai.html', 'VALL AI'],
-];
+
 const BANXICO_SERIES = [
     ['SF43718', 'Tipo de cambio FIX USD/MXN', 'exchange_rate', 'MXN por USD'],
     ['SF61745', 'TIIE 28 días', 'interest_rate', 'porcentaje'],
@@ -67,29 +59,6 @@ const sqlDateTime = value => {
     return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 19).replace('T', ' ');
 };
 const sqlDate = value => sqlDateTime(value)?.slice(0, 10) || null;
-
-function decodeHtml(value) {
-    const entities = {
-        amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-        aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú',
-        Aacute: 'Á', Eacute: 'É', Iacute: 'Í', Oacute: 'Ó', Uacute: 'Ú',
-        ntilde: 'ñ', Ntilde: 'Ñ', uuml: 'ü', Uuml: 'Ü',
-    };
-    return value
-        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-        .replace(/&#(\d+);/g, (_, decimal) => String.fromCodePoint(parseInt(decimal, 10)))
-        .replace(/&([a-z]+);/gi, (all, name) => entities[name] ?? all);
-}
-
-function htmlToText(html) {
-    return decodeHtml(html
-        .replace(/<!--[\s\S]*?-->/g, ' ')
-        .replace(/<(script|style|svg|template|noscript)\b[\s\S]*?<\/\1>/gi, ' ')
-        .replace(/<\/?(h[1-6]|p|article|section|li|tr|div|main|header|footer|nav)\b[^>]*>/gi, '\n')
-        .replace(/<[^>]+>/g, ' '))
-        .replace(/\r/g, '').replace(/[ \t]+/g, ' ')
-        .replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-}
 
 function makeChunks(text, maxLength = 1400) {
     const paragraphs = text.split(/\n{2,}/).map(item => item.trim()).filter(item => item.length >= 30);
@@ -408,21 +377,9 @@ async function upsertDocument(connection, sourceId, document) {
 
 async function ingestLocalKnowledge(connection, sources) {
     await runJob(connection, sources.vallnews, 'local_knowledge_pages', async run => {
-        for (const [relativePath, fallbackTitle] of LOCAL_PAGES) {
+        for (const document of await loadLocalDocuments(ROOT)) {
             run.read++;
-            const html = await fs.readFile(path.join(ROOT, relativePath), 'utf8');
-            const title = decodeHtml(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || fallbackTitle).trim();
-            const body = htmlToText(html);
-            if (body.length < 100) {
-                run.rejected++;
-                continue;
-            }
-            const result = await upsertDocument(connection, sources.vallnews, {
-                externalId: `page:${relativePath.replace(/\\/g, '/')}`,
-                canonicalUrl: `/${relativePath.replace(/\\/g, '/')}`,
-                title, type: 'site_page', language: 'es', body,
-                metadata: { localPath: relativePath, ownership: 'vallnews', priority: 100 },
-            });
+            const result = await upsertDocument(connection, sources.vallnews, document);
             run.written += 1 + result.chunks;
         }
     });

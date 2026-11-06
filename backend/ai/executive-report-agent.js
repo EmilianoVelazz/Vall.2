@@ -5,9 +5,12 @@
 // cada reporte. Así mantiene trazabilidad y evita que una prosa convincente
 // introduzca cifras, causas o recomendaciones inexistentes.
 const { GeminiProvider } = require('./providers/gemini-provider');
+const { enrichSectorReport } = require('../lib/report-sector-format');
+const {numericTokens}=require('../lib/report-evidence-numbers');
+const {reportDeadline}=require('../lib/report-deadline');
 
 function cleanText(value, limit) {
-    return String(value || '')
+    return String(value ?? '')
         .replace(/```[\s\S]*?```/g, '')
         .replace(/[\u0000-\u001F\u007F]/g, ' ')
         .replace(/\s+/g, ' ')
@@ -27,7 +30,9 @@ function factsFor(report) {
         title: cleanText(report.title, 100),
         objective: cleanText(report.objective, 700),
         summary: cleanText(report.summary, 900),
-        metrics: (report.metrics || []).slice(0, 10).map(item => ({
+        generatedAt: report.generatedAt,
+        sections: (report.sections || []).slice(0, 20).map(item=>({heading:cleanText(item.heading,140),text:cleanText(item.text,8000)})),
+        metrics: (report.metrics || []).slice(0, 30).map(item => ({
             label: cleanText(item?.label, 80), value: cleanText(item?.value, 80), change: cleanText(item?.change, 80),
         })),
         conclusions: list(report.takeaways, 4, 340),
@@ -37,6 +42,8 @@ function factsFor(report) {
             description: cleanText(item?.description, 360),
         })),
         sources: list(report.sources, 8, 180),
+        tables:(report.tables || []).slice(0,6).map(table=>({kind:table.kind==='guide' ? 'guide' : 'data',title:cleanText(table.title,140),note:cleanText(table.note,800),columns:(table.columns || []).slice(0,12),rows:(table.rows || []).slice(0,100)})),
+        sourceLinks:(report.sourceLinks || []).slice(0,40),
     };
 }
 
@@ -56,8 +63,9 @@ function deterministicBrief(report) {
 }
 
 class ExecutiveReportAgent {
-    constructor({ provider = new GeminiProvider() } = {}) {
+    constructor({ provider = new GeminiProvider(), timeoutMs = 15000 } = {}) {
         this.provider = provider;
+        this.timeoutMs = timeoutMs;
     }
 
     async enrich(reports, { area = 'Mercados' } = {}) {
@@ -65,17 +73,19 @@ class ExecutiveReportAgent {
         // El diseño de informe no desaparece por una cuota, un timeout o una
         // credencial ausente. Primero construimos una síntesis reproducible y
         // luego la IA puede enriquecerla, identificándose explícitamente.
-        const fallbackReports = reports.map(report => report?.executiveBrief ? report : ({ ...report, executiveBrief: deterministicBrief(report) }));
+        const sectorReports=reports.map(report=>enrichSectorReport(report,area==='Finanzas' ? 'finance' : area==='Mercados' ? 'markets' : 'mexico'));
+        const fallbackReports = sectorReports.map(report => report?.executiveBrief ? report : ({ ...report, executiveBrief: deterministicBrief(report) }));
         if (!this.provider.isConfigured()) return fallbackReports;
-        const facts = reports.map(factsFor);
+        const facts = sectorReports.map(factsFor);
         const systemInstruction = `Eres el agente editorial de informes ejecutivos de VALLNEWS. Entregas una lectura de nivel editorial para comité directivo: un titular sobrio, contexto, tesis verificable, señales que la sostienen, riesgos que podrían invalidarla y una pregunta de seguimiento. No imitas ni atribuyes el resultado a publicaciones, analistas o plataformas externas.
 
 Reglas no negociables:
 1. Usa únicamente los hechos incluidos en DATOS VERIFICADOS.
 2. No inventes cifras, porcentajes, fechas, países, causas, fuentes, titulares ni relaciones causales.
 3. No des recomendaciones de inversión, compra, venta o cobertura. Formula acciones como validaciones o preguntas para comité.
-4. La tesis y cada señal deben diferenciar hecho observado de implicación condicional; evita adjetivos promocionales y frases genéricas.
+4. La tesis y cada señal deben diferenciar hecho observado de implicación condicional; evita adjetivos promocionales y frases genéricas. El contexto explica la exposición del negocio sin repetir la tesis ni el resumen. Cada impulsor une evidencia e implicación; cada riesgo identifica la condición y el dato a contrastar. La pregunta de comité debe ser específica para el informe, sin inventar responsables, umbrales ni plazos.
 5. Si faltan hechos, dilo de forma explícita y breve.
+Las preguntas e información a solicitar de la guía sectorial son criterios de análisis, no datos observados. Úsalas para precisar qué debe validarse; no afirmes que esa evidencia o exposición ya existe.
 6. Devuelve JSON válido, sin Markdown ni texto adicional.`;
         const prompt = `Área: ${area}. Para cada informe, devuelve exactamente este esquema:
 {"reports":[{"key":"","headline":"máximo 120 caracteres; describe el hecho sin sensacionalismo","context":"máximo 320 caracteres; explica por qué el corte merece atención usando sólo los datos dados","thesis":"máximo 420 caracteres; hecho y lectura condicional","drivers":["máximo 3, 240 caracteres c/u; señal observable y por qué importa"],"risks":["máximo 3, 240 caracteres c/u; condición que hay que contrastar"],"committeeQuestion":"máximo 260 caracteres"}]}
@@ -83,9 +93,10 @@ Reglas no negociables:
 DATOS VERIFICADOS:
 ${JSON.stringify(facts)}`;
         try {
-            const response = await this.provider.generate({
+            const response = await reportDeadline(signal=>this.provider.generate({
                 prompt, systemInstruction, tier: 'pro', json: true, maxOutputTokens: 5000,
-            });
+                signal, timeoutMs:this.timeoutMs,
+            }),this.timeoutMs);
             const parsed = JSON.parse(response.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, ''));
             const byKey = new Map((parsed?.reports || []).filter(item => item?.key).map(item => [String(item.key), item]));
             return fallbackReports.map(report => {
@@ -98,6 +109,8 @@ ${JSON.stringify(facts)}`;
                 const risks = list(draft.risks, 3, 240);
                 const committeeQuestion = cleanText(draft.committeeQuestion, 260);
                 if (!headline && !context && !thesis && !drivers.length && !risks.length && !committeeQuestion) return report;
+                const allowed=numericTokens(JSON.stringify(factsFor(report)));
+                if([...numericTokens(JSON.stringify({headline,context,thesis,drivers,risks,committeeQuestion}))].some(value=>!allowed.has(value))) return report;
                 return {
                     ...report,
                     executiveBrief: {

@@ -339,7 +339,10 @@ export { PROTEINA_POR_KG };
 
 const acotar = (min, max, v) => Math.max(min, Math.min(max, v));
 
-export function datosProteinas(p, mxn, hogsD, cattleD, sniimData = null, firstSaleData = null, commercialPrices = null) {
+export function datosProteinas(
+  p, mxn, hogsD, cattleD, sniimData = null, firstSaleData = null, commercialPrices = null,
+  requireLocalCommercialPrice = false,
+) {
   const fx = num(mxn, 17.5);
   const hogs = num(hogsD?.price, 98);
   const cattle = num(cattleD?.price, 186);
@@ -370,23 +373,24 @@ export function datosProteinas(p, mxn, hogsD, cattleD, sniimData = null, firstSa
     ? commercialPrices.prices
     : (firstSaleData?.prices || {});
   const precioOficial = (especie) => {
+    if (requireLocalCommercialPrice && !mercado[especie]?.available) return null;
     const valor = Number(mercado[especie]?.price);
     return Number.isFinite(valor) && valor > 0 ? valor : null;
   };
 
   let precioCerdoMXN = precioOficial('pork');
-  if (!precioCerdoMXN) precioCerdoMXN = acotar(1.75, 3.75, hogs * CENTAVOS_LB_A_USD_KG) * fx;
+  if (!precioCerdoMXN && !requireLocalCommercialPrice) precioCerdoMXN = acotar(1.75, 3.75, hogs * CENTAVOS_LB_A_USD_KG) * fx;
 
   let precioResMXN = precioOficial('beef');
-  if (!precioResMXN) precioResMXN = acotar(3.10, 6.25, cattle * CENTAVOS_LB_A_USD_KG) * fx;
+  if (!precioResMXN && !requireLocalCommercialPrice) precioResMXN = acotar(3.10, 6.25, cattle * CENTAVOS_LB_A_USD_KG) * fx;
 
   const precioPolloEstUSD = (m, s) => acotar(2.35, 3.75, 2.88 + (m - 4.82) * 0.08 + (s - 342.5) * 0.00035);
   let precioPolloMXN = precioOficial('chicken');
-  if (!precioPolloMXN) precioPolloMXN = precioPolloEstUSD(maiz, soja) * fx;
+  if (!precioPolloMXN && !requireLocalCommercialPrice) precioPolloMXN = precioPolloEstUSD(maiz, soja) * fx;
 
   const precioHuevoEstUSD = (m, s) => acotar(1.55, 3.60, 2.15 + (m - 4.82) * 0.09 + (s - 342.5) * 0.0004);
   let precioHuevoMXN = precioOficial('egg');
-  if (!precioHuevoMXN) precioHuevoMXN = precioHuevoEstUSD(maiz, soja) * fx;
+  if (!precioHuevoMXN && !requireLocalCommercialPrice) precioHuevoMXN = precioHuevoEstUSD(maiz, soja) * fx;
 
   const precios = {
     pork: precioCerdoMXN,
@@ -430,12 +434,14 @@ export function datosProteinas(p, mxn, hogsD, cattleD, sniimData = null, firstSa
     e.fixed *= fx;
     e.feedCost = (e.ration / 1000) * e.fcr;
     e.totalCost = e.feedCost + e.fixed;
-    e.margin = e.price - e.totalCost;
+    e.margin = Number.isFinite(e.price) ? e.price - e.totalCost : null;
     e.feedShare = e.totalCost > 0 ? Math.min(100, (e.feedCost / e.totalCost) * 100) : 0;
   });
 
-  const masBarata = Object.entries(precios).sort((a, b) => a[1] - b[1])[0][0];
-  const mejorMargen = Object.entries(economia).sort((a, b) => b[1].margin - a[1].margin)[0];
+  const especiesConPrecio = Object.entries(precios).filter(([, precio]) => Number.isFinite(precio));
+  const masBarata = especiesConPrecio.sort((a, b) => a[1] - b[1])[0]?.[0] || null;
+  const mejorMargen = Object.entries(economia).filter(([, item]) => Number.isFinite(item.margin))
+    .sort((a, b) => b[1].margin - a[1].margin)[0] || null;
   const masEficiente = Object.entries(economia).sort((a, b) => a[1].fcr - b[1].fcr)[0][0];
   const presionAlimento = calcIPI(p).score;
 
@@ -455,9 +461,10 @@ export function datosProteinas(p, mxn, hogsD, cattleD, sniimData = null, firstSa
      el huevo parece mucho más barato de lo que es en la única unidad que de
      verdad se compra, que es la proteína. */
   const costoProteina = Object.fromEntries(
-    Object.entries(precios).map(([k, v]) => [k, v / (PROTEINA_POR_KG[k] / 1000)]),
+    Object.entries(precios).map(([k, v]) => [k, Number.isFinite(v) ? v / (PROTEINA_POR_KG[k] / 1000) : null]),
   );
-  const proteinaMasBarata = Object.entries(costoProteina).sort((a, b) => a[1] - b[1])[0][0];
+  const proteinaMasBarata = Object.entries(costoProteina).filter(([, precio]) => Number.isFinite(precio))
+    .sort((a, b) => a[1] - b[1])[0]?.[0] || null;
 
   return {
     precios,
@@ -474,22 +481,21 @@ export function datosProteinas(p, mxn, hogsD, cattleD, sniimData = null, firstSa
       : presionAlimento >= 45 ? 'Presión moderada: monitoreo activo'
         : 'Presión contenida: entorno favorable',
     masBarata,
-    mejorMargen: mejorMargen[0],
+    mejorMargen: mejorMargen?.[0] || null,
     masEficiente,
-    ratioCerdoPollo: precios.pork / precios.chicken,
-    ratioResCerdo: precios.beef / precios.pork,
+    ratioCerdoPollo: Number.isFinite(precios.pork) && Number.isFinite(precios.chicken) ? precios.pork / precios.chicken : null,
+    ratioResCerdo: Number.isFinite(precios.beef) && Number.isFinite(precios.pork) ? precios.beef / precios.pork : null,
     /* Cuántos kilos de huevo compra el precio de un kilo de res. Es la brecha
        más ancha del tablero y la que explica la sustitución cuando el ingreso
        de los hogares se aprieta. */
-    ratioResHuevo: precios.beef / precios.egg,
+    ratioResHuevo: Number.isFinite(precios.beef) && Number.isFinite(precios.egg) ? precios.beef / precios.egg : null,
     exposicionGrano,
     masExpuesta,
     costoProteina,
     proteinaMasBarata,
     lectura: commercialPrices?.available
-      ? 'Las cuatro referencias corresponden a venta comercial entre negocios —no a tienda— y se validan con Gemini y búsqueda web cada 24 horas.'
-      : 'El cerdo refleja compra de intermediario antes del rastro; el bovino se cotiza en rastro. '
-        + 'Pollo y huevo se reportan al mayoreo porque no se comercializan como animales en rastro.',
+      ? `Cotizaciones físicas de Puebla, Puebla: ${especiesConPrecio.length} de 4 verificadas. Se actualizan cada 12 horas; no se sustituyen faltantes con futuros ni estimaciones.`
+      : 'No hay un corte local verificable disponible. Esta vista no sustituye precios de Puebla con futuros ni estimaciones.',
     lecturaEficiencia: `El ${NOMBRE[masEficiente]} presenta la menor conversión alimenticia del comparativo. `
       + 'La rentabilidad final depende también de precio de venta, mortalidad, energía, sanidad y duración del ciclo.',
     lecturaExposicion: `En el ${NOMBRE[masExpuesta]}, el alimento se lleva el `

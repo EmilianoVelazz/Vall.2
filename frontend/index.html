@@ -2,19 +2,16 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <!-- Logotipos/ era una carpeta del árbol anterior del repositorio; el logo
-         vive en assets/img. Mismo fallo que arrastraba page-loader.js. -->
-    <link rel="icon" type="image/png" href="/assets/img/logo1.png" />
+    <!-- El logo actual se publica desde assets/img. -->
+    <link rel="icon" type="image/png" href="/assets/img/brand/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VALLNews · Inteligencia Económica</title>
-    <!-- Modo oscuro anti-flash (igual que el sitio original) -->
+    <!-- VALLNews utiliza siempre el tema claro; se fija antes del primer
+         render para que nunca aparezca un fotograma oscuro. -->
     <script>
-      
       (function () {
-        var t = localStorage.getItem('vn_theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        }
+        document.documentElement.removeAttribute('data-theme');
+        try { localStorage.setItem('vn_theme', 'light'); } catch (e) {}
       })();
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
@@ -22,7 +19,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="/assets/css/mobile-experience.css?v=5" />
+    <!-- El marco compartido se carga antes de pintar React. Inyectarlo al
+         montar dejaba el logo y las reglas móviles sin tamaño durante la red. -->
+    <link rel="stylesheet" href="/assets/css/base.css?v=2" data-vn-shell-css />
+    <link rel="stylesheet" href="/assets/css/header.css?v=9" data-vn-shell-css />
+    <link rel="stylesheet" href="/assets/css/footer.css" data-vn-shell-css />
+    <link rel="stylesheet" href="/assets/css/responsive.css" data-vn-shell-css />
 </head>
   <body>
     <div id="root"></div>

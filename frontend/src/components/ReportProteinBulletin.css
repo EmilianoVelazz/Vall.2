@@ -1,0 +1,58 @@
+.erh-studio .erh-protein-reader { --protein-accent:#813c56; --protein-soft:#f8edf2; }
+.erh-studio .erh-reading-filters { display:flex; flex-wrap:wrap; align-items:end; gap:10px; padding:12px 0; margin-bottom:12px; border-bottom:1px solid #d7e1ed; color:#193758; }
+.erh-studio .erh-reading-filters label { display:flex; flex:1 1 180px; min-width:0; flex-direction:column; gap:5px; font-size:11px; }
+.erh-studio .erh-reading-filters :is(select,input,button) { box-sizing:border-box; width:100%; min-height:38px; padding:8px; border:1px solid #b9cadc; border-radius:6px; color:#193758; background:#fff; font:inherit; }
+.erh-studio .erh-reading-filters button { width:auto; cursor:pointer; }.erh-studio .erh-reading-filters p { flex-basis:100%; margin:0; font-size:11px; line-height:1.5; }
+.erh-studio .erh-data-health:is(.is-stale,.is-undated) b { background:#f8e1e1; color:#8b3434; }
+.erh-studio .erh-data-health.is-historical b { background:#e1e9f4; color:#34516f; }
+.erh-studio .erh-data-health { display:flex; flex-wrap:wrap; gap:4px 10px; padding:7px 0; font-size:10px; line-height:1.5; }.erh-studio .erh-data-health small { flex-basis:100%; font-size:9px; }.erh-studio .erh-data-health b { padding:2px 7px; border-radius:4px; background:#dcefe6; color:#245941; }.erh-studio .erh-data-health.is-partial b { background:#fff0ce; color:#7a5313; }.erh-studio .erh-data-health.is-preserved b { background:#e1e9f4; color:#34516f; }.erh-studio .erh-data-health.is-empty b { background:#f8e1e1; color:#8b3434; }
+.erh-studio .erh-new-cut { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin:12px 0; padding:12px; border:1px solid #54769c; border-radius:8px; background:#213d5b; color:#e6f1ff; font-size:12px; }.erh-studio .erh-new-cut button { border:1px solid #7195bd; border-radius:6px; padding:8px 12px; background:#315785; color:white; cursor:pointer; }
+.erh-studio .erh-protein-reader.erh-weekly-reader .erh-block-heading { background:var(--protein-accent); }
+.erh-studio .erh-protein-reader.erh-weekly-reader .erh-block-charts>.erh-block-heading { background:#f1e1e8; }
+.erh-studio .erh-document:has(.erh-protein-reader) .erh-document-header h2 { background:#813c56; }
+.erh-studio .erh-protein-reader .erh-weekly-kpis small { background:#f0dce6; color:#633047; }
+.erh-studio .erh-protein-sheets { display:grid; gap:18px; }
+.erh-studio .erh-protein-source-coverage { padding:14px; background:#f8edf2; border:1px solid #ead6df; border-radius:8px; }
+.erh-studio .erh-protein-source-coverage>strong { color:#813c56; font-size:12px; }
+.erh-studio .erh-protein-source-coverage ul { display:flex; flex-wrap:wrap; gap:8px; padding:0; margin:10px 0 0; list-style:none; }
+.erh-studio .erh-protein-source-coverage li { display:flex; flex-direction:column; gap:4px; padding:8px 10px; border:1px solid #ead6df; border-radius:6px; background:white; color:#344c64; font-size:11px; overflow-wrap:anywhere; max-width:100%; }
+.erh-studio .erh-protein-source-coverage small { color:#765566; font-size:10px; }
+.erh-studio .erh-protein-sheet-charts { margin-top:10px; }
+.erh-studio .erh-protein-country-coverage { margin:16px 0; padding:14px; border:1px solid #ead6df; border-radius:8px; background:#fff; }
+.erh-studio .erh-protein-country-coverage h4 { margin:0 0 12px; font-size:14px; color:#813c56; }
+.erh-studio .erh-protein-country-coverage ul { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; list-style:none; padding:0; margin:0; }
+.erh-studio .erh-protein-country-coverage li { display:flex; flex-direction:column; gap:5px; padding:10px; background:#f8edf2; border-radius:6px; font-size:11px; overflow-wrap:anywhere; }
+.erh-studio .erh-protein-country-coverage li strong { color:#633047; font-size:12px; }
+.erh-studio .erh-protein-country-coverage li small { color:#607087; line-height:1.5; }
+.erh-studio .erh-protein-country-coverage>p { margin:12px 0 0; font-size:11px; line-height:1.6; color:#607087; }
+@container(max-width:650px) { .erh-studio .erh-protein-country-coverage ul { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.erh-studio .erh-protein-sheet-charts .erh-session-chart-reading { font-size:11px; }
+.erh-studio .erh-protein-reader .erh-protein-chart-source { margin:0 0 12px; color:#765566; font-size:10px; line-height:1.5; }
+.erh-studio .erh-protein-sheet { min-width:0; border-top:3px solid var(--protein-accent); }
+.erh-studio .erh-protein-sheet>header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 14px; margin-bottom:10px; background:var(--protein-soft); color:var(--protein-accent); }
+.erh-studio .erh-protein-sheet>header>span { font-size:18px; line-height:1.4; font-weight:750; letter-spacing:.03em; text-transform:uppercase; }
+.erh-studio .erh-protein-sheet>header>small { font-size:10px; white-space:nowrap; }
+.erh-studio .erh-protein-sheet-body { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+.erh-studio .erh-protein-sheet-body>aside { min-width:0; display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:6px 18px; align-items:start; }
+.erh-studio .erh-protein-summary,.erh-studio .erh-protein-scope { display:flex; min-width:0; flex-direction:column; gap:7px; }
+.erh-studio .erh-protein-prices { min-width:0; }
+.erh-studio .erh-protein-scroll-hint { display:none; }
+.erh-studio .erh-protein-conditions { margin:8px 0 0; color:#607087; font-size:10px; line-height:1.65; }
+.erh-studio .erh-protein-kicker { color:var(--protein-accent); font-size:10px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; }
+.erh-studio .erh-protein-sheet-body h4 { margin:0; color:#193758; font-size:18px; line-height:1.3; letter-spacing:-.025em; }
+.erh-studio .erh-protein-sheet-body>aside p { margin:0; color:#344c64; font-size:12px; line-height:1.6; }
+.erh-studio .erh-protein-sheet-body>aside .erh-protein-dates { font-size:11px; color:#765566; overflow-wrap:anywhere; }
+.erh-studio .erh-protein-sheet-body>aside small { display:block; color:#607087; font-size:11px; line-height:1.7; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-tables { margin:0; gap:12px; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap header { padding-top:0; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap h4 { margin:0; color:var(--protein-accent); font-size:12px; line-height:1.6; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap header p { margin:6px 0 9px; font-size:10px; line-height:1.6; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap table { min-width:510px; width:100%; table-layout:fixed; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap :is(th,td) { padding:7px 8px; white-space:pre-line; overflow-wrap:anywhere; font-size:11px; line-height:1.5; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap th:first-child { width:30%; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap thead th { background:#f0dce6; color:#633047; font-weight:700; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap tbody tr:nth-child(even) { background:#fbf4f7; }
+.erh-studio .erh-protein-reader .erh-protein-sheet .erh-table-wrap td:last-child { font-weight:650; }
+.erh-studio .erh-protein-supplement>h4 { color:#813c56; font-size:15px; }
+@container(max-width:650px) { .erh-studio .erh-protein-sheet-body>aside { display:flex; flex-direction:column; gap:7px; }.erh-studio .erh-protein-scope { padding-top:7px; border-top:1px solid #ead6df; width:100%; } }
+@media(max-width:540px) { .erh-studio .erh-protein-sheet>header { padding:9px 10px; }.erh-studio .erh-protein-sheet>header>span { font-size:15px; }.erh-studio .erh-protein-sheets { gap:18px; }.erh-studio .erh-protein-scroll-hint { display:block; margin:0 0 10px; color:#765566; font-size:10px; line-height:1.6; } }

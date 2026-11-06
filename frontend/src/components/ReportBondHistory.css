@@ -1,0 +1,48 @@
+.erh-bond-explorer { min-width:0; border:1px solid #d7e1ed; border-radius:12px; padding:14px; background:#fff; overflow:hidden; }
+.erh-bond-modes { display:flex; gap:4px; flex-wrap:wrap; padding:4px; margin-bottom:12px; border-radius:8px; background:#eef2f6; }
+.erh-bond-modes button { flex:1 1 auto; min-height:38px; padding:7px 10px; border:1px solid transparent; border-radius:6px; font:600 11px/1.4 'Inter',system-ui,sans-serif; color:#526882; background:transparent; cursor:pointer; }
+.erh-bond-modes button[aria-pressed=true] { background:#fff; border-color:#cbd7e3; color:#193758; box-shadow:0 1px 4px #1937580d; }
+.erh-bond-modes button:disabled { opacity:.45; cursor:default; }
+.erh-bond-explorer :is(button,select):focus-visible { outline:2px solid #315785; outline-offset:2px; }
+.erh-studio .erh-company-reader .erh-market-visual-grid .erh-bond-explorer>.erh-chart { margin:0; padding:0; border:0; box-shadow:none; min-width:0; }
+.erh-bond-reference { display:grid; gap:6px; margin:12px 0; font-size:11px; color:#526882; }
+.erh-bond-reference select { width:100%; min-width:0; min-height:38px; padding:7px 9px; border:1px solid #cbd7e3; border-radius:6px; background:#f8fafc; color:#193758; font:inherit; }
+.erh-bond-calendar-scroll { max-width:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:6px; }
+.erh-bond-calendar table { width:100%; min-width:460px; border-spacing:3px; font-variant-numeric:tabular-nums; }
+.erh-bond-calendar :is(th,td) { padding:0; text-align:center; font-size:10px; border:0; }
+.erh-bond-calendar th { height:30px; color:#526882; font-weight:600; }
+.erh-bond-calendar th:first-child { position:sticky; left:0; min-width:40px; z-index:1; background:#fff; }
+.erh-bond-calendar td button,.erh-bond-missing { display:block; width:100%; min-height:34px; padding:6px 3px; border:1px solid transparent; border-radius:4px; font:500 10px/1.4 'Inter',system-ui,sans-serif; white-space:nowrap; }
+.erh-bond-calendar td button { cursor:pointer; }
+.erh-bond-calendar td button[aria-pressed=true] { outline:2px solid #193758; outline-offset:-2px; }
+.erh-bond-calendar td button.is-partial { border:1px dashed #193758; }
+.erh-bond-missing { background:#f1f4f7; color:#8190a1; box-sizing:border-box; }
+.erh-bond-color-key { display:flex; gap:9px; align-items:center; margin:13px 0 8px; color:#526882; font-size:10px; }
+.erh-bond-color-key i { flex:1; height:7px; border-radius:3px; background:linear-gradient(90deg,hsl(207 24% 97%),hsl(207 24% 62%)); }
+.erh-bond-cell-detail,.erh-bond-base { padding:9px 11px; border-radius:5px; background:#edf2f6; color:#40576b; font-size:11px; line-height:1.6; }
+@media(max-width:600px) { .erh-bond-explorer { padding:10px; } .erh-bond-modes button { min-height:42px; padding:6px; } }
+.erh-bond-international { grid-column:1/-1; min-width:0; padding:16px; border:1px solid #c6d5e2; border-radius:12px; background:#f7fafc; }
+.erh-bond-international>header { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+.erh-bond-international>header h4 { margin:0; color:#193758; font-size:15px; }
+.erh-bond-international>header span { padding:6px 9px; border-radius:5px; color:#40576b; background:#e7eef5; font-size:11px; }
+.erh-bond-country-controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); gap:10px; margin:14px 0; }
+.erh-bond-country-controls label { display:grid; gap:6px; min-width:0; color:#526882; font-size:11px; }
+.erh-bond-country-controls select { width:100%; min-width:0; min-height:40px; padding:7px; border:1px solid #cbd7e3; border-radius:6px; background:white; color:#193758; font:inherit; }
+.erh-bond-country-controls select:focus-visible { outline:2px solid #315785; outline-offset:2px; }
+.erh-bond-europe-hint { color:#526882; font-size:11px; line-height:1.6; }
+.erh-bond-europe-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); gap:8px; margin:14px 0 20px; }
+.erh-bond-europe-grid button { display:grid; gap:10px; min-width:0; padding:12px; text-align:left; font:inherit; background:white; color:#193758; border:1px solid #d6e0e9; border-radius:8px; cursor:pointer; }
+.erh-bond-europe-grid button:hover { background:#edf3f8; border-color:#8ca6bc; }
+.erh-bond-europe-grid button[aria-pressed=true] { border-color:#315785; box-shadow:inset 0 3px #315785; }
+.erh-bond-europe-grid button:focus-visible { outline:2px solid #315785; outline-offset:2px; }
+.erh-bond-europe-country,.erh-bond-europe-period { display:flex; flex-wrap:wrap; gap:4px; align-items:baseline; justify-content:space-between; font-size:11px; }
+.erh-bond-europe-country { font-weight:600; }
+.erh-bond-europe-grid small { color:#65798a; font-size:10px; font-weight:400; }
+.erh-bond-europe-grid strong { font-size:23px; font-weight:600; line-height:1.2; }
+.erh-bond-europe-grid strong small { margin-left:5px; }
+.erh-bond-europe-period { color:#65798a; font-size:10px; }
+@media(max-width:600px) {
+  .erh-bond-europe-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .erh-bond-europe-grid button { padding:10px; }
+  .erh-bond-europe-grid strong { font-size:21px; }
+}

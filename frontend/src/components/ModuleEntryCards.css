@@ -1,0 +1,100 @@
+/* Este alcance evita que las capas heredadas alteren las nuevas tarjetas. */
+html:is(.vn-dark-mercados,.vn-dark-mexico) body:is(.vn-dark-mercados,.vn-dark-mexico) .module-entry-cards[data-module-count] {
+  display: grid !important; grid-template-columns: repeat(var(--module-columns),minmax(0,1fr)); grid-auto-rows: auto;
+  align-items: stretch; gap: 20px; padding: 6px 0 18px; margin-top: 20px;
+  overflow: visible; background: transparent; border: 0; box-shadow: none; scroll-snap-type: none;
+
+  & .mmc-card {
+    position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; min-height: 470px;
+    margin: 0; padding: 0; flex: none; overflow: hidden; border-radius: 24px;
+    background: #11223b; border: 1px solid #405875; box-shadow: 0 10px 28px rgba(2,10,24,.18);
+    animation: none !important; will-change: auto; transform: none;
+    transition: transform 240ms ease, border-color 240ms, box-shadow 240ms;
+  }
+  & .mmc-card::before {
+    content: ''; position: absolute; inset: 0; width: auto; height: auto; z-index: 1; pointer-events: none;
+    background: linear-gradient(180deg,rgba(8,24,43,.4),rgba(8,24,43,.65) 30%,rgba(10,27,48,.94) 58%,#10233c 85%);
+  }
+  & .mmc-card::after { display: none; }
+  & .mmc-photo {
+    position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%;
+    max-width: none; object-fit: cover; object-position: 45% center; pointer-events: none;
+    filter: saturate(.75); transition: transform 650ms cubic-bezier(.2,.8,.2,1);
+  }
+  & .mmc-card.mhc-proteinas .mmc-photo { object-position: 38% center; }
+  & .mmc-card:hover, & .mmc-card:focus-within {
+    transform: translateY(-5px); border-color: #8fb5e8; box-shadow: 0 20px 44px rgba(2,10,24,.32);
+  }
+  & .mmc-card:hover .mmc-photo, & .mmc-card:focus-within .mmc-photo { transform: scale(1.035); }
+  & .mmc-content {
+    position: relative; z-index: 2; display: flex; flex: 1; flex-direction: column; width: 100%; min-width: 0;
+    padding: 26px; font-family: Inter,system-ui,sans-serif;
+  }
+  & .mmc-topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  & .mmc-topline > span { color: #b9d5fa; font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; }
+  & .mmc-topline .mmc-number { color: #bccce1; font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  & .mmc-heading { position: relative; margin-top: 22px; padding-right: 45px; min-height: 118px; }
+  & .mmc-icon { position: absolute; top: 3px; right: 0; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgba(179,209,249,.35); border-radius: 10px; background: rgba(27,54,85,.45); color: #c5deff; font-size: 14px; }
+  & .mmc-heading h2 { margin: 0; color: #f3f7ff; font: 600 clamp(28px,2.65vw,38px)/1.12 Inter,system-ui,sans-serif; letter-spacing: -.04em; text-shadow: 0 2px 16px rgba(2,10,24,.2); }
+  & .mmc-heading p { margin: 12px 0 0; color: #c2d2e6; font-size: 11px; line-height: 1.6; }
+  & .mmc-description { margin: 0; min-height: 65px; max-width: 37ch; color: #b8cae1; font: 400 13px/1.65 Inter,system-ui,sans-serif; }
+  & .mmc-reference { margin: auto 0 20px; padding-top: 20px; border-top: 1px solid rgba(151,184,225,.23); }
+  & .mmc-reference-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  & .mmc-reference-head > span:first-child { color: #e2ecfa; font-size: 12px; font-weight: 500; }
+  & .mmc-reference-head > span:last-child { color: #b3cae8; font-size: 9px; letter-spacing: .06em; border: 1px solid #405a7c; border-radius: 6px; padding: 4px 6px; }
+  & .mmc-quote-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,.8fr); align-items: center; gap: 14px; margin-top: 9px; min-height: 62px; }
+  & .mmc-quote-row.is-text-only { grid-template-columns: minmax(0,1fr); }
+  & .mmc-price { display: block; color: #f1f6ff; font: 600 30px/1.2 Inter,system-ui,sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+  & .mmc-unit { display: block; margin-top: 5px; color: #a9bed9; font-size: 10px; }
+  & .mmc-history { min-width: 0; }
+  & .mmc-history .mkt-spark { position: static; inset: auto; display: block; width: 100%; height: 35px; margin: 0; opacity: .95; }
+  & .mmc-history .mkt-spark polyline { stroke: #a5d0ff; }
+  & .mmc-history .mkt-spark :is(polygon,circle) { fill: #a5d0ff; }
+  & .mmc-history > small { display: block; margin-top: 5px; color: #a9bed9; font-size: 9px; text-align: right; }
+  & .mmc-status { display: flex; align-items: center; gap: 7px; min-height: 25px; color: #aec3df; font-size: 10px; line-height: 1.5; }
+  & .mmc-status::before { content: ''; display: block; flex: 0 0 5px; height: 5px; border-radius: 50%; background: #a2b8d5; }
+  & .mmc-status.is-verified::before { background: #82dcbd; }
+  & .mmc-link {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px;
+    margin-top: auto; padding: 9px 9px 9px 15px; border: 1px solid #587ba6; border-radius: 13px;
+    color: #e8f1ff; background: rgba(90,145,221,.12); cursor: pointer; font: 600 12px/1.4 Inter,system-ui,sans-serif;
+    text-align: left; transition: background 180ms, border-color 180ms;
+  }
+  & .mmc-link::after { content: ''; position: absolute; inset: 0; border-radius: 24px; }
+  & .mmc-link:focus-visible { outline: 2px solid #bdd9ff; outline-offset: 4px; }
+  & .mmc-card:is(:hover,:focus-within) .mmc-link { background: rgba(96,158,243,.2); border-color: #8eb8ef; }
+  & .mmc-arrow { display: grid; place-items: center; width: 29px; height: 29px; flex-shrink: 0; border-radius: 8px; background: rgba(161,204,255,.12); }
+  & .mmc-arrow svg { width: 19px; height: 19px; transition: transform 200ms; }
+  & .mmc-card:is(:hover,:focus-within) .mmc-arrow svg { transform: translateX(3px); }
+}
+@media(max-width:1100px) {
+  html:is(.vn-dark-mercados,.vn-dark-mexico) body:is(.vn-dark-mercados,.vn-dark-mexico) .module-entry-cards[data-module-count] .mmc-content { padding: 22px; }
+}
+@media(max-width:900px) {
+  html.vn-dark-mercados body.vn-dark-mercados .mkt-wrap.mkt-cards-overview { padding-inline: 20px; }
+  html:is(.vn-dark-mercados,.vn-dark-mexico) body:is(.vn-dark-mercados,.vn-dark-mexico) .module-entry-cards[data-module-count] {
+    grid-template-columns: 1fr; gap: 16px;
+    & .mmc-card { min-width: 0; min-height: 0; }
+    & .mmc-content { padding: 24px; }
+    & .mmc-heading { min-height: 0; margin: 20px 0 18px; max-width: 100%; }
+    & .mmc-heading h2 { font-size: 34px; }
+    & .mmc-description { min-height: 0; max-width: 55ch; }
+    & .mmc-reference { margin-top: 22px; }
+    & .mmc-quote-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+    & .mmc-quote-row.is-text-only { grid-template-columns: minmax(0,1fr); }
+  }
+}
+@media(max-width:380px) {
+  html.vn-dark-mercados body.vn-dark-mercados .mkt-wrap.mkt-cards-overview { padding-inline: 16px; }
+  html:is(.vn-dark-mercados,.vn-dark-mexico) body:is(.vn-dark-mercados,.vn-dark-mexico) .module-entry-cards[data-module-count] {
+    & .mmc-content { padding: 20px; }
+    & .mmc-heading h2 { font-size: 30px; }
+    & .mmc-price { font-size: 27px; }
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  html:is(.vn-dark-mercados,.vn-dark-mexico) body:is(.vn-dark-mercados,.vn-dark-mexico) .module-entry-cards[data-module-count] {
+    & .mmc-card, & .mmc-photo, & .mmc-link, & .mmc-arrow svg { transition: none; }
+    & .mmc-card:is(:hover,:focus-within), & .mmc-card:is(:hover,:focus-within) .mmc-photo, & .mmc-card:is(:hover,:focus-within) .mmc-arrow svg { transform: none; }
+  }
+}

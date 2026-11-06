@@ -1,0 +1,6 @@
+{
+  "finance": {"label":"Finanzas","icon":"fa-chart-line","endpoint":"/api/finance-executive-reports","empty":"Los informes de Finanzas no están disponibles por el momento.","reportKeys":["equities","bonds","fx","daily_news","overview"]},
+  "markets": {"label":"Mercados","icon":"fa-wheat-awn","endpoint":"/api/market-executive-reports","empty":"Los informes de Mercados no están disponibles por el momento.","reportKeys":["overview","grains","energy_metals","proteins","market_news"]},
+  "mexico": {"label":"México","icon":"fa-flag","endpoint":"/api/mexico-executive-reports","empty":"Los informes de México no están disponibles por el momento.","reportKeys":["mx_overview","mx_bolsa","mx_proteins","mx_production"]},
+  "mine": {"label":"Mis informes","icon":"fa-folder-open","endpoint":"/api/user-reports","empty":"Aún no has guardado informes. Crea uno o edita una copia de Finanzas, Mercados o México.","reportKeys":[]}
+}

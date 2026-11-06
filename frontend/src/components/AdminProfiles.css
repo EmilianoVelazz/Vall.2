@@ -1,0 +1,29 @@
+.ap-profiles { display: grid; gap: 1rem; min-width: 0; }
+.ap-intro { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.ap-intro h3,.ap-reset h3 { margin: 0 0 .5rem; }
+.ap-intro p,.ap-reset p { color: #aebdce; line-height: 1.6; }
+.ap-table-wrap { overflow-x: auto; border: 1px solid #33485e; border-radius: 14px; background: #142332; }
+.ap-table-wrap table { width: 100%; border-collapse: collapse; text-align: left; font-size: .875rem; }
+.ap-table-wrap caption { padding: 1rem; text-align: left; color: #b6c6d7; }
+.ap-table-wrap th,.ap-table-wrap td { padding: .9rem; border-top: 1px solid #33485e; vertical-align: top; overflow-wrap: normal; word-break: normal; }
+.ap-table-wrap thead { color: #c0d0df; background: #1d3349; }
+.ap-table-wrap tbody th { font-weight: 400; }
+.ap-table-wrap tbody th span,.ap-table-wrap tbody th small { display: block; margin-top: .35rem; color: #aebdce; }
+.ap-table-wrap .ac-btn { white-space: nowrap; font-size: .8rem; }
+.ap-reset { display: grid; gap: 1rem; padding: 1.4rem; border: 1px solid #6683a0; background: #182b3e; border-radius: 14px; }
+.ap-reset p { margin: 0; overflow-wrap: anywhere; }
+.ap-actions { display: flex; flex-wrap: wrap; gap: .8rem; }
+.ap-error,.ap-notice { padding: 1rem; border: 1px solid #91a9bd; border-radius: 10px; line-height: 1.5; }
+.ap-error { border-color: #bf9296; color: #f0c6c9; }
+.ap-notice { background: #22394b; color: #d0e1ec; }
+@media(max-width:900px) {
+  .ap-table-wrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .ap-table-wrap table,.ap-table-wrap tbody { display: block; }
+  .ap-table-wrap tbody tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-top: 1px solid #33485e; }
+  .ap-table-wrap tbody th { grid-column: 1/-1; }
+  .ap-table-wrap tbody th,.ap-table-wrap tbody td { border: 0; }
+  .ap-table-wrap tbody th span { overflow-wrap: anywhere; }
+  .ap-table-wrap tbody td:nth-child(4),.ap-table-wrap tbody td:last-child { grid-column: 1/-1; }
+  .ap-table-wrap td::before { content: attr(data-label); display: block; margin-bottom: .35rem; color: #aebdce; font-size: .75rem; }
+}
+@media(max-width:640px) { .ap-intro { align-items: flex-start; flex-direction: column; } .ap-reset { padding: 1rem; } }

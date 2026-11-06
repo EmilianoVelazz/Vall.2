@@ -9,7 +9,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-logo">
         <div className="footer-icon">
-          <img src="/assets/img/logo1.png" alt="VALLNEWS" />
+          <img src="/assets/img/brand/logo.png" alt="VALLNEWS" width="36" height="36" style={{ objectFit: 'contain' }} />
         </div>
         <span className="footer-brand">VALLNews</span>
       </div>
@@ -21,9 +21,9 @@ export default function Footer() {
         <Link to="/inicio">Inicio</Link>
         <Link to="/finanzas">Finanzas</Link>
         <Link to="/mercados">Mercados</Link>
-        <Link to="/geopolitica">Geopolítica</Link>
         <Link to="/mexico">México</Link>
-        <Link to="/vall-ai">VALL AI</Link>
+        <Link to="/noticias">Noticias</Link>
+        <Link to="/orion">ORION</Link>
       </nav>
       <p className="footer-copy">
         © {new Date().getFullYear()} VALLNews · Inteligencia económica

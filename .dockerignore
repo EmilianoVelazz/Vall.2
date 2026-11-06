@@ -1,0 +1,39 @@
+.git
+.gitignore
+.idea
+.vscode
+.claude
+.cursor
+.planning
+**/.DS_Store
+
+# Dependencias y compilados: se generan dentro de la imagen
+node_modules
+**/node_modules
+dist
+frontend/dist
+frontend/artifacts
+backend/dist
+
+# Secretos: en Dokploy van como variables de entorno
+.env
+.env.*
+**/.env
+**/.env.*
+!backend/.env.example
+
+# Datos de ejecución locales (en producción viven en volúmenes)
+backend/cache
+backend/generated-reports
+backend/sniim-cache.json
+backend/commodity-cache.json
+backend/gdelt_cache.json*
+backend/*.log
+tmp
+out
+
+# Material que no forma parte de la app
+output
+linear-design
+tusitio-design
+qodana.yaml

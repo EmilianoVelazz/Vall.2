@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 4,
+  "base": "USD",
+  "historyObservations": 65,
+  "maximumVisuals": 9,
+  "currencies": [
+    {
+      "code": "MXN",
+      "name": "Peso mexicano",
+      "symbol": "MXN=X"
+    },
+    {
+      "code": "JPY",
+      "name": "Yen japonés",
+      "symbol": "JPY=X"
+    },
+    {
+      "code": "EUR",
+      "name": "Euro",
+      "symbol": "EUR=X"
+    },
+    {
+      "code": "GBP",
+      "name": "Libra esterlina",
+      "symbol": "GBP=X"
+    },
+    {
+      "code": "CAD",
+      "name": "Dólar canadiense",
+      "symbol": "CAD=X"
+    },
+    {
+      "code": "BRL",
+      "name": "Real brasileño",
+      "symbol": "BRL=X"
+    },
+    {
+      "code": "CNY",
+      "name": "Renminbi chino",
+      "symbol": "CNY=X"
+    },
+    {
+      "code": "VES",
+      "name": "Bolívar venezolano",
+      "symbol": "VES=X"
+    },
+    {
+      "code": "RUB",
+      "name": "Rublo ruso",
+      "symbol": "RUB=X"
+    },
+    {"code":"CHF","name":"Franco suizo","symbol":"CHF=X","market":"Suiza","region":"Europa"},
+    {"code":"SEK","name":"Corona sueca","symbol":"SEK=X","market":"Suecia","region":"Europa"},
+    {"code":"NOK","name":"Corona noruega","symbol":"NOK=X","market":"Noruega","region":"Europa"},
+    {"code":"DKK","name":"Corona danesa","symbol":"DKK=X","market":"Dinamarca","region":"Europa"},
+    {"code":"PLN","name":"Zloty polaco","symbol":"PLN=X","market":"Polonia","region":"Europa"},
+    {"code":"CZK","name":"Corona checa","symbol":"CZK=X","market":"Chequia","region":"Europa"},
+    {"code":"HUF","name":"Forinto húngaro","symbol":"HUF=X","market":"Hungría","region":"Europa"},
+    {"code":"RON","name":"Leu rumano","symbol":"RON=X","market":"Rumanía","region":"Europa"},
+    {"code":"TRY","name":"Lira turca","symbol":"TRY=X","market":"Turquía","region":"Europa"},
+    {"code":"ISK","name":"Corona islandesa","symbol":"ISK=X","market":"Islandia","region":"Europa"},
+    {"code":"AUD","name":"Dólar australiano","symbol":"AUD=X","market":"Australia","region":"Oceanía","inverse":true},
+    {"code":"NZD","name":"Dólar neozelandés","symbol":"NZD=X","market":"Nueva Zelanda","region":"Oceanía","inverse":true},
+    {"code":"INR","name":"Rupia india","symbol":"INR=X","market":"India","region":"Asia"},
+    {"code":"KRW","name":"Won surcoreano","symbol":"KRW=X","market":"Corea del Sur","region":"Asia"},
+    {"code":"SGD","name":"Dólar de Singapur","symbol":"SGD=X","market":"Singapur","region":"Asia"},
+    {"code":"HKD","name":"Dólar de Hong Kong","symbol":"HKD=X","market":"Hong Kong","region":"Asia"},
+    {"code":"THB","name":"Baht tailandés","symbol":"THB=X","market":"Tailandia","region":"Asia"},
+    {"code":"IDR","name":"Rupia indonesia","symbol":"IDR=X","market":"Indonesia","region":"Asia"},
+    {"code":"MYR","name":"Ringgit malasio","symbol":"MYR=X","market":"Malasia","region":"Asia"},
+    {"code":"PHP","name":"Peso filipino","symbol":"PHP=X","market":"Filipinas","region":"Asia"},
+    {"code":"ILS","name":"Séquel israelí","symbol":"ILS=X","market":"Israel","region":"Asia"},
+    {"code":"ZAR","name":"Rand sudafricano","symbol":"ZAR=X","market":"Sudáfrica","region":"África"}
+  ]
+}

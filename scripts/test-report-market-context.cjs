@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {parseReportOpenInterest,loadReportMarketFx,loadReportOpenInterest}=require('../backend/lib/report-market-context');
+const row=(date,value,code='054642')=>({cftc_contract_market_code:code,report_date_as_yyyy_mm_dd:date+'T00:00:00.000',open_interest_all:String(value)});
+(async()=>{
+ const data=[row('2026-10-06',100),row('2026-10-13',110),row('2026-10-20',121)];
+ const morning=parseReportOpenInterest(data,'2026-10-23T14:00:00Z');assert.equal(morning[0].date,'2026-10-13');assert(Math.abs(morning[0].change-10)<1e-8);
+ assert.equal(parseReportOpenInterest(data,'2026-10-23T19:29:59Z')[0].date,'2026-10-13');
+ assert.equal(parseReportOpenInterest(data,'2026-10-23T19:30:00Z')[0].date,'2026-10-20');
+ assert.equal(parseReportOpenInterest([row('2026-06-16',100)],'2026-06-19T22:00:00Z').length,0,'Juneteenth delays the official release');
+ assert.equal(parseReportOpenInterest([row('2026-06-16',100)],'2026-06-22T19:30:00Z').length,1);
+ assert.equal(parseReportOpenInterest([row('2026-02-30',100)],'2026-03-06T22:00:00Z').length,0);
+ assert.equal(parseReportOpenInterest([...data,row('2026-10-13',99)],'2026-10-23T14:00:00Z').length,0,'Conflicts and stale observations are excluded');
+ assert.equal(parseReportOpenInterest([row('2026-10-06',100),row('2026-10-13',0)],'2026-10-23T14:00:00Z')[0].change,-100,'A verified zero open interest is meaningful');
+ assert.equal(parseReportOpenInterest([row('2026-10-20',100)],'invalid').length,0);
+ let calls=0;const get=async()=>{calls++;return {ok:true,json:async()=>({base_code:'USD',time_last_update_unix:Date.parse('2026-10-23T00:00:00Z')/1000,rates:{USD:1,MXN:20,BRL:5}})};};
+ const fx=await loadReportMarketFx({get,cutoff:'2026-10-23T14:00:00Z'});assert.equal(fx.rates.MXN,20);assert.equal(fx.observedAt,'2026-10-23T00:00:00.000Z');
+ await loadReportMarketFx({get,cutoff:'2026-10-23T14:00:00Z'});assert.equal(calls,1,'Coalesced cached daily reference');
+ const oi=await loadReportOpenInterest({get:async()=>({ok:true,json:async()=>data}),cutoff:'2026-10-23T14:00:00Z'});assert.equal(oi[0].date,'2026-10-13');
+ console.log('Market context: OK · weekly CFTC with release times, holiday delay, conflicts, zero, and dated FX caching.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -29,3 +29,8 @@ const normalized = normalizeModelReview({
 assert.equal(normalized.assessments.length, 1);
 assert.equal(normalized.proposedRules.length, 1);
 console.log('Market review tests: OK');
+
+for (const invalid of [null, '', false]) {
+    const malformed = structuredClone(snapshot.sniim); malformed.cerdo.centro = invalid;
+    assert(validateSniimSnapshot(malformed).some(issue => issue.metric === 'cerdo.centro' && issue.code === 'MISSING_VALUE'));
+}

@@ -1,0 +1,17 @@
+[
+  {"id":"toluca","message":"Precio del cerdo en Toluca","country":"MX","state":"MEX"},
+  {"id":"tijuana","message":"Precio del pollo en Tijuana","country":"MX","state":"BCN"},
+  {"id":"merida-ambigua","message":"Precio del huevo en Mérida","clarification":"Mérida"},
+  {"id":"leon-ambiguo","message":"Precio de la res en León","clarification":"León"},
+  {"id":"cordoba-ambigua","message":"Precio del cerdo en Córdoba","clarification":"Córdoba"},
+  {"id":"merida-mexico","message":"Precio del huevo en Mérida México","country":"MX","state":"YUC"},
+  {"id":"leon-mexico","message":"Precio de la res en León Guanajuato","country":"MX","state":"GUA"},
+  {"id":"guadalajara-espana","message":"Precio del cerdo en Guadalajara España","country":"ES","state":null},
+  {"id":"leon-espana","message":"Precio de la res en León España","country":"ES","state":null},
+  {"id":"pais-explicito-brasil","message":"Precio del pollo en Tijuana Brazil","country":"BR","state":null},
+  {"id":"entrega-operativa","message":"Voy a vender pollo mañana en Puebla, ¿qué documentos necesito?","forecast":false},
+  {"id":"importacion-operativa","message":"Necesito importar 20 toneladas de pollo mañana de Brasil a México, ¿qué documentos necesito?","forecast":false},
+  {"id":"pronostico-precio","message":"Precio del cerdo mañana en Puebla","forecast":true},
+  {"id":"pronostico-explicito","message":"Voy a vender cerdo mañana, pronostica si subirá el precio","forecast":true},
+  {"id":"probabilidad-no-garantizada","message":"Vendo proteínas animales. Dame la probabilidad exacta de que mis ventas suban 20% el próximo mes aunque no tengas mis datos.","forecast":true}
+]

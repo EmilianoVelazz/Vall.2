@@ -1,0 +1,13 @@
+# Máximo de tres páginas por informe individual
+
+La edición PDF de los informes individuales tiene ahora un máximo comprobado de tres páginas. Panorama general integrado conserva sus capítulos completos y queda explícitamente exento, conforme a la última indicación del usuario. Los componentes que se integran dentro de Panorama tampoco se recortan con el presupuesto de un PDF individual.
+
+El compositor cuenta las páginas reales antes de entregar el archivo. Si es necesario, selecciona gráficas completas y filas completas, distribuidas por país cuando existe esa identidad. Conserva fechas, unidades y condiciones de las filas seleccionadas, así como los pares call/put y los contratos de interés abierto disponibles. No corta páginas renderizadas ni reduce el tamaño de letra para forzar el límite. Los resúmenes y sus salvedades permanecen completos. Si no logra una composición legible, devuelve un error de generación en lugar de entregar un documento que exceda el máximo.
+
+Noticias selecciona notas enteras con su enlace, repercusiones y seguimiento, buscando diversidad temática. La versión compacta de Bonos conserva la curva soberana y las tasas clave de fondeo, inflación y crédito; reúne los países internacionales en un tablero de dos columnas, evitando anexos globales y europeos repetidos. La historia ampliada y los otros horizontes siguen en la página y en Excel.
+
+El límite se aplica por la misma función a exportaciones en español y otros idiomas, incluidas copias privadas basadas en informes del catálogo. Las vistas completas, los datos canónicos guardados, CSV y Excel no se alteran por la selección del PDF. Los informes anuales conservan la explicación de su cobertura y reconstrucción histórica.
+
+Validaciones: 73 ediciones individuales diarias, semanales y anuales de Finanzas, Mercados y México, todas de hasta tres páginas, sin texto fuera de página ni cambios en los originales. Panorama integrado permaneció extenso, con 56 páginas en el corte revisado. Se comprobaron los cinco informes de Mercados en inglés, la versión compacta de Bonos en español e inglés, ocho descargas HTTP autenticadas de PDF y descargas CSV/Excel. La prueba de desbordamiento usa 600 filas y verifica fechas, unidades, precios y tipografía sin reducir. Los boletines de opciones conservan todas sus cantidades publicadas. También se revisaron páginas renderizadas y la compilación.
+
+Pruebas: `npm run test:reports:three-pages`, `node scripts/test-report-financial-news.mjs`, `node scripts/test-report-commodity-exports.mjs` y `npm run test:reports:panorama`. Evidencia local en `output/tres-paginas-20261028/`. Los envíos automáticos de correo permanecen desactivados.

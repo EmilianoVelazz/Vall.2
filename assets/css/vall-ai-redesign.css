@@ -264,6 +264,44 @@
 .vall-ai-body .vai-rich-comparison article small.caution { color: #eab34a; }
 .vall-ai-body .vai-rich-comparison article ul { margin: .35rem 0 0; padding-left: 1.1rem; }
 .vall-ai-body .vai-rich-document > section { margin-top: 1rem; }
+.vall-ai-body .vai-followups {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin-top: 1rem;
+  padding-top: .85rem;
+  border-top: 1px solid rgba(154, 213, 232, .13);
+}
+.vall-ai-body .vai-followups > small {
+  width: 100%;
+  color: #7899ad;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+}
+.vall-ai-body .vai-followups button {
+  display: inline-flex;
+  align-items: center;
+  gap: .38rem;
+  min-height: 30px;
+  padding: .36rem .62rem;
+  color: #b9d8e7;
+  background: rgba(98, 221, 246, .055);
+  border: 1px solid rgba(98, 221, 246, .2);
+  border-radius: 999px;
+  font: 700 .68rem/1 Inter, sans-serif;
+  cursor: pointer;
+  transition: transform .16s ease, color .16s ease, background .16s ease, border-color .16s ease;
+}
+.vall-ai-body .vai-followups button i { color: #62ddf6; }
+.vall-ai-body .vai-followups button:hover {
+  transform: translateY(-1px);
+  color: #effcff;
+  background: rgba(98, 221, 246, .12);
+  border-color: rgba(98, 221, 246, .48);
+}
 .vall-ai-body .vai-error {
   color: #ffd6db;
   background: #3b202b;
@@ -373,6 +411,31 @@
   }
 }
 
+/* Superficie unificada: el historial pertenece al chat, no es un panel
+   separado. El contraste queda reservado para el hilo seleccionado, la barra
+   de composición y los controles interactivos. */
+body.vall-ai-body .vai-shell,
+body.vall-ai-body .vai-workspace,
+body.vall-ai-body .vai-messages,
+body.vall-ai-body .vai-sidebar {
+  background: #111827 !important;
+}
+body.vall-ai-body .vai-sidebar {
+  border-right: 0 !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-toolbar,
+body.vall-ai-body .vai-side-brand,
+body.vall-ai-body .vai-sidebar-footer {
+  border-color: transparent !important;
+  background: transparent !important;
+}
+body.vall-ai-body .vai-side-brand { margin-bottom: 4px; }
+body.vall-ai-body .vai-sidebar-footer { padding-top: 5px; }
+body.vall-ai-body .vai-workspace::before,
+body.vall-ai-body .vai-sidebar::before,
+body.vall-ai-body .vai-sidebar::after { display: none !important; }
+
 @media (max-width: 760px) {
   .vall-ai-body .vai-composer-wrap {
     background: transparent;
@@ -424,4 +487,4600 @@
   .vall-ai-body .vai-voice-orb-container { width: 150px; height: 150px; }
   .vall-ai-body .vai-voice-orb { width: 94px; height: 94px; }
   .vall-ai-body .vai-voice-status { font-size: 1.35rem; }
+}
+
+/* ── VALL AI · espacio de análisis ────────────────────────────────────────
+   Esta capa replantea la pantalla con los mismos controles ya disponibles:
+   navegación, conversación, adjuntos, voz y estudio de reporte. La paleta
+   diferencia la evidencia (cian), la acción (lima) y la atención (ámbar). */
+.vall-ai-body {
+  --vai-r-plane: #07111d;
+  --vai-r-surface: #0d1c2b;
+  --vai-r-surface-raised: #13283b;
+  --vai-r-ink: #e9f6fb;
+  --vai-r-muted: #91aabd;
+  --vai-r-line: rgba(154, 213, 232, .16);
+  --vai-r-accent: #62ddf6;
+  --vai-r-lime: #9de7b3;
+  --vai-r-amber: #ffd180;
+  background: var(--vai-r-plane);
+}
+
+.vall-ai-body .vai-shell {
+  background: var(--vai-r-plane);
+}
+
+.vall-ai-body .vai-workspace {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 76% 8%, rgba(98, 221, 246, .13), transparent 25rem),
+    radial-gradient(circle at 32% 105%, rgba(157, 231, 179, .08), transparent 26rem),
+    #07111d;
+}
+.vall-ai-body .vai-workspace::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: .36;
+  background-image: linear-gradient(rgba(157, 213, 232, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(157, 213, 232, .035) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, #000, transparent 68%);
+}
+
+/* Barra superior: la información importante se lee primero y las acciones
+   quedan agrupadas al extremo derecho. */
+.vall-ai-body .vai-toolbar {
+  min-height: 70px;
+  padding: 0 clamp(16px, 3vw, 38px);
+  border-bottom-color: var(--vai-r-line);
+  background: rgba(8, 19, 31, .8);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .08);
+}
+.vall-ai-body .vai-toolbar-title span { color: #8ab4c8; }
+.vall-ai-body .vai-toolbar-title strong { margin-top: 5px; color: var(--vai-r-ink); font-size: .98rem; }
+.vall-ai-body .vai-live-dot { display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-radius: 50%; background: var(--vai-r-lime); box-shadow: 0 0 0 0 rgba(157, 231, 179, .45); animation: vai-status-pulse 2.2s ease-out infinite; }
+.vall-ai-body .vai-auto-route {
+  height: 42px;
+  border-color: rgba(98, 221, 246, .2);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(19, 47, 66, .92), rgba(14, 31, 46, .92));
+}
+.vall-ai-body .vai-auto-route > i { color: #073248; background: linear-gradient(145deg, #9feeff, #62ddf6); }
+.vall-ai-body .vai-auto-route small { color: #8fb1c1; }
+.vall-ai-body .vai-auto-route b { color: #effaff; }
+.vall-ai-body .vai-toolbar-actions > button,
+.vall-ai-body .vai-history-toggle {
+  width: 40px;
+  height: 40px;
+  border-color: rgba(154, 213, 232, .18);
+  border-radius: 13px;
+  background: rgba(19, 40, 58, .82);
+  transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.vall-ai-body .vai-report-open { width: auto !important; padding: 0 13px; gap: 7px; }
+.vall-ai-body .vai-report-open span { font: 800 .62rem/1 Inter, sans-serif; }
+.vall-ai-body .vai-toolbar-actions > button:hover,
+.vall-ai-body .vai-history-toggle:hover {
+  transform: translateY(-2px);
+  border-color: rgba(98, 221, 246, .62);
+  background: #173a51;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
+}
+
+/* Historial como panel de navegación discreto, no como segunda página. */
+.vall-ai-body .vai-sidebar {
+  overflow: hidden;
+  padding: 20px 14px 14px;
+  background:
+    radial-gradient(circle at 12% 0, rgba(98, 221, 246, .15), transparent 13rem),
+    linear-gradient(180deg, #0b1c2c, #07121f 88%);
+  border-right-color: var(--vai-r-line);
+}
+.vall-ai-body .vai-sidebar::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: .26;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, .055) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.vall-ai-body .vai-sidebar > * { position: relative; z-index: 1; }
+.vall-ai-body .vai-side-brand { padding: 1px 5px 18px; }
+.vall-ai-body .vai-orb {
+  width: 43px;
+  height: 43px;
+  border-color: rgba(98, 221, 246, .32);
+  border-radius: 15px;
+  background: linear-gradient(145deg, #153b52, #0c2438);
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 10px 22px rgba(0,0,0,.22);
+}
+.vall-ai-body .vai-orb img {
+  filter: none;
+  object-fit: contain;
+}
+.vall-ai-body .vai-side-brand strong { color: #f0fbff; letter-spacing: .15em; }
+.vall-ai-body .vai-side-brand span { color: #9ab6c5; }
+.vall-ai-body .vai-side-brand span i { background: var(--vai-r-lime); box-shadow: 0 0 11px rgba(157, 231, 179, .72); }
+.vall-ai-body .vai-sidebar-collapse { display: grid !important; border-color: rgba(98, 221, 246, .36); background: #133047; color: #a8f0ff; }
+.vall-ai-body .vai-new {
+  min-height: 44px;
+  margin-top: 18px;
+  border-color: rgba(98, 221, 246, .42);
+  border-radius: 13px;
+  background: linear-gradient(135deg, #62ddf6, #9feeff);
+  color: #062234;
+  box-shadow: 0 10px 20px rgba(0,0,0,.17);
+}
+.vall-ai-body .vai-new:hover { transform: translateY(-2px); border-color: #c7f7ff; background: #c7f7ff; box-shadow: 0 14px 25px rgba(0,0,0,.24); }
+.vall-ai-body .vai-search { height: 42px; border-color: rgba(154, 213, 232, .13); border-radius: 12px; background: rgba(255,255,255,.045); transition: border-color .2s ease, background .2s ease; }
+.vall-ai-body .vai-search:focus-within { border-color: rgba(98, 221, 246, .6); background: rgba(98, 221, 246, .07); }
+.vall-ai-body .vai-search kbd { background: rgba(98, 221, 246, .11); color: #b5deea; }
+.vall-ai-body .vai-history-head { padding-top: 22px; }
+.vall-ai-body .vai-history-head span { color: #c5e7f0; }
+.vall-ai-body .vai-history-item { border-radius: 12px; transition: transform .2s ease, background .2s ease, border-color .2s ease; }
+.vall-ai-body .vai-history-item:hover { transform: translateX(3px); background: rgba(154, 213, 232, .08); }
+.vall-ai-body .vai-history-item.active { border-color: rgba(98, 221, 246, .28); background: linear-gradient(90deg, rgba(98, 221, 246, .15), rgba(98, 221, 246, .025)); }
+.vall-ai-body .vai-history-item.active::before { background: var(--vai-r-accent); box-shadow: 0 0 12px rgba(98, 221, 246, .65); }
+.vall-ai-body .vai-history-item.active .vai-history-icon { color: #8eeaf9; background: rgba(98, 221, 246, .13); }
+.vall-ai-body .vai-side-foot { color: #809cad; }
+.vall-ai-body .vai-side-foot i { color: var(--vai-r-lime); }
+
+/* Entrada: una sola lectura clara, acompañada por sugerencias accionables. */
+.vall-ai-body .vai-messages { padding-top: clamp(26px, 5vh, 68px); padding-bottom: 26px; }
+.vall-ai-body .vai-welcome { position: relative; max-width: 840px; margin-top: 0; padding: clamp(1.1rem, 3vw, 2.1rem); border: 1px solid rgba(154, 213, 232, .13); border-radius: 25px; background: linear-gradient(135deg, rgba(16, 37, 54, .82), rgba(10, 23, 36, .58)); box-shadow: 0 24px 65px rgba(0,0,0,.16); overflow: hidden; }
+.vall-ai-body .vai-welcome::before { position: absolute; width: 270px; height: 270px; top: -176px; right: -85px; border: 1px solid rgba(98,221,246,.23); border-radius: 50%; box-shadow: 0 0 0 32px rgba(98,221,246,.025), 0 0 0 65px rgba(98,221,246,.018); content: ''; animation: vai-orbit 14s linear infinite; }
+.vall-ai-body .vai-welcome > * { position: relative; z-index: 1; }
+.vall-ai-body .vai-welcome-mark { width: 65px; height: 65px; margin-bottom: 25px; border-color: rgba(98, 221, 246, .35); border-radius: 20px; background: linear-gradient(145deg, #163d56, #0c2639); box-shadow: inset 0 1px rgba(255,255,255,.12), 0 14px 28px rgba(0,0,0,.18); animation: vai-float 5s ease-in-out infinite; }
+.vall-ai-body .vai-welcome-mark img { width: 60px; height: 60px; filter: none; }
+.vall-ai-body .vai-eyebrow { color: #8fdff0; letter-spacing: .16em; }
+.vall-ai-body .vai-welcome h1 { max-width: 680px; color: #f4fcff; font-family: 'Playfair Display', Georgia, serif; font-size: clamp(2.15rem, 4.3vw, 3.8rem); font-weight: 700; letter-spacing: -.045em; line-height: .98; }
+.vall-ai-body .vai-welcome > p { max-width: 630px; color: #b3cbd7; font-size: .96rem; line-height: 1.7; }
+.vall-ai-body .vai-welcome-signals { gap: 8px; margin: 25px 0 28px; }
+.vall-ai-body .vai-welcome-signals span { padding: 8px 10px; border: 1px solid rgba(154, 213, 232, .13); border-radius: 999px; background: rgba(255,255,255,.035); color: #c1d9e2; }
+.vall-ai-body .vai-welcome-signals span:nth-child(2) i { color: var(--vai-r-lime); }.vall-ai-body .vai-welcome-signals span:nth-child(3) i { color: var(--vai-r-amber); }
+.vall-ai-body .vai-prompts { gap: 11px; max-width: none; }
+.vall-ai-body .vai-prompts button { position: relative; min-height: 92px; overflow: hidden; border-color: rgba(154, 213, 232, .16); border-radius: 16px; background: linear-gradient(145deg, rgba(19, 48, 67, .84), rgba(12, 28, 43, .92)); box-shadow: none; transition: transform .24s cubic-bezier(.2,.8,.2,1), border-color .24s ease, box-shadow .24s ease, background .24s ease; }
+.vall-ai-body .vai-prompts button::after { position: absolute; top: 50%; right: 14px; color: rgba(201, 244, 253, .62); content: '→'; font: 400 1.2rem/1 Inter, sans-serif; opacity: 0; transform: translate(-6px,-50%); transition: opacity .2s ease, transform .2s ease; }
+.vall-ai-body .vai-prompts button:hover { transform: translateY(-4px); border-color: rgba(98, 221, 246, .62); background: linear-gradient(145deg, #193d55, #102c41); box-shadow: 0 16px 30px rgba(0,0,0,.2); }
+.vall-ai-body .vai-prompts button:hover::after { opacity: 1; transform: translate(0,-50%); }
+.vall-ai-body .vai-prompts button:active { transform: translateY(-1px) scale(.985); }
+.vall-ai-body .vai-prompts button:nth-child(2) > i { color: #15352c; background: #9de7b3; }.vall-ai-body .vai-prompts button:nth-child(3) > i { color: #553a10; background: #ffd180; }.vall-ai-body .vai-prompts button:nth-child(4) > i { color: #31275a; background: #c7b9ff; }
+.vall-ai-body .vai-prompts button b { color: #effaff; font-size: .79rem; }.vall-ai-body .vai-prompts button small { color: #9ebac8; }
+
+/* Conversación: el asistente queda como una tarjeta de evidencia y el usuario
+   conserva una respuesta de acción inequívoca. */
+.vall-ai-body .vai-message { max-width: 940px; margin-bottom: 28px; }
+.vall-ai-body .vai-message.assistant .vai-bubble { padding: 17px 19px; border: 1px solid rgba(154, 213, 232, .15); border-radius: 5px 18px 18px; background: linear-gradient(145deg, rgba(17, 42, 59, .94), rgba(11, 27, 41, .94)); box-shadow: 0 14px 31px rgba(0,0,0,.12); }
+.vall-ai-body .vai-message.user .vai-bubble { padding: 13px 16px; border: 1px solid rgba(98, 221, 246, .3); border-radius: 18px 5px 18px 18px; background: linear-gradient(135deg, #07526d, #123c59); box-shadow: 0 12px 24px rgba(0,0,0,.14); }
+.vall-ai-body .vai-message .vai-avatar { border-color: rgba(98, 221, 246, .3); background: #12384f; box-shadow: 0 7px 16px rgba(0,0,0,.15); }
+.vall-ai-body .vai-message.user .vai-avatar { border-color: rgba(157, 231, 179, .32); background: #194c46; color: #caffd7; }
+.vall-ai-body .vai-message-meta { border-bottom-color: rgba(154,213,232,.12); }.vall-ai-body .vai-message-meta span { color: #aeeafb; }.vall-ai-body .vai-message-meta small { color: #8faabb; }
+.vall-ai-body .vai-message.user .vai-message-meta span { color: #edfff2; }.vall-ai-body .vai-message.user .vai-message-meta span i { color: var(--vai-r-lime); }
+.vall-ai-body .vai-bubble h2 { color: #eafaff; }.vall-ai-body .vai-bubble h3 { color: #b7eafa; }.vall-ai-body .vai-bubble blockquote { border-left-color: var(--vai-r-accent); background: rgba(98,221,246,.07); }
+.vall-ai-body .vai-response-actions { border-top-color: rgba(154,213,232,.13); }
+.vall-ai-body .vai-response-actions button,
+.vall-ai-body .vai-feedback-group button { border-color: rgba(154,213,232,.16); border-radius: 10px; background: rgba(255,255,255,.035); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+.vall-ai-body .vai-response-actions button:first-child { border-color: rgba(98,221,246,.35); color: #aeefff; }.vall-ai-body .vai-response-actions button:hover,.vall-ai-body .vai-feedback-group button:hover { transform: translateY(-2px); border-color: rgba(98,221,246,.64); background: rgba(98,221,246,.1); }
+
+/* Compositor: punto de acción constante, con retroalimentación clara al foco. */
+.vall-ai-body .vai-composer-wrap { padding-top: 16px; padding-bottom: 14px; border-top-color: rgba(154,213,232,.1); background: linear-gradient(180deg, transparent, rgba(5, 15, 25, .32) 24%); }
+.vall-ai-body .vai-composer { position: relative; border-color: rgba(154,213,232,.21); border-radius: 19px; background: linear-gradient(145deg, #122b3e, #0d2131); box-shadow: 0 16px 34px rgba(0,0,0,.22); transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.vall-ai-body .vai-composer::before { top: -10px; border-color: rgba(98,221,246,.34); background: #10283a; color: #9eefff; }
+.vall-ai-body .vai-composer:focus-within { border-color: rgba(98,221,246,.7); box-shadow: 0 19px 40px rgba(0,0,0,.28), 0 0 0 4px rgba(98,221,246,.08); transform: translateY(-2px); }
+.vall-ai-body .vai-composer textarea { color: #effaff; }.vall-ai-body .vai-compose-context { color: #a5c0cd; }.vall-ai-body .vai-attach { border-radius: 10px; background: rgba(98,221,246,.09); }
+.vall-ai-body .vai-send { width: 41px; height: 41px; border: 1px solid rgba(211,251,255,.58); border-radius: 14px; background: linear-gradient(145deg, #9feeff, #62ddf6); color: #062333; box-shadow: 0 8px 18px rgba(0,0,0,.2); transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+.vall-ai-body .vai-send:hover { transform: translateY(-2px) rotate(4deg); background: #d3faff; box-shadow: 0 12px 23px rgba(0,0,0,.28); }.vall-ai-body .vai-send:active { transform: translateY(0) scale(.93); }
+.vall-ai-body .vai-mic-btn { border-color: rgba(157,231,179,.38); background: rgba(157,231,179,.11); color: #baffce; }.vall-ai-body .vai-mic-btn:hover { background: rgba(157,231,179,.2); }.vall-ai-body .vai-mic-btn.listening { animation: vai-mic-listening 1.3s ease-in-out infinite; }
+
+/* El estudio de reportes conserva el papel blanco para exportación, pero su
+   herramienta de edición adopta la misma jerarquía visual del asistente. */
+.vall-ai-body .vai-report-backdrop { background: rgba(2, 10, 18, .78); backdrop-filter: blur(12px); }
+.vall-ai-body .vai-report-window { border-color: rgba(154,213,232,.25); border-radius: 22px; background: #0b1a28; box-shadow: 0 34px 100px rgba(0,0,0,.58); }
+.vall-ai-body .vai-report-header { background: linear-gradient(135deg, #102d42, #0b1c2c); border-bottom: 1px solid rgba(154,213,232,.12); }.vall-ai-body .vai-report-header>div:first-child span { color: #a8ebfa; }.vall-ai-body .vai-report-header h2 { color: #f1fbff; }.vall-ai-body .vai-report-status { color: #a6c4d0; }
+.vall-ai-body .vai-report-toolbar { border-bottom-color: rgba(154,213,232,.12); background: #102438; }.vall-ai-body .vai-report-toolbar label { color: #9eb7c5; }.vall-ai-body .vai-report-toolbar input,.vall-ai-body .vai-report-toolbar select { border-color: rgba(154,213,232,.18); background: #0b1b29; color: #e5f4f9; }.vall-ai-body .vai-report-toolbar button { border-color: rgba(154,213,232,.18); background: #152f44; color: #d6edf5; }.vall-ai-body .vai-report-toolbar button.primary { border-color: #9feeff; background: #9feeff; color: #062333; }
+.vall-ai-body .vai-report-body { background: rgba(154,213,232,.12); }.vall-ai-body .vai-report-editor-pane { background: #0b1a28; }.vall-ai-body .vai-report-preview-pane { background: #122638; }.vall-ai-body .vai-pane-title { border-bottom-color: rgba(154,213,232,.12); background: #102438; }.vall-ai-body .vai-pane-title span { color: #dff4fb; }.vall-ai-body .vai-pane-title small { color: #9ab9c7; }.vall-ai-body .vai-rich-editor { background: #0b1a28; color: #dcecf3; }
+
+.vall-ai-body button:focus-visible,
+.vall-ai-body input:focus-visible,
+.vall-ai-body textarea:focus-visible,
+.vall-ai-body select:focus-visible { outline: 3px solid rgba(98,221,246,.5) !important; outline-offset: 3px; }
+
+@keyframes vai-status-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(157,231,179,.42); } 60% { box-shadow: 0 0 0 7px rgba(157,231,179,0); } }
+@keyframes vai-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes vai-orbit { to { transform: rotate(360deg); } }
+@keyframes vai-mic-listening { 50% { box-shadow: 0 0 0 6px rgba(157,231,179,0), 0 0 20px rgba(157,231,179,.4); } }
+
+@media (min-width: 761px) {
+  .vall-ai-body .vai-shell { height: calc(100dvh - 60px); grid-template-columns: 292px minmax(0,1fr); }
+  .vall-ai-body .vai-shell.sidebar-collapsed { grid-template-columns: 82px minmax(0,1fr); }
+  .vall-ai-body .vai-welcome { text-align: left; }
+  .vall-ai-body .vai-welcome-mark { margin-left: 0; margin-right: 0; }
+  .vall-ai-body .vai-welcome > p { margin-left: 0; margin-right: 0; }
+  .vall-ai-body .vai-prompts { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
+@media (max-width: 760px) {
+  .vall-ai-body .vai-toolbar { min-height: 60px; padding: 0 13px; }
+  .vall-ai-body .vai-report-open span { display: none; }
+  .vall-ai-body .vai-workspace::before { background-size: 24px 24px; }
+  .vall-ai-body .vai-welcome { padding: 1.25rem; border-radius: 20px; }
+  .vall-ai-body .vai-welcome h1 { font-size: clamp(2rem, 10vw, 2.8rem); }
+  .vall-ai-body .vai-welcome-signals span { font-size: .6rem; }
+  .vall-ai-body .vai-prompts button { min-height: 74px; }
+  .vall-ai-body .vai-message.assistant .vai-bubble { padding: 14px; }
+  .vall-ai-body .vai-composer-wrap { padding: 13px 10px 10px; }
+  .vall-ai-body .vai-report-window { border-radius: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vall-ai-body *, .vall-ai-body *::before, .vall-ai-body *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Ajustes de ritmo y geometría. Evitan que los controles pierdan aire al
+   cambiar de ancho, especialmente entre tableta y escritorio compacto. */
+.vall-ai-body .vai-toolbar-title { flex: 1 1 auto; }
+.vall-ai-body .vai-toolbar-actions { flex: 0 0 auto; min-width: 0; white-space: nowrap; }
+.vall-ai-body .vai-auto-route { min-width: 0; }
+.vall-ai-body .vai-prompts button > span { min-width: 0; padding-right: 14px; }
+.vall-ai-body .vai-prompts button b,
+.vall-ai-body .vai-prompts button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vall-ai-body .vai-compose-context { overflow: hidden; }
+.vall-ai-body .vai-compose-context > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vall-ai-body .vai-response-actions { align-items: center; }
+.vall-ai-body .vai-response-actions .vai-feedback-group { margin-left: auto; }
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .vall-ai-body .vai-shell { grid-template-columns: 242px minmax(0,1fr); }
+  .vall-ai-body .vai-toolbar { gap: 8px; padding-left: 18px; padding-right: 18px; }
+  .vall-ai-body .vai-auto-route { padding-right: 8px; }
+  .vall-ai-body .vai-auto-route small { display: none; }
+  .vall-ai-body .vai-auto-route b { margin-top: 0; font-size: .55rem; }
+  .vall-ai-body .vai-report-open { padding-left: 10px; padding-right: 10px; }
+  .vall-ai-body .vai-messages,
+  .vall-ai-body .vai-composer-wrap { padding-left: 22px; padding-right: 22px; }
+  .vall-ai-body .vai-welcome { padding: 1.55rem; }
+}
+
+@media (min-width: 761px) and (max-width: 900px) {
+  .vall-ai-body .vai-shell { grid-template-columns: 82px minmax(0,1fr); }
+  .vall-ai-body .vai-sidebar { padding-left: 11px; padding-right: 11px; }
+  .vall-ai-body .vai-sidebar .vai-side-brand { justify-content: center; padding-left: 0; padding-right: 0; }
+  .vall-ai-body .vai-side-brand-copy,
+  .vall-ai-body .vai-sidebar .vai-new span,
+  .vall-ai-body .vai-sidebar .vai-search,
+  .vall-ai-body .vai-sidebar .vai-history-head,
+  .vall-ai-body .vai-sidebar .vai-history-copy,
+  .vall-ai-body .vai-sidebar .vai-history-remove,
+  .vall-ai-body .vai-sidebar .vai-side-foot span { display: none; }
+  .vall-ai-body .vai-sidebar .vai-new { width: 46px; height: 46px; margin: 17px auto 13px; padding: 0; border-radius: 14px; font-size: .9rem; }
+  .vall-ai-body .vai-sidebar .vai-history { padding: 1px 0; }
+  .vall-ai-body .vai-sidebar .vai-history-item { width: 46px; height: 46px; grid-template-columns: 1fr; place-items: center; margin: 0 auto 7px; padding: 0; }
+  .vall-ai-body .vai-sidebar .vai-side-foot { justify-content: center; padding: 13px 0 2px; }
+  .vall-ai-body .vai-sidebar .vai-side-foot i { width: 35px; height: 35px; display: grid; place-items: center; margin: 0; border-radius: 10px; background: rgba(255,255,255,.06); }
+}
+
+@media (max-width: 760px) {
+  .vall-ai-body .vai-shell { height: calc(100dvh - 60px); min-height: 0; }
+  .vall-ai-body .vai-workspace { grid-template-rows: 60px minmax(0,1fr) auto; }
+  .vall-ai-body .vai-toolbar-actions { gap: 6px; }
+  .vall-ai-body .vai-auto-route { width: 36px; height: 36px; padding: 0; justify-content: center; }
+  .vall-ai-body .vai-auto-route span { display: none; }
+  .vall-ai-body .vai-toolbar-actions > button { width: 36px; height: 36px; }
+  .vall-ai-body .vai-messages { padding: 16px 12px 12px; }
+  .vall-ai-body .vai-welcome { margin: 0; padding: 1.2rem; }
+  .vall-ai-body .vai-welcome-mark { width: 54px; height: 54px; margin-bottom: 18px; border-radius: 17px; }
+  .vall-ai-body .vai-welcome-mark img { width: 50px; height: 50px; }
+  .vall-ai-body .vai-welcome-signals { gap: 6px; margin: 19px 0 21px; }
+  .vall-ai-body .vai-welcome-signals span { padding: 6px 8px; }
+  .vall-ai-body .vai-prompts { gap: 8px; }
+  .vall-ai-body .vai-prompts button { min-height: 68px; padding: 11px; }
+  .vall-ai-body .vai-prompts button::after { display: none; }
+  .vall-ai-body .vai-prompts button > i { width: 35px; height: 35px; }
+  .vall-ai-body .vai-message { gap: 8px; margin-bottom: 18px; }
+  .vall-ai-body .vai-message .vai-avatar { width: 32px; height: 32px; border-radius: 10px; }
+  .vall-ai-body .vai-message.user .vai-bubble { max-width: calc(100% - 2px); }
+  .vall-ai-body .vai-response-actions { gap: 6px; }
+  .vall-ai-body .vai-response-actions .vai-feedback-group { width: 100%; margin-left: 0 !important; }
+  .vall-ai-body .vai-composer-wrap { padding: 14px 10px 9px; }
+  .vall-ai-body .vai-composer { border-radius: 17px; }
+  .vall-ai-body .vai-compose-bottom { padding-left: 11px; }
+}
+
+@media (max-width: 430px) {
+  .vall-ai-body .vai-toolbar-title strong { max-width: 42vw; font-size: .82rem; }
+  .vall-ai-body .vai-welcome h1 { font-size: 2rem; }
+  .vall-ai-body .vai-welcome > p { font-size: .79rem; }
+  .vall-ai-body .vai-welcome-signals span { font-size: .55rem; }
+  .vall-ai-body .vai-prompts button small { display: block; }
+}
+
+@media (min-width: 901px) {
+  .vall-ai-body .vai-report-toolbar { display: grid; grid-template-columns: minmax(190px,1fr) 130px 76px auto auto auto; align-items: end; }
+  .vall-ai-body .vai-report-modes { min-width: 215px; }
+}
+
+@media (min-width: 761px) and (max-width: 1150px) {
+  .vall-ai-body .vai-report-toolbar { display: grid; grid-template-columns: minmax(190px,1fr) 125px 80px auto auto; }
+  .vall-ai-body .vai-report-modes { grid-column: 1 / -1; width: 100%; }
+  .vall-ai-body .vai-report-modes button { flex: 1; }
+}
+
+@media (max-width: 760px) {
+  .vall-ai-body .vai-report-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); align-items: end; }
+  .vall-ai-body .vai-report-toolbar label:first-child,
+  .vall-ai-body .vai-report-modes { grid-column: 1 / -1; width: 100%; }
+  .vall-ai-body .vai-report-toolbar button { min-width: 0; padding-left: 8px; padding-right: 8px; }
+  .vall-ai-body .vai-report-modes button { flex: 1; }
+}
+
+/* La hoja heredada escondía todos los botones de la barra en móvil y luego
+   restauraba sólo el reporte. Conservamos las dos acciones disponibles: abrir
+   el estudio y eliminar la conversación activa, ambas como iconos compactos. */
+@media (max-width: 760px) {
+  .vall-ai-body .vai-toolbar-actions > button {
+    display: grid !important;
+    place-items: center;
+  }
+  .vall-ai-body .vai-toolbar-actions > button i { margin: 0; }
+  .vall-ai-body .vai-toolbar-actions > #vaiDelete { color: #ffb9c3; border-color: rgba(255, 151, 169, .3); }
+  .vall-ai-body .vai-toolbar-actions > #vaiDelete:hover { color: #ffe4e8; border-color: rgba(255, 151, 169, .68); background: rgba(154, 53, 76, .28); }
+}
+
+/* En pantallas táctiles no hay "hover" que revele el control de eliminar una
+   conversación del historial; mostrarlo evita una acción inaccesible. */
+@media (hover: none) {
+  .vall-ai-body .vai-history-remove { opacity: .78; }
+}
+
+/* El control de historial pertenece a sus acciones: queda directamente debajo
+   de “Nueva conversación”, no flotando al borde de la barra lateral. */
+.vall-ai-body .vai-sidebar-collapse {
+  position: static;
+  z-index: auto;
+  width: 100%;
+  min-height: 42px;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 0 12px;
+  border: 1px solid rgba(98, 221, 246, .32);
+  border-radius: 13px;
+  color: #e9faff;
+  background: linear-gradient(135deg, rgba(28, 75, 97, .9), rgba(15, 46, 66, .9));
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 7px 16px rgba(0, 0, 0, .14);
+  font: 800 .66rem/1 Inter, sans-serif;
+  letter-spacing: .02em;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.vall-ai-body .vai-sidebar-collapse i {
+  display: grid;
+  flex: 0 0 23px;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border: 1px solid rgba(159, 238, 255, .25);
+  border-radius: 8px;
+  color: #8beafa;
+  background: rgba(4, 25, 40, .38);
+  font-size: .72rem;
+}
+.vall-ai-body .vai-sidebar-collapse-copy { color: #d9f5fb; white-space: nowrap; }
+.vall-ai-body .vai-sidebar-collapse:hover {
+  transform: translateY(-1px);
+  border-color: rgba(159, 238, 255, .72);
+  background: linear-gradient(135deg, #225975, #153e59);
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 10px 20px rgba(0, 0, 0, .2);
+}
+.vall-ai-body .vai-sidebar-collapse:hover i { color: #d5f8ff; border-color: rgba(213, 248, 255, .52); }
+.vall-ai-body .vai-sidebar-collapse:active { transform: translateY(0); }
+
+/* Al contraerse, el mismo control se convierte en una acción cuadrada clara.
+   No se dejan dos palabras rotas dentro de una barra de 82 px; el texto sigue
+   disponible como etiqueta accesible y en el tooltip. */
+@media (min-width: 761px) {
+  .vall-ai-body .vai-sidebar.collapsed .vai-sidebar-collapse {
+    width: 48px;
+    min-height: 48px;
+    margin: 2px auto 14px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 15px;
+    background: linear-gradient(145deg, #1f5b77, #133b55);
+  }
+  .vall-ai-body .vai-sidebar.collapsed .vai-sidebar-collapse-copy { display: none; }
+  .vall-ai-body .vai-sidebar.collapsed .vai-sidebar-collapse i {
+    width: 27px;
+    height: 27px;
+    flex-basis: 27px;
+    border-radius: 9px;
+    font-size: .85rem;
+  }
+}
+
+/* En móvil el menú de tres líneas abre el historial. El botón de contraer no
+   aplica ahí porque el historial ya funciona como panel temporal. */
+@media (max-width: 760px) {
+  .vall-ai-body .vai-sidebar-collapse { display: none !important; }
+}
+
+/* Presencia conversacional de VALL AI. La cara comunica el estado sin convertir
+   la conversación en un chat infantil: visor sobrio, ojos expresivos y una boca
+   que sólo se anima mientras la respuesta se está generando o se lee en voz. */
+.vall-ai-body .vai-face,
+.vall-ai-body .vai-avatar.vai-assistant-face {
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #dffaff;
+  background: radial-gradient(circle at 32% 22%, #235d79, #0c2b40 70%);
+  border: 1px solid rgba(111, 226, 247, .45);
+  border-radius: 13px;
+  box-shadow: inset 0 1px rgba(255,255,255,.13), 0 7px 16px rgba(0,0,0,.18);
+}
+.vall-ai-body .vai-avatar.vai-assistant-face { padding: 0; }
+.vall-ai-body .vai-face-shell {
+  position: relative;
+  display: block;
+  width: 79%;
+  height: 75%;
+  border: 1px solid rgba(125, 234, 250, .7);
+  border-radius: 47% 47% 42% 42%;
+  background: linear-gradient(155deg, #194b66, #0a263b 76%);
+  box-shadow: inset 0 2px rgba(255,255,255,.16), 0 3px 8px rgba(0,0,0,.17);
+  transform-origin: 50% 72%;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.vall-ai-body .vai-face-shell::before {
+  position: absolute;
+  top: 10%;
+  left: 19%;
+  width: 62%;
+  height: 13%;
+  border-radius: 99px;
+  background: rgba(208, 250, 255, .32);
+  content: '';
+}
+.vall-ai-body .vai-face-brow,
+.vall-ai-body .vai-face-eye,
+.vall-ai-body .vai-face-ear,
+.vall-ai-body .vai-face-mouth,
+.vall-ai-body .vai-face-listen-signal { position: absolute; display: block; }
+.vall-ai-body .vai-face-ear {
+  z-index: 0;
+  top: 38%;
+  width: 13%;
+  height: 29%;
+  border: 1px solid rgba(139, 235, 250, .7);
+  background: linear-gradient(180deg, #1a5a73, #0a3047);
+  box-shadow: inset 0 1px rgba(255,255,255,.13), 0 0 7px rgba(101, 227, 247, .23);
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.vall-ai-body .vai-face-ear::after {
+  position: absolute;
+  top: 25%;
+  width: 42%;
+  height: 50%;
+  border: 1px solid rgba(186, 246, 253, .46);
+  content: '';
+}
+.vall-ai-body .vai-face-ear--left {
+  left: -8%;
+  border-right: 0;
+  border-radius: 99px 0 0 99px;
+}
+.vall-ai-body .vai-face-ear--left::after {
+  right: 11%;
+  border-right: 0;
+  border-radius: 99px 0 0 99px;
+}
+.vall-ai-body .vai-face-ear--right {
+  right: -8%;
+  border-left: 0;
+  border-radius: 0 99px 99px 0;
+}
+.vall-ai-body .vai-face-ear--right::after {
+  left: 11%;
+  border-left: 0;
+  border-radius: 0 99px 99px 0;
+}
+.vall-ai-body .vai-face-brow {
+  top: 29%;
+  width: 20%;
+  height: 5%;
+  border-radius: 99px;
+  background: #89eafa;
+  opacity: .7;
+  transform-origin: 50% 50%;
+  transition: transform .22s ease, top .22s ease, opacity .22s ease;
+}
+.vall-ai-body .vai-face-brow--left { left: 21%; transform: rotate(4deg); }
+.vall-ai-body .vai-face-brow--right { right: 21%; transform: rotate(-4deg); }
+.vall-ai-body .vai-face-eye {
+  top: 42%;
+  width: 15%;
+  height: 21%;
+  border-radius: 48% 48% 44% 44%;
+  background: #e4fcff;
+  box-shadow: 0 0 7px rgba(117, 233, 250, .76);
+  transition: transform .22s ease, width .22s ease, height .22s ease, border-radius .22s ease;
+}
+.vall-ai-body .vai-face-eye::after {
+  position: absolute;
+  top: 21%;
+  left: 37%;
+  width: 30%;
+  height: 54%;
+  border-radius: 50%;
+  background: #0b3149;
+  content: '';
+  transition: transform .22s ease;
+}
+.vall-ai-body .vai-face-eye--left { left: 24%; }
+.vall-ai-body .vai-face-eye--right { right: 24%; }
+.vall-ai-body .vai-face-mouth {
+  top: 71%;
+  left: 50%;
+  width: 27%;
+  height: 8%;
+  border: 0 solid #c8f8ff;
+  border-bottom-width: 2px;
+  border-radius: 0 0 99px 99px;
+  transform: translateX(-50%);
+  transition: width .22s ease, height .22s ease, top .22s ease, transform .22s ease, border-width .22s ease, background .22s ease;
+}
+.vall-ai-body .vai-face-listen-signal {
+  top: 38%;
+  right: 4%;
+  width: 12%;
+  height: 26%;
+  border: 1.5px solid #8eeefa;
+  border-left: 0;
+  border-radius: 0 99px 99px 0;
+  opacity: 0;
+  transform: scale(.72);
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+/* Escucha: ojos más abiertos y una señal lateral discreta. */
+.vall-ai-body .vai-face--listening .vai-face-shell { border-color: #a9f4ff; box-shadow: inset 0 2px rgba(255,255,255,.22), 0 0 0 4px rgba(98,221,246,.1); animation: vai-face-listen 1.5s ease-in-out infinite; }
+.vall-ai-body .vai-face--listening .vai-face-brow { top: 26%; opacity: .94; }
+.vall-ai-body .vai-face--listening .vai-face-eye { top: 39%; height: 25%; transform: scaleX(1.08); }
+.vall-ai-body .vai-face--listening .vai-face-listen-signal { opacity: 1; transform: scale(1); animation: vai-face-signal .9s ease-in-out infinite alternate; }
+
+/* Pensamiento: ligera inclinación, cejas asimétricas y mirada hacia arriba. */
+.vall-ai-body .vai-face--thinking .vai-face-shell { transform: rotate(5deg) translateY(-1px); border-color: #91e9f7; animation: vai-face-think 1.7s ease-in-out infinite; }
+.vall-ai-body .vai-face--thinking .vai-face-brow--left { top: 25%; transform: rotate(-13deg); }
+.vall-ai-body .vai-face--thinking .vai-face-brow--right { top: 22%; transform: rotate(16deg); }
+.vall-ai-body .vai-face--thinking .vai-face-eye { transform: translate(12%, -13%); }
+.vall-ai-body .vai-face--thinking .vai-face-eye::after { transform: translate(20%, -26%); }
+.vall-ai-body .vai-face--thinking .vai-face-mouth { width: 18%; transform: translateX(-50%) rotate(-17deg); }
+
+/* Habla: la boca abre y cierra; la cabeza acompaña el ritmo de la respuesta. */
+.vall-ai-body .vai-face--speaking .vai-face-shell { border-color: #c2f9ff; animation: vai-face-speak-head .36s ease-in-out infinite alternate; }
+.vall-ai-body .vai-face--speaking .vai-face-eye { animation: vai-face-blink 2.2s ease-in-out infinite; }
+.vall-ai-body .vai-face--speaking .vai-face-mouth {
+  top: 67%;
+  width: 31%;
+  height: 14%;
+  border-width: 0;
+  border-radius: 45% 45% 52% 52%;
+  background: #d9fbff;
+  box-shadow: inset 0 -2px #2b7892, 0 0 7px rgba(170, 244, 255, .56);
+  animation: vai-face-mouth-talk .24s ease-in-out infinite alternate;
+}
+
+/* Rostro permanente junto al cuadro de redacción. */
+.vall-ai-body .vai-conversation-face {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  margin-right: 1px;
+  border-radius: 12px;
+}
+.vall-ai-body .vai-conversation-face .vai-face-shell { border-width: 1px; }
+
+/* La llamada deja de mostrar una esfera abstracta: el mismo rostro escala y
+   conserva las expresiones de escucha, pensamiento y habla. */
+.vall-ai-body .vai-voice-orb.vai-face {
+  width: 128px;
+  height: 128px;
+  border-radius: 39px;
+  background: radial-gradient(circle at 32% 19%, #276e90, #09263c 72%);
+  box-shadow: inset 0 2px rgba(255,255,255,.16), 0 0 42px rgba(86,220,246,.48);
+  transition: transform .1s linear, box-shadow .3s ease;
+  will-change: transform;
+}
+.vall-ai-body .vai-voice-orb .vai-face-shell { border-width: 2px; }
+.vall-ai-body .vai-voice-orb-container { width: 200px; height: 200px; }
+.vall-ai-body .vai-voice-ring { width: 158px; height: 158px; border-radius: 49px; border-color: rgba(98,221,246,.36); }
+
+@keyframes vai-face-listen { 50% { transform: translateY(-1px); } }
+@keyframes vai-face-signal { to { opacity: .48; transform: scale(.82); } }
+@keyframes vai-face-think { 50% { transform: rotate(2deg) translateY(-2px); } }
+@keyframes vai-face-speak-head { to { transform: translateY(-1px) scale(1.015); } }
+@keyframes vai-face-mouth-talk { to { height: 7%; transform: translateX(-50%) scaleX(.78); } }
+@keyframes vai-face-blink { 0%, 42%, 48%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.16); } }
+
+@media (max-width: 760px) {
+  .vall-ai-body .vai-conversation-face { width: 30px; height: 30px; flex-basis: 30px; }
+  .vall-ai-body .vai-voice-orb.vai-face { width: 112px; height: 112px; border-radius: 34px; }
+  .vall-ai-body .vai-voice-ring { width: 142px; height: 142px; border-radius: 43px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vall-ai-body .vai-face *,
+  .vall-ai-body .vai-avatar.vai-assistant-face * { animation: none !important; }
+}
+
+/* Interpretación facial expresiva. La voz cambia boca, mirada y cejas con cada
+   palabra; los gestos largos comunican tono sin caer en una caricatura. */
+.vall-ai-body .vai-face-nose {
+  position: absolute;
+  z-index: 2;
+  top: 55%;
+  left: 50%;
+  width: 7%;
+  height: 8%;
+  border-right: 1px solid rgba(183, 243, 251, .38);
+  border-bottom: 1px solid rgba(183, 243, 251, .24);
+  border-radius: 0 0 60% 0;
+  opacity: .72;
+  transform: translateX(-50%) rotate(8deg);
+  transition: transform .2s ease, opacity .2s ease;
+}
+.vall-ai-body .vai-face-mouth::after {
+  position: absolute;
+  inset: 17% 16% auto;
+  height: 18%;
+  border-radius: 99px;
+  background: rgba(255,255,255,.42);
+  content: '';
+  opacity: 0;
+  transition: opacity .12s ease;
+}
+.vall-ai-body .vai-face--speaking .vai-face-mouth::after { opacity: .42; }
+.vall-ai-body .vai-face--speaking .vai-face-eye::after {
+  animation: vai-face-speaking-gaze 5.8s cubic-bezier(.4,0,.2,1) infinite;
+}
+
+/* Tono emocional derivado de la respuesta. */
+.vall-ai-body .vai-expression--warm .vai-face-brow { top: 28%; opacity: .86; }
+.vall-ai-body .vai-expression--warm .vai-face-brow--left { transform: rotate(-4deg); }
+.vall-ai-body .vai-expression--warm .vai-face-brow--right { transform: rotate(4deg); }
+.vall-ai-body .vai-expression--warm .vai-face-cheek { opacity: .62; transform: scale(1.12); background: rgba(137, 239, 191, .22); }
+.vall-ai-body .vai-expression--warm.vai-face--speaking.vai-viseme--rest .vai-face-mouth,
+.vall-ai-body .vai-expression--warm.vai-face--idle .vai-face-mouth { width: 32%; border-radius: 0 0 99px 99px; }
+
+.vall-ai-body .vai-expression--confident .vai-face-brow { top: 28%; opacity: .92; }
+.vall-ai-body .vai-expression--confident .vai-face-brow--left { transform: rotate(2deg); }
+.vall-ai-body .vai-expression--confident .vai-face-brow--right { transform: rotate(-2deg); }
+.vall-ai-body .vai-expression--confident .vai-face-eye { height: 19%; }
+.vall-ai-body .vai-expression--confident .vai-face-shell { border-color: rgba(151, 239, 190, .78); }
+
+.vall-ai-body .vai-expression--concerned .vai-face-brow--left { top: 26%; transform: rotate(14deg); }
+.vall-ai-body .vai-expression--concerned .vai-face-brow--right { top: 26%; transform: rotate(-14deg); }
+.vall-ai-body .vai-expression--concerned .vai-face-eye { top: 43%; height: 19%; }
+.vall-ai-body .vai-expression--concerned .vai-face-cheek { opacity: .12; }
+.vall-ai-body .vai-expression--concerned .vai-face-shell { border-color: rgba(242, 197, 126, .62); }
+
+.vall-ai-body .vai-expression--curious .vai-face-brow--left { top: 24%; transform: rotate(-9deg); }
+.vall-ai-body .vai-expression--curious .vai-face-brow--right { top: 30%; transform: rotate(-1deg); }
+.vall-ai-body .vai-expression--curious .vai-face-eye::after { transform: translate(12%, -15%); }
+.vall-ai-body .vai-expression--attentive .vai-face-eye { top: 39%; height: 25%; }
+.vall-ai-body .vai-expression--attentive .vai-face-brow { top: 25%; opacity: 1; }
+
+/* Visemas: cuatro aperturas reconocibles en lugar de una boca mecánica. */
+.vall-ai-body .vai-face--speaking.vai-face--syllable.vai-viseme--wide .vai-face-mouth {
+  top: 66%;
+  width: 34%;
+  height: 17%;
+  border: 0;
+  border-radius: 48% 48% 43% 43%;
+  background: #e2fbff;
+  box-shadow: inset 0 -3px #286f88, 0 0 8px rgba(170,244,255,.48);
+  animation: vai-viseme-wide .17s cubic-bezier(.2,.8,.25,1) both;
+}
+.vall-ai-body .vai-face--speaking.vai-face--syllable.vai-viseme--round .vai-face-mouth {
+  top: 65%;
+  width: 20%;
+  height: 20%;
+  border: 0;
+  border-radius: 50%;
+  background: #dffaff;
+  box-shadow: inset 0 -3px #286f88, 0 0 8px rgba(170,244,255,.46);
+  animation: vai-viseme-round .18s cubic-bezier(.2,.8,.25,1) both;
+}
+.vall-ai-body .vai-face--speaking.vai-face--syllable.vai-viseme--closed .vai-face-mouth {
+  top: 72%;
+  width: 31%;
+  height: 3%;
+  border: 0;
+  border-radius: 99px;
+  background: #d9faff;
+  box-shadow: 0 0 5px rgba(170,244,255,.34);
+  animation: vai-viseme-closed .12s ease-out both;
+}
+.vall-ai-body .vai-face--speaking.vai-face--syllable.vai-viseme--soft .vai-face-mouth {
+  top: 69%;
+  width: 29%;
+  height: 10%;
+  border: 0;
+  border-radius: 44% 44% 50% 50%;
+  background: #dffaff;
+  box-shadow: inset 0 -2px #286f88;
+  animation: vai-viseme-soft .15s ease-out both;
+}
+.vall-ai-body .vai-face--speaking.vai-face--syllable.vai-viseme--rest .vai-face-mouth,
+.vall-ai-body .vai-face--speaking.vai-face--pause .vai-face-mouth {
+  top: 71%;
+  width: 27%;
+  height: 6%;
+  border: 0 solid #c8f8ff;
+  border-bottom-width: 2px;
+  border-radius: 0 0 99px 99px;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Microgestos no periódicos activados desde los límites reales de la voz. */
+.vall-ai-body .vai-face--nod .vai-face-shell { animation: vai-face-natural-nod .36s cubic-bezier(.2,.8,.3,1) both; }
+.vall-ai-body .vai-face--emphasis .vai-face-brow { top: 24%; opacity: 1; }
+.vall-ai-body .vai-face--emphasis .vai-face-shell { filter: brightness(1.07); }
+.vall-ai-body .vai-face--glance-left .vai-face-eye::after { animation: none; transform: translate(-27%, 2%); }
+.vall-ai-body .vai-face--glance-right .vai-face-eye::after { animation: none; transform: translate(27%, -2%); }
+.vall-ai-body .vai-face--blink-now .vai-face-eye::before { animation: vai-face-double-blink .34s ease-in-out both; }
+
+@keyframes vai-viseme-wide {
+  0% { height: 5%; transform: translateX(-50%) scaleX(.78); }
+  55% { height: 18%; transform: translateX(-50%) scaleX(1.04); }
+  100% { height: 15%; transform: translateX(-50%) scaleX(1); }
+}
+@keyframes vai-viseme-round {
+  0% { transform: translateX(-50%) scale(.62); }
+  65% { transform: translateX(-50%) scale(1.08); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+@keyframes vai-viseme-closed {
+  from { transform: translateX(-50%) scaleX(.72); opacity: .7; }
+  to { transform: translateX(-50%) scaleX(1); opacity: 1; }
+}
+@keyframes vai-viseme-soft {
+  from { transform: translateX(-50%) scale(.8,.55); }
+  to { transform: translateX(-50%) scale(1); }
+}
+@keyframes vai-face-natural-nod {
+  0%, 100% { transform: translateY(-1px) rotate(0); }
+  48% { transform: translateY(2px) rotate(.7deg) scaleY(.985); }
+}
+@keyframes vai-face-double-blink {
+  0%, 36%, 55%, 100% { transform: translateY(-113%); }
+  18%, 72% { transform: translateY(-2%); }
+}
+@keyframes vai-face-speaking-gaze {
+  0%, 17%, 100% { transform: translate(0,0); }
+  28%, 38% { transform: translate(-12%, -4%); }
+  54%, 68% { transform: translate(9%, 2%); }
+  82% { transform: translate(0,-5%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vall-ai-body .vai-face--speaking .vai-face-eye::after,
+  .vall-ai-body .vai-face--speaking .vai-face-mouth { animation: none !important; }
+}
+
+/* Edición de consultas: permite reformular un turno y regenerar el hilo desde
+   ese punto sin confundir la nueva respuesta con la rama anterior. */
+.vall-ai-body .vai-user-message-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px -3px -5px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(202, 255, 220, .12);
+}
+.vall-ai-body .vai-edit-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #c9e9f5;
+  background: transparent;
+  font: 700 .66rem/1 Inter, sans-serif;
+  cursor: pointer;
+  opacity: .76;
+  transition: opacity .18s ease, color .18s ease, background .18s ease, border-color .18s ease;
+}
+.vall-ai-body .vai-edit-message:hover,
+.vall-ai-body .vai-edit-message:focus-visible {
+  color: #fff;
+  border-color: rgba(151, 232, 180, .35);
+  background: rgba(151, 232, 180, .1);
+  opacity: 1;
+  outline: none;
+}
+.vall-ai-body .vai-message-meta em {
+  color: #b8d1df;
+  font-style: normal;
+  letter-spacing: .02em;
+}
+.vall-ai-body .vai-edit-query {
+  display: grid;
+  gap: 10px;
+  min-width: min(560px, 68vw);
+  padding: 2px;
+}
+.vall-ai-body .vai-edit-query label {
+  color: #eafff0;
+  font: 800 .72rem/1.25 Inter, sans-serif;
+  letter-spacing: .025em;
+}
+.vall-ai-body .vai-edit-query textarea {
+  width: 100%;
+  min-height: 84px;
+  max-height: 260px;
+  resize: none;
+  padding: 12px 13px;
+  border: 1px solid rgba(151, 232, 180, .42);
+  border-radius: 12px;
+  color: #f4fbff;
+  background: rgba(5, 25, 39, .72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  font: 500 .82rem/1.55 Inter, sans-serif;
+  outline: none;
+}
+.vall-ai-body .vai-edit-query textarea:focus {
+  border-color: #8ee7ad;
+  box-shadow: 0 0 0 3px rgba(125, 222, 163, .12);
+}
+.vall-ai-body .vai-edit-query > small {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #b6cad6;
+  font: 500 .64rem/1.45 Inter, sans-serif;
+}
+.vall-ai-body .vai-edit-query > small i { margin-top: 2px; color: #8ee7ad; }
+.vall-ai-body .vai-edit-query-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.vall-ai-body .vai-edit-query-actions button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font: 800 .68rem/1 Inter, sans-serif;
+  cursor: pointer;
+}
+.vall-ai-body .vai-edit-cancel {
+  border: 1px solid rgba(173, 207, 225, .22);
+  color: #c9dae4;
+  background: rgba(255,255,255,.035);
+}
+.vall-ai-body .vai-edit-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(151, 232, 180, .55);
+  color: #092a2a;
+  background: linear-gradient(135deg, #a6f0bb, #6ed7b5);
+  box-shadow: 0 8px 18px rgba(29, 150, 119, .2);
+}
+.vall-ai-body .vai-edit-query-actions button:disabled,
+.vall-ai-body .vai-edit-query textarea:disabled { cursor: wait; opacity: .6; }
+
+@media (max-width: 620px) {
+  .vall-ai-body .vai-edit-query { min-width: 0; width: 100%; }
+  .vall-ai-body .vai-edit-query-actions { display: grid; grid-template-columns: .72fr 1.28fr; }
+  .vall-ai-body .vai-edit-query-actions button { width: 100%; justify-content: center; }
+  .vall-ai-body .vai-edit-message span { display: none; }
+  .vall-ai-body .vai-edit-message { min-width: 34px; justify-content: center; }
+}
+
+/* Auditoría responsiva VALL AI: el chat conserva siempre tres zonas útiles
+   (barra, mensajes y compositor) y el contenido generado se desplaza dentro de
+   su burbuja en lugar de ensanchar la aplicación. */
+.vall-ai-body .vai-shell,
+.vall-ai-body .vai-workspace,
+.vall-ai-body .vai-messages,
+.vall-ai-body .vai-message,
+.vall-ai-body .vai-bubble,
+.vall-ai-body .vai-report-window {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.vall-ai-body .vai-bubble :is(table,.vai-table) { max-width: 100%; }
+.vall-ai-body .vai-bubble :is(.table-wrap,.vai-table-wrap) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 761px) and (max-width: 1024px) {
+  .vall-ai-body .vai-messages,
+  .vall-ai-body .vai-composer-wrap { padding-inline: 18px; }
+  .vall-ai-body .vai-toolbar-title strong { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@media (max-width: 760px) {
+  .vall-ai-body .vai-shell {
+    width: 100%;
+    max-width: 100vw;
+    height: calc(100dvh - 58px);
+    overflow: hidden;
+  }
+  .vall-ai-body .vai-workspace { width: 100%; }
+  .vall-ai-body .vai-toolbar { width: 100%; gap: 7px; padding-inline: 10px; }
+  .vall-ai-body .vai-toolbar-title { overflow: hidden; }
+  .vall-ai-body .vai-toolbar-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vall-ai-body .vai-toolbar-actions { margin-left: auto; }
+  .vall-ai-body .vai-messages { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .vall-ai-body .vai-message { width: 100%; }
+  .vall-ai-body .vai-bubble { overflow-wrap: anywhere; }
+  .vall-ai-body .vai-composer-wrap {
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-bottom: max(9px, env(safe-area-inset-bottom));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+  .vall-ai-body .vai-report-window { width: 100vw; max-height: 100dvh; }
+}
+
+@media (max-width: 430px) {
+  .vall-ai-body .vai-toolbar-title span { display: none; }
+  .vall-ai-body .vai-toolbar-actions { gap: 4px; }
+  .vall-ai-body .vai-toolbar-actions > button,
+  .vall-ai-body .vai-auto-route { width: 34px; height: 34px; }
+  .vall-ai-body .vai-messages { padding-inline: 9px; }
+  .vall-ai-body .vai-welcome { padding: 1rem; }
+  .vall-ai-body .vai-welcome-signals { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .vall-ai-body .vai-welcome-signals::-webkit-scrollbar { display: none; }
+  .vall-ai-body .vai-welcome-signals span { flex: 0 0 auto; }
+  .vall-ai-body .vai-response-actions { align-items: stretch; }
+  .vall-ai-body .vai-response-actions > button { min-height: 38px; }
+}
+
+/* Estudio de reportes
+   El editor pertenece a la interfaz oscura de VALL AI; la vista previa sigue
+   siendo papel blanco porque representa fielmente el archivo que se exporta. */
+body.vall-ai-body .vai-report-window {
+  background: #091a29 !important;
+  border-color: rgba(120, 218, 244, .26) !important;
+}
+
+body.vall-ai-body .vai-report-body {
+  background: #173247 !important;
+}
+
+body.vall-ai-body .vai-report-editor-pane {
+  background: #0a1c2b !important;
+}
+
+/* --------------------------------------------------------------------------
+   VALL AI móvil — navegación visible, conversación a ancho completo y datos
+   legibles. Esta capa corrige la geometría heredada sin alterar escritorio.
+   -------------------------------------------------------------------------- */
+.vall-ai-body .vai-history-toggle,
+.vall-ai-body .vai-new-mobile { display: none !important; }
+
+@media (max-width: 760px) {
+  body.vall-ai-body { min-height: 0; }
+
+  .vall-ai-body .vai-shell {
+    height: calc(100dvh - 58px);
+    min-height: 0;
+  }
+
+  .vall-ai-body .vai-workspace {
+    height: 100%;
+    grid-template-rows: 56px minmax(0, 1fr) auto;
+  }
+
+  .vall-ai-body .vai-toolbar {
+    min-height: 56px;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+  }
+
+  .vall-ai-body .vai-history-toggle,
+  .vall-ai-body .vai-new-mobile {
+    width: 44px !important;
+    min-width: 44px;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: grid !important;
+    place-items: center;
+    padding: 0 !important;
+    border: 1px solid rgba(98, 221, 246, .26);
+    border-radius: 13px;
+    background: rgba(19, 48, 68, .92);
+    color: #a9effc;
+  }
+
+  .vall-ai-body .vai-history-toggle span,
+  .vall-ai-body .vai-new-mobile span { display: none; }
+
+  .vall-ai-body .vai-toolbar-title { min-width: 0; display: block; }
+  .vall-ai-body .vai-toolbar-title span { display: none; }
+  .vall-ai-body .vai-toolbar-title strong {
+    max-width: none;
+    margin: 0;
+    font-size: .78rem;
+    line-height: 1.2;
+  }
+
+  .vall-ai-body .vai-toolbar-actions {
+    display: flex;
+    gap: 5px;
+    margin: 0;
+  }
+
+  .vall-ai-body .vai-auto-route { display: none; }
+  .vall-ai-body .vai-toolbar-actions > button {
+    width: 44px !important;
+    min-width: 44px;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    border-radius: 13px;
+  }
+  .vall-ai-body .vai-report-open span { display: none !important; }
+
+  .vall-ai-body .vai-sidebar {
+    position: fixed;
+    z-index: 1002;
+    top: 58px;
+    bottom: 0;
+    left: 0;
+    width: min(88vw, 348px);
+    height: calc(100dvh - 58px);
+    padding: 14px 13px 12px;
+    transform: translateX(-104%);
+    visibility: hidden;
+    transition: transform .24s cubic-bezier(.22, 1, .36, 1), visibility .24s;
+  }
+  .vall-ai-body .vai-sidebar.open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+  .vall-ai-body .vai-overlay {
+    z-index: 1001;
+    top: 58px;
+    height: calc(100dvh - 58px);
+    background: rgba(1, 10, 17, .72);
+  }
+  .vall-ai-body .vai-side-brand { min-height: 52px; padding-bottom: 12px; }
+  .vall-ai-body .vai-side-close {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+  }
+  .vall-ai-body .vai-new { margin: 12px 0 9px; }
+  .vall-ai-body .vai-history-head { padding-top: 15px; }
+
+  .vall-ai-body .vai-messages {
+    padding: 14px 10px 12px;
+    scroll-padding-bottom: 12px;
+  }
+  .vall-ai-body .vai-message,
+  .vall-ai-body .vai-message.assistant {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin-bottom: 16px;
+  }
+  .vall-ai-body .vai-message.assistant > .vai-avatar { display: none; }
+  .vall-ai-body .vai-message.assistant .vai-bubble {
+    width: 100%;
+    max-width: 100%;
+    padding: 13px;
+    border-radius: 16px;
+  }
+  .vall-ai-body .vai-message.user {
+    grid-template-columns: minmax(0, 1fr) 30px;
+    gap: 7px;
+  }
+  .vall-ai-body .vai-message.user .vai-avatar { width: 30px; height: 30px; }
+  .vall-ai-body .vai-message.user .vai-bubble { max-width: 94%; }
+
+  .vall-ai-body .vai-bubble pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 12px;
+    border-radius: 11px;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.vall-ai-body .vai-bubble pre,
+  body.vall-ai-body .vai-bubble pre code {
+    white-space: pre !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+  .vall-ai-body .vai-bubble table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vall-ai-body .vai-chart-card { margin: .85rem 0; border-radius: 14px; }
+  .vall-ai-body .vai-chart-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 13px 12px 11px;
+  }
+  .vall-ai-body .vai-chart-head h3 { font-size: .84rem !important; }
+  .vall-ai-body .vai-chart-head p { font-size: .62rem; }
+  .vall-ai-body .vai-chart-tools {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px 44px;
+    gap: 7px;
+  }
+  .vall-ai-body .vai-chart-view {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 0 8px;
+  }
+  .vall-ai-body .vai-chart-view > span { display: none; }
+  .vall-ai-body .vai-chart-view select {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 40px;
+    padding: 0 24px 0 3px;
+    font-size: 16px;
+  }
+  .vall-ai-body .vai-chart-tools button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .vall-ai-body .vai-chart-insight {
+    gap: 8px;
+    margin: 10px 10px 0;
+    padding: 9px 10px;
+  }
+  .vall-ai-body .vai-chart-insight strong { font-size: .63rem; line-height: 1.45; }
+  .vall-ai-body .vai-chart-canvas {
+    width: 100%;
+    height: 230px;
+    min-height: 230px;
+    padding: 10px 6px 8px;
+    overflow: hidden;
+  }
+  .vall-ai-body .vai-chart-canvas canvas { max-width: 100% !important; }
+  .vall-ai-body .vai-chart-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0 10px 11px;
+  }
+  .vall-ai-body .vai-chart-foot {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding: 9px 11px;
+  }
+
+  .vall-ai-body .vai-composer-wrap {
+    padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  }
+  .vall-ai-body .vai-composer { border-radius: 16px; }
+  .vall-ai-body .vai-composer::before { display: none; }
+  .vall-ai-body .vai-composer textarea {
+    min-height: 46px;
+    max-height: 116px;
+    padding: 13px 13px 4px;
+    font-size: 16px;
+    line-height: 1.35;
+  }
+  .vall-ai-body .vai-compose-bottom {
+    min-height: 48px;
+    gap: 7px;
+    padding: 3px 6px 6px 9px;
+  }
+  .vall-ai-body .vai-compose-context { gap: 6px; min-width: 0; }
+  .vall-ai-body .vai-compose-context > span { display: none; }
+  .vall-ai-body .vai-conversation-face {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+  .vall-ai-body .vai-attach,
+  .vall-ai-body .vai-mic-btn,
+  .vall-ai-body .vai-send,
+  .vall-ai-body .vai-stop {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+  }
+  .vall-ai-body .vai-compose-bottom > div:last-child { display: flex; gap: 6px; }
+  .vall-ai-body .vai-disclaimer {
+    display: block;
+    margin: 5px 6px 0;
+    font-size: .5rem;
+    line-height: 1.35;
+  }
+}
+
+@media (max-width: 420px) {
+  .vall-ai-body .vai-toolbar { grid-template-columns: 44px minmax(48px, 1fr) auto; gap: 5px; padding-inline: 7px; }
+  .vall-ai-body .vai-toolbar-actions { gap: 4px; }
+  .vall-ai-body .vai-toolbar-title strong { font-size: .7rem; }
+  .vall-ai-body .vai-messages { padding-inline: 7px; }
+  .vall-ai-body .vai-message.assistant .vai-bubble { padding: 11px; }
+  .vall-ai-body .vai-chart-canvas { height: 215px; min-height: 215px; }
+}
+
+@media (max-width: 360px) {
+  .vall-ai-body .vai-toolbar-title { display: none; }
+  .vall-ai-body .vai-toolbar { grid-template-columns: 44px 1fr; }
+  .vall-ai-body .vai-toolbar-actions { justify-self: end; }
+}
+
+body.vall-ai-body .vai-report-preview-pane {
+  background: #132b3e !important;
+}
+
+body.vall-ai-body .vai-pane-title {
+  background: #0e2739 !important;
+  border-bottom-color: rgba(132, 218, 243, .2) !important;
+}
+
+body.vall-ai-body .vai-pane-title span { color: #e8f8fd !important; }
+body.vall-ai-body .vai-pane-title span i { color: #69ddf6 !important; }
+body.vall-ai-body .vai-pane-title small { color: #a9c7d4 !important; }
+
+body.vall-ai-body .vai-editor-tools {
+  scrollbar-color: #2d6a83 transparent;
+}
+
+body.vall-ai-body .vai-editor-tools button {
+  border-color: rgba(132, 218, 243, .24) !important;
+  background: #15384e !important;
+  color: #dff7fd !important;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, .16) !important;
+}
+
+body.vall-ai-body .vai-editor-tools button:hover,
+body.vall-ai-body .vai-editor-tools button:focus-visible {
+  border-color: #74def5 !important;
+  background: #1d4d66 !important;
+  color: #fff !important;
+}
+
+body.vall-ai-body .vai-editor-tools button:active {
+  background: #256079 !important;
+}
+
+body.vall-ai-body .vai-tool-separator {
+  background: rgba(132, 218, 243, .22) !important;
+}
+
+body.vall-ai-body .vai-rich-editor {
+  color-scheme: dark;
+  background:
+    linear-gradient(90deg, rgba(92, 215, 243, .045), transparent 12%),
+    #0b1f30 !important;
+  color: #d9eaf1 !important;
+  caret-color: #72e1f8 !important;
+  box-shadow: inset 0 0 0 1px rgba(132, 218, 243, .08) !important;
+  scrollbar-color: #47788d #0b1f30;
+}
+
+body.vall-ai-body .vai-rich-editor:focus {
+  background:
+    linear-gradient(90deg, rgba(92, 215, 243, .075), transparent 14%),
+    #0d2334 !important;
+  box-shadow: inset 0 0 0 2px rgba(103, 222, 247, .38) !important;
+}
+
+body.vall-ai-body .vai-rich-editor::selection,
+body.vall-ai-body .vai-rich-editor *::selection {
+  background: rgba(91, 213, 241, .3);
+  color: #fff;
+}
+
+body.vall-ai-body .vai-rich-editor:empty::before { color: #7798a8 !important; }
+body.vall-ai-body .vai-rich-editor p,
+body.vall-ai-body .vai-rich-editor li { color: #d9eaf1 !important; }
+body.vall-ai-body .vai-rich-editor h1,
+body.vall-ai-body .vai-rich-editor h2,
+body.vall-ai-body .vai-rich-editor h3,
+body.vall-ai-body .vai-rich-editor h4 { color: #f0fbff !important; }
+body.vall-ai-body .vai-rich-editor h2 { border-bottom-color: rgba(113, 220, 244, .24) !important; }
+body.vall-ai-body .vai-rich-editor strong { color: #9beafb !important; }
+body.vall-ai-body .vai-rich-editor a { color: #72ddf6 !important; }
+body.vall-ai-body .vai-rich-editor hr { background: rgba(132, 218, 243, .18) !important; }
+body.vall-ai-body .vai-rich-editor blockquote,
+body.vall-ai-body .vai-rich-editor .vai-quote {
+  border-left-color: #d5ad59 !important;
+  background: rgba(213, 173, 89, .09) !important;
+  color: #ead9ae !important;
+}
+
+body.vall-ai-body .vai-rich-editor table { background: #0d2537 !important; }
+body.vall-ai-body .vai-rich-editor th {
+  background: #16445d !important;
+  color: #effcff !important;
+}
+body.vall-ai-body .vai-rich-editor td {
+  border-color: rgba(132, 218, 243, .17) !important;
+  color: #d7e9f0 !important;
+}
+body.vall-ai-body .vai-rich-editor tbody tr:nth-child(even) { background: #102a3d !important; }
+
+body.vall-ai-body .vai-report-modes {
+  border-color: rgba(132, 218, 243, .2) !important;
+  background: #0a1d2c !important;
+}
+
+body.vall-ai-body .vai-report-modes button {
+  background: transparent !important;
+  color: #9fbfce !important;
+}
+
+body.vall-ai-body .vai-report-modes button.active {
+  background: #d9f7ff !important;
+  color: #0a3044 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .22) !important;
+}
+
+/* El documento final conserva una apariencia editorial limpia y legible aun
+   cuando el resto de la aplicación use tema oscuro. */
+body.vall-ai-body .vai-report-paper {
+  color-scheme: light;
+  background: #fff !important;
+  color: #172f40 !important;
+  outline-color: rgba(191, 211, 220, .7) !important;
+}
+
+body.vall-ai-body .vai-report-paper h1,
+body.vall-ai-body .vai-report-paper h2,
+body.vall-ai-body .vai-report-paper h3 { color: #0a2d46 !important; }
+body.vall-ai-body .vai-report-paper h2 { border-bottom-color: #dce5ea !important; }
+body.vall-ai-body .vai-report-paper th { background: #0c314b !important; color: #fff !important; }
+body.vall-ai-body .vai-report-paper td { border-color: #dbe3e8 !important; color: #172f40 !important; }
+body.vall-ai-body .vai-report-paper tbody tr:nth-child(even) { background: #f5f8fa !important; }
+body.vall-ai-body .vai-paper-masthead span { color: #0a2c45 !important; }
+body.vall-ai-body .vai-paper-masthead b { background: #edf2f5 !important; color: #4f6575 !important; }
+body.vall-ai-body .vai-paper-meta { color: #637986 !important; }
+body.vall-ai-body .vai-paper-footer { color: #718491 !important; }
+
+/* Progreso de razonamiento: explica el avance sin fingir una cadena de
+   pensamiento ni dejar una burbuja genérica mientras se reúnen los datos. */
+.vall-ai-body .vai-thinking {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 48px;
+  padding: 2px 1px;
+  color: #d8edf7;
+  background: transparent;
+  border: 0;
+}
+.vall-ai-body .vai-thinking-orbit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 33px;
+  height: 33px;
+  flex: 0 0 33px;
+  border: 1px solid rgba(104, 226, 246, .34);
+  border-radius: 11px;
+  background: radial-gradient(circle at 35% 28%, rgba(145, 241, 255, .31), rgba(22, 72, 94, .74));
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 0 0 4px rgba(98,221,246,.055);
+}
+.vall-ai-body .vai-thinking-orbit i {
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin: 0 1.5px;
+  border-radius: 99px;
+  background: #a8f2ff;
+  opacity: .55;
+  animation: vai-thinking-pulse 1.05s ease-in-out infinite;
+}
+.vall-ai-body .vai-thinking-orbit i:nth-child(2) { animation-delay: .14s; }
+.vall-ai-body .vai-thinking-orbit i:nth-child(3) { animation-delay: .28s; }
+.vall-ai-body .vai-thinking-copy { display: grid; gap: 3px; min-width: 0; }
+.vall-ai-body .vai-thinking-copy strong { color: #dcf7fd; font: 700 .79rem/1.1 var(--font-ui, inherit); letter-spacing: .01em; }
+.vall-ai-body .vai-thinking-copy small { color: #91afc0; font-size: .72rem; line-height: 1.25; }
+
+/* Procedencia visible: el usuario sabe cuándo la respuesta está respaldada
+   sin sobrecargar la lectura de la respuesta. */
+.vall-ai-body .vai-message-meta { display: flex; align-items: center; gap: 8px; }
+.vall-ai-body .vai-message-meta .vai-evidence-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid rgba(108, 233, 196, .25);
+  border-radius: 999px;
+  color: #a8f6d8;
+  background: rgba(62, 194, 154, .08);
+  font-size: .63rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+.vall-ai-body .vai-message-meta .vai-evidence-chip i { color: #63e2bf; font-size: .61rem; }
+
+@keyframes vai-thinking-pulse {
+  0%, 100% { opacity: .32; transform: translateY(1px) scale(.8); }
+  45% { opacity: 1; transform: translateY(-2px) scale(1.15); }
+}
+
+@media (max-width: 620px) {
+  .vall-ai-body .vai-thinking-copy small { max-width: 205px; }
+  .vall-ai-body .vai-message-meta .vai-evidence-chip { padding: 3px 5px; }
+}
+
+/* Gestos orgánicos de la mascota. Los cambios son lentos y con pausas para que
+   se sienta presente, no como una animación repetida de robot. */
+.vall-ai-body .vai-face-shell {
+  animation: vai-face-rest 7.8s cubic-bezier(.42, 0, .28, 1) infinite;
+}
+.vall-ai-body .vai-face-eye {
+  overflow: hidden;
+  isolation: isolate;
+}
+.vall-ai-body .vai-face-eye::before {
+  position: absolute;
+  z-index: 2;
+  top: -12%;
+  left: -14%;
+  width: 128%;
+  height: 116%;
+  border-radius: 48% 48% 38% 38%;
+  background: linear-gradient(180deg, #194a64, #0e324a);
+  content: '';
+  pointer-events: none;
+  transform: translateY(-113%);
+}
+.vall-ai-body .vai-face-eye::after { z-index: 1; }
+.vall-ai-body .vai-face--idle .vai-face-eye::before { animation: vai-face-natural-blink 7.4s ease-in-out infinite; }
+.vall-ai-body .vai-face--idle .vai-face-eye::after { animation: vai-face-idle-glance 9.5s ease-in-out infinite; }
+.vall-ai-body .vai-face-cheek {
+  position: absolute;
+  top: 65%;
+  width: 14%;
+  height: 7%;
+  border-radius: 50%;
+  background: rgba(124, 231, 246, .16);
+  filter: blur(1px);
+  opacity: .22;
+  transition: opacity .45s ease, transform .45s ease;
+}
+.vall-ai-body .vai-face-cheek--left { left: 13%; }
+.vall-ai-body .vai-face-cheek--right { right: 13%; }
+
+/* Escucha: levanta la atención con respiración suave y una señal de oído
+   discreta, sin el pulso rápido de una alerta. */
+.vall-ai-body .vai-face--listening .vai-face-shell {
+  transform: translateY(-1px) rotate(-.7deg);
+  animation: vai-face-listen-organic 3.9s cubic-bezier(.42, 0, .28, 1) infinite;
+}
+.vall-ai-body .vai-face--listening .vai-face-eye { top: 40%; height: 24%; transform: none; }
+.vall-ai-body .vai-face--listening .vai-face-eye::after { transform: translate(-8%, -7%); }
+.vall-ai-body .vai-face--listening .vai-face-eye::before { animation: vai-face-natural-blink 6.8s ease-in-out infinite; }
+.vall-ai-body .vai-face--listening .vai-face-listen-signal { animation: vai-face-listen-wave 2.5s ease-in-out infinite; }
+.vall-ai-body .vai-face--listening .vai-face-cheek { opacity: .38; }
+
+/* Pensamiento: mirada elevada, asimetría pequeña y una pausa de reflexión. */
+.vall-ai-body .vai-face--thinking .vai-face-shell {
+  transform: rotate(2.2deg) translateY(-1px);
+  animation: vai-face-think-organic 4.8s cubic-bezier(.42, 0, .28, 1) infinite;
+}
+.vall-ai-body .vai-face--thinking .vai-face-brow--left { top: 26%; transform: rotate(-7deg); }
+.vall-ai-body .vai-face--thinking .vai-face-brow--right { top: 24%; transform: rotate(8deg); }
+.vall-ai-body .vai-face--thinking .vai-face-eye { transform: translate(3%, -5%); }
+.vall-ai-body .vai-face--thinking .vai-face-eye::after { transform: translate(18%, -24%); }
+.vall-ai-body .vai-face--thinking .vai-face-eye::before { animation: vai-face-natural-blink 8.6s ease-in-out infinite; }
+.vall-ai-body .vai-face--thinking .vai-face-mouth { width: 20%; transform: translateX(-50%) rotate(-8deg); }
+.vall-ai-body .vai-face--thinking .vai-face-cheek--left { opacity: .32; transform: translateY(1px); }
+
+/* Habla: una frase alterna vocales y pausas. Durante lectura de voz, los
+   eventos de palabras activan una articulación breve encima de este ritmo. */
+.vall-ai-body .vai-face--speaking .vai-face-shell {
+  transform: translateY(-1px);
+  animation: vai-face-speaking-posture 3.1s cubic-bezier(.42, 0, .28, 1) infinite;
+}
+.vall-ai-body .vai-face--speaking .vai-face-eye { animation: none; transform: none; }
+.vall-ai-body .vai-face--speaking .vai-face-eye::before { animation: vai-face-natural-blink 5.7s ease-in-out infinite; }
+.vall-ai-body .vai-face--speaking .vai-face-mouth {
+  top: 69%;
+  width: 27%;
+  height: 8%;
+  border-width: 0 0 2px;
+  border-radius: 0 0 99px 99px;
+  background: transparent;
+  box-shadow: none;
+  animation: vai-face-phrase 1.65s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+.vall-ai-body .vai-face--speaking.vai-face--syllable .vai-face-mouth {
+  animation: vai-face-syllable .15s cubic-bezier(.18, .8, .32, 1) both;
+}
+.vall-ai-body .vai-face--speaking .vai-face-cheek { opacity: .45; animation: vai-face-cheek-speech 1.65s ease-in-out infinite; }
+
+@keyframes vai-face-rest {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  44% { transform: translateY(-1px) rotate(-.35deg); }
+  54% { transform: translateY(-1px) rotate(.2deg); }
+}
+@keyframes vai-face-natural-blink {
+  0%, 8%, 11%, 61%, 64%, 100% { transform: translateY(-113%); }
+  9%, 62% { transform: translateY(-2%); }
+}
+@keyframes vai-face-idle-glance {
+  0%, 18%, 100% { transform: translate(0, 0); }
+  28%, 39% { transform: translate(-14%, 2%); }
+  56%, 69% { transform: translate(11%, -7%); }
+  82% { transform: translate(0, 2%); }
+}
+@keyframes vai-face-listen-organic {
+  0%, 100% { transform: translateY(-1px) rotate(-.7deg); }
+  52% { transform: translateY(-2px) rotate(.35deg); }
+}
+@keyframes vai-face-listen-wave {
+  0%, 100% { opacity: .3; transform: scale(.88); }
+  47% { opacity: .9; transform: scale(1.03); }
+}
+@keyframes vai-face-think-organic {
+  0%, 100% { transform: rotate(2.2deg) translateY(-1px); }
+  48% { transform: rotate(.9deg) translateY(-2px); }
+  72% { transform: rotate(2.8deg) translateY(-1px); }
+}
+@keyframes vai-face-speaking-posture {
+  0%, 100% { transform: translateY(-1px) rotate(0); }
+  32% { transform: translateY(-2px) rotate(-.38deg); }
+  70% { transform: translateY(-1px) rotate(.28deg); }
+}
+@keyframes vai-face-phrase {
+  0%, 8%, 100% { top: 69%; width: 27%; height: 8%; border-width: 0 0 2px; border-radius: 0 0 99px 99px; background: transparent; }
+  18% { top: 68%; width: 30%; height: 13%; border-width: 0; border-radius: 46% 46% 52% 52%; background: #d9fbff; box-shadow: inset 0 -2px #2b7892, 0 0 6px rgba(170,244,255,.36); }
+  31% { top: 69%; width: 21%; height: 11%; border-width: 0; border-radius: 48%; background: #d9fbff; }
+  44%, 55% { top: 68%; width: 32%; height: 10%; border-width: 0; border-radius: 50% 50% 45% 45%; background: #d9fbff; }
+  67% { top: 70%; width: 23%; height: 7%; border-width: 0 0 2px; border-radius: 0 0 99px 99px; background: transparent; }
+  80% { top: 68%; width: 28%; height: 12%; border-width: 0; border-radius: 48%; background: #d9fbff; }
+}
+@keyframes vai-face-syllable {
+  0% { top: 69%; width: 24%; height: 7%; border-width: 0 0 2px; border-radius: 0 0 99px 99px; background: transparent; }
+  55% { top: 67%; width: 33%; height: 16%; border-width: 0; border-radius: 48% 48% 52% 52%; background: #e3fcff; box-shadow: inset 0 -2px #2b7892, 0 0 8px rgba(170,244,255,.48); }
+  100% { top: 69%; width: 27%; height: 8%; border-width: 0 0 2px; border-radius: 0 0 99px 99px; background: transparent; }
+}
+@keyframes vai-face-cheek-speech { 0%,100% { transform: scale(1); } 45% { transform: scale(1.12); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vall-ai-body .vai-face *,
+  .vall-ai-body .vai-avatar.vai-assistant-face * { animation: none !important; }
+}
+
+/* Las clases de actuación se aplican al final para interrumpir durante unos
+   milisegundos la postura continua y producir gestos perceptibles. */
+.vall-ai-body .vai-face--speaking.vai-face--nod .vai-face-shell {
+  animation: vai-face-natural-nod .36s cubic-bezier(.2,.8,.3,1) both;
+}
+.vall-ai-body .vai-face--speaking.vai-face--blink-now .vai-face-eye::before {
+  animation: vai-face-double-blink .34s ease-in-out both;
+}
+.vall-ai-body .vai-face--speaking.vai-face--glance-left .vai-face-eye::after {
+  animation: none;
+  transform: translate(-27%, 2%);
+}
+.vall-ai-body .vai-face--speaking.vai-face--glance-right .vai-face-eye::after {
+  animation: none;
+  transform: translate(27%, -2%);
+}
+.vall-ai-body .vai-face--speaking.vai-expression--warm .vai-face-shell { border-color: rgba(147, 241, 196, .8); }
+.vall-ai-body .vai-face--speaking.vai-expression--concerned .vai-face-shell { border-color: rgba(242, 197, 126, .7); }
+.vall-ai-body .vai-face--speaking.vai-expression--confident .vai-face-shell { border-color: rgba(164, 244, 199, .86); }
+
+/* Rostro v2: casco equilibrado y oídos bilaterales. */
+.vall-ai-body .vai-face-shell {
+  border-radius: 45% 45% 39% 39%;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(80, 178, 207, .18), transparent 42%),
+    linear-gradient(155deg, #194b66, #09253a 76%);
+}
+.vall-ai-body .vai-face-shell::before {
+  top: 9%;
+  left: 24%;
+  width: 52%;
+  height: 9%;
+  opacity: .72;
+}
+.vall-ai-body .vai-face-eye {
+  top: 43%;
+  width: 16%;
+  height: 19%;
+  border-radius: 52%;
+}
+.vall-ai-body .vai-face-eye::after {
+  top: 19%;
+  left: 36%;
+  width: 31%;
+  height: 58%;
+  box-shadow: 0 0 3px rgba(7, 35, 51, .32);
+}
+.vall-ai-body .vai-face-eye--left { left: 23%; }
+.vall-ai-body .vai-face-eye--right { right: 23%; }
+.vall-ai-body .vai-face-mouth { top: 72%; }
+.vall-ai-body .vai-face-nose { top: 57%; opacity: .52; }
+.vall-ai-body .vai-face--listening .vai-face-ear--left {
+  border-color: rgba(174, 247, 255, .92);
+  box-shadow: inset 0 1px rgba(255,255,255,.16), -3px 0 10px rgba(101, 227, 247, .3);
+  animation: vai-ear-listen-left 2.4s ease-in-out infinite;
+}
+.vall-ai-body .vai-face--listening .vai-face-ear--right {
+  border-color: rgba(174, 247, 255, .92);
+  box-shadow: inset 0 1px rgba(255,255,255,.16), 3px 0 10px rgba(101, 227, 247, .3);
+  animation: vai-ear-listen-right 2.4s ease-in-out infinite;
+}
+.vall-ai-body .vai-face--speaking .vai-face-ear {
+  border-color: rgba(150, 237, 250, .82);
+  animation: vai-ear-speech 2.8s ease-in-out infinite;
+}
+.vall-ai-body .vai-voice-orb .vai-face-ear { width: 14%; }
+
+@keyframes vai-ear-listen-left {
+  0%,100% { transform: translateX(0) scaleY(1); }
+  48% { transform: translateX(-1px) scaleY(1.04); }
+}
+@keyframes vai-ear-listen-right {
+  0%,100% { transform: translateX(0) scaleY(1); }
+  48% { transform: translateX(1px) scaleY(1.04); }
+}
+@keyframes vai-ear-speech {
+  0%,100% { filter: brightness(1); }
+  50% { filter: brightness(1.12); }
+}
+
+@media (max-width: 420px) {
+  .vall-ai-body .vai-avatar.vai-assistant-face .vai-face-ear { width: 12%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vall-ai-body .vai-face-ear { animation: none !important; }
+}
+
+/* Respuestas VALL AI v2: jerarquía de lectura, navegación y acciones. */
+.vall-ai-body .vai-message.assistant {
+  width: 100%;
+  max-width: 1120px;
+}
+.vall-ai-body .vai-message.assistant .vai-bubble {
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(130, 218, 241, .2);
+  background: linear-gradient(145deg, rgba(17, 42, 59, .97), rgba(8, 24, 37, .97));
+}
+.vall-ai-body .vai-message.assistant .vai-message-meta {
+  min-height: 48px;
+  margin: 0;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(139, 216, 236, .12);
+  background: rgba(5, 21, 33, .34);
+}
+.vall-ai-body .vai-answer-content {
+  display: grid;
+  min-width: 0;
+  padding: 18px 20px 8px;
+}
+.vall-ai-body .vai-answer-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.vall-ai-body .vai-answer-overview > span,
+.vall-ai-body .vai-answer-overview > small {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.vall-ai-body .vai-answer-overview > span {
+  color: #b9f1fd;
+  font: 800 .67rem/1 Inter, sans-serif;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.vall-ai-body .vai-answer-overview > span i { color: #65def6; }
+.vall-ai-body .vai-answer-overview > small {
+  color: #809dac;
+  font: 600 .64rem/1 Inter, sans-serif;
+}
+.vall-ai-body .vai-answer-map {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  margin: -2px 0 18px;
+  padding: 9px 10px;
+  overflow-x: auto;
+  border: 1px solid rgba(121, 207, 229, .13);
+  border-radius: 12px;
+  background: rgba(5, 24, 37, .42);
+  scrollbar-width: thin;
+}
+.vall-ai-body .vai-answer-map > span {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  color: #8ca8b6;
+  font: 800 .61rem/1 Inter, sans-serif;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+.vall-ai-body .vai-answer-map button {
+  flex: 0 0 auto;
+  max-width: 210px;
+  min-height: 29px;
+  padding: 6px 10px;
+  overflow: hidden;
+  border: 1px solid rgba(112, 214, 238, .18);
+  border-radius: 999px;
+  color: #c5dce7;
+  background: rgba(98, 221, 246, .055);
+  font: 700 .63rem/1 Inter, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.vall-ai-body .vai-answer-map button:hover,
+.vall-ai-body .vai-answer-map button:focus-visible {
+  border-color: rgba(104, 225, 249, .52);
+  color: #f1fcff;
+  background: rgba(98, 221, 246, .13);
+  outline: none;
+}
+.vall-ai-body .vai-answer-content .vai-answer-lead {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(104, 226, 246, .21);
+  border-left: 4px solid #65def6;
+  border-radius: 4px 13px 13px 4px;
+  color: #eefbff;
+  background: linear-gradient(120deg, rgba(55, 151, 179, .15), rgba(22, 61, 82, .12));
+  font-size: .91rem;
+  font-weight: 580;
+  line-height: 1.65;
+}
+.vall-ai-body .vai-answer-content > h2,
+.vall-ai-body .vai-answer-content > h3,
+.vall-ai-body .vai-answer-content > div > h2,
+.vall-ai-body .vai-answer-content > div > h3 {
+  position: relative;
+  margin-top: 22px;
+  padding: 0 0 8px 14px;
+  border-bottom: 1px solid rgba(141, 210, 230, .13);
+}
+.vall-ai-body .vai-answer-content h2::before,
+.vall-ai-body .vai-answer-content h3::before {
+  position: absolute;
+  top: .24em;
+  left: 0;
+  width: 4px;
+  height: .82em;
+  border-radius: 99px;
+  background: linear-gradient(#68e2f8, #6fe0b2);
+  content: '';
+}
+.vall-ai-body .vai-answer-content > p,
+.vall-ai-body .vai-answer-content > div > p { max-width: 88ch; }
+.vall-ai-body .vai-answer-content :is(ul,ol) { padding-left: 1.35rem; }
+.vall-ai-body .vai-answer-content li { margin-block: .32rem; }
+.vall-ai-body .vai-answer-content table { margin-block: .8rem 1rem; }
+
+.vall-ai-body .vai-answer-sources {
+  margin: 12px 20px 0;
+  border: 1px solid rgba(105, 221, 184, .17);
+  border-radius: 12px;
+  background: rgba(32, 97, 82, .09);
+}
+.vall-ai-body .vai-answer-sources summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 12px;
+  color: #b7e9d6;
+  font: 750 .68rem/1.2 Inter, sans-serif;
+  cursor: pointer;
+  list-style: none;
+}
+.vall-ai-body .vai-answer-sources summary::-webkit-details-marker { display: none; }
+.vall-ai-body .vai-evidence-coverage {
+  margin: 0 14px 12px;
+  color: #a7b9c8;
+  font-size: .75rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+body.vall-ai-body .vai-decision-brief {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border: 1px solid #3e526a;
+  border-radius: 14px;
+  background: #182536;
+  color: #dce6f3;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+body.vall-ai-body .vai-decision-brief summary { cursor: pointer; font-size: .8rem; font-weight: 650; }
+body.vall-ai-body .vai-decision-brief dl { margin: 14px 0 0; font-size: .78rem; line-height: 1.65; }
+body.vall-ai-body .vai-decision-brief dt { color: #a8c5e8; font-weight: 650; margin-top: 12px; }
+body.vall-ai-body .vai-decision-brief dd { margin: 3px 0 0; }
+body.vall-ai-body .vai-decision-brief dd p { margin: 4px 0; }
+.vall-ai-body .vai-answer-sources summary span { display: inline-flex; align-items: center; gap: 7px; }
+.vall-ai-body .vai-answer-sources summary b {
+  min-width: 22px;
+  margin-left: auto;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #091f1d;
+  background: #78deb7;
+  text-align: center;
+  font-size: .61rem;
+}
+.vall-ai-body .vai-answer-sources summary > i:last-child { color: #7cb7a5; transition: transform .2s ease; }
+.vall-ai-body .vai-answer-sources[open] summary > i:last-child { transform: rotate(180deg); }
+.vall-ai-body .vai-answer-sources ol {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0 11px 11px;
+  list-style: none;
+}
+.vall-ai-body .vai-answer-sources li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.028);
+}
+.vall-ai-body .vai-answer-sources li span { display: grid; gap: 3px; min-width: 0; }
+.vall-ai-body .vai-answer-sources li strong { overflow: hidden; color: #dceee8; font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+.vall-ai-body .vai-answer-sources li small { color: #829e95; font-size: .6rem; }
+.vall-ai-body .vai-answer-sources li a { margin-left: auto; color: #78deb7; }
+
+.vall-ai-body .vai-message.assistant .vai-followups {
+  margin: 15px 20px 0;
+  padding: 13px 0 0;
+}
+.vall-ai-body .vai-message.assistant .vai-response-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 12px 20px 15px;
+  border-top: 1px solid rgba(139, 216, 236, .12);
+  background: rgba(5, 20, 31, .4);
+}
+.vall-ai-body .vai-actions-label {
+  margin-right: 3px;
+  color: #7796a6;
+  font: 800 .6rem/1 Inter, sans-serif;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.vall-ai-body .vai-message.assistant .vai-response-actions > button,
+.vall-ai-body .vai-message.assistant .vai-feedback-group button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 9px;
+}
+
+@media (max-width: 760px) {
+  .vall-ai-body .vai-message.assistant .vai-message-meta { min-height: 44px; padding-inline: 13px; }
+  .vall-ai-body .vai-answer-content { padding: 14px 13px 5px; }
+  .vall-ai-body .vai-answer-overview { align-items: flex-start; }
+  .vall-ai-body .vai-answer-overview > small { white-space: nowrap; }
+  .vall-ai-body .vai-answer-map { margin-bottom: 14px; }
+  .vall-ai-body .vai-answer-content .vai-answer-lead { padding: 12px 13px; font-size: .84rem; }
+  .vall-ai-body .vai-answer-sources,
+  .vall-ai-body .vai-message.assistant .vai-followups { margin-inline: 13px; }
+  .vall-ai-body .vai-message.assistant .vai-response-actions { padding: 11px 13px 13px; }
+  .vall-ai-body .vai-actions-label { width: 100%; margin-bottom: 2px; }
+  .vall-ai-body .vai-message.assistant .vai-response-actions > button { flex: 1 1 auto; justify-content: center; }
+  .vall-ai-body .vai-message.assistant .vai-response-actions .vai-feedback-group { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+
+@media (max-width: 430px) {
+  .vall-ai-body .vai-answer-overview > span { font-size: .61rem; }
+  .vall-ai-body .vai-answer-overview > small { font-size: .58rem; }
+  .vall-ai-body .vai-answer-map > span { display: none; }
+  .vall-ai-body .vai-message.assistant .vai-response-actions > button { min-width: calc(50% - 5px); }
+}
+
+/* ========================================================================== */
+/* PALETA EJECUTIVA 2026 · VALL AI                                            */
+/*
+   Capa final común con Inicio, Finanzas, Mercados y México. La interfaz del
+   asistente conserva toda su jerarquía funcional; se sustituyen únicamente
+   los azules/cian heredados por la escala neutral de la plataforma.
+   ========================================================================== */
+html:has(body.vall-ai-body),
+body.vall-ai-body {
+  background: #111827 !important;
+  background-image: none !important;
+}
+
+body.vall-ai-body {
+  --vai-r-plane: #111827;
+  --vai-r-surface: #1F2937;
+  --vai-r-surface-raised: #4B5563;
+  --vai-r-ink: #EDEDED;
+  --vai-r-muted: #9CA3AF;
+  --vai-r-line: rgba(156, 163, 175, .34);
+  --vai-r-accent: #9CA3AF;
+  --vai-r-accent-soft: #4B5563;
+  --vai-r-navy: #1F2937;
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-shell,
+body.vall-ai-body .vai-workspace {
+  background: #111827;
+}
+
+body.vall-ai-body .vai-workspace::before {
+  opacity: .34;
+  background-image:
+    linear-gradient(rgba(156, 163, 175, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(156, 163, 175, .035) 1px, transparent 1px);
+}
+
+/* Historial */
+body.vall-ai-body .vai-sidebar {
+  border-right-color: #4B5563;
+  background: #1F2937;
+}
+
+body.vall-ai-body .vai-sidebar::after { display: none; }
+
+body.vall-ai-body .vai-side-brand,
+body.vall-ai-body .vai-history-head,
+body.vall-ai-body .vai-side-foot {
+  border-color: rgba(156, 163, 175, .24);
+}
+
+body.vall-ai-body .vai-side-brand strong,
+body.vall-ai-body .vai-history-head span { color: #EDEDED; }
+body.vall-ai-body .vai-side-brand span,
+body.vall-ai-body .vai-history-head small,
+body.vall-ai-body .vai-side-foot { color: #9CA3AF; }
+
+body.vall-ai-body .vai-orb,
+body.vall-ai-body .vai-welcome-mark {
+  border: 1px solid #4B5563;
+  background: #111827;
+  box-shadow: none;
+}
+
+body.vall-ai-body .vai-orb img,
+body.vall-ai-body .vai-welcome-mark img { filter: grayscale(1) brightness(1.6); }
+
+body.vall-ai-body .vai-new {
+  border-color: #EDEDED;
+  background: #EDEDED;
+  color: #111827;
+  box-shadow: none;
+}
+
+body.vall-ai-body .vai-new:hover {
+  border-color: #9CA3AF;
+  background: #9CA3AF;
+  color: #111827;
+}
+
+body.vall-ai-body .vai-search {
+  border-color: #4B5563;
+  background: #111827;
+  color: #9CA3AF;
+}
+
+body.vall-ai-body .vai-search input { color: #EDEDED; }
+body.vall-ai-body .vai-search input::placeholder { color: #9CA3AF; }
+body.vall-ai-body .vai-search kbd { border-color: #4B5563; background: #1F2937; color: #9CA3AF; }
+
+body.vall-ai-body .vai-history-item {
+  border-color: transparent;
+  color: #9CA3AF;
+  background: transparent;
+}
+
+body.vall-ai-body .vai-history-item:hover,
+body.vall-ai-body .vai-history-item.active {
+  border-color: #4B5563;
+  background: #111827;
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-history-item.active::before { background: #9CA3AF; }
+
+/* Barra superior */
+body.vall-ai-body .vai-toolbar {
+  border-bottom-color: #4B5563;
+  background: rgba(17, 24, 39, .96);
+}
+
+body.vall-ai-body .vai-toolbar-title span { color: #9CA3AF; }
+body.vall-ai-body .vai-toolbar-title strong { color: #EDEDED; }
+
+body.vall-ai-body :is(
+  .vai-history-toggle,
+  .vai-toolbar-actions > button,
+  .vai-report-open,
+  .vai-auto-route
+) {
+  border-color: #4B5563;
+  background: #1F2937;
+  color: #EDEDED;
+  box-shadow: none;
+}
+
+body.vall-ai-body :is(
+  .vai-history-toggle,
+  .vai-toolbar-actions > button,
+  .vai-report-open,
+  .vai-auto-route
+) i { color: #9CA3AF; }
+
+body.vall-ai-body :is(
+  .vai-history-toggle,
+  .vai-toolbar-actions > button,
+  .vai-report-open
+):hover {
+  border-color: #9CA3AF;
+  background: #4B5563;
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-auto-route > i {
+  background: #4B5563;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-auto-route small { color: #9CA3AF; }
+body.vall-ai-body .vai-auto-route b { color: #EDEDED; }
+
+/* Bienvenida */
+body.vall-ai-body .vai-welcome {
+  border-color: #4B5563;
+  background: linear-gradient(145deg, #1F2937, #111827);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .24);
+}
+
+body.vall-ai-body .vai-welcome::before {
+  border-color: rgba(156, 163, 175, .24);
+  box-shadow:
+    0 0 0 32px rgba(156, 163, 175, .025),
+    0 0 0 65px rgba(156, 163, 175, .018);
+}
+
+body.vall-ai-body .vai-eyebrow { color: #9CA3AF; }
+body.vall-ai-body .vai-welcome h1 { color: #EDEDED; }
+body.vall-ai-body .vai-welcome > p,
+body.vall-ai-body .vai-welcome-signals { color: #9CA3AF; }
+body.vall-ai-body .vai-welcome-signals span i { color: #EDEDED !important; }
+
+body.vall-ai-body .vai-prompts button {
+  border-color: #4B5563;
+  background: #1F2937;
+  box-shadow: none;
+}
+
+body.vall-ai-body .vai-prompts button::after { color: #9CA3AF; }
+body.vall-ai-body .vai-prompts button > i {
+  border: 1px solid rgba(237, 237, 237, .2);
+  background: #4B5563 !important;
+  color: #EDEDED !important;
+}
+body.vall-ai-body .vai-prompts button b { color: #EDEDED; }
+body.vall-ai-body .vai-prompts button small { color: #9CA3AF; }
+body.vall-ai-body .vai-prompts button:hover {
+  border-color: #9CA3AF;
+  background: #4B5563;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .22);
+}
+
+/* Conversación y respuestas */
+body.vall-ai-body .vai-message .vai-bubble,
+body.vall-ai-body .vai-message.assistant .vai-bubble {
+  border-color: #4B5563;
+  background: #1F2937;
+  color: #EDEDED;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .18);
+}
+
+body.vall-ai-body .vai-message.user .vai-bubble,
+body.vall-ai-body .vai-message.user .vai-avatar {
+  border-color: #9CA3AF;
+  background: #4B5563;
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-message .vai-avatar {
+  border-color: #4B5563;
+  background: #111827;
+  color: #EDEDED;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-message.assistant .vai-bubble::before { display: none !important; }
+
+body.vall-ai-body .vai-message.assistant .vai-message-meta,
+body.vall-ai-body .vai-message.assistant .vai-response-actions {
+  border-color: rgba(156, 163, 175, .24);
+  background: #111827;
+}
+
+body.vall-ai-body :is(.vai-message-meta, .vai-message-files, .vai-actions-label) { color: #9CA3AF; }
+body.vall-ai-body .vai-bubble :is(p, li) { color: #EDEDED; }
+body.vall-ai-body .vai-bubble :is(h2, h3, h4) {
+  border-color: rgba(156, 163, 175, .28);
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-bubble a { color: #EDEDED; text-decoration-color: #9CA3AF; }
+
+body.vall-ai-body .vai-bubble code,
+body.vall-ai-body .vai-bubble pre {
+  border-color: #4B5563;
+  background: #111827;
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-bubble table,
+body.vall-ai-body .vai-bubble .mermaid {
+  border-color: #4B5563;
+  background: #1F2937;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-bubble th { border-color: #4B5563; background: #111827; color: #EDEDED; }
+body.vall-ai-body .vai-bubble td { border-color: rgba(156, 163, 175, .24); color: #EDEDED; }
+body.vall-ai-body .vai-bubble tbody tr:nth-child(even) td { background: rgba(75, 85, 99, .28); }
+body.vall-ai-body .vai-bubble tbody tr:hover td { background: rgba(75, 85, 99, .5); }
+
+body.vall-ai-body .vai-thinking,
+body.vall-ai-body .vai-quote,
+body.vall-ai-body .vai-alert,
+body.vall-ai-body .vai-rich-summary,
+body.vall-ai-body .vai-rich-comparison article,
+body.vall-ai-body .vai-followups,
+body.vall-ai-body .vai-answer-map,
+body.vall-ai-body .vai-answer-sources {
+  border-color: #4B5563;
+  background: #111827;
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-thinking i { background-color: #9CA3AF; }
+body.vall-ai-body .vai-answer-overview > span,
+body.vall-ai-body .vai-answer-overview > span i { color: #EDEDED; }
+body.vall-ai-body .vai-answer-overview > small { color: #9CA3AF; }
+
+body.vall-ai-body .vai-answer-map button,
+body.vall-ai-body .vai-followups button,
+body.vall-ai-body .vai-response-actions button,
+body.vall-ai-body .vai-feedback-group button {
+  border-color: #4B5563;
+  background: #1F2937;
+  color: #9CA3AF;
+}
+
+body.vall-ai-body :is(
+  .vai-answer-map button,
+  .vai-followups button,
+  .vai-response-actions button,
+  .vai-feedback-group button
+):hover {
+  border-color: #9CA3AF;
+  background: #4B5563;
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-answer-content .vai-answer-lead {
+  border-color: #4B5563;
+  border-left-color: #9CA3AF;
+  background: rgba(75, 85, 99, .22);
+  color: #EDEDED;
+}
+
+body.vall-ai-body .vai-answer-content h2::before,
+body.vall-ai-body .vai-answer-content h3::before { background: #9CA3AF; }
+
+body.vall-ai-body .vai-answer-sources summary { color: #EDEDED; }
+body.vall-ai-body .vai-answer-sources summary b { background: #9CA3AF; color: #111827; }
+body.vall-ai-body .vai-answer-sources li { background: #1F2937; }
+body.vall-ai-body .vai-answer-sources li strong { color: #EDEDED; }
+body.vall-ai-body .vai-answer-sources li small,
+body.vall-ai-body .vai-answer-sources li a { color: #9CA3AF; }
+
+/* Gráficas generadas */
+body.vall-ai-body .vai-chart-card {
+  border-color: #526174;
+  background: #1B2636;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-chart-head,
+body.vall-ai-body .vai-chart-foot { border-color: #526174; background: #111827; color: #B8C7D8; }
+body.vall-ai-body .vai-chart-head h3,
+body.vall-ai-body .vai-chart-kpis strong { color: #EDEDED; }
+body.vall-ai-body .vai-chart-head p,
+body.vall-ai-body .vai-chart-kpis small { color: #B8C7D8; }
+body.vall-ai-body .vai-chart-tools button,
+body.vall-ai-body .vai-chart-view,
+body.vall-ai-body .vai-chart-view select,
+body.vall-ai-body .vai-chart-kpis div {
+  border-color: #526174;
+  background: #101827;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-chart-insight {
+  border-color: #526174;
+  background: #283548;
+  color: #E6EEF7;
+}
+body.vall-ai-body .vai-chart-insight > i { background: #334155; color: #FBBF24; }
+body.vall-ai-body .vai-chart-insight small { color: #9FC5E8; }
+body.vall-ai-body .vai-chart-canvas { background: #1B2636; }
+
+/* Compositor */
+body.vall-ai-body .vai-composer-wrap {
+  border-top-color: rgba(156, 163, 175, .22);
+  background: linear-gradient(180deg, transparent, #111827 24%);
+}
+
+body.vall-ai-body .vai-composer,
+body.vall-ai-body .vai-composer:focus-within,
+body.vall-ai-body .vai-composer:focus-visible {
+  border-color: #4B5563;
+  border-radius: 14px;
+  background: #1F2937;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, .26);
+  transform: none;
+}
+
+body.vall-ai-body .vai-composer:focus-within { border-color: #9CA3AF; }
+body.vall-ai-body .vai-composer::before {
+  border-color: #4B5563;
+  background: #1F2937;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-composer textarea { color: #EDEDED; }
+body.vall-ai-body .vai-composer textarea::placeholder,
+body.vall-ai-body .vai-compose-context,
+body.vall-ai-body .vai-disclaimer { color: #9CA3AF; }
+body.vall-ai-body .vai-compose-context i { color: #EDEDED; }
+
+body.vall-ai-body .vai-attach,
+body.vall-ai-body .vai-mic-btn {
+  border-color: #4B5563;
+  background: #111827;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-attach:hover,
+body.vall-ai-body .vai-mic-btn:hover { border-color: #9CA3AF; background: #4B5563; color: #EDEDED; }
+
+body.vall-ai-body .vai-send,
+body.vall-ai-body .vai-send:hover {
+  border-color: #EDEDED;
+  background: #EDEDED;
+  color: #111827;
+  box-shadow: none;
+}
+
+/* Estudio de reportes */
+body.vall-ai-body .vai-report-backdrop { background: rgba(17, 24, 39, .86); }
+body.vall-ai-body .vai-report-window {
+  border-color: #4B5563 !important;
+  background: #111827 !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .58);
+}
+body.vall-ai-body .vai-report-header,
+body.vall-ai-body .vai-report-toolbar,
+body.vall-ai-body .vai-pane-title {
+  border-color: #4B5563 !important;
+  background: #1F2937 !important;
+}
+body.vall-ai-body .vai-report-header h2,
+body.vall-ai-body .vai-pane-title span { color: #EDEDED; }
+body.vall-ai-body .vai-report-header > div:first-child span,
+body.vall-ai-body .vai-report-status,
+body.vall-ai-body .vai-pane-title small { color: #9CA3AF; }
+body.vall-ai-body .vai-report-toolbar :is(input, select, button) {
+  border-color: #4B5563;
+  background: #111827;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-report-toolbar button.primary {
+  border-color: #EDEDED;
+  background: #EDEDED;
+  color: #111827;
+}
+body.vall-ai-body .vai-report-body { background: #4B5563 !important; }
+body.vall-ai-body .vai-report-editor-pane,
+body.vall-ai-body .vai-rich-editor { background: #111827 !important; color: #EDEDED !important; }
+body.vall-ai-body .vai-report-editor-pane { background: #111827 !important; }
+body.vall-ai-body .vai-report-preview-pane { background: #1F2937 !important; }
+body.vall-ai-body .vai-editor-tools button {
+  border-color: #4B5563 !important;
+  background: #111827 !important;
+  color: #EDEDED !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-editor-tools button:hover,
+body.vall-ai-body .vai-editor-tools button:focus-visible {
+  border-color: #9CA3AF !important;
+  background: #4B5563 !important;
+  color: #EDEDED !important;
+}
+body.vall-ai-body .vai-tool-separator { background: #4B5563 !important; }
+
+/* Voz y rostro: se conserva la animación; cambia únicamente el acabado. */
+body.vall-ai-body .vai-voice-overlay { background: #111827; }
+body.vall-ai-body .vai-voice-status,
+body.vall-ai-body .vai-voice-transcript p:last-child { color: #EDEDED; }
+body.vall-ai-body .vai-voice-transcript,
+body.vall-ai-body .vai-voice-transcript p:first-child { color: #9CA3AF; }
+body.vall-ai-body .vai-face-shell {
+  border-color: #9CA3AF;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(156, 163, 175, .18), transparent 42%),
+    linear-gradient(155deg, #4B5563, #1F2937 76%);
+}
+
+body.vall-ai-body button:focus-visible,
+body.vall-ai-body input:focus-visible,
+body.vall-ai-body textarea:focus-visible,
+body.vall-ai-body select:focus-visible {
+  outline: 2px solid #EDEDED !important;
+  outline-offset: 2px;
+}
+
+/* Auditoría cromática final · VALL AI
+   La interfaz y la mascota comparten la misma escala neutral. Los colores
+   verde, ámbar y rojo quedan reservados a significado financiero o de sistema. */
+body.vall-ai-body .vai-report-modes {
+  border-color: #4B5563 !important;
+  background: #111827 !important;
+}
+body.vall-ai-body .vai-report-modes button {
+  background: transparent !important;
+  color: #9CA3AF !important;
+}
+body.vall-ai-body .vai-report-modes button:is(:hover, :focus-visible) {
+  background: #1F2937 !important;
+  color: #EDEDED !important;
+}
+body.vall-ai-body .vai-report-modes button.active {
+  background: #EDEDED !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, .28) !important;
+}
+body.vall-ai-body .vai-pane-title span i { color: #9CA3AF !important; }
+body.vall-ai-body .vai-report-editor-pane { border-color: #4B5563 !important; }
+body.vall-ai-body .vai-sidebar-collapse {
+  border-color: #4B5563 !important;
+  background: #111827 !important;
+  color: #EDEDED !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-sidebar-collapse:is(:hover, :focus-visible) {
+  border-color: #9CA3AF !important;
+  background: #4B5563 !important;
+}
+body.vall-ai-body .vai-sidebar-collapse i,
+body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-collapse i {
+  border-color: #4B5563 !important;
+  background: #1F2937 !important;
+  color: #EDEDED !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-sidebar-collapse-copy,
+body.vall-ai-body .vai-history-empty { color: #9CA3AF; }
+body.vall-ai-body .vai-prompts button { color: #EDEDED; }
+body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-collapse {
+  border-color: #9CA3AF !important;
+  background: #111827 !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-welcome-signals span {
+  border-color: #4B5563;
+  background: #111827;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-welcome-signals span i,
+body.vall-ai-body .vai-prompts button > i,
+body.vall-ai-body .vai-mic-btn i {
+  color: #EDEDED !important;
+  filter: grayscale(1);
+}
+body.vall-ai-body .vai-compose-context > span { color: #9CA3AF; }
+body.vall-ai-body .vai-history-icon {
+  border: 1px solid #4B5563;
+  background: #111827 !important;
+  color: #9CA3AF !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-history-item:is(:hover, .active) .vai-history-icon {
+  border-color: #9CA3AF;
+  background: #4B5563 !important;
+  color: #EDEDED !important;
+}
+body.vall-ai-body .vai-side-foot i {
+  background: #111827 !important;
+  color: #9CA3AF !important;
+  box-shadow: none !important;
+}
+
+/* Rostro unificado: expresivo por movimiento y geometría, no por neón. */
+body.vall-ai-body :is(.vai-face, .vai-avatar.vai-assistant-face) {
+  color: #EDEDED;
+  border-color: #9CA3AF;
+  background: linear-gradient(145deg, #4B5563, #1F2937 72%);
+  box-shadow: inset 0 1px rgba(237, 237, 237, .14), 0 7px 16px rgba(17, 24, 39, .3);
+}
+body.vall-ai-body .vai-face-shell {
+  border-color: #9CA3AF !important;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(237, 237, 237, .1), transparent 42%),
+    linear-gradient(155deg, #4B5563, #1F2937 76%) !important;
+  box-shadow: inset 0 2px rgba(237, 237, 237, .13), 0 3px 8px rgba(17, 24, 39, .25);
+}
+body.vall-ai-body .vai-face-shell::before { background: rgba(237, 237, 237, .24); }
+body.vall-ai-body .vai-face-ear {
+  border-color: #9CA3AF !important;
+  background: linear-gradient(180deg, #4B5563, #1F2937) !important;
+  box-shadow: inset 0 1px rgba(237, 237, 237, .12), 0 0 7px rgba(156, 163, 175, .2) !important;
+}
+body.vall-ai-body .vai-face-ear::after { border-color: rgba(237, 237, 237, .38); }
+body.vall-ai-body .vai-face-brow { background: #9CA3AF; }
+body.vall-ai-body .vai-face-eye {
+  background: #EDEDED;
+  box-shadow: 0 0 7px rgba(237, 237, 237, .32);
+}
+body.vall-ai-body .vai-face-eye::before { background: linear-gradient(#4B5563, #1F2937); }
+body.vall-ai-body .vai-face-eye::after {
+  background: #111827;
+  box-shadow: 0 0 3px rgba(17, 24, 39, .38);
+}
+body.vall-ai-body .vai-face-nose {
+  border-right-color: rgba(237, 237, 237, .34);
+  border-bottom-color: rgba(237, 237, 237, .2);
+}
+body.vall-ai-body .vai-face-mouth,
+body.vall-ai-body .vai-face--speaking.vai-face--syllable.vai-viseme--rest .vai-face-mouth,
+body.vall-ai-body .vai-face--speaking.vai-face--pause .vai-face-mouth {
+  border-color: #EDEDED;
+}
+body.vall-ai-body .vai-face--speaking .vai-face-mouth,
+body.vall-ai-body .vai-face--speaking.vai-face--syllable .vai-face-mouth {
+  background: #EDEDED !important;
+  box-shadow: inset 0 -2px #4B5563, 0 0 7px rgba(237, 237, 237, .28) !important;
+}
+body.vall-ai-body .vai-face--speaking.vai-face--syllable.vai-viseme--rest .vai-face-mouth,
+body.vall-ai-body .vai-face--speaking.vai-face--pause .vai-face-mouth {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-face-listen-signal { border-color: #9CA3AF; }
+body.vall-ai-body :is(.vai-face--listening, .vai-face--thinking, .vai-face--speaking) .vai-face-shell,
+body.vall-ai-body :is(.vai-expression--warm, .vai-expression--confident, .vai-expression--concerned) .vai-face-shell {
+  border-color: #9CA3AF !important;
+}
+body.vall-ai-body .vai-face--listening .vai-face-ear,
+body.vall-ai-body .vai-face--speaking .vai-face-ear {
+  border-color: #EDEDED !important;
+  box-shadow: inset 0 1px rgba(237, 237, 237, .14), 0 0 9px rgba(156, 163, 175, .28) !important;
+}
+body.vall-ai-body .vai-face-cheek,
+body.vall-ai-body .vai-expression--warm .vai-face-cheek {
+  background: rgba(156, 163, 175, .2);
+}
+body.vall-ai-body .vai-voice-orb.vai-face {
+  border-color: #9CA3AF;
+  background: radial-gradient(circle at 32% 19%, #4B5563, #111827 72%);
+  box-shadow: inset 0 2px rgba(237, 237, 237, .14), 0 0 42px rgba(156, 163, 175, .3);
+}
+body.vall-ai-body .vai-voice-overlay .vai-voice-ring { border-color: rgba(156, 163, 175, .4) !important; }
+body.vall-ai-body .vai-voice-overlay { gap: 28px; }
+body.vall-ai-body .vai-voice-transcript { margin-top: 0; }
+body.vall-ai-body .vai-voice-transcript:has(p:first-child:empty):has(p:last-child:empty) {
+  display: none;
+  min-height: 0;
+}
+
+/* Ritmo espacial: el contenido respira igual en conversación, compositor y voz. */
+body.vall-ai-body .vai-message { margin-bottom: 18px; }
+body.vall-ai-body .vai-compose-context {
+  align-items: center;
+  gap: 8px;
+}
+body.vall-ai-body .vai-conversation-face { margin: 0 2px 0 0; }
+body.vall-ai-body .vai-compose-bottom { padding-inline: 12px 8px; }
+
+@media (min-width: 761px) {
+  body.vall-ai-body .vai-shell {
+    height: calc(100dvh - 108px);
+    min-height: 0;
+  }
+  body.vall-ai-body .vai-messages { padding-inline: clamp(24px, 3vw, 48px); }
+  body.vall-ai-body .vai-composer-wrap { padding: 14px clamp(24px, 3vw, 48px) 12px; }
+  body.vall-ai-body .vai-composer {
+    width: min(900px, 100%);
+    margin-inline: auto;
+  }
+  body.vall-ai-body .vai-disclaimer {
+    width: min(900px, 100%);
+    margin-inline: auto;
+    text-align: center;
+  }
+}
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-messages { padding: 12px 10px 14px; }
+  body.vall-ai-body .vai-composer-wrap { padding: 8px; }
+  body.vall-ai-body .vai-composer { width: 100%; }
+  body.vall-ai-body .vai-welcome { margin-inline: 0; }
+  body.vall-ai-body .vai-welcome-signals {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  body.vall-ai-body .vai-voice-overlay {
+    gap: 22px;
+    padding: 24px 16px;
+  }
+  body.vall-ai-body .vai-voice-orb-container,
+  body.vall-ai-body .vai-voice-transcript {
+    margin-inline: auto;
+  }
+  body.vall-ai-body .vai-voice-transcript { width: min(100%, 340px); }
+}
+
+/* VALL AI · Compositor Orion
+   Nueva identidad sin mascota: la constelación comunica disponibilidad,
+   escucha y respuesta mediante luz y trazos, no mediante un rostro. */
+body.vall-ai-body .vai-orion,
+body.vall-ai-body .vai-orion.vai-face,
+body.vall-ai-body .vai-orion.vai-avatar.vai-assistant-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid #4B5563;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(156, 163, 175, .13), transparent 54%),
+    #111827;
+  color: #EDEDED;
+  box-shadow: none;
+}
+
+body.vall-ai-body .vai-orion::before {
+  position: absolute;
+  inset: 12%;
+  border: 1px solid rgba(156, 163, 175, .12);
+  border-radius: 50%;
+  content: '';
+}
+
+body.vall-ai-body .vai-orion-map {
+  z-index: 1;
+  width: 72%;
+  height: 78%;
+  overflow: visible;
+  filter: drop-shadow(0 0 5px rgba(237, 237, 237, .12));
+}
+
+body.vall-ai-body .vai-orion-lines path {
+  fill: none;
+  stroke: #9CA3AF;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: stroke .25s ease, opacity .25s ease;
+}
+
+body.vall-ai-body .vai-orion-star {
+  fill: #EDEDED;
+  stroke: #111827;
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: fill .25s ease, opacity .25s ease, transform .25s ease;
+}
+
+body.vall-ai-body .vai-orion .star-betelgeuse { fill: #9CA3AF; }
+body.vall-ai-body .vai-orion .star-rigel { fill: #EDEDED; }
+
+body.vall-ai-body .vai-orion.vai-face--listening {
+  border-color: #9CA3AF;
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, .09);
+}
+body.vall-ai-body .vai-orion.vai-face--listening .vai-orion-star {
+  animation: vai-orion-listen 1.65s ease-in-out infinite;
+}
+body.vall-ai-body .vai-orion.vai-face--thinking .vai-orion-lines path {
+  stroke-dasharray: 7 5;
+  animation: vai-orion-trace 1.7s linear infinite;
+}
+body.vall-ai-body .vai-orion.vai-face--thinking .vai-orion-star {
+  animation: vai-orion-think 1.45s ease-in-out infinite alternate;
+}
+body.vall-ai-body .vai-orion.vai-face--speaking .vai-orion-star {
+  animation: vai-orion-speak .72s ease-in-out infinite alternate;
+}
+body.vall-ai-body .vai-orion.vai-face--speaking .vai-orion-star:nth-child(2n) { animation-delay: -.24s; }
+body.vall-ai-body .vai-orion.vai-face--speaking .vai-orion-star:nth-child(3n) { animation-delay: -.48s; }
+body.vall-ai-body .vai-orion.vai-face--emphasis .vai-orion-map { transform: scale(1.05); }
+body.vall-ai-body .vai-orion.vai-face--pause .vai-orion-star { animation-play-state: paused; }
+
+@keyframes vai-orion-listen {
+  0%, 100% { opacity: .68; transform: scale(.9); }
+  50% { opacity: 1; transform: scale(1.16); }
+}
+@keyframes vai-orion-trace { to { stroke-dashoffset: -24; } }
+@keyframes vai-orion-think {
+  from { opacity: .58; transform: scale(.9); }
+  to { opacity: 1; transform: scale(1.12); }
+}
+@keyframes vai-orion-speak {
+  from { opacity: .66; transform: scale(.88); }
+  to { opacity: 1; transform: scale(1.18); }
+}
+
+body.vall-ai-body .vai-orion--brand.vai-orb {
+  width: 42px;
+  height: 42px;
+  padding: 3px;
+  border-radius: 13px;
+}
+body.vall-ai-body .vai-orion--welcome.vai-welcome-mark {
+  width: 64px;
+  height: 64px;
+  padding: 5px;
+  border-radius: 18px;
+}
+body.vall-ai-body .vai-orion.vai-avatar.vai-assistant-face {
+  width: 38px;
+  height: 38px;
+  padding: 2px;
+  border-radius: 12px;
+}
+body.vall-ai-body .vai-orion--voice.vai-voice-orb.vai-face {
+  width: 136px;
+  height: 136px;
+  border-color: #9CA3AF;
+  border-radius: 38px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(156, 163, 175, .18), transparent 55%),
+    #111827;
+  box-shadow: 0 0 44px rgba(156, 163, 175, .22);
+}
+body.vall-ai-body .vai-orion--voice .vai-orion-map { width: 58%; height: 70%; }
+
+/* El nuevo chat box separa identidad, consulta, contexto y acciones. */
+body.vall-ai-body .vai-composer-wrap {
+  padding-top: 12px;
+  padding-bottom: 10px;
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0), #111827 18%);
+}
+
+body.vall-ai-body .vai-composer,
+body.vall-ai-body .vai-composer:focus-within,
+body.vall-ai-body .vai-composer:focus-visible {
+  width: min(960px, 100%);
+  padding: 0;
+  overflow: visible;
+  border: 1px solid #4B5563;
+  border-radius: 20px;
+  background: #1F2937;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .28);
+  transform: none;
+}
+body.vall-ai-body .vai-composer:focus-within {
+  border-color: #9CA3AF;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .3), 0 0 0 3px rgba(156, 163, 175, .08);
+}
+body.vall-ai-body .vai-composer::before { display: none !important; }
+
+body.vall-ai-body .vai-compose-head {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 12px 9px 10px;
+  border-bottom: 1px solid rgba(156, 163, 175, .2);
+  border-radius: 20px 20px 0 0;
+  background: #111827;
+}
+
+body.vall-ai-body .vai-compose-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+body.vall-ai-body .vai-conversation-face.vai-orion {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 2px;
+  border-radius: 12px;
+}
+body.vall-ai-body .vai-compose-identity > span,
+body.vall-ai-body .vai-compose-context > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+body.vall-ai-body .vai-compose-identity strong,
+body.vall-ai-body .vai-compose-context b {
+  overflow: hidden;
+  color: #EDEDED;
+  font: 750 .72rem/1.2 Inter, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.vall-ai-body .vai-compose-identity small,
+body.vall-ai-body .vai-compose-context small {
+  overflow: hidden;
+  color: #9CA3AF;
+  font: 500 .61rem/1.2 Inter, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.vall-ai-body .vai-compose-mode {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid #4B5563;
+  border-radius: 999px;
+  color: #9CA3AF;
+  background: #1F2937;
+  font: 700 .61rem/1 Inter, sans-serif;
+}
+body.vall-ai-body .vai-compose-mode i { color: #EDEDED; }
+
+body.vall-ai-body .vai-composer textarea,
+body.vall-ai-body .vai-composer textarea:focus,
+body.vall-ai-body .vai-composer textarea:focus-visible {
+  display: block;
+  width: calc(100% - 24px);
+  min-height: 72px;
+  max-height: 180px;
+  margin: 12px 12px 0;
+  padding: 15px 16px;
+  border: 1px solid #4B5563;
+  border-radius: 14px;
+  outline: 0 !important;
+  color: #EDEDED;
+  background: #111827;
+  box-shadow: none;
+  font: 500 .92rem/1.55 Inter, sans-serif;
+  resize: none;
+}
+body.vall-ai-body .vai-composer textarea:focus { border-color: #9CA3AF; }
+body.vall-ai-body .vai-composer textarea::placeholder { color: #9CA3AF; opacity: .86; }
+
+body.vall-ai-body .vai-compose-bottom {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 10px 9px 12px;
+}
+body.vall-ai-body .vai-compose-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+body.vall-ai-body .vai-compose-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+body.vall-ai-body .vai-compose-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 3px;
+  color: #9CA3AF;
+  font: 600 .58rem/1 Inter, sans-serif;
+}
+body.vall-ai-body .vai-compose-shortcut kbd {
+  padding: 4px 6px;
+  border: 1px solid #4B5563;
+  border-radius: 6px;
+  color: #EDEDED;
+  background: #111827;
+  font: inherit;
+}
+body.vall-ai-body .vai-attach,
+body.vall-ai-body .vai-mic-btn,
+body.vall-ai-body .vai-stop,
+body.vall-ai-body .vai-send {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 12px;
+}
+body.vall-ai-body .vai-stop[hidden] { display: none !important; }
+body.vall-ai-body .vai-attach,
+body.vall-ai-body .vai-mic-btn,
+body.vall-ai-body .vai-stop {
+  border: 1px solid #4B5563;
+  background: #111827;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-send {
+  border: 1px solid #EDEDED;
+  background: #EDEDED;
+  color: #111827;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-send:is(:hover, :focus-visible) {
+  border-color: #9CA3AF;
+  background: #9CA3AF;
+  color: #111827;
+  transform: translateY(-1px);
+}
+body.vall-ai-body .vai-disclaimer {
+  margin-top: 6px;
+  color: #9CA3AF;
+  font-size: .55rem;
+}
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-composer-wrap { padding: 7px 8px 6px; }
+  body.vall-ai-body .vai-composer,
+  body.vall-ai-body .vai-composer:focus-within { border-radius: 18px; }
+  body.vall-ai-body .vai-compose-head {
+    min-height: 52px;
+    padding: 7px 9px;
+    border-radius: 18px 18px 0 0;
+  }
+  body.vall-ai-body .vai-conversation-face.vai-orion {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+  }
+  body.vall-ai-body .vai-compose-identity small { display: none; }
+  body.vall-ai-body .vai-compose-mode {
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+    padding: 0;
+    overflow: hidden;
+    font-size: 0;
+  }
+  body.vall-ai-body .vai-compose-mode i { font-size: .74rem; }
+  body.vall-ai-body .vai-composer textarea,
+  body.vall-ai-body .vai-composer textarea:focus {
+    width: calc(100% - 16px);
+    min-height: 62px;
+    margin: 8px 8px 0;
+    padding: 12px 13px;
+    border-radius: 12px;
+    font-size: .86rem;
+  }
+  body.vall-ai-body .vai-compose-bottom {
+    min-height: 50px;
+    gap: 8px;
+    padding: 6px 8px 7px;
+  }
+  body.vall-ai-body .vai-compose-context { gap: 7px; }
+  body.vall-ai-body .vai-compose-context small,
+  body.vall-ai-body .vai-compose-shortcut { display: none; }
+  body.vall-ai-body .vai-compose-context b { font-size: .64rem; }
+  body.vall-ai-body .vai-attach,
+  body.vall-ai-body .vai-mic-btn,
+  body.vall-ai-body .vai-stop,
+  body.vall-ai-body .vai-send {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 11px;
+  }
+  body.vall-ai-body .vai-orion--voice.vai-voice-orb.vai-face {
+    width: 116px;
+    height: 116px;
+    border-radius: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.vall-ai-body .vai-orion-star,
+  body.vall-ai-body .vai-orion-lines path { animation: none !important; }
+}
+
+/* Portada de consulta · entrada limpia
+   Mientras no existe un hilo, el compositor se convierte en la pieza central.
+   Al enviar el primer mensaje, :has() deja de coincidir y vuelve al modo de
+   trabajo completo definido arriba. */
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) {
+  position: relative;
+}
+
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-messages {
+  display: grid;
+  place-items: center;
+  padding: 18px 28px 150px;
+  overflow: hidden;
+}
+
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome {
+  display: flex;
+  width: min(920px, 100%);
+  max-width: none;
+  min-height: 410px;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 18px 0 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome::before { display: none; }
+
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-orion--welcome.vai-welcome-mark {
+  width: 52px;
+  height: 52px;
+  margin: 0 0 17px;
+  padding: 4px;
+  border-color: #4B5563;
+  border-radius: 16px;
+  background: rgba(17, 24, 39, .72);
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-eyebrow {
+  margin-bottom: 10px;
+  color: #9CA3AF;
+  font-size: .6rem;
+  letter-spacing: .18em;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome h1 {
+  max-width: 760px;
+  margin: 0;
+  color: #EDEDED;
+  font: 500 clamp(2rem, 4vw, 3.45rem)/1.08 Georgia, 'Times New Roman', serif;
+  letter-spacing: -.035em;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome > p {
+  max-width: 650px;
+  margin: 13px 0 0;
+  color: #9CA3AF;
+  font-size: .86rem;
+  line-height: 1.55;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome-signals { display: none; }
+
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts {
+  display: flex;
+  width: min(820px, 100%);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 142px auto 0;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button {
+  display: inline-flex;
+  flex: 0 1 auto;
+  min-height: 38px;
+  width: auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  overflow: hidden;
+  border-color: #4B5563;
+  border-radius: 999px;
+  background: rgba(31, 41, 55, .74);
+  box-shadow: none;
+  transform: none;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button:nth-child(n+5) { display: none; }
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button > i {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  font-size: .68rem;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button > span { padding: 0; }
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button b {
+  font-size: .63rem;
+  font-weight: 700;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button small,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button::after { display: none; }
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button:is(:hover, :focus-visible) {
+  border-color: #9CA3AF;
+  background: #4B5563;
+  transform: translateY(-1px);
+}
+
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer-wrap {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  right: 0;
+  left: 0;
+  width: 100%;
+  padding: 0 28px;
+  border: 0;
+  background: transparent;
+  transform: translateY(-10px);
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer:focus-within {
+  position: relative;
+  display: block;
+  width: min(760px, 100%);
+  min-height: 68px;
+  margin-inline: auto;
+  overflow: hidden;
+  border-color: #4B5563;
+  border-radius: 24px;
+  background: #1F2937;
+  box-shadow: 0 18px 52px rgba(0, 0, 0, .28), 0 0 70px rgba(31, 41, 55, .32);
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer:focus-within {
+  border-color: #9CA3AF;
+  box-shadow: 0 18px 52px rgba(0, 0, 0, .32), 0 0 0 3px rgba(156, 163, 175, .08);
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-head { display: none; }
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea:focus {
+  width: 100%;
+  min-height: 66px;
+  margin: 0;
+  padding: 21px 188px 18px 58px;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  font-size: .94rem;
+  line-height: 1.4;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-bottom {
+  position: absolute;
+  inset: 0;
+  min-height: 68px;
+  padding: 0 10px;
+  pointer-events: none;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-context,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-actions { pointer-events: auto; }
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-context > span,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-shortcut { display: none; }
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-attach {
+  border-color: transparent;
+  background: transparent;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-attach:is(:hover, :focus-visible) {
+  border-color: #4B5563;
+  background: #111827;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-disclaimer { display: none; }
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-messages {
+    padding: 18px 16px 154px;
+    overflow-y: auto;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome {
+    min-height: 390px;
+    padding-top: 12px;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-orion--welcome.vai-welcome-mark {
+    width: 46px;
+    height: 46px;
+    margin-bottom: 13px;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-eyebrow { font-size: .5rem; }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome h1 {
+    font-size: clamp(1.7rem, 8vw, 2.25rem);
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-welcome > p {
+    max-width: 330px;
+    margin-top: 10px;
+    font-size: .76rem;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts {
+    display: none;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts::-webkit-scrollbar { display: none; }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-prompts button {
+    flex: 0 0 auto;
+    min-height: 36px;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer-wrap {
+    top: 51%;
+    padding: 0 14px;
+    transform: translateY(-6px);
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer,
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer:focus-within {
+    min-height: 112px;
+    overflow: hidden;
+    border-radius: 20px;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea,
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea:focus {
+    min-height: 58px;
+    padding: 16px 52px 12px 16px;
+    border-radius: 20px 20px 0 0;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-bottom {
+    top: auto;
+    bottom: 0;
+    min-height: 50px;
+    border-top: 1px solid rgba(156, 163, 175, .18);
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-context > span { display: grid; }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-context b { font-size: .62rem; }
+}
+
+/* Orión sin placa: el SVG queda directamente sobre cada superficie. */
+body.vall-ai-body .vai-orion,
+body.vall-ai-body .vai-orion.vai-face,
+body.vall-ai-body .vai-orion.vai-avatar.vai-assistant-face,
+body.vall-ai-body .vai-orion--brand.vai-orb,
+body.vall-ai-body .vai-orion--welcome.vai-welcome-mark,
+body.vall-ai-body .vai-orion--voice.vai-voice-orb.vai-face,
+body.vall-ai-body .vai-conversation-face.vai-orion {
+  border-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-orion::before { display: none !important; }
+body.vall-ai-body .vai-orion-map { filter: drop-shadow(0 0 4px rgba(237, 237, 237, .16)); }
+body.vall-ai-body .vai-orion-lines path { stroke: #9CA3AF; }
+body.vall-ai-body .vai-orion-star { fill: #EDEDED; stroke: #111827; }
+body.vall-ai-body .vai-orion .star-betelgeuse { fill: #9CA3AF; }
+
+/* Contraste final: sólo la paleta aprobada, sin velos azules. */
+body.vall-ai-body .vai-shell,
+body.vall-ai-body .vai-workspace,
+body.vall-ai-body .vai-messages { background-color: #111827; }
+body.vall-ai-body .vai-workspace::before { display: none; }
+body.vall-ai-body .vai-toolbar { background: #111827; }
+body.vall-ai-body .vai-sidebar { background: #1F2937; }
+body.vall-ai-body .vai-composer,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer { background: #1F2937; }
+body.vall-ai-body .vai-composer textarea { color: #EDEDED; }
+body.vall-ai-body .vai-composer textarea::placeholder { color: #9CA3AF; opacity: 1; }
+
+/* Historial v3 · biblioteca compacta de conversaciones. */
+body.vall-ai-body .vai-sidebar {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding: 14px 12px 12px;
+  border-right: 1px solid #4B5563;
+  background: #1F2937;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-sidebar::before { display: none; }
+
+body.vall-ai-body .vai-side-brand {
+  min-height: 58px;
+  margin: 0 0 12px;
+  padding: 2px 5px 14px;
+  border-bottom: 1px solid rgba(156, 163, 175, .24);
+}
+body.vall-ai-body .vai-side-brand-copy strong {
+  color: #EDEDED;
+  font-size: .78rem;
+  letter-spacing: .12em;
+}
+body.vall-ai-body .vai-side-brand-copy span { color: #9CA3AF; }
+
+body.vall-ai-body .vai-sidebar-primary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-new {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  justify-content: flex-start;
+  gap: 9px;
+  border: 1px solid #EDEDED;
+  border-radius: 12px;
+  background: #EDEDED;
+  color: #111827;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-new:is(:hover, :focus-visible) {
+  border-color: #9CA3AF;
+  background: #9CA3AF;
+  color: #111827;
+  transform: none;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-sidebar-collapse,
+body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary .vai-sidebar-collapse {
+  display: grid !important;
+  width: 44px;
+  min-height: 44px;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #4B5563 !important;
+  border-radius: 12px;
+  background: #111827 !important;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-sidebar-collapse:is(:hover, :focus-visible) {
+  border-color: #9CA3AF !important;
+  background: #4B5563 !important;
+  transform: none;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-sidebar-collapse i,
+body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary .vai-sidebar-collapse i {
+  width: auto;
+  height: auto;
+  border: 0 !important;
+  background: transparent !important;
+  color: #EDEDED !important;
+  font-size: .78rem;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-sidebar-collapse-copy { display: none; }
+
+body.vall-ai-body .vai-search {
+  min-height: 42px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid #4B5563;
+  border-radius: 12px;
+  background: #111827;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-search:focus-within { border-color: #9CA3AF; box-shadow: none; }
+body.vall-ai-body .vai-search > i { color: #9CA3AF; }
+body.vall-ai-body .vai-search input {
+  color: #EDEDED;
+  font-size: .7rem;
+}
+
+body.vall-ai-body .vai-history-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 20px 5px 9px;
+  padding: 0;
+  border: 0;
+}
+body.vall-ai-body .vai-history-head > div { display: grid; gap: 3px; }
+body.vall-ai-body .vai-history-head span {
+  color: #EDEDED;
+  font-size: .66rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+body.vall-ai-body .vai-history-head small {
+  color: #9CA3AF;
+  font-size: .56rem;
+}
+body.vall-ai-body .vai-history-head kbd {
+  display: grid;
+  min-width: 26px;
+  height: 24px;
+  place-items: center;
+  padding: 0 7px;
+  border: 1px solid #4B5563;
+  border-radius: 8px;
+  color: #EDEDED;
+  background: #111827;
+  font: 700 .61rem/1 Inter, sans-serif;
+}
+
+body.vall-ai-body .vai-history {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0 2px 12px;
+  overflow-y: auto;
+  scrollbar-color: #4B5563 transparent;
+  scrollbar-width: thin;
+}
+body.vall-ai-body .vai-history-empty {
+  display: grid;
+  min-height: 180px;
+  place-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  color: #9CA3AF;
+  text-align: center;
+  font-size: .65rem;
+  line-height: 1.55;
+}
+body.vall-ai-body .vai-history-empty i {
+  margin: 0 auto;
+  color: #9CA3AF;
+  font-size: .9rem;
+}
+body.vall-ai-body .vai-history-item {
+  min-height: 58px;
+  margin: 0 0 6px;
+  padding: 8px;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #9CA3AF;
+  transform: none;
+}
+body.vall-ai-body .vai-history-item:is(:hover, .active) {
+  border-color: #4B5563;
+  background: #111827;
+  color: #EDEDED;
+  transform: none;
+}
+body.vall-ai-body .vai-history-item.active::before { display: none; }
+body.vall-ai-body .vai-history-icon {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #4B5563;
+  border-radius: 10px;
+  background: #1F2937 !important;
+  color: #9CA3AF !important;
+}
+body.vall-ai-body .vai-history-copy strong {
+  color: #EDEDED;
+  font-size: .67rem;
+  line-height: 1.25;
+}
+body.vall-ai-body .vai-history-copy small { color: #9CA3AF; font-size: .55rem; }
+body.vall-ai-body .vai-history-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-history-remove:hover { background: #4B5563; color: #EDEDED; }
+
+@media (min-width: 761px) {
+  body.vall-ai-body .vai-sidebar.collapsed { padding-inline: 10px; }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-side-brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 8px;
+  }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary .vai-new,
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary .vai-sidebar-collapse {
+    width: 46px;
+    min-height: 46px;
+    justify-content: center;
+    padding: 0;
+  }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary .vai-new span { display: none; }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-history-item {
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+    grid-template-columns: 1fr;
+    place-items: center;
+    margin-inline: auto;
+    padding: 5px;
+  }
+}
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-sidebar { padding: 12px; }
+  body.vall-ai-body .vai-side-brand { min-height: 54px; }
+  body.vall-ai-body .vai-sidebar-primary { grid-template-columns: minmax(0, 1fr) 44px; }
+}
+
+/* Conversación v4 · lectura continua, inspirada en la sencillez de un chat moderno. */
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-messages {
+  padding: 34px clamp(20px, 5vw, 76px) 24px;
+  background: #111827;
+}
+
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-message {
+  width: min(900px, 100%);
+  max-width: 900px;
+  margin: 0 auto 26px;
+}
+
+/* La consulta del usuario es una burbuja breve, sin avatar ni cabecera redundante. */
+body.vall-ai-body .vai-message.user {
+  display: flex;
+  justify-content: flex-end;
+  padding-left: min(18%, 150px);
+  margin-bottom: 38px;
+}
+body.vall-ai-body .vai-message.user > .vai-avatar,
+body.vall-ai-body .vai-message.user .vai-message-meta { display: none !important; }
+body.vall-ai-body .vai-message.user .vai-bubble {
+  position: relative;
+  width: auto;
+  max-width: min(640px, 82%);
+  padding: 10px 15px;
+  border: 0;
+  border-radius: 20px 20px 5px 20px;
+  background: #1F2937;
+  box-shadow: none;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-message.user .vai-bubble :is(p, ul, ol) {
+  margin-block: 0;
+  color: #EDEDED;
+  font-size: .82rem;
+  line-height: 1.55;
+}
+body.vall-ai-body .vai-message.user .vai-user-message-actions {
+  position: absolute;
+  right: 2px;
+  bottom: -30px;
+  margin: 0;
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+body.vall-ai-body .vai-message.user .vai-bubble:is(:hover, :focus-within) .vai-user-message-actions { opacity: 1; }
+body.vall-ai-body .vai-message.user .vai-edit-message {
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9CA3AF;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-message.user .vai-edit-message:is(:hover, :focus-visible) {
+  background: #1F2937;
+  color: #EDEDED;
+  transform: none;
+}
+
+/* La respuesta se presenta como contenido, no como una tarjeta dentro de otra tarjeta. */
+body.vall-ai-body .vai-message.assistant {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: start;
+  gap: 13px;
+}
+body.vall-ai-body .vai-message.assistant > .vai-avatar {
+  display: grid !important;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  margin: 1px 0 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.vall-ai-body .vai-message.assistant > .vai-avatar .vai-orion-map { width: 28px; height: 28px; }
+body.vall-ai-body .vai-message.assistant .vai-bubble {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-message.assistant .vai-message-meta {
+  min-height: 0;
+  margin: 0 0 9px;
+  padding: 3px 0 0;
+  border: 0;
+  background: transparent;
+}
+body.vall-ai-body .vai-message.assistant .vai-message-meta span {
+  color: #9CA3AF;
+  font-size: .65rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+body.vall-ai-body .vai-message.assistant .vai-message-meta small {
+  margin-left: auto;
+  color: #4B5563;
+  font-size: .56rem;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content {
+  display: block;
+  padding: 0;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-overview { display: none; }
+body.vall-ai-body .vai-message.assistant .vai-answer-content .vai-answer-lead {
+  max-width: 82ch;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #EDEDED;
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1.65;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content :is(p, li) {
+  color: #EDEDED;
+  line-height: 1.68;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content :is(h2, h3) { color: #EDEDED; }
+
+body.vall-ai-body .vai-message.assistant .vai-answer-map {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-map > span { color: #9CA3AF; }
+body.vall-ai-body .vai-message.assistant .vai-answer-map button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border-color: #4B5563;
+  background: transparent;
+}
+
+body.vall-ai-body .vai-message.assistant .vai-followups {
+  margin: 15px 0 0;
+  padding: 8px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(75, 85, 99, .45);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: 3px;
+}
+body.vall-ai-body .vai-message.assistant .vai-followups > small { display: none; }
+body.vall-ai-body .vai-message.assistant .vai-followups button {
+  min-height: 31px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9CA3AF;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-message.assistant .vai-followups button:is(:hover, :focus-visible) {
+  background: #1F2937;
+  color: #EDEDED;
+  transform: none;
+}
+
+body.vall-ai-body .vai-message.assistant .vai-response-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 2px 0 0;
+  padding: 2px 0 0;
+  border: 0;
+  background: transparent;
+}
+body.vall-ai-body .vai-message.assistant .vai-actions-label { display: none; }
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button,
+body.vall-ai-body .vai-message.assistant .vai-feedback-group button {
+  display: inline-grid;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9CA3AF;
+  box-shadow: none;
+  font-size: 0;
+}
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button i,
+body.vall-ai-body .vai-message.assistant .vai-feedback-group button i { font-size: .76rem; }
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button:is(:hover, :focus-visible),
+body.vall-ai-body .vai-message.assistant .vai-feedback-group button:is(:hover, :focus-visible) {
+  background: #1F2937;
+  color: #EDEDED;
+  transform: none;
+}
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button.is-export-ready {
+  color: #86EFAC;
+  background: rgba(34, 197, 94, .13);
+}
+body.vall-ai-body .vai-message.assistant .vai-pdf-download {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 9px;
+  margin: 12px 0 7px;
+  padding: 10px 12px;
+  border: 1px solid rgba(134, 239, 172, .42);
+  border-radius: 10px;
+  background: rgba(34, 197, 94, .09);
+  color: #DCFCE7;
+  text-decoration: none;
+}
+body.vall-ai-body .vai-message.assistant .vai-pdf-download > i:first-child { color: #86EFAC; font-size: 1.05rem; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-download > i:last-child { color: #BBF7D0; font-size: .72rem; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-download span { min-width: 0; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-download strong,
+body.vall-ai-body .vai-message.assistant .vai-pdf-download small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-download strong { font-size: .78rem; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-download small { margin-top: 2px; color: #A7F3D0; font-size: .65rem; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-download:is(:hover, :focus-visible) { background: rgba(34, 197, 94, .16); border-color: #86EFAC; color: #F0FDF4; }
+body.vall-ai-body .vai-message.assistant .vai-answer-content.is-pdf-document { padding-top: 0; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview {
+  overflow: hidden;
+  border: 1px solid #526174;
+  border-radius: 12px;
+  background: #111827;
+}
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-bottom: 1px solid #526174;
+  background: #1B2636;
+}
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview > header span { color: #E5E7EB; font-weight: 800; font-size: .74rem; letter-spacing: .04em; text-transform: uppercase; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview > header span i { margin-right: 6px; color: #FB7185; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview > header a { color: #DCFCE7; font-size: .72rem; font-weight: 800; text-decoration: none; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview > header a i { margin-right: 5px; color: #86EFAC; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview-actions { display: inline-flex; align-items: center; gap: 14px; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview [data-pdf-expand] { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #C7D7EA; font: inherit; font-size: .72rem; font-weight: 800; cursor: pointer; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview [data-pdf-expand]:is(:hover, :focus-visible) { color: #FFFFFF; outline: none; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview [data-pdf-expand] i { color: #93C5FD; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview-title { padding: 14px 16px 11px; background: #111827; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview-title h2 { margin: 0; border: 0; color: #F8FAFC; font-size: 1.02rem; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview-title p { margin: 6px 0 0; color: #B8C7D8; font-size: .78rem; line-height: 1.45; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-preview iframe { display: block; width: 100%; height: clamp(640px, 72vh, 860px); border: 0; background: #F8FAFC; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-source { margin: 10px 0 4px; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-source > summary { cursor: pointer; color: #B8C7D8; font-size: .74rem; font-weight: 700; }
+body.vall-ai-body .vai-message.assistant .vai-pdf-source-content { margin-top: 12px; }
+@media (max-width: 620px) {
+  body.vall-ai-body .vai-message.assistant .vai-pdf-preview > header { gap: 8px; padding: 11px 12px; }
+  body.vall-ai-body .vai-message.assistant .vai-pdf-preview-actions { gap: 9px; }
+  body.vall-ai-body .vai-message.assistant .vai-pdf-preview [data-pdf-expand] span { display: none; }
+  body.vall-ai-body .vai-message.assistant .vai-pdf-preview iframe { height: 540px; }
+}
+body.vall-ai-body .vai-message.assistant .vai-response-actions .vai-feedback-group {
+  display: flex !important;
+  width: auto;
+  margin-left: 3px !important;
+  gap: 2px !important;
+}
+
+/* Compositor fijo y compacto: una sola línea visual en escritorio, tableta y móvil. */
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer-wrap {
+  padding: 9px clamp(16px, 4vw, 54px) 7px;
+  border-top: 0;
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0), #111827 24%);
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer {
+  position: relative;
+  width: min(860px, 100%);
+  min-height: 64px;
+  margin-inline: auto;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid #4B5563;
+  border-radius: 24px;
+  background: #1F2937;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .2);
+  transform: none;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer::before,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-head { display: none !important; }
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer:focus-within {
+  border-color: #9CA3AF;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .2);
+  transform: none;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 62px;
+  max-height: 160px;
+  margin: 0;
+  padding: 20px 112px 17px 56px;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: #EDEDED;
+  font-size: .8rem;
+  line-height: 1.5;
+  resize: none;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-bottom {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 10px;
+  border: 0;
+  pointer-events: none;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-context,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-actions { pointer-events: auto; }
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-context > span,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-shortcut { display: none; }
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) :is(.vai-attach, .vai-stop, .vai-send) {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 50%;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-attach {
+  border: 0;
+  background: transparent;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-attach:is(:hover, :focus-visible) {
+  background: #111827;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-send {
+  border: 0;
+  background: #EDEDED;
+  color: #111827;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-disclaimer {
+  margin-top: 5px;
+  color: #9CA3AF;
+  font-size: .52rem;
+}
+
+/* Historial v4 · navegación de texto, sin una pila de recuadros. */
+body.vall-ai-body .vai-sidebar-primary { gap: 3px; margin-bottom: 8px; }
+body.vall-ai-body .vai-sidebar-primary .vai-new {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-new:is(:hover, :focus-visible) {
+  border: 0;
+  background: #111827;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-sidebar-collapse,
+body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary .vai-sidebar-collapse {
+  width: 40px;
+  min-height: 40px;
+  border: 0 !important;
+  border-radius: 10px;
+  background: transparent !important;
+}
+body.vall-ai-body .vai-sidebar-primary .vai-sidebar-collapse:is(:hover, :focus-visible) { background: #111827 !important; }
+body.vall-ai-body .vai-search {
+  min-height: 40px;
+  padding-inline: 10px;
+  border-color: transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+body.vall-ai-body .vai-search:is(:hover, :focus-within) { border-color: transparent; background: #111827; }
+body.vall-ai-body .vai-history-head { margin: 17px 10px 7px; }
+body.vall-ai-body .vai-history-head small { display: none; }
+body.vall-ai-body .vai-history-head kbd {
+  min-width: 22px;
+  height: 20px;
+  padding-inline: 5px;
+  border: 0;
+  background: transparent;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-sidebar:not(.collapsed) .vai-history-item {
+  min-height: 42px;
+  margin-bottom: 2px;
+  padding: 7px 9px;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 4px;
+  border: 0;
+  border-radius: 9px;
+}
+body.vall-ai-body .vai-sidebar:not(.collapsed) .vai-history-item:is(:hover, .active) {
+  border: 0;
+  background: #111827;
+}
+body.vall-ai-body .vai-sidebar:not(.collapsed) .vai-history-icon { display: none; }
+body.vall-ai-body .vai-history-copy strong {
+  overflow: hidden;
+  font-size: .68rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.vall-ai-body .vai-history-copy small { margin-top: 2px; font-size: .53rem; }
+/* Eliminar es una acción disponible, no un control oculto: dejar el icono
+   visible evita que el historial parezca imposible de administrar. */
+body.vall-ai-body .vai-history-remove { opacity: .72; }
+body.vall-ai-body .vai-history-item:is(:hover, :focus-within) .vai-history-remove { opacity: 1; }
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-messages { padding: 18px 14px 14px; }
+  body.vall-ai-body .vai-message.user { padding-left: 10%; }
+  body.vall-ai-body .vai-message.user .vai-bubble { max-width: 90%; }
+  body.vall-ai-body .vai-message.user .vai-user-message-actions { opacity: 1; }
+  body.vall-ai-body .vai-message.assistant { grid-template-columns: 24px minmax(0, 1fr); gap: 9px; }
+  body.vall-ai-body .vai-message.assistant > .vai-avatar { width: 24px; height: 24px; min-width: 24px; }
+  body.vall-ai-body .vai-message.assistant > .vai-avatar .vai-orion-map { width: 23px; height: 23px; }
+  body.vall-ai-body .vai-message.assistant .vai-message-meta small { display: none; }
+  body.vall-ai-body .vai-message.assistant .vai-followups { gap: 1px; }
+  body.vall-ai-body .vai-message.assistant .vai-followups button { padding-inline: 6px; font-size: .61rem; }
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer-wrap { padding: 8px 10px 6px; }
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+    min-height: 60px;
+    padding: 19px 104px 16px 52px;
+    font-size: .76rem;
+  }
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-bottom { min-height: 60px; padding-inline: 8px; }
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) :is(.vai-attach, .vai-stop, .vai-send) {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+}
+
+@media (hover: none) {
+  body.vall-ai-body .vai-history-remove { opacity: .72; }
+}
+
+/* Neutraliza el acento dorado heredado del diseño editorial anterior. */
+body.vall-ai-body .vai-message.assistant .vai-bubble::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Compositor v5 · compacto al escribir y con una acción de voz comprensible. */
+body.vall-ai-body .vai-attachments[hidden],
+body.vall-ai-body .vai-dropzone[hidden] { display: none !important; }
+body.vall-ai-body .vai-composer,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer {
+  min-height: 58px;
+  overflow: visible;
+  border-radius: 22px;
+}
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer-wrap {
+  transform: translateY(-4px);
+}
+body.vall-ai-body .vai-composer textarea,
+body.vall-ai-body .vai-composer textarea:focus,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea:focus,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+  min-height: 56px;
+  max-height: 144px;
+  margin: 0;
+  padding: 17px 202px 15px 54px;
+  overflow-y: auto;
+  border-radius: 22px;
+  line-height: 1.45;
+}
+body.vall-ai-body .vai-compose-bottom,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-bottom,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-bottom {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  min-height: 56px;
+  align-items: flex-end;
+  padding: 8px 9px;
+  border: 0;
+}
+body.vall-ai-body .vai-compose-actions { gap: 6px; }
+body.vall-ai-body .vai-mic-btn,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-mic-btn,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-mic-btn {
+  display: inline-flex;
+  width: auto;
+  min-width: 126px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid #4B5563;
+  border-radius: 999px;
+  background: #111827;
+  color: #EDEDED;
+  box-shadow: none;
+  white-space: nowrap;
+}
+body.vall-ai-body .vai-mic-btn i { color: #EDEDED; font-size: .74rem; }
+body.vall-ai-body .vai-mic-btn span {
+  color: inherit;
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+body.vall-ai-body .vai-mic-btn:is(:hover, :focus-visible) {
+  border-color: #9CA3AF;
+  background: #4B5563;
+  color: #EDEDED;
+  transform: none;
+}
+body.vall-ai-body .vai-mic-btn.listening {
+  border-color: #EDEDED;
+  background: #EDEDED;
+  color: #111827;
+  animation: none;
+}
+body.vall-ai-body .vai-mic-btn.listening i { color: #111827; }
+body.vall-ai-body .vai-attach,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-attach,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-attach {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+}
+body.vall-ai-body .vai-send,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-send,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-send {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+}
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer,
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer:focus-within {
+    min-height: 58px;
+    border-radius: 22px;
+  }
+  body.vall-ai-body .vai-composer textarea,
+  body.vall-ai-body .vai-composer textarea:focus,
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea,
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea:focus,
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+    width: 100%;
+    min-height: 56px;
+    margin: 0;
+    padding: 17px 100px 15px 52px;
+    border-radius: 22px;
+  }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-bottom,
+  body.vall-ai-body .vai-compose-bottom { min-height: 56px; padding: 8px; }
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-context > span { display: none; }
+  body.vall-ai-body .vai-mic-btn,
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-mic-btn,
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-mic-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+  body.vall-ai-body .vai-mic-btn span { display: none; }
+}
+
+/* Conversación v6 · mayor superficie de lectura y progreso de ORION integrado. */
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) {
+  grid-template-rows: 56px minmax(0, 1fr) auto;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-messages {
+  min-height: 0;
+  padding: 22px clamp(20px, 3.6vw, 58px) 18px;
+  scroll-padding-block: 22px 28px;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-message {
+  width: min(980px, 100%);
+  max-width: 980px;
+}
+body.vall-ai-body .vai-message.user {
+  width: min(980px, 100%);
+  padding-left: clamp(70px, 24%, 260px);
+  margin-bottom: 26px;
+}
+body.vall-ai-body .vai-message.user .vai-bubble {
+  max-width: min(610px, 78%);
+  padding: 9px 14px;
+  border-radius: 18px 18px 5px 18px;
+}
+body.vall-ai-body .vai-message.assistant {
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+body.vall-ai-body .vai-message.assistant > .vai-avatar {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+}
+body.vall-ai-body .vai-message.assistant > .vai-avatar .vai-orion-map {
+  width: 25px;
+  height: 25px;
+}
+body.vall-ai-body .vai-message.assistant .vai-message-meta {
+  margin-bottom: 11px;
+  padding-top: 1px;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content {
+  max-width: 88ch;
+  font-size: .86rem;
+  line-height: 1.72;
+}
+/* Un PDF necesita más superficie que una respuesta convencional. */
+body.vall-ai-body .vai-message.assistant:has(.vai-pdf-preview) {
+  width: min(1180px, 100%);
+  max-width: 1180px;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content.is-pdf-document {
+  max-width: none;
+}
+body.vall-ai-body .vai-pdf-preview:fullscreen,
+body.vall-ai-body .vai-pdf-preview.is-pdf-focus {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(1440px, 100vw);
+  height: 100vh;
+  max-height: 100vh;
+  border: 0;
+  border-radius: 0;
+  background: #0B1220;
+}
+body.vall-ai-body .vai-pdf-preview.is-pdf-focus {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+body.vall-ai-body .vai-pdf-preview:fullscreen > header,
+body.vall-ai-body .vai-pdf-preview.is-pdf-focus > header { padding: 15px 22px; }
+body.vall-ai-body .vai-pdf-preview:fullscreen .vai-pdf-preview-title,
+body.vall-ai-body .vai-pdf-preview.is-pdf-focus .vai-pdf-preview-title { padding: 15px 22px 13px; }
+body.vall-ai-body .vai-pdf-preview:fullscreen iframe,
+body.vall-ai-body .vai-pdf-preview.is-pdf-focus iframe {
+  height: 100%;
+  min-height: 0;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content > div:not(.vai-answer-overview):not(.vai-answer-map) {
+  max-width: 100%;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content :is(p, ul, ol, table) {
+  max-width: 100%;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content p { margin-block: 0 13px; }
+body.vall-ai-body .vai-message.assistant .vai-answer-content :is(ul, ol) {
+  margin-block: 8px 15px;
+  padding-left: 1.3rem;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content li { margin-block: 6px; }
+body.vall-ai-body .vai-message.assistant .vai-answer-content :is(h2, h3) {
+  margin: 22px 0 10px;
+  padding: 0;
+  border: 0;
+  font-size: 1rem;
+}
+body.vall-ai-body .vai-message.assistant .vai-answer-content :is(h2, h3)::before { display: none; }
+
+/* Al pensar no aparece otra tarjeta: ORION ocupa la misma columna que la respuesta. */
+body.vall-ai-body .vai-message.assistant.is-thinking {
+  min-height: 62px;
+  align-items: center;
+  margin-top: 3px;
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-message-meta { display: none; }
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-bubble {
+  align-self: center;
+  min-height: 52px;
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  width: min(520px, 100%);
+  min-height: 52px;
+  align-items: center;
+  gap: 11px;
+  padding: 5px 0 8px;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 45px;
+  height: 1px;
+  background: linear-gradient(90deg, #9CA3AF 0 22%, #4B5563 22% 100%);
+  background-size: 220% 100%;
+  animation: vai-orion-progress 1.65s ease-in-out infinite;
+  content: '';
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking-orbit {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid #4B5563;
+  border-radius: 50%;
+  background: #1F2937;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking-orbit i {
+  width: 3px;
+  height: 3px;
+  margin-inline: 1.5px;
+  background: #EDEDED;
+  animation: vai-thinking-pulse 1.05s ease-in-out infinite;
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking-copy {
+  display: grid;
+  gap: 4px;
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking-copy strong {
+  color: #EDEDED;
+  font-size: .76rem;
+  font-weight: 650;
+}
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking-copy small {
+  color: #9CA3AF;
+  font-size: .65rem;
+  line-height: 1.35;
+}
+body.vall-ai-body .vai-message.assistant.is-streaming .vai-bubble {
+  min-height: 42px;
+  color: #EDEDED;
+  font-size: .86rem;
+  line-height: 1.72;
+}
+body.vall-ai-body .vai-message.assistant.is-streaming .vai-bubble::after {
+  display: inline-block;
+  width: 5px;
+  height: 1em;
+  margin-left: 4px;
+  border-radius: 2px;
+  background: #9CA3AF;
+  vertical-align: -.16em;
+  animation: vai-stream-caret .9s steps(1) infinite;
+  content: '';
+}
+@keyframes vai-orion-progress {
+  0% { background-position: 100% 0; opacity: .45; }
+  50% { opacity: 1; }
+  100% { background-position: -110% 0; opacity: .45; }
+}
+@keyframes vai-stream-caret { 50% { opacity: .22; } }
+
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer-wrap {
+  padding-top: 7px;
+  padding-bottom: 6px;
+}
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-messages {
+    padding: 15px 12px 14px;
+  }
+  body.vall-ai-body .vai-message.user {
+    padding-left: 16%;
+    margin-bottom: 24px;
+  }
+  body.vall-ai-body .vai-message.user .vai-bubble { max-width: 92%; }
+  body.vall-ai-body .vai-message.assistant {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 8px;
+  }
+  body.vall-ai-body .vai-message.assistant > .vai-avatar,
+  body.vall-ai-body .vai-message.assistant > .vai-avatar .vai-orion-map {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+  }
+  body.vall-ai-body .vai-message.assistant .vai-answer-content,
+  body.vall-ai-body .vai-message.assistant.is-streaming .vai-bubble {
+    font-size: .8rem;
+    line-height: 1.66;
+  }
+  body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 9px;
+  }
+  body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking-orbit {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+body.vall-ai-body .vai-message.assistant.is-thinking .vai-thinking::after { left: 39px; }
+}
+
+/* Controles v7 · acciones compactas para historial y conversación por voz. */
+body.vall-ai-body .vai-sidebar:not(.collapsed) .vai-history-item {
+  grid-template-columns: minmax(0, 1fr) 24px;
+  column-gap: 7px;
+}
+body.vall-ai-body .vai-history-remove {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  align-self: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: #9CA3AF;
+  line-height: 1;
+  transition: opacity .16s ease, color .16s ease, background-color .16s ease, border-color .16s ease;
+}
+body.vall-ai-body .vai-history-remove i {
+  display: block;
+  margin: 0;
+  font-size: .62rem;
+  line-height: 1;
+}
+body.vall-ai-body .vai-history-item:is(:hover, :focus-within) .vai-history-remove {
+  border-color: #4B5563;
+  background: #1F2937;
+}
+body.vall-ai-body .vai-history-remove:is(:hover, :focus-visible) {
+  border-color: #9CA3AF;
+  background: #4B5563;
+  color: #EDEDED;
+  outline: none;
+}
+body.vall-ai-body .vai-mic-btn,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-mic-btn,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-mic-btn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  border-color: #4B5563;
+  border-radius: 50%;
+  background: #1F2937;
+}
+body.vall-ai-body .vai-mic-btn .vai-orion-map {
+  width: 23px;
+  height: 27px;
+  overflow: visible;
+}
+body.vall-ai-body .vai-mic-btn .vai-orion-lines {
+  fill: none;
+  stroke: #9CA3AF;
+  stroke-width: 2;
+  opacity: .72;
+}
+body.vall-ai-body .vai-mic-btn .vai-orion-star {
+  fill: #EDEDED;
+  filter: none;
+}
+body.vall-ai-body .vai-mic-btn:is(:hover, :focus-visible) .vai-orion-lines { stroke: #EDEDED; opacity: 1; }
+body.vall-ai-body .vai-mic-btn.listening {
+  width: 40px;
+  min-width: 40px;
+  box-shadow: 0 0 0 4px rgba(156, 163, 175, .14);
+}
+body.vall-ai-body .vai-mic-btn.listening .vai-orion-map { animation: vai-orion-mic-pulse 1.35s ease-in-out infinite; }
+@keyframes vai-orion-mic-pulse { 50% { opacity: .58; transform: scale(.92); } }
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-mic-btn,
+  body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-mic-btn,
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-mic-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  body.vall-ai-body .vai-mic-btn span { display: none; }
+}
+
+/* Lienzo v8 definitivo · sin franja contextual en escritorio. */
+body.vall-ai-body .vai-workspace,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) {
+  position: relative;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+body.vall-ai-body .vai-toolbar { display: none !important; }
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-toolbar {
+    position: absolute;
+    z-index: 12;
+    top: 10px;
+    left: 10px;
+    display: block !important;
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+  body.vall-ai-body .vai-history-toggle {
+    display: grid !important;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid #4B5563;
+    border-radius: 50%;
+    background: #1F2937;
+    color: #EDEDED;
+    box-shadow: 0 8px 22px rgba(17, 24, 39, .28);
+    pointer-events: auto;
+  }
+  body.vall-ai-body .vai-history-toggle span { display: none; }
+  body.vall-ai-body .vai-messages { padding-top: 58px !important; }
+}
+
+/* Compositor adaptable: el texto usa el ancho disponible y sólo muestra scroll
+   después de alcanzar una altura útil de lectura. */
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+  max-height: 224px;
+  padding: 16px 126px 15px 52px;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer.is-expanded {
+  border-radius: 20px;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer.is-expanded textarea {
+  border-radius: 20px;
+}
+@media (max-width: 1040px) {
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer-wrap {
+    padding-inline: clamp(12px, 3vw, 28px);
+  }
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+    padding-right: 112px;
+  }
+}
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+    max-height: 180px;
+    padding: 15px 100px 14px 50px;
+    font-size: .78rem;
+    line-height: 1.48;
+  }
+}
+@media (max-width: 430px) {
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+    padding-left: 46px;
+    padding-right: 94px;
+    font-size: .75rem;
+  }
+}
+
+/* Biblioteca lateral ORION · un panel continuo de conversaciones, inspirado
+   en el patrón de Gemini sin introducir funciones que no pertenecen a ORION. */
+body.vall-ai-body .vai-shell {
+  gap: 0;
+  background: #111827;
+}
+body.vall-ai-body .vai-sidebar {
+  padding: 12px 10px 10px;
+  border-right: 1px solid #374151;
+  background: #1F2937;
+}
+body.vall-ai-body .vai-side-brand {
+  min-height: 44px;
+  margin-bottom: 8px;
+  padding: 0 6px 10px;
+}
+body.vall-ai-body .vai-side-brand-copy strong {
+  font-size: .75rem;
+  letter-spacing: .1em;
+}
+body.vall-ai-body .vai-side-brand-copy span { display: none; }
+body.vall-ai-body .vai-sidebar-primary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin: 0 0 6px;
+}
+body.vall-ai-body .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command) {
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 10px;
+  justify-content: flex-start;
+  gap: 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #EDEDED;
+  font-size: .73rem;
+  font-weight: 650;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command) i {
+  width: 18px;
+  color: #D1D5DB;
+  text-align: center;
+}
+body.vall-ai-body .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command):is(:hover, :focus-visible) {
+  border-color: transparent;
+  background: #111827;
+  color: #FFFFFF;
+  box-shadow: none;
+  transform: none;
+}
+body.vall-ai-body .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command):is(:hover, :focus-visible) i { color: #FFFFFF; }
+
+/* La búsqueda se abre por comando; no ocupa espacio hasta que se necesita. */
+body.vall-ai-body .vai-sidebar .vai-search { display: none; margin: 4px 4px 10px; }
+body.vall-ai-body .vai-sidebar.searching .vai-search { display: flex; }
+body.vall-ai-body .vai-history-head {
+  margin: 14px 8px 6px;
+}
+body.vall-ai-body .vai-history-head > div { display: block; }
+body.vall-ai-body .vai-history-head span {
+  font-size: .68rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+body.vall-ai-body .vai-history-head small,
+body.vall-ai-body .vai-history-head kbd { display: none; }
+body.vall-ai-body .vai-history { padding: 0 1px 8px; }
+body.vall-ai-body .vai-history-item {
+  min-height: 36px;
+  margin: 0 0 2px;
+  padding: 5px 8px;
+  grid-template-columns: minmax(0, 1fr) 25px;
+  gap: 2px;
+  border: 0;
+  border-radius: 9px;
+}
+body.vall-ai-body .vai-history-item:is(:hover, .active) {
+  border-color: transparent;
+  background: #111827;
+}
+body.vall-ai-body .vai-history-icon,
+body.vall-ai-body .vai-history-copy small { display: none; }
+body.vall-ai-body .vai-history-copy strong {
+  display: block;
+  overflow: hidden;
+  color: #EDEDED;
+  font-size: .7rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.vall-ai-body .vai-history-remove {
+  width: 25px;
+  height: 25px;
+  opacity: 0;
+}
+body.vall-ai-body .vai-history-item:is(:hover, :focus-within) .vai-history-remove { opacity: .72; }
+body.vall-ai-body .vai-sidebar-footer {
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 42px;
+  align-items: flex-end;
+  padding: 8px 2px 0;
+  border-top: 1px solid rgba(156, 163, 175, .18);
+}
+body.vall-ai-body .vai-sidebar-footer .vai-sidebar-collapse,
+body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-footer .vai-sidebar-collapse {
+  display: flex !important;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0 !important;
+  border-radius: 9px;
+  background: transparent !important;
+  color: #9CA3AF;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-sidebar-footer .vai-sidebar-collapse:is(:hover, :focus-visible) {
+  background: #111827 !important;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-sidebar-footer .vai-sidebar-collapse i,
+body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-footer .vai-sidebar-collapse i {
+  color: inherit !important;
+  font-size: .72rem;
+}
+body.vall-ai-body .vai-sidebar-footer .vai-sidebar-collapse-copy {
+  display: inline;
+  color: inherit;
+  font-size: .68rem;
+}
+
+@media (min-width: 761px) {
+  body.vall-ai-body .vai-shell { grid-template-columns: 264px minmax(0, 1fr); }
+  body.vall-ai-body .vai-shell.sidebar-collapsed { grid-template-columns: 66px minmax(0, 1fr); }
+  body.vall-ai-body .vai-sidebar.collapsed { padding-inline: 9px; }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-side-brand {
+    min-height: 45px;
+    justify-content: center;
+    padding: 0;
+    border-bottom: 0;
+  }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-side-brand-copy,
+  body.vall-ai-body .vai-sidebar.collapsed .vai-search,
+  body.vall-ai-body .vai-sidebar.collapsed .vai-history-head,
+  body.vall-ai-body .vai-sidebar.collapsed .vai-history { display: none !important; }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary {
+    justify-items: center;
+    gap: 5px;
+  }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command) {
+    width: 42px;
+    min-height: 42px;
+    justify-content: center;
+    padding: 0;
+  }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command) span,
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-footer .vai-sidebar-collapse-copy { display: none; }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-footer { justify-content: center; }
+  body.vall-ai-body .vai-sidebar.collapsed .vai-sidebar-footer .vai-sidebar-collapse {
+    width: 42px;
+    justify-content: center;
+    padding: 0;
+  }
 }

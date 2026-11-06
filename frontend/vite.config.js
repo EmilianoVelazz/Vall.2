@@ -6,6 +6,8 @@ const API = `http://localhost:${Number(process.env.VN_API_PORT) || 3101}`;
 export default defineConfig({
   plugins: [react()],
   build: {
+    outDir: '../dist',
+    emptyOutDir: true,
     assetsDir: 'vn-app',
   },
   server: {
@@ -15,9 +17,6 @@ export default defineConfig({
       '/api':        API,
       '/assets':     API,
       '/inicio.html': API,
-      '/index.html':  API,
-      '/Logotipos':  API,
-      '/fonts':      API,
     },
   },
 });

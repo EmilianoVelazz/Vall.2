@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useInsertionEffect } from 'react';
+import { hojaDelMarco } from './shellStyles.js';
 
 /**
  * Inyecta en el <head> las hojas de estilo que una página React necesita.
@@ -8,7 +9,9 @@ import { useEffect } from 'react';
  * diseño sigue viviendo en un solo archivo. Lo que cambia en la migración es el
  * markup y el estado (ahora JSX + hooks), no la capa visual.
  *
- * Las hojas se marcan con data-vn-page-css para poder retirarlas al desmontar y
+ * El marco viene en index.html como data-vn-shell-css para que las medidas y
+ * reglas responsive estén listas antes del primer dibujo. Nunca se retira.
+ * Las hojas específicas se marcan con data-vn-page-css para retirarlas al desmontar y
  * evitar que el CSS de una sección se filtre a la siguiente. Si otra página ya
  * inyectó la misma hoja se reutiliza y solo se lleva la cuenta de referencias.
  *
@@ -39,26 +42,35 @@ function anclaDelBundle() {
 export default function usePageStyles(hojas) {
   const clave = hojas.join('|');
 
-  useEffect(() => {
+  useInsertionEffect(() => {
     const propias = [];
 
     const ancla = anclaDelBundle();
 
     for (const href of hojas) {
+      if (hojaDelMarco(href)) continue;
       const n = refs.get(href) || 0;
       refs.set(href, n + 1);
       propias.push(href);
       if (n > 0) continue; // ya está en el head
 
-      const link = document.createElement('link');
+      // routePrefetch deja la hoja descargada como preload. Convertir ese mismo
+      // nodo evita una segunda petición y, al ser useInsertionEffect, ocurre
+      // antes de que React inserte el HTML de la sección en pantalla.
+      const link = [...document.querySelectorAll('link[data-vn-prefetch-css]')]
+        .find((el) => el.dataset.vnPrefetchCss === href) || document.createElement('link');
       link.rel = 'stylesheet';
+      link.removeAttribute('as');
       link.href = href;
+      delete link.dataset.vnPrefetchCss;
       link.dataset.vnPageCss = href;
       // insertBefore con el ancla conserva el orden de `hojas` entre ellas y las
       // deja por encima del CSS de la sección. Sin ancla (nada del bundle en el
       // head todavía) se cae al comportamiento anterior.
-      if (ancla) document.head.insertBefore(link, ancla);
-      else document.head.appendChild(link);
+      if (!link.isConnected) {
+        if (ancla) document.head.insertBefore(link, ancla);
+        else document.head.appendChild(link);
+      }
     }
 
     return () => {
@@ -71,6 +83,5 @@ export default function usePageStyles(hojas) {
     };
     // `hojas` suele ser un literal nuevo en cada render; la clave estable evita
     // desmontar y reinyectar el CSS (y el parpadeo que eso provoca).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clave]);
 }

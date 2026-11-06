@@ -706,16 +706,20 @@ const VDS = (() => {
     if (typeof window.Chart !== 'undefined') return Promise.resolve();
     if (_chartJsPromise) return _chartJsPromise;
     _chartJsPromise = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = '/assets/js/vendor/chart.umd.js?v=2';
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error('No se pudo cargar Chart.js'));
-      document.head.appendChild(s);
+      const url='/assets/js/vendor/chart.umd.js?v=2',existing=document.querySelector('script[src="'+url+'"]'),s=existing || document.createElement('script');
+      const loaded=()=>{if(window.Chart){s.dataset.vnLoaded='true';resolve();}else failed();};
+      const failed=()=>{_chartJsPromise=null;s.remove();reject(new Error('No se pudo cargar Chart.js'));};
+      if(existing){s.addEventListener('load',loaded,{once:true});s.addEventListener('error',failed,{once:true});}
+      else{s.src=url;s.onload=loaded;s.onerror=failed;document.head.appendChild(s);}
     });
     return _chartJsPromise;
   }
 
-  const _CHART_PALETTE = ['#00213a', '#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'];
+  // Paleta ORION de alto contraste sobre fondos oscuros. Azul VALLNews para
+  // la serie principal, cian para comparación y verde/rojo sólo para señales
+  // positivas o negativas; así las gráficas conservan el lenguaje visual del
+  // resto del producto también al exportarse a PDF.
+  const _CHART_PALETTE = ['#60A5FA', '#67E8F9', '#34D399', '#FBBF24', '#FB7185', '#C084FC', '#F97316', '#A3E635'];
   const _CHART_TYPES   = new Set(['bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea']);
 
   // Construye un Chart.js sobre un <canvas> ya presente en el DOM a partir de un spec
@@ -730,14 +734,23 @@ const VDS = (() => {
       return {
         label: String(ds.label || `Serie ${i + 1}`).slice(0, 60),
         type: _CHART_TYPES.has(ds.type) && !isSlice ? ds.type : undefined,
-        data: (ds.data || []).slice(0, 24).map(v => { const n = Number(v); return isNaN(n) ? 0 : n; }),
-        backgroundColor: isSlice ? _CHART_PALETTE : color + (type === 'line' ? '26' : 'cc'),
-        borderColor: isSlice ? '#fff' : color,
-        borderWidth: (type === 'line' || ds.type === 'line') ? 2.4 : 1,
+        // Chart.js interpreta `null` como hueco. Convertirlo a cero inventaba
+        // desplomes que no existían cuando faltaba una observación.
+        data: (ds.data || []).slice(0, 24).map(v => {
+          if (v == null || v === '') return null;
+          const n = Number(v);
+          return Number.isFinite(n) ? n : null;
+        }),
+        backgroundColor: isSlice ? _CHART_PALETTE : color + (type === 'line' ? '2B' : 'D9'),
+        borderColor: isSlice ? '#111827' : color,
+        borderWidth: (type === 'line' || ds.type === 'line') ? 3 : 1.4,
         tension: .3,
         fill: (type === 'line' || ds.type === 'line') ? Boolean(spec.fillArea) : false,
-        pointRadius: (type === 'line' || ds.type === 'line') ? 2.5 : 0,
-        pointHoverRadius: (type === 'line' || ds.type === 'line') ? 5 : 0,
+        pointRadius: (type === 'line' || ds.type === 'line') ? 3 : 0,
+        pointHoverRadius: (type === 'line' || ds.type === 'line') ? 6 : 0,
+        pointBackgroundColor: color,
+        pointBorderColor: '#111827',
+        pointBorderWidth: (type === 'line' || ds.type === 'line') ? 1.5 : 0,
         borderRadius: type === 'bar' ? 4 : 0,
       };
     });
@@ -750,12 +763,12 @@ const VDS = (() => {
           maintainAspectRatio: false,
           animation: { duration: 400 },
           plugins: {
-            legend: { display: datasets.length > 1 || isSlice, labels: { font: { size: 10, family: 'Inter' }, color: '#334155', boxWidth: 10 } },
+            legend: { display: datasets.length > 1 || isSlice, labels: { font: { size: 10, family: 'Inter' }, color: '#D7E2EE', boxWidth: 10 } },
           },
           indexAxis: spec.indexAxis === 'y' ? 'y' : 'x',
           scales: isSlice || type === 'radar' || type === 'polarArea' ? {} : {
-            x: { ticks: { font: { size: 9, family: 'Inter' }, color: '#64748b' }, grid: { display: false } },
-            y: { beginAtZero: Boolean(spec.beginAtZero), ticks: { font: { size: 9, family: 'Inter' }, color: '#64748b' }, grid: { color: 'rgba(0,33,58,.06)' } },
+            x: { ticks: { font: { size: 9, family: 'Inter' }, color: '#B8C7D8' }, grid: { display: false } },
+            y: { beginAtZero: Boolean(spec.beginAtZero), ticks: { font: { size: 9, family: 'Inter' }, color: '#B8C7D8' }, grid: { color: 'rgba(148,163,184,.22)' } },
           },
         }, extraOptions),
       });
@@ -788,7 +801,10 @@ const VDS = (() => {
     const answer = String(answerText || '');
     const question = String(questionText || '');
     const number = (value) => {
-      const cleaned = String(value).replace(/[%$€£\s]/g, '').replace(/,(?=\d{3}(?:\D|$))/g, '');
+      let cleaned = String(value).replace(/[%$€£\s]/g, '');
+      const comma = cleaned.lastIndexOf(','), dot = cleaned.lastIndexOf('.');
+      if (comma >= 0 && dot >= 0) cleaned = comma > dot ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/,/g, '');
+      else if (comma >= 0) cleaned = cleaned.length - comma - 1 <= 2 ? cleaned.replace(',', '.') : cleaned.replace(/,/g, '');
       const parsed = Number(cleaned); return Number.isFinite(parsed) ? parsed : null;
     };
     const cells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map(v => v.trim());
@@ -803,7 +819,7 @@ const VDS = (() => {
           data: rows.map(row => number(row[col + 1])),
         })).filter(set => set.data.filter(v => v != null).length >= 2);
         if (labels.length >= 2 && datasets.length) {
-          return { type: 'line', title: 'Visualización de los datos analizados', subtitle: 'Gráfica generada automáticamente a partir de la tabla de la respuesta', unit: /%|porcentaje/i.test(answer + question) ? '%' : '', source: 'Tabla incluida en la respuesta de VALL AI', labels, datasets };
+          return { type: 'line', title: 'Visualización de los datos analizados', subtitle: 'Gráfica generada automáticamente a partir de la tabla de la respuesta', unit: /%|porcentaje/i.test(answer + question) ? '%' : '', source: 'Tabla incluida en la respuesta de ORION', labels, datasets };
         }
       }
     }
@@ -965,11 +981,11 @@ const VDS = (() => {
 <div style="border-bottom:3pt solid #00213A;padding-bottom:12pt;margin-bottom:16pt;">
   <div style="font-size:9pt;font-weight:bold;letter-spacing:2px;color:#00213A;text-transform:uppercase;">VALLNews &middot; Inteligencia Econ&oacute;mica</div>
   <div style="font-size:19pt;font-weight:bold;color:#00213A;margin:5pt 0 2pt;">${_escHtml(title)}</div>
-  <div style="font-size:9pt;color:#64748b;">Generado por VALL-AI &middot; ${stamp}</div>
+  <div style="font-size:9pt;color:#64748b;">Generado por ORION &middot; ${stamp}</div>
 </div>
 <div>${bodyHtml}</div>
 <div style="margin-top:22pt;padding-top:9pt;border-top:1pt solid #dbe2ea;font-size:8pt;color:#94a3b8;">
-  Documento generado autom&aacute;ticamente por VALL-AI a partir de datos en tiempo real de VALLNews. Uso informativo &mdash; no constituye asesor&iacute;a financiera formal.
+  Documento generado autom&aacute;ticamente por ORION a partir de datos en tiempo real de VALLNews. Uso informativo &mdash; no constituye asesor&iacute;a financiera formal.
 </div>
 </body></html>`;
     const blob = new Blob(['﻿', html], { type: 'application/msword' });
@@ -997,8 +1013,8 @@ const VDS = (() => {
       } catch { canvas.remove(); }
     });
     clone.querySelectorAll('button,.vai-response-actions,.vai-chart-tools,.vn-msg-actions').forEach(node => node.remove());
-    const title = _escHtml(opts.title || 'Reporte VALL AI');
-    const html = `<!doctype html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.55;color:#1a2b3a;max-width:720px;margin:24pt auto}h1,h2,h3{color:#00213a}h2{border-bottom:1pt solid #dbe2ea;padding-bottom:4pt}table{border-collapse:collapse;width:100%}th,td{border:1pt solid #dbe2ea;padding:5pt;text-align:left}th{background:#eef3f6}pre{white-space:pre-wrap;background:#071827;color:#eef6fb;padding:9pt}.vai-chart-card,.vn-chart-wrap{border:1pt solid #dbe2ea;padding:8pt;margin:10pt 0}.vai-chart-kpis{display:table;width:100%}.vai-chart-kpis>div{display:table-cell;padding:5pt}</style></head><body><div style="border-bottom:3pt solid #00213a;padding-bottom:10pt;margin-bottom:14pt"><div style="color:#9a762d;font-size:9pt;font-weight:bold;letter-spacing:1.5pt">VALLNEWS · INTELIGENCIA ECONÓMICA</div><h1 style="margin:5pt 0">${title}</h1><div style="color:#64748b;font-size:9pt">Generado por VALL AI · ${new Date().toLocaleDateString('es-MX')}</div></div>${clone.innerHTML}<p style="margin-top:20pt;border-top:1pt solid #dbe2ea;padding-top:8pt;color:#94a3b8;font-size:8pt">Documento informativo generado por VALL AI.</p></body></html>`;
+    const title = _escHtml(opts.title || 'Reporte ORION');
+    const html = `<!doctype html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.55;color:#1a2b3a;max-width:720px;margin:24pt auto}h1,h2,h3{color:#00213a}h2{border-bottom:1pt solid #dbe2ea;padding-bottom:4pt}table{border-collapse:collapse;width:100%}th,td{border:1pt solid #dbe2ea;padding:5pt;text-align:left}th{background:#eef3f6}pre{white-space:pre-wrap;background:#071827;color:#eef6fb;padding:9pt}.vai-chart-card,.vn-chart-wrap{border:1pt solid #dbe2ea;padding:8pt;margin:10pt 0}.vai-chart-kpis{display:table;width:100%}.vai-chart-kpis>div{display:table-cell;padding:5pt}</style></head><body><div style="border-bottom:3pt solid #00213a;padding-bottom:10pt;margin-bottom:14pt"><div style="color:#9a762d;font-size:9pt;font-weight:bold;letter-spacing:1.5pt">VALLNEWS · INTELIGENCIA ECONÓMICA</div><h1 style="margin:5pt 0">${title}</h1><div style="color:#64748b;font-size:9pt">Generado por ORION · ${new Date().toLocaleDateString('es-MX')}</div></div>${clone.innerHTML}<p style="margin-top:20pt;border-top:1pt solid #dbe2ea;padding-top:8pt;color:#94a3b8;font-size:8pt">Documento informativo generado por ORION.</p></body></html>`;
     const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

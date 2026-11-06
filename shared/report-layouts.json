@@ -1,0 +1,23 @@
+{
+  "defaults": {"style":"company-dashboard","composition":"weekly-sheet","order":["summary","indicators","charts","tables","analysis","conclusions"]},
+  "finance": {
+    "equities": {"style":"market-brief","label":"Bolsa · Tablero ejecutivo","chartHeading":"Información de mercados"},
+    "bonds": {"label":"Tasas y financiamiento","chartHeading":"Curva de tasas y plazos"},
+    "fx": {"label":"Divisas y comercio exterior","chartHeading":"Divisas y exposición"},
+    "daily_news": {"label":"Inteligencia financiera","chartHeading":"Hechos y agenda financiera"},
+    "overview": {"label":"Panorama financiero","chartHeading":"Información financiera"}
+  },
+  "markets": {
+    "overview": {"label":"Cadena agroindustrial","chartHeading":"Información comercial"},
+    "grains": {"label":"Granos y alimentación animal","chartHeading":"Circuito de granos y alimentación"},
+    "energy_metals": {"label":"Energía e insumos industriales","chartHeading":"Energía e insumos"},
+    "proteins": {"label":"Mercado de proteínas","chartHeading":"Información comercial de proteínas"},
+    "market_news": {"label":"Inteligencia de mercados físicos","chartHeading":"Hechos y cadena de suministro"}
+  },
+  "mexico": {
+    "mx_overview": {"label":"Economía mexicana y abastecimiento","chartHeading":"Economía y comercio de México"},
+    "mx_bolsa": {"label":"Mercado financiero mexicano","chartHeading":"Mercado financiero mexicano"},
+    "mx_proteins": {"label":"Proteínas por entidad y etapa","chartHeading":"Precios por entidad y etapa"},
+    "mx_production": {"label":"Producción regional de granos y minería","chartHeading":"Producción regional"}
+  }
+}

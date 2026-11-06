@@ -1,0 +1,98 @@
+{
+  "finance": {
+    "overview": {"label":"Panorama financiero","topics":[
+      {"heading":"Mercados y exposición","question":"¿Qué movimientos de bolsa, tasas y divisas afectan flujos o activos de la empresa?","inputs":"Activos, pasivos, monedas, montos y fechas de cobro o pago"},
+      {"heading":"Liquidez y financiamiento","question":"¿Qué obligaciones y fuentes de fondeo requieren seguimiento?","inputs":"Caja disponible, vencimientos, líneas de crédito y costo efectivo"},
+      {"heading":"Presupuesto y sensibilidad","question":"¿Qué supuestos del presupuesto deben contrastarse con las referencias del corte?","inputs":"Presupuesto, tipos de cambio y tasas pactadas, escenarios aprobados"},
+      {"heading":"Agenda y riesgos","question":"¿Qué hechos confirmados podrían cambiar la lectura financiera?","inputs":"Noticias con fecha y fuente, calendario de eventos, límites internos"}
+    ]},
+    "equities": {"label":"Renta variable","topics":[
+      {"heading":"Desempeño regional","question":"¿Cómo difieren los cierres y horizontes entre regiones y mercados?","inputs":"Índice, país, moneda, hora de cierre y serie comparable"},
+      {"heading":"Emisoras y sectores","question":"¿Qué exposición real tiene la empresa a las emisoras o sectores observados?","inputs":"Cartera, participación por sector, resultados y comunicados del emisor"},
+      {"heading":"Valuación y liquidez","question":"¿Hay evidencia para explicar el movimiento más allá del precio?","inputs":"Utilidades, múltiplos, volumen, amplitud y liquidez; no inferirlos de índices"},
+      {"heading":"Volatilidad y concentración","question":"¿Qué condición pondría en duda la lectura de la cartera?","inputs":"Exposición por activo, moneda, horizonte y límites de concentración"}
+    ]},
+    "bonds": {"label":"Tasas y financiamiento","topics":[
+      {"heading":"Curva y plazos","question":"¿Qué vencimientos concentran el movimiento del rendimiento?","inputs":"Rendimientos comparables, fechas y cambios en puntos base"},
+      {"heading":"Sensibilidad de deuda","question":"¿Qué deuda o activo es sensible a tasa fija o variable?","inputs":"Saldo, moneda, vencimiento, duración y condiciones contractuales"},
+      {"heading":"Crédito y contraparte","question":"¿Qué componente del costo no está explicado por la tasa soberana?","inputs":"Spread, garantías, comisiones, calificación y liquidez"},
+      {"heading":"Refinanciamiento","question":"¿Qué vencimiento requiere preparar fondeo o renegociación?","inputs":"Calendario de deuda, caja, oferta bancaria y restricciones de contrato"}
+    ]},
+    "fx": {"label":"Divisas y comercio exterior","topics":[
+      {"heading":"Exposición por moneda","question":"¿Qué cobros, compras y deuda generan exposición neta?","inputs":"Moneda funcional, monto, país y fecha de liquidación"},
+      {"heading":"Referencia y ejecución","question":"¿Qué diferencial existe entre la pantalla y la cotización operable?","inputs":"Par, fecha, banco, spread, comisiones y condiciones de ejecución"},
+      {"heading":"Margen comercial","question":"¿Qué contratos transmiten un cambio de divisa a costos o ingresos?","inputs":"Precios pactados, moneda de factura, volumen y cláusulas de ajuste"},
+      {"heading":"Escenarios y seguimiento","question":"¿Qué supuestos o umbrales debe definir tesorería antes de evaluar cobertura?","inputs":"Horizonte, flujos confirmados, límites y escenarios internos"}
+    ]},
+    "daily_news": {"label":"Inteligencia financiera","topics":[
+      {"heading":"Hechos y vigencia","question":"¿Qué ocurrió, cuándo y según qué fuente?","inputs":"Titular, fecha del hecho, fecha de publicación y enlace original"},
+      {"heading":"Canal de transmisión","question":"¿Qué activo, costo o flujo podría verse afectado y bajo qué condición?","inputs":"Producto, moneda, región y evidencia del mecanismo de impacto"},
+      {"heading":"Agenda de confirmación","question":"¿Qué publicación o dato permitiría validar la hipótesis?","inputs":"Fuente primaria, calendario conocido y señales observables"},
+      {"heading":"Respuesta de la empresa","question":"¿Qué área debe evaluar la exposición antes de cambiar una decisión?","inputs":"Exposición interna, responsable por definir y criterio de seguimiento"}
+    ]}
+  },
+  "markets": {
+    "overview": {"label":"Cadena agroindustrial","topics":[
+      {"heading":"Oferta y demanda","question":"¿Qué señales de granos, proteínas e insumos son relevantes para la cadena?","inputs":"Producto, país, producción, consumo e inventario con fecha y fuente"},
+      {"heading":"Costo entregado","question":"¿Qué parte del costo corresponde a mercancía, energía, divisa o transporte?","inputs":"Precio físico, moneda, flete, seguros y condiciones de entrega"},
+      {"heading":"Comercio y sanidad","question":"¿Qué hecho documentado puede afectar el acceso o la continuidad del suministro?","inputs":"Origen, destino, requisitos y avisos oficiales vigentes"},
+      {"heading":"Margen y continuidad","question":"¿Qué exposición interna debe validarse antes de ajustar compras o ventas?","inputs":"Volumen, inventario, costos, compromisos y demanda de clientes"}
+    ]},
+    "grains": {"label":"Granos y alimentación animal","topics":[
+      {"heading":"Balance de oferta","question":"¿Qué cosecha, rendimiento e inventario respaldan la lectura del producto?","inputs":"Maíz, trigo, soya o sorgo; país, campaña y balance publicado"},
+      {"heading":"Demanda y sustitución","question":"¿Qué consumo o sustitución de insumos está documentado?","inputs":"Uso pecuario, industrial y exportación; especificación de calidad"},
+      {"heading":"Clima y calendario","question":"¿Qué etapa agrícola y evento confirmado pueden alterar disponibilidad?","inputs":"Siembra, cosecha, región, condiciones meteorológicas y fuente"},
+      {"heading":"Futuro y compra física","question":"¿Cómo se vincula la referencia internacional con la oferta entregada?","inputs":"Contrato, vencimiento, base local, tipo de cambio y flete"},
+      {"heading":"Costo de alimentación","question":"¿Qué fórmula y consumo necesita la empresa para evaluar el impacto?","inputs":"Ración, consumo, conversión, inventario y precio de compra"}
+    ]},
+    "energy_metals": {"label":"Energía e insumos industriales","topics":[
+      {"heading":"Producto y referencia","question":"¿Qué precio, contrato, calidad y unidad se están comparando?","inputs":"Petróleo, gas o metal; mercado, fecha y especificación"},
+      {"heading":"Oferta e inventarios","question":"¿Qué evidencia de producción, reservas o interrupciones explica el contexto?","inputs":"Reporte de inventarios, producción y eventos con fuente"},
+      {"heading":"Demanda industrial","question":"¿Qué actividad o consumo está documentado para el insumo?","inputs":"Actividad industrial, uso final, región y periodo"},
+      {"heading":"Transmisión a costos","question":"¿Qué contrato puede transmitir el movimiento a energía, flete o producción?","inputs":"Consumo, tarifa, contrato, moneda y calendario de ajuste"},
+      {"heading":"Continuidad operativa","question":"¿Qué inventario y alternativa de suministro deben revisarse?","inputs":"Proveedor, existencias, capacidad, plazos y costo entregado"}
+    ]},
+    "proteins": {"label":"Proteínas animales y comercio global","topics":[
+      {"heading":"Especie y mercado","question":"¿Qué referencia es comparable para res, cerdo, pollo o huevo?","inputs":"Especie, país o plaza, corte, canal o ganado en pie, unidad y fecha"},
+      {"heading":"Producción y abasto","question":"¿Qué evidencia describe disponibilidad y continuidad por especie?","inputs":"Producción, sacrificio, pesos, inventario, proveedor y estacionalidad"},
+      {"heading":"Demanda y canales","question":"¿Qué demanda o sustitución está respaldada por datos?","inputs":"Consumo, canal mayorista o minorista, pedidos, clientes y destino"},
+      {"heading":"Alimento y margen","question":"¿Qué datos faltan para traducir insumos y venta en margen real?","inputs":"Alimento, conversión, rendimiento, merma, mano de obra y precios pactados"},
+      {"heading":"Sanidad y comercio internacional","question":"¿Qué hecho o requisito documentado afecta origen, destino y acceso?","inputs":"Aviso oficial, especie, país, vigencia, arancel y acuerdo aplicable"},
+      {"heading":"Logística y compra entregada","question":"¿Qué condiciones deben igualarse entre ofertas comerciales?","inputs":"Volumen, cadena fría, flete, seguro, plazo, calidad y condición de entrega"}
+    ]},
+    "market_news": {"label":"Inteligencia de mercados físicos","topics":[
+      {"heading":"Hecho y producto","question":"¿Qué ocurrió y qué producto o país está involucrado?","inputs":"Noticia, fechas, producto, región y fuente original"},
+      {"heading":"Oferta, demanda y logística","question":"¿Qué canal de impacto puede contrastarse con evidencia?","inputs":"Producción, consumo, inventario, transporte y flujo comercial"},
+      {"heading":"Sanidad y acceso","question":"¿Qué medida documentada podría alterar comercio o suministro?","inputs":"Aviso oficial, autoridad, país, especie, vigencia y alcance"},
+      {"heading":"Acción de seguimiento","question":"¿Qué dato debe confirmarse antes de modificar una compra o venta?","inputs":"Oferta vigente, exposición interna y señal de confirmación"}
+    ]}
+  },
+  "mexico": {
+    "mx_overview": {"label":"Economía mexicana y abastecimiento","topics":[
+      {"heading":"Actividad y demanda","question":"¿Qué periodo y cobertura tienen las referencias macroeconómicas?","inputs":"Actividad, consumo, inflación y empleo con periodo y fuente"},
+      {"heading":"Finanzas y moneda","question":"¿Qué tasa y moneda son aplicables a los flujos de la empresa?","inputs":"Tipo de cambio operable, tasas pactadas y vencimientos"},
+      {"heading":"Comercio exterior","question":"¿Qué rutas y requisitos requieren revisión para importar o exportar?","inputs":"Producto, origen, destino, clasificación y fuente oficial vigente"},
+      {"heading":"Abasto regional","question":"¿Qué región ofrece disponibilidad comercial comprobable?","inputs":"Estado, plaza, proveedor, inventario, calidad y transporte"}
+    ]},
+    "mx_bolsa": {"label":"Mercado financiero mexicano","topics":[
+      {"heading":"Emisoras y cobertura","question":"¿Qué empresas y activos forman la muestra disponible?","inputs":"Emisora, moneda, precio, hora y fuente; identificar universo de la muestra"},
+      {"heading":"Divisas y exposición","question":"¿Qué flujo comercial depende de USD/MXN?","inputs":"Moneda de factura, monto, fecha, comisiones y precio operable"},
+      {"heading":"Resultados y liquidez","question":"¿Qué dato de la empresa listada explica la lectura más allá del cierre?","inputs":"Resultados, comunicados, volumen y valuación publicados"},
+      {"heading":"Presupuesto de la empresa","question":"¿Qué supuestos requieren contraste con el mercado mexicano?","inputs":"Ventas, compras, deuda, capital de trabajo y límites internos"}
+    ]},
+    "mx_proteins": {"label":"Proteínas en México por entidad","topics":[
+      {"heading":"Precio por plaza y etapa","question":"¿Se comparan la misma especie, presentación y etapa comercial?","inputs":"Estado, plaza, vivo o canal, corte, mayoreo o minorista, MXN por unidad"},
+      {"heading":"Vigencia y cobertura estatal","question":"¿Qué entidades tienen datos comparables y cuáles requieren evidencia local?","inputs":"Fecha de observación, frecuencia, fuente, plazas y estados sin dato"},
+      {"heading":"Oferta y demanda local","question":"¿Qué disponibilidad y consumo sostienen una decisión de abastecimiento?","inputs":"Producción, sacrificio, inventario, pedidos y canal comercial"},
+      {"heading":"Sanidad y comercio exterior","question":"¿Qué requisitos o hechos documentados pueden afectar el abasto?","inputs":"Especie, origen, destino, aviso oficial, vigencia y clasificación"},
+      {"heading":"Costo entregado y margen","question":"¿Qué costo y rendimiento necesita la empresa para comparar proveedores?","inputs":"Volumen, flete, cadena fría, merma, rendimiento, compra y venta"},
+      {"heading":"Plan de compras","question":"¿Qué evidencia falta antes de confirmar una operación por estado?","inputs":"Proveedor, oferta vigente, calidad, plazo, forma de pago y destino"}
+    ]},
+    "mx_production": {"label":"Producción regional de granos y minería","topics":[
+      {"heading":"Volumen y concentración","question":"¿Qué entidades concentran el volumen histórico del producto?","inputs":"Estado, cultivo o mineral, volumen o valor, unidad y periodo"},
+      {"heading":"Calendario y disponibilidad","question":"¿Qué producción puede convertirse en oferta comercial vigente?","inputs":"Campaña, cosecha, inventario, calidad y proveedor"},
+      {"heading":"Infraestructura y transporte","question":"¿Qué ruta o restricción determina el costo de abastecimiento?","inputs":"Origen, destino, almacenamiento, capacidad y flete"},
+      {"heading":"Alcance y comparación","question":"¿Qué diferencias de periodo o unidad impiden una comparación directa?","inputs":"Periodo agrícola y minero, metodología y fuente de cada serie"}
+    ]}
+  }
+}

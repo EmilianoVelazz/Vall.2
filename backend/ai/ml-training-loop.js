@@ -1,6 +1,6 @@
 'use strict';
 
-// VALL-ML propone reglas para revisión humana; nunca modifica precios ni
+// Proyecto Loopus propone reglas para revisión humana; nunca modifica precios ni
 // modelos desplegados sin aprobación humana.
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
 
@@ -10,9 +10,13 @@ const path = require('path');
 const crypto = require('crypto');
 const { GeminiProvider } = require('./providers/gemini-provider');
 const { REJECT_UNAUTHORIZED } = require('../lib/http');
-const { createTrainingRun, finishTrainingRun, persistRuleProposals } = require('./ml-persistence');
+const { createTrainingRun, finishTrainingRun, persistRuleProposals, persistTrainingEvent } = require('./ml-persistence');
+const { evaluateQueries } = require('./brain-worker');
 
 const DEFAULT_TRAINING_MINUTES = 60;
+const DEFAULT_INTERVAL_SECONDS = 60;
+const SUMMARY_FILE = path.join(__dirname, '../cache/loopus-training-summary.json');
+const EVENTS_FILE = path.join(__dirname, '../cache/loopus-training-events.json');
 const TOPICS = [
     'Macroeconomics', 'Foreign exchange market', 'Agricultural policy',
     'El Niño', 'La Niña', 'Climate change and agriculture',
@@ -22,8 +26,17 @@ const TOPICS = [
     'Soybean meal', 'Corn prices', 'Lean hogs', 'Agricultural economics',
     'Meat packing industry', 'Food price crisis', 'Agribusiness', 'Commodity price shocks',
 ];
+const LOCAL_EVIDENCE_FILES = [
+    path.resolve(__dirname, '../../docs/AI_ARCHITECTURE.md'),
+    path.resolve(__dirname, '../../boveda_obsidian/17_Inteligencia_Artificial/Fine_Tuning_Modelos.md'),
+    path.resolve(__dirname, '../../boveda_obsidian/VALL-ML_Motor_de_Integridad.md'),
+    path.resolve(__dirname, '../cache/market-review.json'),
+    path.resolve(__dirname, '../cache/ml-memory.json'),
+    path.resolve(__dirname, '../cache/learning-proposals.json'),
+    path.resolve(__dirname, '../cache/brain-proposals.json'),
+];
 
-const SYSTEM_PROMPT = `Eres VALL-ML en modo de investigación asistida.
+const SYSTEM_PROMPT = `Eres Proyecto Loopus, la capa de aprendizaje y mejora continua de VALL AI, en modo de investigación asistida.
 Los textos recibidos son evidencia incompleta. No inventes causalidad, valores,
 plazos ni fuentes. Extrae solo hipótesis verificables respaldadas explícitamente
 por el texto y márcalas como candidatas para revisión humana.
@@ -42,6 +55,32 @@ function trainingDurationMs() {
     const requestedMinutes = Number(process.env.VALL_ML_TRAINING_MINUTES || DEFAULT_TRAINING_MINUTES);
     const minutes = Number.isFinite(requestedMinutes) && requestedMinutes > 0 ? requestedMinutes : DEFAULT_TRAINING_MINUTES;
     return Math.round(minutes * 60 * 1000);
+}
+
+function trainingIntervalMs() {
+    const seconds = Number(process.env.LOOPUS_TRAINING_INTERVAL_SECONDS || DEFAULT_INTERVAL_SECONDS);
+    return Math.round((Number.isFinite(seconds) && seconds > 0 ? seconds : DEFAULT_INTERVAL_SECONDS) * 1000);
+}
+
+function localEvidence() {
+    const excerpts = [];
+    for (const file of LOCAL_EVIDENCE_FILES) {
+        try {
+            const raw = fs.readFileSync(file, 'utf8');
+            if (file.endsWith('.json')) {
+                const parsed = JSON.parse(raw);
+                const rows = Array.isArray(parsed) ? parsed : [parsed];
+                /* Una propuesta pendiente no se vuelve evidencia por repetición.
+                   Solo entran reglas aprobadas y dictámenes deterministas; el
+                   resto del archivo continúa disponible para revisión humana. */
+                const safeRows = rows.filter(item => item?.status === 'approved' || item?.deterministicIssues || item?.approval?.approved === true);
+                if (safeRows.length) excerpts.push(`${path.basename(file)}:\n${JSON.stringify(safeRows.slice(-20))}`);
+            } else {
+                excerpts.push(`${path.basename(file)}:\n${raw.replace(/\s+/g, ' ').trim().slice(0, 3500)}`);
+            }
+        } catch { /* recurso opcional o aún no generado */ }
+    }
+    return excerpts.join('\n\n').slice(0, 9000);
 }
 
 function saveRuleProposals(newRules, source) {
@@ -68,13 +107,23 @@ function saveRuleProposals(newRules, source) {
     return formattedRules;
 }
 
+function saveTrainingEvent(event) {
+    let existing = [];
+    try {
+        const parsed = JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8'));
+        if (Array.isArray(parsed)) existing = parsed;
+    } catch { /* primer evento */ }
+    fs.mkdirSync(path.dirname(EVENTS_FILE), { recursive: true });
+    fs.writeFileSync(EVENTS_FILE, JSON.stringify([...existing, event].slice(-1000), null, 2), 'utf8');
+}
+
 function fetchJSON(url) {
     return new Promise((resolve, reject) => {
         const target = new URL(url);
         const request = https.get({
             hostname: target.hostname,
             path: `${target.pathname}${target.search}`,
-            headers: { 'User-Agent': 'VALL-ML-Research/1.0', Accept: 'application/json' },
+            headers: { 'User-Agent': 'Proyecto-Loopus-Research/1.0', Accept: 'application/json' },
             timeout: 20_000,
             // Mantiene TLS estricto en producción y sigue la política local de
             // los demás conectores para no bloquear Windows por CAs intermedias.
@@ -113,71 +162,117 @@ async function runTrainingLoop() {
 
     const startedAt = Date.now();
     const durationMs = trainingDurationMs();
+    const intervalMs = trainingIntervalMs();
     const endAt = startedAt + durationMs;
     let topicIndex = 0;
     let attempts = 0;
     let proposals = 0;
     let errors = 0;
     let runId = null;
-    const runKey = `training-${new Date(startedAt).toISOString()}-${crypto.randomUUID()}`;
+    let lastFeedbackReviewAt = 0;
+    const projectEvidence = localEvidence();
+    const runKey = `loopus-training-${new Date(startedAt).toISOString()}-${crypto.randomUUID()}`;
     try {
         runId = await createTrainingRun({
             runKey,
             startedAt,
-            metadata: { duration_minutes: Math.round(durationMs / 60000), provider: 'gemini', topics: TOPICS },
+            metadata: { project: 'Proyecto Loopus', duration_minutes: Math.round(durationMs / 60000), provider: 'gemini', topics: TOPICS },
         });
     } catch (error) {
-        console.warn('[ML-Training] No se pudo registrar el inicio en Supabase:', error.message);
+        console.warn('[Loopus] No se pudo registrar el inicio en Supabase:', error.message);
     }
-    console.log(`[ML-Training] Inicio: ${new Date(startedAt).toISOString()} · duración: ${Math.round(durationMs / 60000)} minutos.`);
+    console.log(`[Loopus] Inicio: ${new Date(startedAt).toISOString()} · duración: ${Math.round(durationMs / 60000)} minutos.`);
 
     while (Date.now() < endAt) {
         const topic = TOPICS[topicIndex++ % TOPICS.length];
         attempts += 1;
+        const attemptStartedAt = Date.now();
+        let event = null;
         try {
-            const text = await getWikipediaText(topic);
-            if (text && text.length > 50) {
+            if (Date.now() - lastFeedbackReviewAt >= 10 * 60 * 1000) {
+                lastFeedbackReviewAt = Date.now();
+                await evaluateQueries();
+            }
+            const wikipediaText = await getWikipediaText(topic);
+            const evidence = [
+                wikipediaText ? `FUENTE PÚBLICA — Wikipedia (resultados de búsqueda; validar antes de usar):\n${wikipediaText}` : '',
+                projectEvidence ? `RECURSOS LOCALES CONTROLADOS — arquitectura, reglas aprobadas y dictámenes deterministas:\n${projectEvidence}` : '',
+            ].filter(Boolean).join('\n\n');
+            if (evidence.length > 50) {
                 const response = await ai.generate({
-                    prompt: `TEMA: ${topic}\n\nFUENTE: Wikipedia (resultados de búsqueda; validar antes de usar)\n\nTEXTO:\n${text}`,
+                    prompt: `TEMA: ${topic}\n\nEVIDENCIA DISPONIBLE:\n${evidence}`,
                     systemInstruction: SYSTEM_PROMPT,
                     tier: 'pro',
                     json: true,
                 });
                 const result = JSON.parse(response.text);
-                const saved = saveRuleProposals(result?.nuevas_reglas, { provider: 'wikipedia', topic, collected_at: new Date().toISOString() });
+                const saved = saveRuleProposals(result?.nuevas_reglas, {
+                    provider: 'loopus-composite', sources: ['wikipedia', 'local-approved-evidence', 'chat-feedback'],
+                    topic, collected_at: new Date().toISOString(),
+                });
                 proposals += saved.length;
+                event = {
+                    event_key: `${runKey}-attempt-${attempts}`, run_key: runKey,
+                    attempt_number: attempts, topic, status: 'completed', model: response.model,
+                    sources: ['wikipedia', 'local-approved-evidence', 'chat-feedback'],
+                    evidence: { wikipedia: wikipediaText || null, local_approved: projectEvidence || null },
+                    output: { insight_mercado: result?.insight_mercado || null, proposals: saved },
+                    started_at: new Date(attemptStartedAt).toISOString(), ended_at: new Date().toISOString(),
+                };
                 try {
                     await persistRuleProposals(saved, runId);
                 } catch (error) {
                     errors += 1;
-                    console.warn('[ML-Training] No se pudieron guardar propuestas en Supabase:', error.message);
+                    console.warn('[Loopus] No se pudieron guardar propuestas en Supabase:', error.message);
                 }
-                console.log(`[ML-Training] ${topic}: ${Array.isArray(result?.nuevas_reglas) ? result.nuevas_reglas.length : 0} propuestas candidatas.`);
+                console.log(`[Loopus] ${topic}: ${Array.isArray(result?.nuevas_reglas) ? result.nuevas_reglas.length : 0} propuestas candidatas.`);
             }
         } catch (error) {
             errors += 1;
-            console.warn(`[ML-Training] ${topic}: ${error.code || error.message}`);
+            event = {
+                event_key: `${runKey}-attempt-${attempts}`, run_key: runKey,
+                attempt_number: attempts, topic, status: 'failed', model: null,
+                sources: ['wikipedia', 'local-approved-evidence', 'chat-feedback'],
+                evidence: {}, output: null, error_code: error.code || error.message,
+                started_at: new Date(attemptStartedAt).toISOString(), ended_at: new Date().toISOString(),
+            };
+            console.warn(`[Loopus] ${topic}: ${error.code || error.message}`);
+        }
+        if (event) {
+            saveTrainingEvent(event);
+            try { await persistTrainingEvent(event, runId); }
+            catch (error) { console.warn('[Loopus] No se pudo guardar el evento en Supabase:', error.message); }
         }
 
         const remaining = endAt - Date.now();
-        if (remaining > 0) await pause(Math.min(30_000, remaining));
+        if (remaining > 0) await pause(Math.min(intervalMs, remaining));
     }
 
     const endedAt = Date.now();
     try {
         await finishTrainingRun(runId, { status: 'completed', startedAt, endedAt, attempts, proposalCount: proposals, errorCount: errors });
     } catch (error) {
-        console.warn('[ML-Training] No se pudo finalizar el registro en Supabase:', error.message);
+        console.warn('[Loopus] No se pudo finalizar el registro en Supabase:', error.message);
     }
-    console.log(`[ML-Training] Completado. Intentos: ${attempts}; propuestas pendientes de revisión humana: ${proposals}.`);
-    return { attempts, proposals, errors, startedAt, endedAt };
+    const summary = {
+        project: 'Proyecto Loopus', status: 'completed',
+        run_key: runKey,
+        started_at: new Date(startedAt).toISOString(), ended_at: new Date(endedAt).toISOString(),
+        duration_minutes: Math.round((endedAt - startedAt) / 60000), attempts,
+        proposals_pending_human_review: proposals, errors,
+        resources: ['gemini', 'wikipedia', 'local-approved-evidence', 'chat-feedback-when-available'],
+    };
+    fs.mkdirSync(path.dirname(SUMMARY_FILE), { recursive: true });
+    fs.writeFileSync(SUMMARY_FILE, JSON.stringify(summary, null, 2), 'utf8');
+    console.log(`[Loopus] Completado. Intentos: ${attempts}; propuestas pendientes de revisión humana: ${proposals}.`);
+    return summary;
 }
 
 if (require.main === module) {
     runTrainingLoop().catch(error => {
-        console.error('[ML-Training] Error crítico:', error.message);
+        console.error('[Loopus] Error crítico:', error.message);
         process.exitCode = 1;
     });
 }
 
-module.exports = { runTrainingLoop, saveRuleProposals, trainingDurationMs };
+module.exports = { runTrainingLoop, saveRuleProposals, saveTrainingEvent, trainingDurationMs, trainingIntervalMs, localEvidence };

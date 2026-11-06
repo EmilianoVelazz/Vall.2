@@ -8,9 +8,9 @@ tags:
 fecha: 2026-08-31
 ---
 
-# Motor de Integridad de Datos (VALL-ML)
+# Proyecto Loopus · Motor de Integridad y Aprendizaje
 
-El motor VALL-ML es un sistema de **Machine Learning No Supervisado** implementado en la plataforma para actuar como un escudo de integridad matemática contra fuentes de datos poco fiables (ej. SNIIM, caídas de la API, errores gubernamentales).
+Proyecto Loopus es la capa de **aprendizaje asistido y revisión de integridad** de VALL AI. Actúa como un escudo ante fuentes de datos poco fiables (por ejemplo SNIIM, caídas de API o errores de captura) y propone mejoras derivadas del feedback del chat.
 
 A diferencia de un panel de reportes estático, este modelo opera de forma *invisible* antes de que los datos lleguen al usuario, asegurando que cualquier valor mostrado tenga sentido algorítmico y de mercado.
 
@@ -39,7 +39,7 @@ Es un script que corre en segundo plano cada 2 horas.
 El endpoint `/api/sniim` fue modificado. Antes de consultar la fuente cruda, verifica si el archivo `verified-market.json` tiene datos recientes. Si es así, sirve la data limpia adjuntando una flag `is_ml_verified = true`.
 
 ### 4. UI Transparente (`MercadoProteinas.jsx`)
-No hay dashboards pesados. El frontend simplemente consume la data y, si detecta la flag `is_ml_verified`, muestra un sello verde discreto (🛡️ **Validados por VALL-ML**) garantizando al usuario que los precios han sido depurados de cualquier aleatoriedad gubernamental.
+No hay dashboards pesados. El frontend consume la información revisada y puede mostrar el sello discreto de **Proyecto Loopus**. Una propuesta automática nunca se considera aprobada sin revisión humana.
 
 ---
 

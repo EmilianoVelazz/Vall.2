@@ -1,0 +1,14 @@
+.erh-mexico-heading{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;color:#193758}
+.erh-mexico-heading h4{margin:0;font-size:19px}.erh-mexico-heading>span{font-size:11px;background:#e9eff4;padding:7px 10px;border-radius:5px}
+.erh-mexico-selection{margin:0 0 10px;padding:8px 12px;border-left:3px solid #7991a2;background:#f0f4f7;color:#354f64;font-size:12px;overflow-wrap:anywhere}
+.erh-mexico-signals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px;margin:6px 0 10px}
+.erh-mexico-signals section{display:grid;align-content:start;gap:7px;min-width:0;padding:17px;border:1px solid #d5e0e9;border-top:3px solid #63829c;border-radius:9px;background:linear-gradient(150deg,#f1f6fa,#fff);color:#193758}
+.erh-mexico-signals section.is-up{border-top-color:#71805b}.erh-mexico-signals section.is-down{border-top-color:#aa726c}
+.erh-mexico-signals h4{font-size:12px;margin:0;line-height:1.5}.erh-mexico-signals strong{font-size:29px;line-height:1.3;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.erh-mexico-signal-unit{font-size:11px;color:#526b80}.erh-mexico-signals small{font-size:10px;color:#526b80}.erh-mexico-signals p{margin:3px 0 0;font-size:11px;line-height:1.65;color:#526b80}
+.erh-mexico-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.erh-mexico-chart-grid>div{min-width:0}.erh-mexico-chart-grid .erh-chart{margin:0}
+.erh-mexico-view,.erh-mexico-pagination{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.erh-mexico-view button,.erh-mexico-pagination button{padding:9px 13px;border:1px solid #bdcedd;background:#f3f7fa;color:#193758;border-radius:6px;cursor:pointer;font:inherit;font-size:12px}
+.erh-mexico-view button[aria-pressed=true]{background:#193758;color:#fff}.erh-mexico-pagination{justify-content:space-between}.erh-mexico-pagination span{font-size:12px;color:#536e82}.erh-mexico-pagination button:disabled{opacity:.45;cursor:default}
+.erh-mexico-explorer button:focus-visible{outline:2px solid #315785;outline-offset:2px}
+@media(min-width:1000px){.erh-mexico-signals:has(>section:nth-child(5)){grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.erh-mexico-chart-grid{grid-template-columns:minmax(0,1fr)}.erh-mexico-signals{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.erh-mexico-signals section{padding:12px}.erh-mexico-signals strong{font-size:23px}.erh-mexico-heading h4{font-size:16px}}

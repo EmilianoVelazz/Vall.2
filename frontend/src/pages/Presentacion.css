@@ -1,0 +1,15 @@
+.vn-presentacion { --vp-paper: #111827; --vp-ink: #ededed; --vp-muted: #9ca3af; --vp-line: #374151; --vp-blue: #8bbdff; background: var(--vp-paper); color: var(--vp-ink); min-height: 100dvh; font-family: 'Inter', system-ui, sans-serif; overflow: clip; }
+.vn-presentacion :is(h1,h2,h3,p,figure) { margin: 0; }
+.vn-presentacion a { color: inherit; text-decoration: none; }
+.vn-presentacion button { font: inherit; cursor: pointer; }
+.vn-presentacion :is(a,button,[tabindex="0"]):focus-visible { outline: 2px solid #8bbdff; outline-offset: 5px; }
+.vp-skip { position: absolute; top: -100px; left: 24px; z-index: 60; background: #ededed; color: #111827 !important; padding: 15px; border-radius: 10px; }.vp-skip:focus { top: 16px; }
+.sx-navigation { position: sticky; top: 20px; z-index: 40; width: fit-content; max-width: calc(100% - 24px); margin: 0 auto -54px; display: flex; gap: 4px; padding: 6px; border: 1px solid #4b556377; border-radius: 50px; background: #111827df; backdrop-filter: blur(20px); box-shadow: 0 8px 35px #0003; }
+.sx-navigation :is(a,button) { display: grid; place-items: center; min-height: 40px; padding: 9px 18px; white-space: nowrap; color: #bdc8d9; font-size: 11px; border: 0; border-radius: 50px; background: transparent; transition: background .2s, color .2s; }
+.sx-navigation :is(a,button):hover { background: #24334b; color: #fff; }.sx-navigation a:last-child { background: #ededed; color: #111827; }.sx-navigation button:disabled { opacity: .5; cursor: default; }
+.sx-navigation a[aria-current] { background: #24334b; color: #b4d1f7; }
+.sx-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 25px; padding: 48px 6%; border-top: 1px solid #374151; background: #111827; }
+.sx-footer > a:first-child { font-size: 23px; font-weight: 650; letter-spacing: -1px; }.sx-footer > a:first-child span { font-weight: 350; }.sx-footer :is(p,span) { font-size: 10px; color: #9ca3af; }.sx-footer > a:last-child { font-size: 11px; }
+@media(max-width:700px) { .sx-navigation { top: 12px; gap: 0; padding: 4px; margin-bottom: -48px; }.sx-navigation :is(a,button) { font-size: 9px; min-height: 38px; padding: 7px 10px; }.sx-footer { padding: 30px 7%; gap: 22px; }.sx-footer p { width: 100%; order: 1; } }
+@media(prefers-reduced-motion:reduce) { html:has(.vn-presentacion) { scroll-behavior: auto !important; } }
+@media(max-width:360px) { .sx-navigation :is(a,button) { font-size: 8px; padding-inline: 8px; } }

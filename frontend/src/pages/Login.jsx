@@ -1,143 +1,35 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import usePageStyles from '../lib/usePageStyles.js';
-import { apiGet, apiPost } from '../api/client.js';
+import { apiPost } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import iniciarFondo from '../lib/fondoWebGL.js';
-import { useRevelado } from '../lib/animaInicio.js';
-import { useContador, useTilt } from '../lib/animaLogin.js';
+import LoginExperience from '../components/LoginExperience.jsx';
 import './Login.css';
 
-/*
- * Login — rediseño completo (2026-08-18).
- *
- * QUÉ SE FUE
- * La versión anterior era «panel de marca + tarjeta»: un titular, un párrafo y
- * una lista de cinco secciones con una píldora de dato colgando a la derecha.
- * Los datos reales que ya se pedían a las APIs iban de adorno, en letra de 10 px
- * al final de cada fila. Ahora esos cuatro datos SON el panel izquierdo: un
- * tablero en vivo con las cifras en grande, que es lo que promete el producto y
- * lo único de esta pantalla que no es texto fijo.
- *
- * HOJA PROPIA
- * Antes compartía `assets/css/login.css` con el `index.html` heredado, así que
- * rehacer la estructura habría roto esa página. Ahora esta pantalla tiene su
- * `Login.css` con prefijo `lg-` y el heredado se queda con su hoja intacta.
- *
- * LO QUE SE ANIMA, Y POR QUÉ
- * Fondo WebGL (variante `rejilla`: un horizonte en perspectiva), titular que se
- * arma letra a letra, cifras que cuentan hasta su valor real al llegar de la
- * API, tarjeta que se inclina siguiendo al puntero, y las microinteracciones del
- * formulario. Todo cae bajo `prefers-reduced-motion`; ver el final de Login.css.
- *
- * Dos correcciones que vienen del original y siguen valiendo:
- *  - checkAuth() pedía /api/me, ruta que el backend no expone (es
- *    /api/verify-token): la reentrada de sesión nunca funcionaba, en silencio.
- *  - el año del pie salía de un document.write, que dentro de la SPA se ejecuta
- *    con el documento ya cargado y borra la página entera.
- */
-
 const HOJAS = ['/assets/css/base.css'];
-
 const CORREO_VALIDO = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
-const TOAST_MS = 3600;
+const TOAST_MS = 4200;
 
-/* El titular, por líneas. Se parte en letras al pintar. */
-const TITULAR = [
-  { txt: 'Economía' },
-  { txt: 'Global', em: true },
-  { txt: 'en tiempo real' },
-];
-
-/* El tablero. Cada fila declara de dónde sale su dato y cómo se escribe; el
-   original repetía cuatro veces el mismo bloque de fetch + getElementById.
-   `dec` son los decimales: el WTI en dólares por barril no necesita céntimos y
-   con dos cifras se lee peor. */
-const TABLERO = [
-  {
-    id: 'tiie', etq: 'TIIE 28 días', fuente: 'BANXICO', icono: 'fa-building-columns',
-    ruta: '/api/banxico/SF61745',
-    leer: (j) => parseFloat(j?.bmx?.series?.[0]?.datos?.[0]?.dato),
-    pre: '', post: '%', dec: 2,
-  },
-  {
-    id: 'maiz', etq: 'Maíz', fuente: 'CME · $/bu', icono: 'fa-seedling',
-    ruta: '/api/commodity?fn=CORN',
-    // El backend entrega el maíz en $/MT; la vista lo muestra en $/bushel.
-    leer: (j) => parseFloat(j?.data?.[0]?.value) / 39.368,
-    pre: '$', post: '', dec: 2,
-  },
-  {
-    id: 'wti', etq: 'Petróleo WTI', fuente: 'ENERGÍA · $/bbl', icono: 'fa-oil-well',
-    ruta: '/api/commodity?fn=CRUDE_OIL',
-    leer: (j) => parseFloat(j?.data?.[0]?.value),
-    pre: '$', post: '', dec: 1,
-  },
-  {
-    id: 'trigo', etq: 'Trigo', fuente: 'CME · $/bu', icono: 'fa-wheat-awn',
-    ruta: '/api/commodity?fn=WHEAT',
-    leer: (j) => parseFloat(j?.data?.[0]?.value) / 36.744,
-    pre: '$', post: '', dec: 2,
-  },
-];
-
-/* Las secciones ya no ocupan media pantalla: son una tira de fichas al pie del
-   panel. Siguen diciendo qué hay dentro sin competir con las cifras. */
-const SECCIONES = [
-  { icono: 'fa-chart-line', texto: 'Finanzas' },
-  { icono: 'fa-globe', texto: 'Mercados' },
-  { icono: 'fa-earth-americas', texto: 'Geopolítica' },
-  { icono: 'fa-peso-sign', texto: 'México' },
-  { icono: 'fa-wand-magic-sparkles', texto: 'VALL AI' },
-];
-
-/** Una cifra del tablero. Cuenta hasta su valor cuando la API responde. */
-function Cifra({ dato, valor, orden }) {
-  const animado = useContador(valor);
-  const listo = animado != null;
-  return (
-    <div className={`lg-cifra${listo ? ' lg-cifra-viva' : ''}`} data-revelar="" style={{ '--i': orden }}>
-      <span className="lg-cifra-icono"><i className={`fas ${dato.icono}`} aria-hidden="true" /></span>
-      <span className="lg-cifra-etq">{dato.etq}</span>
-      <strong className="lg-cifra-num">
-        {listo
-          ? <>{dato.pre}{animado.toFixed(dato.dec)}{dato.post}</>
-          /* Guiones y no un cero: un «0.00» al lado de «TIIE» se lee como una
-             cotización real que resulta ser cero. */
-          : <span className="lg-cifra-espera">--{dato.post}</span>}
-      </strong>
-      <span className="lg-cifra-fuente">{dato.fuente}</span>
-    </div>
-  );
-}
-
-/** El titular, letra a letra. */
-function Titular() {
-  let n = 0;
-  const completo = TITULAR.map((l) => l.txt).join(' ');
-  return (
-    /* El texto real va en aria-label y las letras quedan ocultas al lector: si
-       no, un lector de pantalla deletrea «E-c-o-n-o-m-í-a». */
-    <h1 className="lg-titular" aria-label={completo}>
-      {TITULAR.map((linea) => (
-        <span className={`lg-linea${linea.em ? ' lg-linea-em' : ''}`} key={linea.txt} aria-hidden="true">
-          {[...linea.txt].map((c, i) => (
-             
-            <span className="lg-letra" key={i} style={{ '--n': n++ }}>
-              {c === ' ' ? ' ' : c}
-            </span>
-          ))}
-        </span>
-      ))}
-    </h1>
-  );
+function Icon({ name, className = '' }) {
+  const paths = {
+    arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
+    back: <path d="M19 12H5m6-6-6 6 6 6" />,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m3 7 9 6 9-6" /></>,
+    eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
+    hidden: <><path d="m3 3 18 18M10.6 5.1 12 5c6.5 0 10 7 10 7a22 22 0 0 1-3 4M6 6a23 23 0 0 0-4 6s3.5 7 10 7a12 12 0 0 0 5-1.2" /><path d="M9.8 9.8a3 3 0 0 0 4.4 4.4" /></>,
+    lock: <><rect x="5" y="10" width="14" height="11" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" /></>,
+    shield: <><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z" /><path d="m8 12 3 3 5-5" /></>,
+    check: <path d="m5 12 4 4L19 6" />,
+    spinner: <path d="M20 12a8 8 0 1 1-8-8" />,
+    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10v.1" /></>,
+  };
+  return <svg className={`lx-icon ${className}`.trim()} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{paths[name]}</svg>;
 }
 
 export default function Login() {
   usePageStyles(HOJAS);
   const navegar = useNavigate();
-  const { login } = useAuth();
-
+  const { login, isAuthed, sessionChecked } = useAuth();
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -145,284 +37,116 @@ export default function Login() {
   const [sacudir, setSacudir] = useState(false);
   const [verClave, setVerClave] = useState(false);
   const [mayus, setMayus] = useState(false);
-  const [toast, setToast] = useState(null); // { msg, tipo, n }
-  const [datos, setDatos] = useState({});
-
-  const raiz = useRef(null);
-  const lienzo = useRef(null);
-  const tarjeta = useRef(null);
+  const [toast, setToast] = useState(null);
+  const [error, setError] = useState('');
+  const [campoError, setCampoError] = useState(null);
+  const correoRef = useRef(null);
+  const temporizador = useRef(null);
+  const sacudida = useRef(null);
+  const redireccion = useRef(null);
+  const cuenta = useRef(0);
   const claveRef = useRef(null);
 
-  useRevelado(raiz);
-  useTilt(tarjeta);
-  useEffect(() => iniciarFondo(lienzo.current, 'rejilla') || undefined, []);
-
-  const correoValido = CORREO_VALIDO.test(correo.trim());
-  const hora = useMemo(
-    () => new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-    []
-  );
-
-  // ── Aviso emergente ─────────────────────────────────────────────────────────
-  /* `n` es un contador que cambia en cada aviso. Sin él, dos avisos seguidos con
-     el mismo texto no reinician la barra de tiempo: React ve el mismo nodo y la
-     animación CSS no vuelve a empezar. */
-  const temporizador = useRef(null);
-  const cuenta = useRef(0);
   const avisar = useCallback((msg, tipo = 'info') => {
     clearTimeout(temporizador.current);
     cuenta.current += 1;
     setToast({ msg, tipo, n: cuenta.current });
     temporizador.current = setTimeout(() => setToast(null), TOAST_MS);
   }, []);
-  useEffect(() => () => clearTimeout(temporizador.current), []);
-
-  // ── Bloq Mayús ──────────────────────────────────────────────────────────────
-  /* Solo se puede leer dentro de un evento de teclado: no hay estado global que
-     consultar. Se escucha también keyup para que apagarlo se note al soltar. */
-  const revisarMayus = useCallback((e) => {
+  useEffect(() => () => {
+    clearTimeout(temporizador.current);
+    clearTimeout(sacudida.current);
+    clearTimeout(redireccion.current);
+  }, []);
+  const revisarMayus = useCallback(e => {
     if (typeof e.getModifierState === 'function') setMayus(e.getModifierState('CapsLock'));
   }, []);
-
-  // ── Sesión ya abierta → entrar directo ──────────────────────────────────────
   useEffect(() => {
-    let vivo = true;
-    apiGet('/api/verify-token').then(({ ok, data }) => {
-      if (vivo && ok && data?.success) {
-        login(data.email || '');
-        navegar('/inicio', { replace: true });
-      }
-    });
-    return () => { vivo = false; };
-  }, [login, navegar]);
-
-  // ── Tablero en vivo ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    let vivo = true;
-    // En paralelo y cada uno se pinta al llegar: una API caída no debe retrasar
-    // ni esconder a las demás.
-    for (const { id, ruta, leer } of TABLERO) {
-      apiGet(ruta)
-        .then(({ ok, data }) => {
-          if (!vivo || !ok) return;
-          const v = leer(data);
-          if (Number.isFinite(v)) setDatos((p) => ({ ...p, [id]: v }));
-        })
-        .catch(() => {});
-    }
-    return () => { vivo = false; };
-  }, []);
-
-  // ── Envío ───────────────────────────────────────────────────────────────────
-  const rechazar = useCallback((msg) => {
-    avisar(msg, 'error');
+    if (sessionChecked && isAuthed && !enviando && !exito) navegar('/inicio', { replace: true });
+  }, [sessionChecked, isAuthed, enviando, exito, navegar]);
+  const rechazar = useCallback((msg, campo = null) => {
+    setError(msg);
+    setToast(null);
+    setCampoError(campo);
     setSacudir(true);
-    setTimeout(() => setSacudir(false), 520);
-  }, [avisar]);
-
+    clearTimeout(sacudida.current);
+    sacudida.current = setTimeout(() => setSacudir(false), 520);
+    if (campo === 'email') correoRef.current?.focus();
+    if (campo === 'password') claveRef.current?.focus();
+  }, []);
   async function enviar(e) {
     e.preventDefault();
     if (enviando || exito) return;
     const email = correo.trim();
-
-    if (!email) return rechazar('Ingresa tu correo empresarial');
-    if (!CORREO_VALIDO.test(email)) return rechazar('Formato de correo incorrecto');
-    if (!contrasena) return rechazar('La contraseña no puede estar vacía');
-    if (contrasena.length < 4) return rechazar('Contraseña demasiado corta');
-
+    if (!email) return rechazar('Ingresa tu correo empresarial', 'email');
+    if (!CORREO_VALIDO.test(email)) return rechazar('Formato de correo incorrecto', 'email');
+    if (!contrasena) return rechazar('La contraseña no puede estar vacía', 'password');
+    if (contrasena.length < 4) return rechazar('Contraseña demasiado corta', 'password');
     setEnviando(true);
+    setCampoError(null);
+    setError('');
     try {
       const { ok, data } = await apiPost('/api/login', { email, password: contrasena });
-      if (!ok) {
+      if (!ok || data?.success !== true) {
         rechazar(data?.error || 'Credenciales incorrectas');
         setEnviando(false);
         return;
       }
-      // El backend fija la cookie httpOnly `vn_token`; en el cliente solo se
-      // guarda la marca de sesión que ProtectedRoute consulta.
+      // El backend conserva la cookie httpOnly de la sesión.
       login(data?.email || email);
       setEnviando(false);
       setExito(true);
       avisar('Bienvenido. Cargando plataforma…');
-      setTimeout(() => navegar('/inicio', { replace: true }), 900);
+      redireccion.current = setTimeout(() => navegar('/inicio', { replace: true }), 900);
     } catch {
       rechazar('Error de conexión con el servidor');
       setEnviando(false);
     }
   }
-
   return (
-    <div className="lg-wrap" ref={raiz}>
-      {/* Decoración: si no hay WebGL se queda transparente y manda el degradado
-          de .lg-wrap, que ya es un fondo completo. */}
-      <canvas className="lg-lienzo" ref={lienzo} aria-hidden="true" />
-      <span className="lg-velo" aria-hidden="true" />
-
-      <header className="lg-bar">
-        <a href="/" className="lg-marca">
-          <span className="lg-marca-icono"><img src="/assets/img/logo1.png" alt="" /></span>
-          <span className="lg-marca-txt">VALLNews</span>
-        </a>
-        <span className="lg-bar-regla" aria-hidden="true" />
-        <span className="lg-bar-estado">
-          <span className="lg-punto" aria-hidden="true" /> Mercados en vivo
-        </span>
+    <div className="lg-wrap lx-login">
+      <header className="lx-header">
+        <Link to="/" className="lx-brand" aria-label="VALLNews, inicio"><img src="/assets/img/brand/logo.png" alt="" width="32" height="32" /><span>VALL<span>News</span><small>EL VALOR DE LA PERSPECTIVA</small></span></Link>
+        <Link to="/" className="lx-return"><Icon name="back" /><span>Volver a la presentación</span></Link>
       </header>
-
-      <main className="lg-escena">
-        <section className="lg-panel">
-          <span className="lg-eyebrow" data-revelar="">
-            <span className="lg-punto" aria-hidden="true" /> Plataforma de inteligencia
-          </span>
-
-          <Titular />
-
-          <p className="lg-lead" data-revelar="">
-            Mercados, divisas, commodities y geopolítica en una sola lectura, con
-            análisis generado por inteligencia artificial.
-          </p>
-
-          <div className="lg-tablero">
-            <div className="lg-tablero-cab" data-revelar="">
-              <span>Tablero en vivo</span>
-              <span className="lg-tablero-hora">{hora}</span>
-            </div>
-            <div className="lg-tablero-rejilla">
-              {TABLERO.map((d, i) => (
-                <Cifra key={d.id} dato={d} valor={datos[d.id]} orden={i} />
-              ))}
-            </div>
-          </div>
-
-          <ul className="lg-fichas" data-revelar="">
-            {SECCIONES.map((s) => (
-              <li key={s.texto}>
-                <i className={`fas ${s.icono}`} aria-hidden="true" /> {s.texto}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="lg-lado">
-          <div
-            className={`lg-tarjeta${sacudir ? ' lg-sacude' : ''}`}
-            ref={tarjeta}
-            data-revelar=""
-          >
-            <span className="lg-tarjeta-halo" aria-hidden="true" />
-
-            <div className="lg-tarjeta-cab">
-              <span className="lg-tarjeta-tit">Iniciar sesión</span>
-              <span className="lg-tarjeta-sello">PRO</span>
-            </div>
-            <p className="lg-tarjeta-sub">Accede a tu plataforma de inteligencia económica</p>
-
-            <form onSubmit={enviar} autoComplete="on" noValidate>
-              <div className="lg-campo">
-                <label htmlFor="email"><i className="fas fa-envelope" aria-hidden="true" /> Correo empresarial</label>
-                <div className="lg-caja">
-                  <input
-                    type="email"
-                    id="email"
-                    className="lg-input"
-                    placeholder="ejecutivo@empresa.com"
-                    autoComplete="email"
-                    inputMode="email"
-                    value={correo}
-                    onChange={(e) => setCorreo(e.target.value)}
-                    required
-                  />
-                  {/* Confirma el FORMATO en cuanto es válido. No dice nada de si
-                      la cuenta existe: eso solo lo sabe el servidor. */}
-                  <span className={`lg-ok${correoValido ? ' on' : ''}`} aria-hidden="true">
-                    <i className="fas fa-check" />
-                  </span>
-                  <span className="lg-raya" aria-hidden="true" />
+      <main className="lx-layout">
+        <LoginExperience />
+        <section className="lx-access" aria-labelledby="lx-title">
+          <div className="lx-form-entry">
+          <div className={`lx-form-panel${sacudir ? ' lx-shake' : ''}`}>
+            <span className="lx-access-mark"><Icon name="lock" /></span>
+            <p className="lx-access-eyebrow">TU ESPACIO EN VALLNEWS</p>
+            <h1 id="lx-title">Bienvenido<br /><span>de nuevo.</span></h1>
+            <p className="lx-access-intro">Entra y encuentra una nueva perspectiva.</p>
+            <form onSubmit={enviar} autoComplete="on" noValidate aria-busy={enviando} aria-label="Iniciar sesión">
+              <div className="lx-field">
+                <label htmlFor="email">Correo empresarial</label>
+                <div className="lx-input-wrap">
+                  <Icon name="mail" />
+                  <input ref={correoRef} type="email" id="email" name="email" placeholder="tu@empresa.com" autoComplete="username" inputMode="email" autoCapitalize="none" spellCheck={false} value={correo} onChange={e => { setCorreo(e.target.value); if (campoError === 'email' || !campoError) { setCampoError(null); setError(''); } }} aria-invalid={campoError === 'email'} aria-describedby={campoError === 'email' ? 'lx-error' : undefined} required />
                 </div>
               </div>
-
-              <div className="lg-campo">
-                <label htmlFor="password"><i className="fas fa-lock" aria-hidden="true" /> Contraseña</label>
-                <div className="lg-caja">
-                  <input
-                    ref={claveRef}
-                    type={verClave ? 'text' : 'password'}
-                    id="password"
-                    className="lg-input"
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    value={contrasena}
-                    onChange={(e) => setContrasena(e.target.value)}
-                    onKeyDown={revisarMayus}
-                    onKeyUp={revisarMayus}
-                    onBlur={() => setMayus(false)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="lg-ojo"
-                    onClick={() => { setVerClave((v) => !v); claveRef.current?.focus(); }}
-                    aria-label={verClave ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
-                    aria-pressed={verClave}
-                    tabIndex={-1}
-                  >
-                    <i className={`fas ${verClave ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
-                  </button>
-                  <span className="lg-raya" aria-hidden="true" />
+              <div className="lx-field">
+                <label htmlFor="password">Contraseña</label>
+                <div className="lx-input-wrap">
+                  <Icon name="lock" />
+                  <input ref={claveRef} type={verClave ? 'text' : 'password'} id="password" name="password" placeholder="Tu contraseña" autoComplete="current-password" value={contrasena} onChange={e => { setContrasena(e.target.value); if (campoError === 'password' || !campoError) { setCampoError(null); setError(''); } }} onKeyDown={revisarMayus} onKeyUp={revisarMayus} onBlur={() => setMayus(false)} aria-invalid={campoError === 'password'} aria-describedby={campoError === 'password' ? 'lx-error' : mayus ? 'lx-caps' : undefined} required />
+                  <button type="button" className="lx-password-toggle" onClick={() => setVerClave(v => !v)} aria-label={verClave ? 'Ocultar la contraseña' : 'Mostrar la contraseña'} aria-pressed={verClave}><Icon name={verClave ? 'hidden' : 'eye'} /></button>
                 </div>
-                {/* Avisa ANTES de que el intento falle, que es cuando sirve. */}
-                <p className={`lg-mayus${mayus ? ' on' : ''}`} role="status">
-                  <i className="fas fa-arrow-up" aria-hidden="true" /> Bloq Mayús está activado
-                </p>
+                {mayus && <p className="lx-caps" id="lx-caps" role="status">↑ Bloq Mayús está activado</p>}
               </div>
-
-              <button
-                type="submit"
-                className={`lg-enviar${enviando ? ' cargando' : ''}${exito ? ' hecho' : ''}`}
-                disabled={enviando || exito}
-              >
-                <span>
-                  {exito
-                    ? <><i className="fas fa-check" aria-hidden="true" /> Listo</>
-                    : enviando
-                      ? <><i className="fas fa-circle-notch fa-spin" aria-hidden="true" /> Verificando…</>
-                      : <><i className="fas fa-arrow-right-to-bracket" aria-hidden="true" /> Entrar</>}
-                </span>
-              </button>
+              <div className="lx-feedback" aria-live="polite">{error && <p className="lx-error" id="lx-error" role="alert"><Icon name="info" />{error}</p>}</div>
+              <button type="submit" className={`lx-submit${exito ? ' lx-success' : ''}`} disabled={enviando || exito}><span>{exito ? 'Bienvenido' : enviando ? 'Verificando…' : 'Entrar a la plataforma'}</span><Icon name={exito ? 'check' : enviando ? 'spinner' : 'arrow'} className={enviando ? 'lx-spin' : ''} /></button>
             </form>
-
-            <div className="lg-separa"><span>¿Nuevo en la plataforma?</span></div>
-
-            <button
-              type="button"
-              className="lg-secundario"
-              onClick={() => avisar('Próximamente: suscripción con alertas de mercado y análisis exclusivo.')}
-            >
-              <i className="fas fa-user-plus" aria-hidden="true" /> Solicitar acceso
-            </button>
-
-            <p className="lg-seguro">
-              <i className="fas fa-shield-halved" aria-hidden="true" />
-              Conexión segura · datos cifrados en tránsito
-            </p>
+            <p className="lx-security"><Icon name="shield" /> Acceso privado. Tu información, protegida.</p>
+            <div className="lx-invitation"><p>¿Aún no tienes una cuenta?</p><button type="button" onClick={() => avisar('Para solicitar una cuenta, contacta al administrador de tu organización.')}>Solicitar acceso <span aria-hidden="true">↗</span></button></div>
           </div>
+          </div>
+          <div className="lx-access-bottom"><span className="lx-mini-brand">VN</span><span>EL CONTEXTO HACE LA DIFERENCIA.</span></div>
         </section>
       </main>
-
-      <footer className="lg-pie">
-        © {new Date().getFullYear()} VALLNEWS · Inteligencia Económica Global
-      </footer>
-
-      <div
-        className={`lg-toast${toast ? ' visible' : ''}${toast?.tipo === 'error' ? ' error' : ''}`}
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        <i className={`fas ${toast?.tipo === 'error' ? 'fa-circle-exclamation' : 'fa-info-circle'}`} aria-hidden="true" />
-        <span>{toast?.msg ?? ''}</span>
-        {toast && <span className="lg-toast-barra" key={toast.n} aria-hidden="true" />}
-      </div>
+      <footer className="lx-footer"><span>© {new Date().getFullYear()} VALLNews</span><span>INFORMACIÓN QUE SE CONVIERTE EN PERSPECTIVA.</span></footer>
+      <div className={`lx-toast${toast ? ' lx-toast-visible' : ''}`} role="status" aria-live="polite" aria-atomic="true"><Icon name={exito ? 'check' : 'info'} /><span>{toast?.msg}</span>{toast && <span className="lx-toast-progress" key={toast.n} aria-hidden="true" />}</div>
     </div>
   );
 }

@@ -10,15 +10,29 @@
 //
 // api/ y backend/ NO se copian: Vercel las detecta como función serverless desde
 // la raíz del repo, independientemente de este directorio.
-import { existsSync, rmSync, cpSync, copyFileSync, readdirSync, unlinkSync } from 'fs';
+import { existsSync, cpSync, unlinkSync } from 'fs';
 import { spawnSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { assertRetiredFilesAbsent } from './lib/retired-files.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
 const FRONT = path.join(ROOT, 'frontend');
-const FRONT_DIST = path.join(FRONT, 'dist');
+assertRetiredFilesAbsent(ROOT);
+
+// Revisar también el grafo activo antes de publicar: el registro de archivos
+// retirados por sí solo no detecta módulos abandonados en una edición nueva.
+const audit = spawnSync(process.execPath, [path.join(ROOT, 'scripts/audit-legacy.mjs')], {
+    cwd: ROOT,
+    stdio: 'inherit',
+});
+if (audit.status !== 0) {
+    console.error('[build-dist] La revisión de referencias falló; no se genera dist/.');
+    process.exit(audit.status || 1);
+}
+const assetAudit=spawnSync(process.execPath,[path.join(ROOT,'scripts/audit-assets.mjs')],{cwd:ROOT,stdio:'inherit'});
+if(assetAudit.status!==0)process.exit(assetAudit.status || 1);
 
 // Estáticos heredados. `pages` desapareció al migrar Finanzas: ya no queda
 // ninguna ruta que cargue un .html en tiempo de ejecución, así que copiarlo
@@ -28,12 +42,6 @@ const FRONT_DIST = path.join(FRONT, 'dist');
 // secciones ni los motores de datos (finanzas-page.js, finanzas-favro.js,
 // live-engine.js, data-service.js); los cargan desde /assets en runtime.
 const DIRS = ['assets'];
-const FILES = ['inicio.html'];
-
-// Ya no hace falta excluir imágenes: los seis .jpg/.png pesados que duplicaban
-// a sus .webp se borraron del repositorio (26,5 MB), así que no hay nada que
-// podar. Se deja el mecanismo por si vuelve a colarse un original sin optimizar.
-const IMG_EXCLUDE = new Set([]);
 
 // ── 1. Compilar React ─────────────────────────────────────────────────────────
 // Se invoca el binario de Vite directamente: en Windows, spawn de npm.cmd falla
@@ -42,13 +50,16 @@ const IMG_EXCLUDE = new Set([]);
 // contenedor de Vercel— no existe. Sin esta instalación el build se detenía ahí:
 // en local pasaba desapercibido porque la carpeta ya estaba.
 const viteBin = path.join(FRONT, 'node_modules', 'vite', 'bin', 'vite.js');
-if (!existsSync(viteBin)) {
+// Vercel restaura node_modules del despliegue anterior. Que Vite exista no
+// asegura que coincida con el lockfile: también se deben instalar las nuevas
+// dependencias (Anime.js y Three.js) y las actualizaciones de seguridad.
+if (process.env.VERCEL || !existsSync(viteBin)) {
     console.log('[build-dist] Instalando dependencias de frontend/…');
     // En Windows, spawn de npm.cmd sin shell falla con EINVAL en Node reciente,
     // así que se lanza a través del shell. El comando va como una sola cadena:
     // combinar shell con un array de argumentos está deprecado en Node.
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    const install = spawnSync(`${npmCmd} install --include=dev --no-audit --no-fund`, {
+    const install = spawnSync(`${npmCmd} ci --include=dev --no-audit --no-fund`, {
         cwd: FRONT,
         stdio: 'inherit',
         shell: true,
@@ -69,39 +80,21 @@ if (build.status !== 0) {
     process.exit(build.status || 1);
 }
 
-// ── 2. Ensamblar dist/ ────────────────────────────────────────────────────────
-if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
-
+// ── 2. Completar la misma salida generada por Vite ────────────────────────────
 for (const dir of DIRS) {
     const src = path.join(ROOT, dir);
     if (existsSync(src)) cpSync(src, path.join(DIST, dir), { recursive: true });
 }
-for (const file of FILES) {
-    const src = path.join(ROOT, file);
-    if (existsSync(src)) copyFileSync(src, path.join(DIST, file));
-}
+// La hoja móvil se integra en el bundle de React desde frontend/src/main.jsx.
+// Dejar además la copia estática publicaría dos versiones del mismo CSS.
+const mobileCssCopy = path.join(DIST, 'assets', 'css', 'mobile-experience.css');
+if (existsSync(mobileCssCopy)) unlinkSync(mobileCssCopy);
 
-// La app de React va al final para que su index.html sea el que responde en "/".
-// El index.html legacy (el login en HTML) se queda fuera a propósito: ese login
-// ahora es un componente React y servirlo duplicaría la pantalla de acceso.
-if (!existsSync(FRONT_DIST)) {
-    console.error('[build-dist] vite build no produjo frontend/dist.');
+// El index de React es la entrada publicada; el index legacy queda fuera.
+if (!existsSync(path.join(DIST, 'index.html'))) {
+    console.error('[build-dist] vite build no produjo dist/index.html.');
     process.exit(1);
-}
-cpSync(FRONT_DIST, DIST, { recursive: true });
-
-// ── 3. Podar imágenes pesadas ─────────────────────────────────────────────────
-const imgDist = path.join(DIST, 'assets', 'img');
-let removed = 0;
-if (existsSync(imgDist)) {
-    for (const file of readdirSync(imgDist)) {
-        if (IMG_EXCLUDE.has(file)) {
-            unlinkSync(path.join(imgDist, file));
-            removed++;
-        }
-    }
 }
 
 const bundle = path.join(DIST, 'vn-app');
 console.log(`\n[build-dist] dist/ listo: React${existsSync(bundle) ? ' (vn-app/)' : ''} + estáticos heredados.`);
-if (removed) console.log(`[build-dist] ${removed} imágenes pesadas excluidas (~27 MB ahorrados).`);

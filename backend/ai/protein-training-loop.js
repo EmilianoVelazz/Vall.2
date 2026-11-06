@@ -2,7 +2,9 @@
 
 // Ciclo de investigación para el apartado global de proteínas. No hace fine
 // tuning del modelo base: crea propuestas rastreables a evidencia para que el
-// producto pueda revisarlas antes de mostrarlas como análisis editorial.
+// producto pueda revisarlas antes de mostrarlas como análisis editorial en la parte editorila se puede analizar
+// los datos aydsentes importantes de cada piunto
+// .
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local'), quiet: true });
 
 const crypto = require('crypto');
@@ -27,7 +29,7 @@ const TOPICS = [
     { species: 'acuicultura', focus: 'Cobertura de datos, proteína acuática y límites: no inferir cifras sin FishStat u otra fuente explícita.' },
 ];
 
-const SYSTEM_PROMPT = `Eres VALL-ML, un asistente de investigación para el mercado mundial de proteínas.
+const SYSTEM_PROMPT = `Eres Proyecto Loopus, el sistema de aprendizaje de VALL AI especializado en el mercado mundial de proteínas.
 Trabaja sólo con la evidencia estructurada proporcionada. No inventes precios,
 producción, comercio, países, causalidades o fechas. Distingue siempre entre
 observado, estimado y proyección. No conviertas una alerta sanitaria en impacto
@@ -108,8 +110,10 @@ async function runProteinTrainingLoop() {
     let savedCount = 0;
     let evidence = null;
     let evidenceAt = 0;
-    const allProposals = readJson(PROPOSALS_FILE, []);
-    const allSnapshots = readJson(SNAPSHOTS_FILE, []);
+    const loadedProposals = readJson(PROPOSALS_FILE, []);
+    const loadedSnapshots = readJson(SNAPSHOTS_FILE, []);
+    const allProposals = Array.isArray(loadedProposals) ? loadedProposals : [];
+    const allSnapshots = Array.isArray(loadedSnapshots) ? loadedSnapshots : [];
     console.log(`[Protein-Training] Inicio: ${new Date(startedAt).toISOString()} · duración: ${Math.round(durationMs() / 60000)} minutos.`);
 
     while (Date.now() < endAt) {

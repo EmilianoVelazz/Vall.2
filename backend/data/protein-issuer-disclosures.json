@@ -1,0 +1,31 @@
+{
+  "reviewedAt": "2026-10-05T20:10:00.000Z",
+  "maxAgeDays": 7,
+  "documents": [
+    {
+      "issuer": "Tyson Foods",
+      "ticker": "TSN",
+      "title": "Tyson Foods Updates Fiscal 2026 Outlook",
+      "date": "2026-09-03",
+      "reviewedAt": "2026-10-07T00:00:00.000Z",
+      "url": "https://ir.tyson.com/news/news-details/2026/Tyson-Foods-Updates-Fiscal-2026-Outlook/default.aspx",
+      "excerpt": "Resumen contrastado del comunicado oficial del 3 de septiembre de 2026. Perspectivas del ejercicio fiscal 2026, no resultados ejecutados. Importes en millones de USD. Utilidad operativa ajustada consolidada prevista: 1,850–2,050. Chicken: 1,850–1,950; Beef: pérdida ajustada de 775–625; Pork: 200–250. Crecimiento previsto de ventas: 1.5–2.0%. La actualización sustituye la guía anterior del 3 de agosto para estas métricas. Los intervalos corresponden a medidas ajustadas no GAAP; no los presentes como utilidad neta, beneficio por acción ni resultados trimestrales. Este resumen no confirma novedades posteriores, deuda ni una cotización actual."
+    },
+    {
+      "issuer": "Pilgrim’s Pride",
+      "ticker": "PPC",
+      "title": "Pilgrim’s Pride Reports Second Quarter 2026 Results",
+      "date": "2026-07-29",
+      "url": "https://pilgrimspridecorporation.gcs-web.com/news-releases/news-release-details/pilgrims-pride-reports-second-quarter-2026-results",
+      "excerpt": "Resumen de cifras contrastadas en el comunicado oficial, no artículo completo. Trimestre de tres meses terminado el 28 de junio de 2026; cifras en millones de USD salvo BPA y porcentajes. Ventas netas: 4,626.230 (variación interanual publicada redondeada: -2.8%). Utilidad operativa GAAP: 66.0; margen operativo GAAP: 1.4%. Utilidad neta GAAP: 13.220; BPA GAAP: 0.06 USD/acción. Utilidad neta ajustada: 153.9; BPA ajustado: 0.64 USD/acción. EBITDA ajustado: 359.995, redondeado a 360.0; margen EBITDA ajustado: 7.8%. El acumulado de seis meses es distinto: ventas 9,158.863; utilidad neta GAAP 114.670; BPA GAAP 0.48; EBITDA ajustado 668.127. Estas cifras trimestrales son NO AUDITADAS. No se extrajo aquí una cifra de deuda neta ni un múltiplo de apalancamiento; no completes esos campos con memoria. No es una actualización de cotización bursátil."
+    },
+    {
+      "issuer": "Cal-Maine Foods",
+      "ticker": "CALM",
+      "title": "Cal-Maine Foods Reports First Quarter Fiscal 2027 Results",
+      "date": "2026-09-30",
+      "url": "https://investors.calmainefoods.com/news-releases/news-release-details/cal-maine-foods-reports-first-quarter-fiscal-2027-results",
+      "excerpt": "Resumen de cifras contrastadas en el comunicado oficial, no artículo completo. Primer trimestre FISCAL 2027 terminado el 29 de agosto de 2026, publicado el 30 de septiembre de 2026; no es un resultado futuro de 2027 calendario. Cifras en millones de USD salvo BPA y porcentajes. Ventas netas: 539.607, -41.5% interanual (no 535 millones). Utilidad bruta: 0.403. Pérdida operativa GAAP: -82.165; margen operativo GAAP: -15.2%. Pérdida neta atribuible: -58.615; BPA diluido: -1.26 USD/acción. Caja e inversiones a corto plazo al 29 de agosto de 2026: 767.592; el saldo de 924.057 corresponde al 30 de mayo de 2026, no al trimestre reciente. El precio medio del huevo convencional cayó 59.3% interanual. No pagará dividendo por este trimestre bajo su política variable. Cifras trimestrales NO AUDITADAS. No se extrajo aquí deuda financiera ni deuda neta; caja no equivale por sí sola a caja neta."
+    }
+  ]
+}

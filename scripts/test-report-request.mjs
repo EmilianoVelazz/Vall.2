@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import { reportJsonRequest, withReportRequest } from '../frontend/src/lib/reportRequest.js';
+import { visibleReportEdition, reportHasContent } from '../frontend/src/lib/reportAiPreferences.js';
+import { requestReportPdf } from '../frontend/src/lib/reportPdf.js';
+
+const never = () => new Promise(() => {});
+await assert.rejects(withReportRequest(never, { timeoutMs: 20 }), error => error.name === 'TimeoutError');
+await assert.rejects(reportJsonRequest('/api/user-reports', {}, { fetcher: async () => ({ ok: true, json: never }), timeoutMs: 20 }), error => error.name === 'TimeoutError');
+await assert.rejects(reportJsonRequest('/api/user-reports', {}, { fetcher: async () => Response.json({}, { status: 401 }) }), /sesión venció/);
+await assert.rejects(reportJsonRequest('/api/user-reports', {}, { fetcher: async () => new Response('JSON cortado') }), /cargar el informe/);
+await assert.rejects(reportJsonRequest('/api/report-email', {}, {fetcher:async()=>new Response('Too many requests',{status:429})}),error=>error.status===429 && error.code==='REPORT_RATE_LIMIT' && /Espera/.test(error.message));
+const controller = new AbortController();
+const cancelled = withReportRequest(never, { signal: controller.signal });
+controller.abort();
+await assert.rejects(cancelled, error => error.name === 'AbortError');
+let called = false;
+await assert.rejects(withReportRequest(() => { called = true; }, { signal: controller.signal }), error => error.name === 'AbortError');
+assert.equal(called, false, 'No inicia una operación cancelada');
+assert.deepEqual(await reportJsonRequest('/api/user-reports', {}, { fetcher: async () => Response.json({success:true,data:[]}) }), {success:true,data:[]});
+await assert.rejects(reportJsonRequest('/api/user-reports', {}, { expectedOwner:'ana@example.invalid', fetcher:async()=>Response.json({success:true,data:[],accountEmail:'luis@example.invalid'}) }), error=>error.status===409 && error.code==='REPORT_ACCOUNT_CHANGED');
+assert.equal((await reportJsonRequest('/api/user-reports', {}, { expectedOwner:'ana@example.invalid', fetcher:async()=>Response.json({success:true,data:[],accountEmail:'ANA@example.invalid'}) })).success,true);
+await assert.rejects(requestReportPdf({},'Informe','Texto',async(_url,options)=>{
+  assert.equal(JSON.parse(options.body).expectedOwner,'ana@example.invalid');
+  return Response.json({error:'La cuenta cambió',code:'REPORT_ACCOUNT_CHANGED'},{status:409});
+},{expectedOwner:'ana@example.invalid'}),error=>error.status===409 && error.code==='REPORT_ACCOUNT_CHANGED');
+await assert.rejects(requestReportPdf({}, 'Informe', '', never, { timeoutMs: 20 }), error=>error.name==='TimeoutError');
+await assert.rejects(requestReportPdf({}, 'Informe', '', async () => ({ok:true,headers:new Headers({'content-type':'application/pdf'}),blob:never}), { timeoutMs: 20 }), error=>error.name==='TimeoutError');
+const legacy = {title:'Edición anterior',content:'## Evidencia\nTexto íntegro',sections:[]};
+assert.equal(visibleReportEdition(legacy, {}).sections[0].text, legacy.content);
+assert.equal(legacy.sections.length, 0, 'La conversión no altera el original');
+assert.equal(reportHasContent(legacy),true);
+assert.equal(reportHasContent({title:'Sólo un título',sections:[],summary:'  '}),false);
+assert.equal(reportHasContent({title:'Indicadores',sections:[],metrics:[{value:0}]}),true);
+assert.equal(reportHasContent({sections:[{text:null},{text:'Análisis'}]}),true);
+const structured = {title:'Edición actual',content:'Copia antigua',sections:[{heading:'Texto',text:'Edición vigente'}]};
+assert.deepEqual(visibleReportEdition(structured, {}).sections, structured.sections, 'No duplica contenido heredado cuando hay secciones actuales');
+console.log('Report requests: OK · plazo de conexión y cuerpo, cancelación, sesión, JSON y PDF incompletos, compatibilidad con texto anterior');

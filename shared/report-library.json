@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "years": [2022, 2023, 2024, 2025],
+  "reports": {
+    "finance": {"equities":"Bolsa","bonds":"Bonos","fx":"Divisas","daily_news":"Noticias financieras","overview":"Panorama financiero"},
+    "markets": {"overview":"Panorama de mercados","grains":"Granos y forrajes","energy_metals":"Energía y metales","proteins":"Mercado de proteínas","market_news":"Noticias de mercados"},
+    "mexico": {"mx_overview":"Panorama de México","mx_bolsa":"Bolsa de México","mx_proteins":"Proteínas en México por estado","mx_production":"Producción estatal: granos y minería"}
+  },
+  "events": {
+    "2022": [
+      {"date":"2022-03-16","title":"La Reserva Federal inicia aumentos de tasas","text":"El FOMC elevó su rango objetivo y señaló inflación elevada, desequilibrios de oferta y demanda y riesgos derivados de la invasión de Ucrania. Es el diagnóstico de esa publicación, no una explicación probada del rendimiento anual de cada mercado.","source":"Reserva Federal","url":"https://www.federalreserve.gov/newsevents/pressreleases/monetary20220316a.htm"},
+      {"date":"2022-11-28","title":"La OMC advierte debilitamiento de la demanda de importaciones","text":"El barómetro de mercancías descendió por debajo de su tendencia. La publicación relacionó el contexto comercial con energía, guerra y endurecimiento monetario. El barómetro y las previsiones de entonces no son el resultado definitivo del año.","source":"OMC","url":"https://www.wto.org/english/news_e/news22_e/wtoi_28nov22_e.htm"}
+    ],
+    "2023": [
+      {"date":"2023-07-26","title":"La Reserva Federal eleva su rango objetivo a 5.25–5.50 %","text":"El FOMC mantuvo el foco en inflación y condiciones de crédito más restrictivas. Tasas elevadas pueden encarecer financiación y modificar valoración de activos; el efecto depende del país, vencimiento y moneda.","source":"Reserva Federal","url":"https://www.federalreserve.gov/newsevents/pressreleases/monetary20230726a.htm"},
+      {"date":"2023-12-18","title":"La OMC revisa el entorno de desaceleración del comercio","text":"El informe describe el debilitamiento del comercio, las presiones financieras y los riesgos geopolíticos. Las proyecciones reproducen el escenario de su fecha y no se presentan como cifras realizadas de cierre.","source":"OMC","url":"https://www.wto.org/english/news_e/news23_e/trdev_18dec23_wto_report_e.pdf"}
+    ],
+    "2024": [
+      {"date":"2024-09-18","title":"La Reserva Federal reduce el rango objetivo medio punto porcentual","text":"El FOMC señaló avances de la inflación y cambios en el equilibrio de riesgos de empleo e inflación. Un recorte de política no garantiza que todos los rendimientos de bonos o monedas se muevan en la misma dirección.","source":"Reserva Federal","url":"https://www.federalreserve.gov/newsevents/pressreleases/monetary20240918a.htm"},
+      {"date":"2024-07-02","title":"La OMC informa crecimiento del comercio de mercancías en el primer trimestre","text":"La publicación presenta una recuperación del primer trimestre después del estancamiento previo. Su alcance es trimestral: se usa como contexto fechado y no como crecimiento definitivo de todo 2024.","source":"OMC","url":"https://www.wto.org/english/news_e/news24_e/stat_02jul24_e.htm"}
+    ],
+    "2025": [
+      {"date":"2025-12-10","title":"La Reserva Federal vuelve a reducir su rango objetivo","text":"El comunicado recortó un cuarto de punto porcentual y describió incertidumbre, riesgos de empleo e inflación aún elevada. El anuncio es un hecho de diciembre, no una atribución causal automática de todos los movimientos de 2025.","source":"Reserva Federal","url":"https://www.federalreserve.gov/newsevents/pressreleases/monetary20251210a.htm"},
+      {"date":"2025-04-16","title":"La OMC revisa sus perspectivas ante cambios arancelarios","text":"El informe de abril evaluó escenarios bajo las medidas comerciales vigentes entonces. Las cifras proyectadas se distinguen de datos observados; su posible transmisión pasa por compras anticipadas, inventarios, rutas y costos de importación.","source":"OMC","url":"https://www.wto.org/english/res_e/publications_e/trade_outlook25_e.htm"}
+    ]
+  }
+}

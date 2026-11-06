@@ -1,8 +1,9 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import useTema from '../lib/tema.js';
+import useIdioma, { IDIOMAS } from '../lib/idioma.js';
 import { apiPost } from '../api/client.js';
+import './Header.css';
 
 /*
  * Cabecera compartida: barra superior fina + rail lateral de secciones.
@@ -36,11 +37,12 @@ import { apiPost } from '../api/client.js';
    texto aplanado. */
 const SECCIONES = [
   { a: '/inicio', icono: 'fa-house', texto: 'Inicio', tono: null, claves: 'portada home principal resumen' },
+  { a: '/informes', icono: 'fa-file-lines', texto: 'Informes', tono: 'finanzas', claves: 'reportes ejecutivos biblioteca decisiones pdf exportar evidencia' },
   { a: '/finanzas', icono: 'fa-chart-line', texto: 'Finanzas', tono: 'finanzas', claves: 'bolsa tasas deuda bonos divisas banxico tiie acciones' },
   { a: '/mercados', icono: 'fa-globe', texto: 'Mercados', tono: 'mercados', claves: 'commodities materias primas petroleo wti maiz granos cobre indices' },
-  { a: '/geopolitica', icono: 'fa-landmark', texto: 'Geopolítica', corto: 'Geopol.', tono: 'geo', claves: 'riesgo conflictos rutas mapa acled guerra suministro' },
   { a: '/mexico', icono: 'fa-flag', texto: 'México', tono: 'mexico', claves: 'peso dolar tipo de cambio inflacion nacional mxn' },
-  { a: '/vall-ai', icono: 'fa-wand-magic-sparkles', texto: 'VALL AI', tono: 'ai', claves: 'asistente inteligencia artificial chat analisis prediccion' },
+  { a: '/noticias', icono: 'fa-newspaper', texto: 'Noticias', tono: null, claves: 'actualidad titulares noticias mexico mundo finanzas bolsa cosechas agricultura ganaderia' },
+  { a: '/orion', icono: 'fa-wand-magic-sparkles', texto: 'ORION', tono: 'ai', claves: 'orion asistente inteligencia artificial chat analisis prediccion' },
 ];
 
 /* Fuera del rail pero alcanzables desde la paleta: sacarlas del menú no debería
@@ -50,12 +52,6 @@ const OTRAS = [
   { a: '/mercado-proteinas', icono: 'fa-leaf', texto: 'Proteínas', tono: 'proteinas', claves: 'carne cerdo res pollo maiz forraje raciones cme' },
   { a: '/configuracion', icono: 'fa-gear', texto: 'Configuración', tono: null, claves: 'ajustes tema cuenta preferencias perfil' },
 ];
-
-/** Inicial para el avatar. El correo es lo único que hay del usuario. */
-function inicialDe(correo) {
-  const letra = (correo || '').trim()[0];
-  return letra ? letra.toUpperCase() : '·';
-}
 
 /**
  * Marca en el nombre el trozo que coincide con lo tecleado.
@@ -88,26 +84,65 @@ function resaltar(texto, consulta) {
     otra codificación los destruye sin dejar rastro en el diff. */
 const plano = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
+const DESCRIPCIONES = {
+  '/inicio': 'El panorama de mercados, noticias y producción',
+  '/informes': 'Crea, revisa y comparte tus reportes',
+  '/finanzas': 'Acciones, bonos y divisas en perspectiva',
+  '/mercados': 'Granos, ganado y materias primas',
+  '/mexico': 'Economía y actividad productiva de México',
+  '/noticias': 'Actualidad para entender tu sector',
+  '/orion': 'Conecta tus preguntas con precios y contexto',
+  '/mercado-proteinas': 'Explora cerdo, res, pollo y sus cadenas',
+  '/configuracion': 'Tu cuenta y tus preferencias',
+};
+
+function Lupa() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>;
+}
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [paletaOpen, setPaletaOpen] = useState(false);
   const [consulta, setConsulta] = useState('');
   const [marcado, setMarcado] = useState(0);
+  const [compacto, setCompacto] = useState(() => window.innerWidth <= 1100);
 
   const menuButtonRef = useRef(null);
   const navRef = useRef(null);
   const listaRef = useRef(null);
   const inputRef = useRef(null);
   const paletaRef = useRef(null);
+  const busquedaButtonRef = useRef(null);
+  const idiomaRef = useRef(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const seccionActual = SECCIONES.find((seccion) => seccion.a === pathname) || SECCIONES[0];
+  // Una ruta retirada temporalmente del rail puede seguir abierta desde un
+  // marcador. En ese caso la cabecera se mantiene neutral, sin fingir que el
+  // usuario se encuentra en Inicio.
+  const seccionActual = SECCIONES.find((seccion) => seccion.a === pathname) || { texto: 'VALLNews', tono: null };
 
   const { user, logout } = useAuth();
-  const [tema, alternarTema] = useTema();
+  const [idioma, cambiarIdioma] = useIdioma();
+  const [idiomaOpen, setIdiomaOpen] = useState(false);
+  const idiomaActual = IDIOMAS.find((item) => item.lang === idioma) || IDIOMAS[0];
+
+  useEffect(() => {
+    if (!idiomaOpen) return undefined;
+    const cerrar = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return;
+      if (event.type !== 'keydown' && idiomaRef.current?.contains(event.target)) return;
+      setIdiomaOpen(false);
+    };
+    document.addEventListener('pointerdown', cerrar);
+    document.addEventListener('keydown', cerrar);
+    return () => {
+      document.removeEventListener('pointerdown', cerrar);
+      document.removeEventListener('keydown', cerrar);
+    };
+  }, [idiomaOpen]);
 
   // ── Rail: desplaza el contenido mientras esta cabecera esté montada ─────────
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.body.classList.add('vn-rail');
     return () => document.body.classList.remove('vn-rail');
   }, []);
@@ -157,7 +192,10 @@ export default function Header() {
   // ── Menú móvil: bloqueo de scroll, foco atrapado y Escape ───────────────────
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
-    if (menuOpen) requestAnimationFrame(() => navRef.current?.querySelector('a[href]')?.focus());
+    let firstFocusFrame, focusFrame;
+    if (menuOpen) firstFocusFrame = requestAnimationFrame(() => {
+      focusFrame = requestAnimationFrame(() => navRef.current?.querySelector('a[href]')?.focus());
+    });
 
     const handleKeyDown = (event) => {
       if (!menuOpen) return;
@@ -181,24 +219,41 @@ export default function Header() {
       }
     };
     const handleResize = () => {
-      if (window.innerWidth > 900) setMenuOpen(false);
+      setCompacto(window.innerWidth <= 1100);
+      if (window.innerWidth > 1100) setMenuOpen(false);
     };
 
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('resize', handleResize, { passive: true });
     return () => {
+      cancelAnimationFrame(firstFocusFrame);
+      cancelAnimationFrame(focusFrame);
       document.body.style.overflow = '';
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', handleResize);
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!idiomaOpen) return undefined;
+    // Espera al primer cuadro de la transición de visibilidad del menú móvil.
+    const focusSelected = () => idiomaRef.current?.querySelector('[aria-selected="true"]')?.focus();
+    let focusFrame;
+    const firstFrame = requestAnimationFrame(() => {
+      focusFrame = requestAnimationFrame(focusSelected);
+    });
+    // La transición dura 240 ms. El respaldo también funciona si el navegador
+    // suspende los cuadros de animación de una pestaña en segundo plano.
+    const fallback = window.setTimeout(focusSelected, menuOpen ? 260 : 0);
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(focusFrame); window.clearTimeout(fallback); };
+  }, [idiomaOpen, menuOpen]);
+
   // ── Paleta de comandos: ⌘K / Ctrl+K ────────────────────────────────────────
-  /* Es navegación, no búsqueda de contenido: salta a cualquier sección
-     escribiendo. Se eligió esto y no un buscador porque no hay índice de
-     contenido detrás — un campo que no encuentra nada es peor que no tenerlo.
-     La etiqueta dice "Ir a…" para no prometer lo que no hace. */
+  /* El buscador navega por secciones y acciones. Los sinónimos permiten
+     descubrir un destino por tema sin depender de su nombre en el menú. */
   const abrirPaleta = useCallback(() => {
+    setMenuOpen(false);
+    setIdiomaOpen(false);
     setConsulta('');
     setMarcado(0);
     setPaletaOpen(true);
@@ -207,7 +262,10 @@ export default function Header() {
   useEffect(() => {
     const atajo = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (document.querySelector('[aria-modal="true"]:not(#vn-search-dialog)')) return;
         e.preventDefault();
+        setMenuOpen(false);
+        setIdiomaOpen(false);
         setPaletaOpen((abierta) => {
           if (abierta) return false;
           setConsulta('');
@@ -220,22 +278,20 @@ export default function Header() {
     return () => document.removeEventListener('keydown', atajo);
   }, []);
 
-  /* Las acciones son lo que la paleta NO podía hacer antes: solo listaba rutas,
-     así que para cambiar el tema había que ir a Configuración y volver. Llevan
-     `hacer` en vez de `a`, y es lo único que las distingue al ejecutarlas. */
+  /* Un solo acceso permite encontrar el selector desde la búsqueda, sin
+     duplicar las seis opciones en cada consulta. */
   const ACCIONES = useMemo(() => [
     {
-      id: 'tema', icono: tema === 'dark' ? 'fa-sun' : 'fa-moon', tono: 'ai',
-      texto: tema === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
-      claves: 'tema modo oscuro claro apariencia color',
-      hacer: alternarTema, cerrar: false,
+      id: 'idioma', icono: 'fa-globe', tono: null,
+      texto: 'Cambiar idioma', descripcion: 'Elige el idioma de la app y de tus exportaciones', claves: 'idioma idiomas language languages traducir traduccion español ingles inglés english frances francés français italiano deutsch japones japonés 日本語',
+      hacer: () => { setMenuOpen(compacto); setIdiomaOpen(true); }, cerrar: true,
     },
     {
       id: 'salir', icono: 'fa-arrow-right-from-bracket', tono: null,
       texto: 'Cerrar sesión', claves: 'salir logout desconectar cuenta',
       hacer: cerrarSesion, cerrar: true,
     },
-  ], [tema, alternarTema, cerrarSesion]);
+  ], [cerrarSesion, compacto]);
 
   const TODO = useMemo(
     () => [
@@ -289,17 +345,39 @@ export default function Header() {
   }, [consulta, resultados]);
 
   useEffect(() => {
-    if (paletaOpen) requestAnimationFrame(() => inputRef.current?.focus());
+    if (!paletaOpen) return undefined;
+    const previousFocus = document.activeElement;
+    const searchButton = busquedaButtonRef.current;
+    const previousOverflow = document.body.style.overflow;
+    const rootStyle = document.documentElement.style;
+    const previousRootOverflow = rootStyle.overflow;
+    const previousGutter = rootStyle.scrollbarGutter;
+    document.body.style.overflow = 'hidden';
+    rootStyle.scrollbarGutter = 'stable';
+    rootStyle.overflow = 'hidden';
+    const focusFrame = requestAnimationFrame(() => inputRef.current?.focus());
+    const keepFocus = (event) => {
+      if (!paletaRef.current?.contains(event.target)) inputRef.current?.focus();
+    };
+    document.addEventListener('focusin', keepFocus);
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener('focusin', keepFocus);
+      document.body.style.overflow = previousOverflow;
+      rootStyle.overflow = previousRootOverflow;
+      rootStyle.scrollbarGutter = previousGutter;
+      if (previousFocus?.isConnected && !previousFocus.closest('[inert]')) previousFocus.focus();
+      else searchButton?.focus();
+    };
   }, [paletaOpen]);
 
-  // El marcado se sale de rango al filtrar; se vuelve al primero.
-  useEffect(() => { setMarcado(0); }, [consulta]);
+  useEffect(() => {
+    if (paletaOpen) paletaRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+  }, [marcado, paletaOpen]);
 
   const ejecutar = useCallback((destino) => {
     if (!destino) return;
     if (destino.hacer) {
-      // El interruptor de tema deja la paleta abierta a propósito: se ve el
-      // cambio detrás y se puede volver atrás sin reabrirla.
       if (destino.cerrar !== false) setPaletaOpen(false);
       destino.hacer();
       return;
@@ -309,7 +387,19 @@ export default function Header() {
   }, [navigate]);
 
   const teclasPaleta = (e) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === 'Escape') { e.preventDefault(); setPaletaOpen(false); return; }
+    if (e.key === 'Tab') {
+      const focusable = [...paletaRef.current.querySelectorAll('input, button:not([disabled])')];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      return;
+    }
+    // Los accesos y el cierre conservan su Enter nativo; las flechas navegan
+    // los resultados desde el campo de búsqueda.
+    if (e.target !== inputRef.current) return;
     const n = resultados.length;
     if (e.key === 'ArrowDown') { e.preventDefault(); setMarcado((i) => (i + 1) % Math.max(n, 1)); return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); setMarcado((i) => (i - 1 + n) % Math.max(n, 1)); return; }
@@ -323,58 +413,75 @@ export default function Header() {
   return (
     <>
       <header className="vn-topbar">
-        <Link className="vn-brand" to="/inicio">
-          <span className="vn-rail-cap" aria-hidden="true">
-            <img src="/assets/img/logo1.png" alt="" />
+        <div className="vn-topbar-identidad">
+          <Link className="vn-brand" to="/inicio">
+            <span className="vn-rail-cap" aria-hidden="true">
+              <img className="vn-brand-logo" src="/assets/img/brand/logo.png" alt="" width="52" height="36" />
+            </span>
+            <span className="vn-brand-txt">VALLNews</span>
+          </Link>
+
+          <span
+            className="vn-contexto"
+            style={seccionActual.tono ? { '--tono': `var(--sec-${seccionActual.tono})` } : undefined}
+            aria-label={`Sección actual: ${seccionActual.texto}`}
+          >
+            <span className="vn-contexto-punto" aria-hidden="true" />
+            <span className="vn-contexto-etq">Sección</span>
+            <strong>{seccionActual.texto}</strong>
           </span>
-          <span className="vn-brand-txt">VALLNews</span>
-        </Link>
-
-        <span
-          className="vn-contexto"
-          style={seccionActual.tono ? { '--tono': `var(--sec-${seccionActual.tono})` } : undefined}
-          aria-label={`Sección actual: ${seccionActual.texto}`}
-        >
-          <span className="vn-contexto-punto" aria-hidden="true" />
-          <span className="vn-contexto-etq">Sección</span>
-          <strong>{seccionActual.texto}</strong>
-        </span>
-
-        <button type="button" className="vn-cmd" onClick={abrirPaleta}>
-          <i className="fas fa-magnifying-glass" aria-hidden="true" />
-          {/* Antes decía "Ir a una sección…". Ahora la paleta también ejecuta
-              acciones, así que la etiqueta lo dice: sigue sin prometer que
-              busque noticias, que es lo que no hay detrás. */}
-          <span className="vn-cmd-txt">Buscar sección o acción…</span>
-          <kbd className="vn-cmd-kbd">⌘K</kbd>
-        </button>
-
-        {/* La inicial del correo en vez de un icono de persona genérico: es el
-            único dato real que hay del usuario y confirma con qué cuenta se
-            está dentro, que es justo lo que se viene a mirar aquí. */}
-        <Link to="/configuracion" className="vn-cuenta" title={user ? `Cuenta: ${user}` : 'Configuración de cuenta'}>
-          <span className="vn-cuenta-inicial" aria-hidden="true">{inicialDe(user)}</span>
-          <span className="vn-sr">{user ? `Cuenta de ${user}. Ir a configuración` : 'Configuración de cuenta'}</span>
-        </Link>
+        </div>
 
         <button
-          ref={menuButtonRef}
-          className={`vn-hamburger${menuOpen ? ' vn-ham-open' : ''}`}
           type="button"
-          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-          aria-controls="vn-react-primary-navigation"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((open) => !open)}
+          ref={busquedaButtonRef}
+          className="vn-cmd"
+          onClick={abrirPaleta}
+          aria-label="Buscar en VALLNEWS"
+          aria-haspopup="dialog"
+          aria-expanded={paletaOpen}
+          aria-controls={paletaOpen ? 'vn-search-dialog' : undefined}
+          title="Explorar secciones · Ctrl+K o ⌘K"
         >
-          <span /><span /><span />
+          <span className="vn-cmd-icono" aria-hidden="true">
+            <Lupa />
+          </span>
+          <span className="vn-cmd-copy">
+            <span className="vn-cmd-txt">Explora VALLNEWS</span>
+          </span>
+          <kbd className="vn-cmd-kbd">Ctrl <span>K</span></kbd>
         </button>
-      </header>
+
+        <div className="vn-topbar-acciones">
+          {/* La inicial del correo en vez de un icono de persona genérico: es el
+              único dato real que hay del usuario y confirma con qué cuenta se
+              está dentro, que es justo lo que se viene a mirar aquí. */}
+          <Link to="/configuracion" className="vn-cuenta" title={user ? `Cuenta: ${user}` : 'Configuración de cuenta'}>
+            <span className="vn-cuenta-inicial" aria-hidden="true">
+              <i className="fas fa-user" />
+            </span>
+            <span className="vn-sr">{user ? `Cuenta de ${user}. Ir a configuración` : 'Configuración de cuenta'}</span>
+          </Link>
+
+          <button
+            ref={menuButtonRef}
+            className={`vn-hamburger${menuOpen ? ' vn-ham-open' : ''}`}
+            type="button"
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-controls="vn-react-primary-navigation"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span /><span /><span />
+          </button>
+        </div>
 
       <nav
         ref={navRef}
         id="vn-react-primary-navigation"
         className={`vn-nav${menuOpen ? ' vn-nav-open' : ''}`}
         aria-label="Navegación principal"
+        inert={compacto && !menuOpen ? '' : undefined}
       >
         <div className="vn-nav-lista" ref={listaRef}>
           {/* La aguja va ANTES que los enlaces para quedar por debajo de ellos
@@ -414,20 +521,42 @@ export default function Header() {
         </div>
 
         {/* ── Pie del rail ──────────────────────────────────────────────────
-            El rail tenía siete secciones arriba y dos tercios de alto vacíos
-            debajo. Aquí van las tres acciones de cuenta, separadas de la
-            navegación por una regla: no son destinos, son cosas que se hacen. */}
+            El rail tenía secciones arriba y dos tercios de alto vacíos debajo.
+            Aquí viven el idioma y la salida, separados de la navegación porque
+            no son destinos: son acciones globales. */}
         <div className="vn-nav-pie">
-          <button
-            type="button"
-            className="vn-nav-item vn-nav-accion"
-            onClick={alternarTema}
-            title={tema === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-            aria-pressed={tema === 'dark'}
-          >
-            <i className={`fas ${tema === 'dark' ? 'fa-sun' : 'fa-moon'}`} aria-hidden="true" />
-            <span className="vn-nav-txt">{tema === 'dark' ? 'Claro' : 'Oscuro'}</span>
-          </button>
+          <div className={`vn-idioma notranslate${idiomaOpen ? ' abierto' : ''}`} translate="no" ref={idiomaRef}>
+            <button
+              type="button"
+              className="vn-nav-item vn-nav-accion vn-idioma-boton"
+              onClick={() => setIdiomaOpen((abierto) => !abierto)}
+              title={`Idioma: ${idiomaActual.nombre}`}
+              aria-haspopup="listbox"
+              aria-expanded={idiomaOpen}
+            >
+              <i className="fas fa-globe vn-idioma-globo" aria-hidden="true" />
+              <span className="vn-nav-txt">{idiomaActual.code}</span>
+            </button>
+            {idiomaOpen && (
+              <div className="vn-idioma-menu" role="listbox" aria-label="Idioma de la página">
+                <div className="vn-idioma-titulo">Idioma</div>
+                {IDIOMAS.map((opcion) => (
+                  <button
+                    key={opcion.lang}
+                    type="button"
+                    role="option"
+                    aria-selected={opcion.lang === idioma}
+                    className={opcion.lang === idioma ? 'activo' : ''}
+                    onClick={() => { setIdiomaOpen(false); cambiarIdioma(opcion.lang); }}
+                  >
+                    <span aria-hidden="true">{opcion.bandera}</span>
+                    <strong>{opcion.nombre}</strong>
+                    <small>{opcion.code}</small>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Ajustes salió del rail el 2026-08-18. Se llega por el avatar de la
               barra y por la paleta; no hacía falta una tercera puerta. */}
@@ -443,6 +572,7 @@ export default function Header() {
           </button>
         </div>
       </nav>
+      </header>
 
       {paletaOpen && (
         <div
@@ -450,24 +580,40 @@ export default function Header() {
           role="presentation"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setPaletaOpen(false); }}
         >
-          { }
           <div
             ref={paletaRef}
+            id="vn-search-dialog"
             className="vn-paleta"
             role="dialog"
             aria-modal="true"
-            aria-label="Ir a una sección"
+            aria-labelledby="vn-search-title"
+            aria-describedby="vn-search-description"
             onKeyDown={teclasPaleta}
           >
+            <div className="vn-search-heading">
+              <div>
+                <span className="vn-search-eyebrow">TU SIGUIENTE PERSPECTIVA</span>
+                <h2 id="vn-search-title">Explora VALLNEWS</h2>
+                <p id="vn-search-description">Encuentra una sección o una acción de la plataforma.</p>
+              </div>
+              <button className="vn-search-close" type="button" onClick={() => setPaletaOpen(false)} aria-label="Cerrar búsqueda">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+              </button>
+            </div>
             <div className="vn-paleta-campo">
-              <i className="fas fa-magnifying-glass" aria-hidden="true" />
+              <Lupa />
               <input
                 ref={inputRef}
                 type="text"
                 value={consulta}
-                onChange={(e) => setConsulta(e.target.value)}
-                placeholder="Busca una sección o una acción…"
+                onChange={(e) => { setConsulta(e.target.value); setMarcado(0); }}
+                placeholder="Prueba con bolsa, cerdo o reportes…"
                 aria-label="Buscar sección o acción"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded="true"
+                aria-controls="vn-search-results"
+                aria-activedescendant={resultados.length ? `vn-search-option-${marcado}` : undefined}
                 autoComplete="off"
                 spellCheck="false"
               />
@@ -484,7 +630,20 @@ export default function Header() {
               <kbd>ESC</kbd>
             </div>
 
-            <ul className="vn-paleta-lista" role="listbox" aria-label="Resultados">
+            {!consulta.trim() && (
+              <div className="vn-search-shortcuts" role="group" aria-label="Accesos rápidos">
+                {['/noticias', '/mercado-proteinas', '/orion'].map((a) => {
+                  const d = TODO.find(item => item.a === a);
+                  return <button key={a} type="button" onClick={() => ejecutar(d)}><i className={`fas ${d.icono}`} aria-hidden="true" />{d.texto}<span aria-hidden="true">↗</span></button>;
+                })}
+              </div>
+            )}
+            <div className="vn-search-summary" role="status" aria-live="polite">
+              <span>{consulta.trim() ? 'Resultados de búsqueda' : 'Explora la plataforma'}</span>
+              <span><span className="notranslate" translate="no">{resultados.length}</span>{' '}<span>{resultados.length === 1 ? 'destino' : 'destinos'}</span></span>
+            </div>
+
+            <ul id="vn-search-results" className="vn-paleta-lista" role="listbox" aria-label="Resultados">
               {agrupados.map(({ grupo, items }) => (
                 <Fragment key={grupo || '_'}>
                   {grupo && <li className="vn-paleta-grupo" role="presentation">{grupo}</li>}
@@ -493,21 +652,21 @@ export default function Header() {
                     // sola secuencia aunque se pinte separada por grupos.
                     const i = resultados.indexOf(d);
                     return (
-                      <li key={d.a || d.id}>
+                      <li key={d.a || d.id} role="presentation">
                         <button
                           type="button"
                           role="option"
+                          id={`vn-search-option-${i}`}
                           aria-selected={i === marcado}
                           className={`vn-paleta-item${i === marcado ? ' marcado' : ''}`}
                           onMouseEnter={() => setMarcado(i)}
+                          onFocus={() => setMarcado(i)}
                           onClick={() => ejecutar(d)}
                           style={d.tono ? { '--tono': `var(--sec-${d.tono})` } : undefined}
                         >
                           <i className={`fas ${d.icono}`} aria-hidden="true" />
-                          <span className="vn-paleta-txt">{resaltar(d.texto, consulta)}</span>
-                          <span className="vn-paleta-ruta">
-                            {d.hacer ? <><i className="fas fa-bolt" aria-hidden="true" /> acción</> : d.a}
-                          </span>
+                          <span className="vn-paleta-txt"><strong>{resaltar(d.texto, consulta)}</strong><small>{d.descripcion || DESCRIPCIONES[d.a] || 'Finaliza tu sesión en este dispositivo'}</small></span>
+                          <span className="vn-search-open" aria-hidden="true">↗</span>
                         </button>
                       </li>
                     );
@@ -515,13 +674,13 @@ export default function Header() {
                 </Fragment>
               ))}
               {!resultados.length && (
-                <li className="vn-paleta-vacio">
-                  <i className="fas fa-magnifying-glass" aria-hidden="true" />
+                <li className="vn-paleta-vacio" role="presentation">
+                  <Lupa />
                   <p>Nada coincide con «{consulta.trim()}».</p>
                   {/* Decir qué se puede buscar es más útil que decir que no hay
                       nada: aquí no hay índice de artículos, solo secciones y
                       acciones, y conviene que se note. */}
-                  <small>Se buscan secciones y acciones, no noticias. Prueba con «dólar», «bolsa» o «tema».</small>
+                  <small>Explora por tema. Prueba con «dólar», «bolsa», «cerdo» o «reportes».</small>
                 </li>
               )}
             </ul>

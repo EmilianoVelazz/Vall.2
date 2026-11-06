@@ -52,7 +52,7 @@ export function supportsGeminiLive() {
 }
 
 export async function startGeminiLive(callbacks = {}) {
-  if (!supportsGeminiLive()) throw new Error('La lectura con VALL AI requiere HTTPS y un navegador moderno.');
+  if (!supportsGeminiLive()) throw new Error('La lectura con ORION requiere HTTPS y un navegador moderno.');
   const captureMicrophone = callbacks.captureMicrophone !== false;
   if (captureMicrophone && !navigator.mediaDevices?.getUserMedia) throw new Error('Este navegador no permite usar el micrófono.');
 

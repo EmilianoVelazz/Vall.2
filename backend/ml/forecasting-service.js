@@ -6,13 +6,13 @@ const crypto = require('crypto');
 const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
 const { externalGet, YF_UA } = require('../lib/http');
-const { trainAndAssess } = require('./autoregressive-forecast');
+const { trainTemporalModel, VERSION } = require('./temporal-training');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), quiet: true });
 dotenv.config({ path: path.resolve(__dirname, '../.env'), quiet: true });
 
 const MODEL_NAME = 'VALL numeric market forecaster';
-const MODEL_VERSION = '1.1.0';
+const MODEL_VERSION = VERSION;
 const HISTORY_LIMIT = 3_000;
 let supabaseClient = null;
 
@@ -47,18 +47,32 @@ function chunks(values, size = 250) {
     return result;
 }
 
-async function fetchYahooHistory(symbol, intervalCode) {
+async function fetchYahooHistory(symbol, intervalCode, { get = externalGet, now = Date.now() } = {}) {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(intervalCode)}&range=10y`;
-    const response = await externalGet(url, { 'User-Agent': YF_UA, Accept: 'application/json' }, 30_000);
+    const response = await get(url, { 'User-Agent': YF_UA, Accept: 'application/json' }, 30_000);
     if (!response.ok) throw new Error(`Yahoo Finance respondió HTTP ${response.status}.`);
     const payload = await response.json();
     const result = payload?.chart?.result?.[0];
     const timestamps = result?.timestamp || [];
-    const closes = result?.indicators?.quote?.[0]?.close || [];
+    const rawCloses = result?.indicators?.quote?.[0]?.close || [];
+    const adjusted = result?.indicators?.adjclose?.[0]?.adjclose;
+    if (!Array.isArray(adjusted) && !/[=^]|-[A-Z]{3}$/.test(symbol)) throw new Error('Faltan cierres ajustados de la acción; no se entrena con saltos por splits o dividendos sin confirmar.');
+    const closes = Array.isArray(adjusted) ? adjusted : rawCloses;
+    const today = dateOnly(now), current = new Date(now);
+    const monthStart = Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 1);
+    const weekStart = Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate() - (current.getUTCDay() + 6) % 7);
+    const end = result?.meta?.currentTradingPeriod?.regular?.end;
     const deduplicated = new Map();
     for (let index = 0; index < timestamps.length; index++) {
-        const value = Number(closes[index]);
-        if (Number.isFinite(value)) deduplicated.set(dateOnly(timestamps[index] * 1000), value);
+        const timestamp = Number(timestamps[index]) * 1000, raw = closes[index];
+        if (raw == null || raw === '' || typeof raw === 'boolean' || !Number.isFinite(timestamp) || timestamp > now) continue;
+        const value = Number(raw);
+        if (!Number.isFinite(value) || value <= 0) continue;
+        const date = dateOnly(timestamp);
+        if (intervalCode === '1mo' && timestamp >= monthStart || intervalCode === '1wk' && timestamp >= weekStart
+            || intervalCode === '1d' && date === today && (!Number.isFinite(end) || now < end * 1000 + 15 * 60000)) continue;
+        if (deduplicated.has(date) && deduplicated.get(date) !== value) throw new Error('La fuente devolvió dos valores distintos para la misma observación.');
+        deduplicated.set(date, value);
     }
     return [...deduplicated.entries()].map(([observed_at, value]) => ({ observed_at, value })).sort((left, right) => left.observed_at.localeCompare(right.observed_at));
 }
@@ -91,7 +105,7 @@ async function evaluateDuePredictions(supabase, symbol, intervalCode) {
             .gte('observed_at', prediction.target_at).order('observed_at', { ascending: true }).limit(1).maybeSingle();
         if (actualError) throw actualError;
         const actual = Number(actualRow?.value);
-        if (!Number.isFinite(actual)) continue;
+        if (actualRow?.value == null || typeof actualRow.value === 'boolean' || !Number.isFinite(actual) || actual <= 0) continue;
         const predicted = Number(prediction.predicted_value);
         const absoluteError = Math.abs(actual - predicted);
         const percentageError = actual === 0 ? null : absoluteError / Math.abs(actual) * 100;
@@ -107,20 +121,20 @@ async function evaluateDuePredictions(supabase, symbol, intervalCode) {
     return evaluated;
 }
 
-async function trainForSymbol(rawSymbol, { intervalCode = '1d' } = {}) {
+async function trainForSymbol(rawSymbol, { intervalCode = '1d', repository = null, historyLoader = fetchYahooHistory } = {}) {
     const symbol = cleanSymbol(rawSymbol);
     if (!['1d', '1wk', '1mo'].includes(intervalCode)) throw new Error('Intervalo no permitido; usa 1d, 1wk o 1mo.');
-    const supabase = getSupabase();
-    const observations = await fetchYahooHistory(symbol, intervalCode);
+    const supabase = repository || getSupabase();
+    const observations = await historyLoader(symbol, intervalCode);
     if (!observations.length) throw new Error(`Yahoo Finance no devolvió observaciones para ${symbol}.`);
     const persistedObservations = await persistObservations(supabase, symbol, intervalCode, observations);
     const evaluatedPredictions = await evaluateDuePredictions(supabase, symbol, intervalCode);
-    const assessment = trainAndAssess(observations.map(point => point.value));
+    const assessment = trainTemporalModel(observations.map(point => ({ date: point.observed_at, value: point.value })));
     const parameters = {
-        validation: assessment.evaluation || null, observations: assessment.observations,
-        publicationGate: 'MAE walk-forward debe superar al baseline de último valor por al menos 2%.', reason: assessment.reason || null,
+        validation: assessment.evaluation || null, selection: assessment.selection || null, observations: assessment.observations,
+        publicationGate: 'Selección temporal separada; MAE de validación supera al último valor por al menos 2% y no empeora el modelo anterior.', reason: assessment.reason || null,
         modelArtifact: assessment.model ? {
-            lags: assessment.model.lags, ridge: assessment.model.ridge, coefficients: assessment.model.coefficients,
+            targetMode: assessment.model.targetMode, window: assessment.selection?.config.window, lags: assessment.model.lags, ridge: assessment.model.ridge, coefficients: assessment.model.coefficients,
             featureMeans: assessment.model.featureMeans, featureScales: assessment.model.featureScales,
             residualStdDev: assessment.model.residualStdDev, trainingMae: assessment.model.trainingMae,
         } : null,
@@ -128,7 +142,7 @@ async function trainForSymbol(rawSymbol, { intervalCode = '1d' } = {}) {
     const { data: run, error: runError } = await supabase.from('forecast_runs').insert({
         run_key: crypto.randomUUID(), symbol, interval_code: intervalCode, model_name: MODEL_NAME, model_version: MODEL_VERSION,
         training_start: observations[0].observed_at, training_end: observations.at(-1).observed_at,
-        cutoff_at: observations.at(-1).observed_at, algorithm: 'ridge_autoregression_lag3', parameters,
+        cutoff_at: observations.at(-1).observed_at, algorithm: assessment.model?.algorithm || 'baseline_last_value', parameters,
         status: assessment.eligible ? 'accepted' : 'rejected_baseline',
     }).select('id').single();
     if (runError) throw runError;
@@ -142,7 +156,7 @@ async function trainForSymbol(rawSymbol, { intervalCode = '1d' } = {}) {
         lower_bound: forecast.lowerBound, upper_bound: forecast.upperBound,
         probability_up: forecast.probabilityUp, confidence_score: forecast.confidenceScore,
         explanation: `Pronóstico de un paso con ${assessment.observations} observaciones; publicado porque supera al baseline.`,
-        evidence: { latestObservedAt: latest.observed_at, walkForward: assessment.evaluation },
+        evidence: { latestObservedAt: latest.observed_at, walkForward: assessment.evaluation, rangeMethod: forecast.rangeMethod },
     }).select('id').single();
     if (predictionError) throw predictionError;
     return { symbol, intervalCode, runId: run.id, predictionId: prediction.id, persistedObservations,

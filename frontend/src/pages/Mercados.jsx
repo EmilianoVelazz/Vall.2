@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import MktChart from '../components/MktChart.jsx';
+import {DATOS,LIGHTWEIGHT_CHARTS,MAPA_MUNDIAL} from '../lib/hojasComunes.js';
+import {startPolling} from '../lib/startPolling.js';
 import MapaGranos from '../components/MapaGranos.jsx';
-import SalaNoticiasMercados from '../components/SalaNoticiasMercados.jsx';
 import ConsumoPersona from '../components/ConsumoPersona.jsx';
 import CortesAnimal from '../components/CortesAnimal.jsx';
+import ModuleEntryCards from '../components/ModuleEntryCards.jsx';
 import {
   ORIGENES_PROTEINAS, METRICAS as METRICAS_PROT, ESCALA as ESCALA_PROT,
   proteinasDe, balanceDe, dietaDe, tablaPaises, paisesConBalance, FILA_MUNDO,
@@ -27,18 +29,16 @@ import loadScripts, { globalLegado } from '../lib/loadScripts.js';
    contenido se recupera dentro de alguna pestaña. */
 import {
   calcIPI, impactoLabel, inteligenciaGranos, inteligenciaEnergia,
-  inteligenciaMetales, calcularPresupuestoMetal, PRESUPUESTOS_METAL,
+  inteligenciaMetales, PRESUPUESTOS_METAL,
   datosProteinas, NOMBRE_ESPECIE, ESPECIES_PROTEINA, ESPECIE_A_FAO,
   estimarDiesel, aplicarEscenarioEnergia,
   /* BU_POR_MT vuelve al import: la matriz de plazas convierte el precio por
      bushel a tonelada para poder aplicarle el tipo de cambio de cada mercado.
      `precioMxnPorTonelada` salió, porque hacía esa misma conversión pero atada
      al peso mexicano — la matriz la necesita para ocho monedas. */
-  resultadoEscenarioEnergia, LB_POR_MT, BU_POR_MT,
+  LB_POR_MT, BU_POR_MT,
   simularOpcion, volatilidadHistorica, subyacentesDe, precioEnUnidad,
   procesarOpenInterest, diasDelCot,
-  clasificarNoticia, ETIQUETA_CATEGORIA, ICONO_CATEGORIA, impactoNoticia,
-  boletinesGranos, boletinesEnergia, imagenValida,
 } from '../lib/mercados.js';
 import './Mercados.css';
 import { ESQUELETO } from '../lib/hojasComunes.js';
@@ -62,19 +62,9 @@ import { ESQUELETO } from '../lib/hojasComunes.js';
  *  - El setInterval de 20 min no se cancelaba nunca.
  */
 
-const HOJAS = [
+const HOJAS_BASE = [
   ...ESQUELETO,
   '/assets/css/mercados-redesign-v2.css?v=1',
-  /* Las CUATRO hojas de Daily News, tal cual las carga Finanzas. La pestaña
-     Noticias usa su plantilla literal (`.fnb-*`), así que necesita su hoja
-     literal: `-favro` es la base y las otras tres son el tema oscuro, que son
-     1.264 reglas colgadas de `body.vn-dark-finanzas.ff-detail-noticias`. Esas
-     clases las pone y las quita el efecto de más abajo, solo en esa pestaña.
-     Se comprobó antes de traerlas que no tocan nada del resto de Mercados. */
-  '/assets/css/daily-news-favro.css?v=23',
-  '/assets/css/daily-news-editorial.css?v=11',
-  '/assets/css/daily-news-coverage-window.css?v=1',
-  '/assets/css/daily-news-story-index.css?v=2',
 ];
 
 /* world-map-data.js son 121 KB de trazos ya proyectados que publica
@@ -82,27 +72,15 @@ const HOJAS = [
    geometría del mundo se genera una vez (scripts/build-world-map.mjs) y la
    comparten las secciones que la necesiten, en vez de tener cada una la suya. */
 const LIBS = [
-  '/assets/js/api-keys.js?v=5',
-  '/assets/js/data-service.js?v=22',
-  '/assets/js/world-map-data.js?v=1',
+  ...DATOS,
+  MAPA_MUNDIAL,
 ];
-const LIB_CHART = ['https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js'];
+const LIB_CHART = [LIGHTWEIGHT_CHARTS];
 
 const MS_REFRESCO = 20 * 60 * 1000;
 const CLAVE_TAB = 'mkt_active_tab';
 
-/* Los filtros de la sala de noticias salen del CATÁLOGO de categorías, no de
-   una lista escrita a mano. Escribirla a mano es como se cuela el fallo que ya
-   documenta categoriaDe(): basta con olvidar una —se me olvidó «Divisas»— para
-   que sus titulares se vean en «Todas» y no haya ninguna pestaña que los
-   muestre. Derivándola, añadir una categoría al clasificador la añade aquí. */
-const FILTROS_NOTICIAS = [
-  ['all', 'Todas'],
-  ...Object.entries(ETIQUETA_CATEGORIA),
-];
-
-
-/* Los cinco módulos, en un solo sitio.
+/* Los tres módulos, en un solo sitio.
    Los leen la portada (para pintar los recuadros) y la barra de navegación del
    detalle (para su título y sus pestañas). Estaban escritos dentro del render,
    y tenerlos duplicados en los dos sitios es justo como se desincronizan: se
@@ -110,10 +88,11 @@ const FILTROS_NOTICIAS = [
 const MODULOS = [
   {
     id: 'granos', clase: 'mhc-granos', icono: 'fa-seedling',
+    categoria: 'Alimentación animal', intro: 'Del campo a la ración: sigue los precios y las señales que mueven el costo del alimento.',
     titulo: 'Granos & Forrajes', sub: 'Maíz · Soja · Trigo · CME', badge: 'CME',
     destacado: ['Maíz'], cta: 'Ver análisis de granos',
     desc: 'Maíz, soja y trigo de referencia CME/CBOT: el costo base de la alimentación animal en México.',
-    foto: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=900&q=75&auto=format&fit=crop',
+    foto: '/assets/img/markets/granos.webp',
   },
   /* Energéticos y Metales eran dos módulos y ahora son uno.
      No es solo ahorrar una pestaña: los dos leen el mismo ciclo industrial y se
@@ -124,36 +103,26 @@ const MODULOS = [
      su color; lo que se unifica es la sección, no los datos. */
   {
     id: 'industriales', clase: 'mhc-industriales', icono: 'fa-industry',
+    categoria: 'Ciclo industrial', intro: 'Conecta energía, transporte y materias primas para entender el costo de operar.',
     titulo: 'Energía & Metales', sub: 'WTI · Gas · Cobre · Aluminio', badge: 'NYMEX/LME',
     destacado: ['WTI'], cta: 'Ver energía y metales',
     desc: 'Petróleo, gas y diésel junto a cobre y aluminio: lo que cuesta mover y lo que cuesta construir, leídos como un solo ciclo industrial.',
-    foto: 'https://images.unsplash.com/photo-1516937941344-00b4e0337589?w=900&q=75&auto=format&fit=crop',
+    foto: '/assets/img/markets/industriales.webp',
   },
   {
     id: 'proteinas', clase: 'mhc-proteinas', icono: 'fa-drumstick-bite',
-    titulo: 'Mercado de Proteínas', sub: 'Cerdo · Pollo · Res · Huevo', badge: 'GLOBAL',
+    categoria: 'Proteínas animales', intro: 'Explora cerdo, pollo, res y huevo con precios físicos y contexto de producción y consumo.',
+    titulo: 'Mercado de Proteínas', sub: 'Cerdo · Pollo · Res · Huevo', badge: 'PUEBLA',
     destacado: ['Cerdo'], cta: 'Abrir tablero de proteínas',
-    desc: 'Precio, costo de alimentación y margen de las cuatro proteínas, con la producción y el consumo de cada país.',
+    desc: 'Cotizaciones físicas verificadas de Puebla, Puebla; el contexto global se muestra por separado.',
     /* Un cerdo y no la res de antes: la cifra que enseña el recuadro es la del
        cerdo (`destacado: ['Cerdo']`), así que la foto y el dato hablaban de
        animales distintos. Esta toma sirve además al texto que lleva encima —el
        fondo cae oscuro justo en la esquina del título, que es donde una foto
        clara deja el titular ilegible. */
-    foto: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=900&q=75&auto=format&fit=crop',
+    foto: '/assets/img/markets/proteinas.webp',
   },
-  /* Noticias no es un mercado, es la lectura de todos: reúne en un solo sitio
-     los titulares que hasta ahora solo se veían dentro de Granos y de
-     Energéticos, más los boletines propios. Por eso `moneda: false` —su cifra
-     destacada es un recuento de titulares, no un precio, y sin la marca se
-     pintaría como «$24.00»— y por eso ocupa la fila entera en la portada, que
-     es lo que evita que quede un hueco suelto al lado del cuarto recuadro. */
-  {
-    id: 'noticias', clase: 'mhc-noticias', icono: 'fa-newspaper',
-    titulo: 'Noticias', sub: 'Agencias · Boletines VALL · Cada 20 min', badge: 'EN VIVO',
-    destacado: ['Titulares'], cta: 'Abrir sala de noticias', moneda: false, ancho: true,
-    desc: 'Todo lo que mueve a los mercados de insumos, de las agencias y del análisis propio, en una sola lectura.',
-    foto: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=75&auto=format&fit=crop',
-  },
+
 ];
 
 /* ── Las cuatro proteínas ───────────────────────────────────────────────────
@@ -371,85 +340,25 @@ async function cargarPrecios(VDS) {
   return { precios, mxnRate, hogsD, cattleD, tasas };
 }
 
-/* Las tres fuentes traen la fecha de publicación, pero en dos formatos: ISO en
-   Finnhub y el compacto YYYYMMDDTHHMMSS de Alpha Vantage y GDELT, que `Date` no
-   sabe leer y convierte en NaN. */
-function fechaNoticia(valor) {
-  if (!valor) return null;
-  let d = new Date(valor);
-  if (Number.isNaN(d.getTime())) {
-    const m = String(valor).match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/);
-    if (!m) return null;
-    d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+async function cargarCotizacionesPuebla() {
+  try {
+    const response = await fetch('/api/proteinas/precios-comerciales', {
+      credentials: 'include', cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (data?.market?.id !== 'puebla-puebla' || !data?.prices) {
+      throw new Error('La respuesta no corresponde al mercado de Puebla.');
+    }
+    return data;
+  } catch (error) {
+    return {
+      available: false,
+      market: { id: 'puebla-puebla', label: 'Puebla, Puebla · mercado físico' },
+      prices: {},
+      error: `No se pudo verificar Puebla: ${error.message}`,
+    };
   }
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-/* Antes las ocho noticias mostraban la hora de carga de la página, la misma para
-   todas: parecía que se habían publicado a la vez. Ahora cada una lleva la suya,
-   en relativo, que es lo que interesa de una noticia.
-
-   Si la fecha no se puede leer o cae fuera de lo razonable —negativa por un
-   desfase de zona, o de hace meses— se vuelve a la hora de carga en vez de
-   enseñar «hace -3 h». */
-function etiquetaFecha(d, respaldo) {
-  if (!d) return respaldo;
-  const minutos = (Date.now() - d.getTime()) / 60000;
-  if (minutos < -60 || minutos > 60 * 24 * 30) return respaldo;
-  if (minutos < 60) return `hace ${Math.max(1, Math.round(minutos))} min`;
-  const horas = minutos / 60;
-  if (horas < 24) return `hace ${Math.round(horas)} h`;
-  const dias = Math.round(horas / 24);
-  return dias === 1 ? 'ayer' : `hace ${dias} d`;
-}
-
-async function cargarNoticias(VDS, precios, mxnRate, hora) {
-  const [av, fh, soy, wheat] = await Promise.allSettled([
-    VDS.newsAlphaVantage('commodities', 8),
-    VDS.finnhubNews('general'),
-    VDS.gdeltNews('soybean', 10),
-    VDS.gdeltNews('wheat', 10),
-  ]);
-  const usar = (r) => (r.status === 'fulfilled' && Array.isArray(r.value) ? r.value : []);
-
-  const cuando = (a) => etiquetaFecha(fechaNoticia(a.publishedAt), hora);
-  /* `fecha` es la etiqueta que se lee («hace 2 h») y no sirve para ordenar. `ts`
-     guarda el instante en milisegundos para que el minuto a minuto de la sala
-     pueda ser de verdad cronológico; null cuando la fuente no manda fecha
-     utilizable, y esas caen al final en vez de colarse como recentísimas. */
-  const sello = (a) => fechaNoticia(a.publishedAt)?.getTime() ?? null;
-
-  const todas = [
-    ...usar(av).map((a) => ({ title: a.title, desc: a.description || '', src: a.source || 'Alpha Vantage', url: a.url || '', fecha: cuando(a), ts: sello(a), image: a.banner_image || a.image || '' })),
-    ...usar(soy).map((a) => ({ title: a.title, desc: a.description || '', src: a.source || 'GDELT', url: a.url || '', fecha: cuando(a), ts: sello(a), image: a.image || '' })),
-    ...usar(wheat).map((a) => ({ title: a.title, desc: a.description || '', src: a.source || 'GDELT', url: a.url || '', fecha: cuando(a), ts: sello(a), image: a.image || '' })),
-    ...usar(fh).map((a) => ({ title: a.title, desc: a.description || a.summary || '', src: a.source || 'Finnhub', url: a.url || '', fecha: cuando(a), ts: sello(a), image: a.image || '' })),
-  ];
-
-  const vistos = new Set();
-  const unicas = todas.filter((a) => {
-    const k = (a.title || '').toLowerCase().slice(0, 50);
-    if (!k || k.length < 8 || vistos.has(k)) return false;
-    vistos.add(k);
-    return true;
-  });
-
-  const dedup = (lista) => lista.filter((a, i, arr) => arr.findIndex((b) => (b.title || '').toLowerCase() === (a.title || '').toLowerCase()) === i);
-
-  /* Los boletines son análisis propios de VALL sobre el maíz, la soja y la
-     energía. Ninguna sección tiene ya panel de noticias propio, así que van
-     todos al módulo Noticias: sin ellos, la sala se quedaría solo con lo que
-     traen las agencias. */
-  const bolGranos = boletinesGranos(precios, mxnRate, hora);
-  const bolEnergia = boletinesEnergia(precios, mxnRate, hora);
-
-  /* Un solo pool. Hubo paneles por sección que repartían los titulares por
-     categoría con `de(cat)`; al retirarse el último, ese reparto dejó de tener
-     destino y la función se fue con él — el módulo Noticias no filtra aquí,
-     tiene sus propios filtros en la interfaz. */
-  return {
-    todas: dedup([...unicas, ...bolGranos, ...bolEnergia]).slice(0, 30),
-  };
 }
 
 /* ── Piezas de interfaz ─────────────────────────────────────────────────────*/
@@ -458,58 +367,6 @@ function Variacion({ pct }) {
   const n = num(pct);
   return <div className={`cmt-pct ${n >= 0 ? 'up' : 'down'}`}>{fmtPct(n)}</div>;
 }
-
-/* Las agencias pegan su nombre al final del titular («… oil worries fester -
-   Reuters») y la ficha ya lo enseña debajo, así que se quita cuando coincide con
-   la fuente: repetido ocupa el ancho del titular, que es lo que se lee. El corte
-   duro a 110 caracteres deja además la frase a medias sin avisar; ahora se marca
-   con puntos suspensivos y sin partir la última palabra. */
-const escapaRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/* Quita el nombre de la fuente pegado al final, con o sin guion delante: las
-   agencias lo pegan de las dos formas («… fester - Reuters» y «… fester
-   Reuters»). Se usa en el titular y en la bajada. */
-function sinFirma(texto, src) {
-  const t = (texto || '').trim();
-  if (!src) return t;
-  return t.replace(new RegExp(`\\s*[-|–—·]?\\s*${escapaRegex(src.trim())}\\s*$`, 'i'), '').trim();
-}
-
-function tituloNoticia(a) {
-  const t = sinFirma(a.title, a.src);
-  if (t.length <= 110) return t;
-  const corte = t.slice(0, 109);
-  const espacio = corte.lastIndexOf(' ');
-  return `${(espacio > 70 ? corte.slice(0, espacio) : corte).trimEnd()}…`;
-}
-
-/**
- * La bajada, o null si no aporta nada.
- *
- * Varias de las fuentes conectadas mandan `description` igual al `title` —a
- * veces con el nombre de la agencia pegado detrás—, así que la ficha imprimía
- * el mismo titular dos veces seguidas, la segunda en gris y más pequeño. Ocupaba
- * tres líneas para no decir nada nuevo. Se compara sin acentos, sin puntuación y
- * sin la firma, y también por prefijo: `description` suele ser el titular más
- * una frase, o el titular cortado.
- */
-function bajadaDe(a, limite) {
-  const d = sinFirma(a.desc, a.src);
-  if (!d) return null;
-  const plano = (s) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '')
-    .toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-  const pd = plano(d);
-  const pt = plano(sinFirma(a.title, a.src));
-  if (!pd || pd === pt || pt.startsWith(pd) || pd.startsWith(pt)) return null;
-  return d.length > limite ? `${d.slice(0, limite).trimEnd()}…` : d;
-}
-
-/* La categoría que se enseña y por la que se filtra tienen que salir del mismo
-   sitio. La ficha caía en 'macro' cuando el clasificador no acertaba ninguna,
-   pero el filtro comparaba sin ese respaldo: al pulsar «Macro» salía «No hay
-   noticias» justo debajo de una ficha etiquetada MACRO —los boletines propios,
-   que el clasificador no reconoce, son precisamente los que caen ahí. */
-const categoriaDe = (a) => clasificarNoticia(a.title) || clasificarNoticia(a.desc) || 'macro';
 
 function TarjetaGrafica({ panel, titulo, precios, ticker, onTicker, rango, onRango, modo, onModo, listo }) {
   const meta = INSTRUMENTOS[panel][ticker];
@@ -839,17 +696,20 @@ function useSimuladorOpcion(tipo, familia, fuente, fx) {
      no lo presenta como un dato de mercado: es un punto de partida a ajustar. */
   const volUsada = vol ?? (volHist != null ? Math.round(volHist * 10) / 10 : 25);
 
-  const comun = { tipo, subyacente, precio: dato?.precio, meses, vol: volUsada, tasa, toneladas: ton, fx };
+  const comun = useMemo(
+    () => ({ tipo, subyacente, precio: dato?.precio, meses, vol: volUsada, tasa, toneladas: ton, fx }),
+    [tipo, subyacente, dato?.precio, meses, volUsada, tasa, ton, fx],
+  );
   const sim = useMemo(
     () => simularOpcion({ ...comun, strikePct: strike }),
-    [tipo, subyacente, dato, strike, meses, volUsada, tasa, ton, fx],
+    [comun, strike],
   );
   /* Referencia para los deltas de las tarjetas: la MISMA cobertura a strike
      100% y al plazo de hoy. Sin una base fija, cada tarjeta compararía contra
      sí misma y el delta sería siempre 0. */
   const base = useMemo(
     () => simularOpcion({ ...comun, strikePct: 100 }),
-    [tipo, subyacente, dato, meses, volUsada, tasa, ton, fx],
+    [comun],
   );
 
   return {
@@ -1812,8 +1672,6 @@ function MatrizAlternativas({ filas, mundo }) {
 /* ── Página ─────────────────────────────────────────────────────────────────*/
 
 export default function Mercados() {
-  usePageStyles(HOJAS);
-
   const [pestana, setPestana] = useState(() => {
     try {
       const guardada = localStorage.getItem(CLAVE_TAB);
@@ -1831,18 +1689,21 @@ export default function Mercados() {
     } catch { return 'general'; }
   });
 
+  usePageStyles(HOJAS_BASE);
+
+  const abrirPestana = useCallback((id, subir = false) => {
+    if (id !== 'general' && !MODULOS.some(modulo => modulo.id === id)) return;
+    setPestana(id);
+    if (subir) window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   const [datos, setDatos] = useState(null);
-  /* Solo `todas`: ninguna sección tiene ya panel de noticias propio y todos los
-     titulares se leen en el módulo Noticias. */
-  const [noticias, setNoticias] = useState({ todas: [] });
   const [chartListo, setChartListo] = useState(false);
   const [hora, setHora] = useState('');
 
   const [tickers, setTickers] = useState(TICKER_INICIAL);
   const [rangos, setRangos] = useState({ granos: '1y', industriales: '1y' });
   const [modos, setModos] = useState({ granos: 'candles', industriales: 'candles' });
-  const [filtroNoticias, setFiltroNoticias] = useState({ todas: 'all' });
-
   /* Cultivo activo en «Quién vende y quién compra». Empieza en maíz porque es
      el que manda en la ración pecuaria, que es el negocio de esta plataforma. */
   const [cultivoComercio, setCultivoComercio] = useState('maiz');
@@ -1885,56 +1746,25 @@ export default function Mercados() {
     };
   }, []);
 
-  /* ── El tema de Daily News, prestado para la pestaña Noticias ─────────────
-     La sala de Noticias usa la plantilla literal de Daily News (`.fnb-*`), y su
-     tema oscuro NO está en `daily-news-favro.css` —esa es la base CLARA—: son
-     1.264 reglas repartidas en las otras tres hojas, todas colgadas de
-     `html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias`. Sin esas tres
-     clases la sala se vería blanca dentro de una página oscura.
-
-     Traerlas parecía arriesgado, porque `dark-pilot.css` tiene otras 1.123
-     reglas colgadas de `body.vn-dark-finanzas`. Se midió antes de hacerlo: con
-     las cuatro hojas cargadas y las clases puestas, se compararon los estilos
-     calculados de las 64 piezas del cromo de Mercados (cabecera, cinta,
-     pestañas, enlaces, títulos, pie) y cambiaron CERO — todas esas reglas
-     apuntan a selectores `.ff-*` y `.fin-*` que aquí no existen.
-
-     Aun así van atadas a la pestaña y no al montaje de la página: fuera de
-     Noticias no pintan nada, y dejarlas puestas sería invitar a que la próxima
-     hoja que alguien añada sí encuentre a qué agarrarse. */
-  useEffect(() => {
-    if (pestana !== 'noticias') return undefined;
-    const raiz = document.documentElement;
-    const cuerpo = document.body;
-    raiz.classList.add('vn-dark-pilot');
-    cuerpo.classList.add('vn-dark-finanzas', 'ff-detail-noticias');
-    return () => {
-      raiz.classList.remove('vn-dark-pilot');
-      cuerpo.classList.remove('vn-dark-finanzas', 'ff-detail-noticias');
-    };
-  }, [pestana]);
-
   useEffect(() => {
     loadScripts(LIB_CHART).then(() => setChartListo(true)).catch((e) => console.error('Mercados: LightweightCharts', e));
   }, []);
 
   useEffect(() => {
     let vivo = true;
-    let reloj = null;
+    let stopPolling = null;
 
     const ejecutar = async (VDS) => {
       const ahora = new Date();
       const h = ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-      const d = await cargarPrecios(VDS);
+      const [d, commercialPrices] = await Promise.all([
+        cargarPrecios(VDS),
+        cargarCotizacionesPuebla(),
+      ]);
       if (!vivo) return;
-      setDatos(d);
+      setDatos({ ...d, commercialPrices });
       setHora(h);
-      window.VNLoader?.hide();
 
-      try {
-        const n = await cargarNoticias(VDS, d.precios, d.mxnRate, h);
-        if (vivo) setNoticias(n);
-      } catch (e) { console.warn('Mercados · noticias:', e); }
     };
 
     (async () => {
@@ -1946,11 +1776,10 @@ export default function Mercados() {
       const VDS = globalLegado('VDS');
       if (!VDS) { console.error('Mercados: data-service.js no expuso VDS.'); return; }
 
-      await ejecutar(VDS).catch((e) => console.error('Mercados:', e));
-      reloj = setInterval(() => ejecutar(VDS).catch(() => {}), MS_REFRESCO);
+      stopPolling=startPolling(()=>ejecutar(VDS),MS_REFRESCO,{onError:error=>console.error('Mercados:',error)});
     })();
 
-    return () => { vivo = false; if (reloj) clearInterval(reloj); };
+    return () => { vivo = false; stopPolling?.(); };
   }, []);
 
   const precios = datos?.precios;
@@ -1967,24 +1796,13 @@ export default function Mercados() {
      del Golfo a una planta del Bajío. */
   const [kmFlete, setKmFlete] = useState(1000);
 
-  /* El dato en vivo que enseña cada recuadro. Va aparte de MODULOS porque esa
-     constante es estática y esto depende del estado; así el catálogo de módulos
-     no tiene que reconstruirse en cada render. */
-  const destacadoDe = (id) => ({
-    granos: precios?.maiz,
-    /* El WTI y no el cobre: es el precio que arrastra al resto del recuadro
-       —el diésel se estima de él y el flete del diésel— y el que ya nombra
-       `destacado: ['WTI']`. El cobre tiene su propio KPI dentro. */
-    industriales: precios?.wti,
-    proteinas: proteinas?.precios.pork,
-    // Recuento, no precio: el módulo lo declara con `moneda: false`.
-    noticias: noticias.todas.length || null,
-  }[id]);
   const granos = useMemo(() => (precios ? inteligenciaGranos(precios, mxnRate) : null), [precios, mxnRate]);
   const energia = useMemo(() => (precios ? inteligenciaEnergia(precios, mxnRate) : null), [precios, mxnRate]);
   const metales = useMemo(() => (precios ? inteligenciaMetales(precios, mxnRate) : null), [precios, mxnRate]);
   const proteinas = useMemo(
-    () => (precios ? datosProteinas(precios, mxnRate, datos.hogsD, datos.cattleD) : null),
+    () => (precios ? datosProteinas(
+      precios, mxnRate, datos.hogsD, datos.cattleD, null, null, datos.commercialPrices, true,
+    ) : null),
     [precios, mxnRate, datos],
   );
 
@@ -2096,9 +1914,6 @@ export default function Mercados() {
     setFxDelta({ relief: -3, actual: 0, stress: 6 }[modo] ?? 0);
   }, [precios, mxnRate]);
 
-  const resultado = escenario ? resultadoEscenarioEnergia(escenario) : null;
-  const presupuestoCalc = precios ? calcularPresupuestoMetal(presupuesto, precios) : null;
-
   /* ── Simulador unificado ──────────────────────────────────────────────────
      Antes eran dos paneles separados —«Escenario energético» y «Presupuesto de
      compra»— que compartían el mismo defecto: enseñaban un resultado sin decir
@@ -2177,18 +1992,6 @@ export default function Mercados() {
 
   const cargando = !precios;
 
-  const filasCalor = precios ? [
-    { key: 'maiz', lbl: 'Maíz', price: precios.maiz, pct: precios.maiz_pct, unit: '$/bu', emoji: '🌽' },
-    { key: 'soja', lbl: 'Soja', price: precios.soja, pct: precios.soja_pct, unit: '$/MT', emoji: '🫘' },
-    { key: 'trigo', lbl: 'Trigo', price: precios.trigo, pct: precios.trigo_pct, unit: '$/bu', emoji: '🌾' },
-    { key: 'wti', lbl: 'WTI', price: precios.wti, pct: precios.wti_pct, unit: '$/bbl', emoji: '🛢' },
-    { key: 'gasnat', lbl: 'Gas Nat.', price: precios.gasnat, pct: precios.gasnat_pct, unit: '$/MMBtu', emoji: '🔥' },
-    { key: 'diesel', lbl: 'Diesel', price: precios.diesel, pct: precios.diesel_pct, unit: '$/gal', emoji: '⛽' },
-    { key: 'cobre', lbl: 'Cobre', price: precios.cobre, pct: precios.cobre_pct, unit: '$/lb', emoji: '🔩' },
-    { key: 'aluminio', lbl: 'Aluminio', price: precios.aluminio, pct: precios.aluminio_pct, unit: '$/MT', emoji: '🏗' },
-    { key: 'mxn', lbl: 'USD/MXN', price: mxnRate, pct: null, unit: 'pesos', emoji: '💱' },
-  ] : [];
-
   const filasGranos = precios ? [
     { key: 'maiz', name: 'Maíz Amarillo #2', sub: 'CME · CBOT Chicago', price: precios.maiz, pct: precios.maiz_pct, pct3m: precios.maiz_pct3m, unit: '/bu' },
     { key: 'trigo', name: 'Trigo SRW Chicago', sub: 'CBOT · SRW', price: precios.trigo, pct: precios.trigo_pct, pct3m: precios.trigo_pct3m, unit: '/bu' },
@@ -2234,9 +2037,9 @@ export default function Mercados() {
         </div>
       </div>
 
-      <div className="mkt-wrap">
+      <div className={`mkt-wrap${pestana === 'general' ? ' mkt-cards-overview' : ''}`}>
         {/* ── Navegación ────────────────────────────────────────────────────
-            Misma lógica que Finanzas: la portada presenta los cuatro módulos y
+            Misma lógica que Finanzas: la portada presenta los tres módulos y
             no lleva barra; al abrir uno, esa barra la sustituye por la de
             detalle —volver al resumen, el módulo abierto y sus hermanos— que
             es la que permite saltar entre secciones sin pasar por la portada.
@@ -2252,7 +2055,7 @@ export default function Mercados() {
               <button
                 className="mkt-detail-back"
                 type="button"
-                onClick={() => { setPestana('general'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => abrirPestana('general', true)}
               >
                 <i className="fas fa-arrow-left" aria-hidden="true" />
                 <span>Volver al resumen</span>
@@ -2279,7 +2082,7 @@ export default function Mercados() {
                     type="button"
                     className={m.id === pestana ? 'is-active' : undefined}
                     aria-current={m.id === pestana ? 'page' : undefined}
-                    onClick={() => { setPestana(m.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    onClick={() => abrirPestana(m.id, true)}
                   >
                     <i className={`fas ${m.icono}`} aria-hidden="true" />
                     <span>{m.titulo.replace('Mercado de ', '')}</span>
@@ -2301,7 +2104,7 @@ export default function Mercados() {
                 <div className="hub-hero-title">Mercados</div>
                 <div className="hub-hero-sub">
                   <span className="live-dot" />
-                  Granos · Energéticos · Metales · Logística &nbsp;·&nbsp;
+                  Granos · Energía y Metales · Proteínas &nbsp;·&nbsp;
                   <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '.6rem' }}>{hora || '-'}</span>
                 </div>
               </div>
@@ -2313,52 +2116,24 @@ export default function Mercados() {
               </div>
             </div>
 
-            <div className="mkt-hub-grid">
-              {MODULOS.map((m) => ({ ...m, destacado: [m.destacado[0], destacadoDe(m.id)] })).map((c) => (
-                <div key={c.id} className={`mkt-hub-card ${c.clase}`} role="button" tabIndex={0}
-                  onClick={() => setPestana(c.id)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') setPestana(c.id); }}
-                >
-                  {/* Estructura calcada de los recuadros de Finanzas
-                      (.ff-module.ffm-card): la foto ocupa la tarjeta entera y
-                      TODO el contenido va en una sola capa encima. Nada de
-                      cabecera y pie con fondo propio — eran esas bandas las que
-                      partían la imagen en tres y dejaban franjas negras.
-
-                      El alt va vacío a propósito: la foto es decorativa y el
-                      título que lleva encima ya nombra el apartado. */}
-                  <div className="mkt-hub-photo">
-                    <img src={c.foto} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                  </div>
-                  <div className="mkt-hub-body">
-                    <header>
-                      <span className="mkt-hub-icon"><i className={`fas ${c.icono}`} /></span>
-                      <div>
-                        <small>{c.sub}</small>
-                        <h2>{c.titulo}</h2>
-                      </div>
-                      <span className="mkt-hub-badge"><span className="mkt-hub-bdot" />{c.badge}</span>
-                    </header>
-                    <div className="mkt-hub-foot">
-                      <span className="mkt-hub-link">{c.cta} <i className="fas fa-arrow-right" /></span>
-                      <span className="mkt-hub-stat">
-                        <em>{c.destacado[0]}</em>
-                        {/* `moneda: false` es lo que distingue un recuento de un
-                            precio. Sin esa marca, los 24 titulares de Noticias
-                            se pintaban como «$24.00». */}
-                        <strong>
-                          {c.destacado[1] == null
-                            ? '—'
-                            : c.moneda === false
-                              ? num(c.destacado[1]).toFixed(0)
-                              : `$${num(c.destacado[1]).toFixed(2)}`}
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ModuleEntryCards modulos={MODULOS} label="Explorar mercados" onOpen={(id) => abrirPestana(id, true)} cotizaciones={{
+              granos: {
+                etiqueta: 'Maíz', precio: precios?.maiz, unidad: 'USD / bushel', verificado: precios?.maiz_real,
+                estado: cargando ? 'Cargando cotización…' : precios.maiz_real ? 'Cotización disponible' : 'Valor de referencia',
+                grafica: precios?.maiz_real && precios.maiz_hist?.length >= 2 && precios.maiz_hist.every(Number.isFinite)
+                  ? <Minigrafica datos={precios.maiz_hist} etiqueta="Maíz" /> : null,
+              },
+              industriales: {
+                etiqueta: 'Petróleo WTI', precio: precios?.wti, unidad: 'USD / barril', verificado: precios?.wti_real,
+                estado: cargando ? 'Cargando cotización…' : precios.wti_real ? 'Cotización disponible' : 'Valor de referencia',
+                grafica: precios?.wti_real && precios.wti_hist?.length >= 2 && precios.wti_hist.every(Number.isFinite)
+                  ? <Minigrafica datos={precios.wti_hist} etiqueta="WTI" /> : null,
+              },
+              proteinas: {
+                etiqueta: 'Cerdo · mercado físico', precio: proteinas?.precios.pork, unidad: 'MXN / kg · Puebla', verificado: proteinas?.real.pork,
+                estado: cargando ? 'Cargando cotización…' : proteinas?.real.pork ? 'Precio verificado en Puebla' : 'Sin cotización verificada',
+              },
+            }} />
 
           </div>
         )}
@@ -2544,7 +2319,6 @@ export default function Mercados() {
 
               {(() => {
                 const c = COMERCIO[cultivoComercio];
-                const b = BALANCE[cultivoComercio];
                 /* Las barras se escalan al mayor de CADA lado y no a un máximo
                    común: exportación e importación están igual de concentradas
                    o no, y con una escala compartida el lado más repartido se
@@ -3445,11 +3219,12 @@ export default function Mercados() {
                 <div className="grain-eyebrow"><span /> VALL Protein Intelligence</div>
                 <h1>Mercado de Proteínas</h1>
                 <p>
-                  Cerdo, pollo, res y huevo: lo que cuesta el kilo, lo que cuesta producirlo
-                  y cuánto produce y consume cada país.
+                  Cotizaciones físicas verificadas de Puebla, Puebla para cerdo, pollo, res y huevo.
+                  Cada precio conserva fecha, mercado, unidad y nivel comercial; no se reemplaza con
+                  futuros internacionales ni estimaciones cuando falta una cotización local.
                 </p>
                 <div className="grain-hero-meta">
-                  <span><i className="fas fa-satellite-dish" /> CME · precio en MXN</span>
+                  <span><i className="fas fa-location-dot" /> Puebla · MXN/kg físico</span>
                   <span><i className="fas fa-globe" /> FAO · volumen {ANIO_PROT}</span>
                   <span><i className="fas fa-clock" /> {hora ? `Actualizado ${hora}` : 'Actualizando…'}</span>
                 </div>
@@ -3481,40 +3256,27 @@ export default function Mercados() {
               </div>
             </section>
             <div className="grain-kpi-grid">
-              {ESPECIES_PROTEINA.map((k) => (
-                <div className="grain-kpi" key={k}>
-                  <span className="grain-kpi-icon"><i className={`fas ${ESPECIES_META[k].icono}`} /></span>
-                  <span>
-                    <small>
-                      {NOMBRE_ESPECIE[k]}
-                      {proteinas && !proteinas.real[k] && (
-                        <b className="grain-kpi-ref" title={k === 'pork' || k === 'beef'
-                          ? 'Valor de referencia: la cotización del CME no está disponible ahora mismo.'
-                          : 'Estimado a partir del maíz y la soja: no cotiza en ningún mercado de futuros.'}>
-                          {k === 'pork' || k === 'beef' ? 'ref.' : 'est.'}
-                        </b>
-                      )}
-                    </small>
-                    <strong>
-                      {proteinas ? `$${proteinas.precios[k].toFixed(2)} MXN/kg` : '—'}
-                      {/* Con el precio en referencia la variación es siempre 0, y un
-                          "0.0%" verde se lee como un mercado plano y no como un dato
-                          que falta. Mejor no enseñarla. */}
-                      {proteinas && (proteinas.real[k] || k === 'chicken' || k === 'egg') && (
-                        <em className={proteinas.variacion[k] >= 0 ? 'up' : 'down'}> {fmtPct(proteinas.variacion[k])}</em>
-                      )}
-                    </strong>
-                    <i>{proteinas ? `$${proteinas.costoProteina[k].toFixed(2)} MXN por kg de proteína` : ''}</i>
-                    {proteinas?.variacion3m[k] != null && (
-                      <b className="grain-kpi-3m">
-                        <span>3 m</span>
-                        <em className={num(proteinas.variacion3m[k]) >= 0 ? 'up' : 'down'}>{fmtPct(proteinas.variacion3m[k])}</em>
-                      </b>
-                    )}
-                  </span>
-                  <Minigrafica datos={proteinas?.historial[k]} etiqueta={NOMBRE_ESPECIE[k]} />
-                </div>
-              ))}
+              {ESPECIES_PROTEINA.map((k) => {
+                const quote = proteinas?.mercado?.[k];
+                const available = Boolean(quote?.available && Number.isFinite(proteinas?.precios?.[k]));
+                return (
+                  <div className="grain-kpi" key={k}>
+                    <span className="grain-kpi-icon"><i className={`fas ${ESPECIES_META[k].icono}`} /></span>
+                    <span>
+                      <small>
+                        {quote?.label || NOMBRE_ESPECIE[k]}
+                        {available && <b className="grain-kpi-ref" title="Cotización física verificable de Puebla, Puebla.">Puebla</b>}
+                      </small>
+                      <strong>{available ? `$${proteinas.precios[k].toFixed(2)} ${quote.unit}` : 'Sin cotización'}</strong>
+                      <i>
+                        {available
+                          ? `${quote.market} · ${quote.date} · ${quote.level}`
+                          : (quote?.error || 'No hay precio físico verificable de Puebla para este corte.')}
+                      </i>
+                    </span>
+                  </div>
+                );
+              })}
               <div className="grain-kpi fx">
                 <span className="grain-kpi-icon"><i className="fas fa-dollar-sign" /></span>
                 <span><small>USD/MXN</small><strong>{proteinas ? `${proteinas.fx.toFixed(4)}` : '—'}</strong><i>Aplica a granos; precios de carne son nativos MXN</i></span>
@@ -3788,29 +3550,6 @@ export default function Mercados() {
           </div>
         )}
 
-        {/* ── Noticias ──────────────────────────────────────────────────────
-            La PLANTILLA LITERAL de Daily News: el mismo árbol `.fnb-*` de
-            Finanzas y sus mismas cuatro hojas, con los datos de Mercados
-            (/api/daily-news-markets). El porqué de cada decisión está en la
-            cabecera de SalaNoticiasMercados.jsx.
-
-            Hubo dos intentos previos del mismo apartado, conservados «hasta
-            decidir cuál se queda». La decisión estaba tomada de hecho —esta es
-            la que se usa— así que el 21/08/2026 se retiraron los dos y todo lo
-            suyo: el componente `<SalaMercados>` y sus 406 reglas `.mn-*` de
-            Mercados.css, y `SalaFavroMercados.jsx` con su daily-news-mercados.css
-            (que la página seguía DESCARGANDO: 26 KB y 168 selectores, ninguno
-            usado por nada). Están en el historial de git si hicieran falta. */}
-        {pestana === 'noticias' && (
-          <div className="mkt-newsroom">
-            {/* `respaldo` es la red de seguridad: las noticias que esta página ya
-                carga por su cuenta (Alpha Vantage, Finnhub, GDELT y los boletines
-                de VALL). La sala las usa solo si `/api/daily-news-markets` falla
-                o vuelve vacía, para que un corte en una cadena no deje la sección
-                en blanco. Ver la cabecera de SalaNoticiasMercados.jsx. */}
-            <SalaNoticiasMercados respaldo={noticias.todas} horaRespaldo={hora} />
-          </div>
-        )}
       </div>
 
       <Footer />

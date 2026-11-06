@@ -37,3 +37,14 @@ export default function textoEnriquecido(bruto) {
     .replace(/>/g, '&gt;')
     .replace(new RegExp(`&lt;(/?)(${ETIQUETAS_PERMITIDAS})\\s*/?&gt;`, 'gi'), '<$1$2>');
 }
+
+/* Punto único de renderizado para el marcado saneado. Al no exponer el
+   atributo peligroso en cada página, se evita que un uso futuro omita el
+   saneador por accidente. */
+export function ContenidoEnriquecido({ as = 'div', className, texto }) {
+  return createElement(as, {
+    ...(className ? { className } : {}),
+    dangerouslySetInnerHTML: { __html: textoEnriquecido(texto) },
+  });
+}
+import { createElement } from 'react';

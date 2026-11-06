@@ -1,0 +1,16 @@
+.erh-commodity-opening{display:grid;gap:12px;color:#193758}.erh-commodity-scope{font-size:12px;line-height:1.7;margin:0;color:#546d82}.erh-commodity-count{font-size:11px;color:#718376;margin:0}.erh-commodity-brief{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.erh-commodity-brief section{min-width:0;padding:15px;background:#f2f6f9;border:1px solid #d7e2ea;border-top:3px solid #8b9eac;border-radius:6px}.erh-commodity-brief h4{font-size:13px;margin:0 0 10px}.erh-commodity-brief p{font-size:12px;line-height:1.75;margin:0}.erh-commodity-explorer{display:grid;gap:15px;min-width:0}.erh-commodity-showcase{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}.erh-commodity-showcase-item{min-width:0}.erh-commodity-tabs{display:flex;gap:8px;flex-wrap:wrap}.erh-commodity-tabs button{padding:10px 12px;background:#f0f4f7;color:#36536a;border:1px solid #ccd9e3;border-radius:6px;cursor:pointer;font-size:12px}.erh-commodity-tabs button[aria-pressed=true]{background:#dce7ef;border-color:#7f99ad;color:#193758}.erh-commodity-chart-picker{display:grid;gap:7px;font-size:12px;color:#536e82}.erh-commodity-chart-picker select{padding:10px;background:white;border:1px solid #c9d7e2;border-radius:6px;max-width:100%;width:100%;color:#193758}.erh-commodity-explorer .erh-market-visual-grid{grid-template-columns:minmax(0,1fr)!important}.erh-commodity-explorer .erh-chart{min-width:0}.erh-commodity-chart-method{margin:0;font-size:11px;line-height:1.6;color:#637b8c}.erh-commodity-reader .erh-chart-plot{min-height:210px}@media(max-width:900px){.erh-commodity-showcase{grid-template-columns:1fr}}@media(max-width:800px){.erh-commodity-brief{grid-template-columns:1fr}.erh-commodity-tabs button{flex:1 1 140px}.erh-commodity-reader .erh-chart-plot{min-height:160px}}
+.erh-studio .erh-protein-chart .erh-chart-canvas{margin-top:12px}
+.erh-studio .erh-protein-chart .erh-chart-end-label{font-size:11px}
+.erh-studio .erh-protein-chart .erh-chart-legend{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.erh-studio .erh-protein-chart .erh-chart-legend button{align-items:flex-start;padding:10px 12px;background:#f4f7f9}
+.erh-studio .erh-protein-chart .erh-chart-legend button>svg{margin-top:5px}
+.erh-studio .erh-protein-chart .erh-chart-legend .erh-protein-legend-copy{display:grid;gap:4px;min-width:0}
+.erh-studio .erh-protein-chart .erh-protein-legend-copy>span{display:block}
+.erh-protein-legend-copy strong{font-size:17px;color:#28475c;font-variant-numeric:tabular-nums;line-height:1.3}
+.erh-protein-legend-copy strong small{font-size:10px;font-weight:400;color:#607588}
+.erh-protein-legend-copy>small{font-size:10px;color:#607588}
+.erh-studio .erh-company-reader .erh-protein-bars .erh-bars>.erh-bar-row,.erh-studio .erh-protein-bars .erh-bar-axis{grid-template-columns:56px minmax(0,1fr) var(--erh-value-width,60px)}
+.erh-studio .erh-protein-bars .erh-bars .erh-bar-track{height:15px}
+@media(max-width:600px){.erh-studio .erh-protein-chart .erh-chart-legend{grid-template-columns:minmax(0,1fr)}.erh-protein-legend-copy strong{font-size:15px}}
+.erh-commodity-history-canvas { max-width:100%; overflow-x:auto; }
+.erh-commodity-history-canvas>svg { min-width:900px; }

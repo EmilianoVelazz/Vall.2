@@ -1,5 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '../components/Header.jsx';
+import ConstelacionOrion from '../components/ConstelacionOrion.jsx';
+import OrionModelSelector from '../components/OrionModelSelector.jsx';
+import ChatUsageBar from '../components/ChatUsageBar.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { cargarCadaVez } from '../lib/loadScripts.js';
 import { startGeminiLive, supportsGeminiLive } from '../lib/geminiLive.js';
@@ -30,20 +33,28 @@ import { startGeminiLive, supportsGeminiLive } from '../lib/geminiLive.js';
 
 const HOJAS = [
   '/assets/css/base.css',
-  '/assets/css/header.css',
+  '/assets/css/header.css?v=9',
   '/assets/css/responsive.css',
-  '/assets/css/vall-ai-page.css?v=12',
-  '/assets/css/vall-ai-redesign.css?v=10',
+  '/assets/css/vall-ai-page.css?v=14',
+  '/assets/css/vall-ai-redesign.css?v=46',
 ];
 
-const DEPENDENCIAS = ['/assets/js/data-service.js?v=24'];
-const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=11';
+const DEPENDENCIAS = ['/assets/js/data-service.js?v=23', '/assets/js/report-artifacts.js?v=2'];
+const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=70';
 
 const SUGERENCIAS = [
+  { prompt: 'Soy distribuidor mundial de res, cerdo, huevo y pollo. ¿Qué noticias, restricciones sanitarias y riesgos logísticos de los últimos siete días pueden afectar mis compras, ventas y margen? Da fechas y fuentes; separa hechos de escenarios.', icono: 'fa-truck', titulo: 'Compra y venta de proteínas', nota: 'Abasto, rutas y margen comercial' },
+  { prompt: 'Vendo cerdo. Usa estos supuestos hipotéticos: compra 80 MXN/kg, flete 5 MXN/kg, merma de peso 4% y venta 100 MXN/kg. Calcula costo por kg vendible, margen sobre venta y recargo sobre costo. No busques precios.', icono: 'fa-calculator', titulo: 'Calcular margen y merma', nota: 'Ejercicio con supuestos explícitos' },
   { prompt: 'Dame un panorama ejecutivo de los mercados globales hoy', icono: 'fa-earth-americas', titulo: 'Panorama global', nota: 'Mercados, tasas y riesgo' },
-  { prompt: 'Analiza los principales riesgos para el peso mexicano', icono: 'fa-chart-line', titulo: 'Peso mexicano', nota: 'Catalizadores y escenarios' },
+  { prompt: 'Compara los últimos precios verificables de cerdo, pollo, huevo y res alrededor del mundo. Muestra país, categoría, etapa, moneda/unidad, fecha y fuente; separa referencias regionales de precios locales y señala brechas.', icono: 'fa-globe', titulo: 'Precios de proteínas', nota: 'Cerdo, pollo, huevo y res' },
+  { prompt: 'Dame las tendencias y comentarios públicos más recientes de Mercolleida sobre porcino y cereales, con fechas y fuentes', icono: 'fa-wheat-awn', titulo: 'Mercolleida', nota: 'Tendencias y comentarios públicos' },
+  { prompt: 'Resume los análisis públicos disponibles de Rabobank sobre proteínas y granos, con fechas, enlaces y diferencias entre datos y pronósticos', icono: 'fa-book-open', titulo: 'Rabobank', nota: 'Análisis sectorial y perspectivas' },
+  { prompt: 'Investiga las noticias internacionales recientes sobre cerdo, pollo, huevo y res, y los acuerdos entre países que afectan su comercio. Contrasta fuentes oficiales, Mercolleida y Rabobank; distingue anuncios, permisos sanitarios y medidas vigentes, con fechas y enlaces.', icono: 'fa-handshake', titulo: 'Proteínas y comercio', nota: 'Noticias, acuerdos y riesgos' },
   { prompt: 'Compara petróleo, gas natural y metales industriales', icono: 'fa-oil-well', titulo: 'Materias primas', nota: 'Comparación estructurada' },
+  { prompt: 'Calcula una regresión lineal del ASX 200 de Australia en el año 2023', icono: 'fa-globe', titulo: 'Mercados mundiales', nota: 'Índices y datos verificables' },
+  { prompt: 'Dame las noticias financieras globales de hoy, con fuentes y riesgos a vigilar', icono: 'fa-newspaper', titulo: 'Noticias globales', nota: 'Hechos, fuentes y contexto' },
   { prompt: 'Crea un reporte técnico sobre renta fija global', icono: 'fa-file-lines', titulo: 'Reporte técnico', nota: 'Datos, riesgos y conclusión' },
+  { prompt: 'Calcula una regresión lineal de USD/MXN para el último año y explica R², pendiente y límites estadísticos', icono: 'fa-square-poll-vertical', titulo: 'Modelo estadístico', nota: 'Regresión OLS verificable' },
 ];
 
 const HERRAMIENTAS_EDITOR = [
@@ -63,12 +74,19 @@ const FORMATOS = [
   ['markdown', 'Markdown (.md)'], ['txt', 'Texto (.txt)'], ['json', 'Datos (.json)'],
 ];
 
-export default function VallAi() {
+export default function Orion() {
+  const [ready,setReady]=useState(false);
+  const [loadError,setLoadError]=useState(false);
   usePageStyles(HOJAS);
 
   useEffect(() => {
     document.body.classList.add('vall-ai-body');
-    return () => document.body.classList.remove('vall-ai-body');
+    const previousTitle = document.title;
+    document.title = 'ORION | VALLNews';
+    return () => {
+      document.body.classList.remove('vall-ai-body');
+      document.title = previousTitle;
+    };
   }, []);
 
   useEffect(() => {
@@ -87,10 +105,13 @@ export default function VallAi() {
       try {
         await loadScripts(DEPENDENCIAS);
       } catch (e) {
-        console.error('VALL AI: no se pudo cargar data-service', e);
+        console.error('ORION: no se pudo cargar data-service', e);
       }
       if (!vivo) return;
-      quitarScript = cargarCadaVez(PAGINA_JS, 'vall-ai');
+      quitarScript = cargarCadaVez(PAGINA_JS, 'vall-ai', {
+        onLoad:()=>{if(vivo) {const initialized=Boolean(window.VNVallAi);setReady(initialized);setLoadError(!initialized);}},
+        onError:()=>{if(vivo) setLoadError(true);},
+      });
     })();
 
     return () => {
@@ -107,60 +128,54 @@ export default function VallAi() {
       <main className="vai-shell">
         <aside className="vai-sidebar" id="vaiSidebar" aria-label="Historial de conversaciones">
           <div className="vai-side-brand">
-            <div className="vai-orb"><img src="/assets/img/robot.svg" alt="VALL AI" /></div>
-            <div className="vai-side-brand-copy"><strong>VALL AI</strong><span><i /> Disponible</span></div>
+            <ConstelacionOrion className="vai-orb vai-orion--brand" label="Constelación de ORION" />
+            <div className="vai-side-brand-copy"><strong>ORION</strong><span><i /> Disponible</span></div>
             <button className="vai-side-close" id="vaiSideClose" type="button" aria-label="Cerrar historial"><i className="fas fa-xmark" /></button>
           </div>
-          <button className="vai-sidebar-collapse" id="vaiSidebarCollapse" type="button" aria-label="Contraer historial" aria-expanded="true" title="Contraer historial"><i className="fas fa-chevron-left" /></button>
-
-          <button className="vai-new" id="vaiNew" type="button" title="Nueva conversación"><i className="fas fa-plus" /><span>Nueva conversación</span></button>
+          <div className="vai-sidebar-primary">
+            <button className="vai-new" id="vaiNew" type="button" title="Nueva conversación"><i className="fas fa-plus" /><span>Nueva conversación</span></button>
+            <button className="vai-sidebar-command" id="vaiQuickSearch" type="button" title="Buscar conversaciones"><i className="fas fa-magnifying-glass" /><span>Buscar chats</span></button>
+            <button className="vai-sidebar-command vai-reports-command" id="vaiOpenReportStudio" type="button" title="Abrir editor de reportes"><i className="fas fa-file-pen" aria-hidden="true" /><span>Editor de reportes</span></button>
+          </div>
 
           <label className="vai-search" htmlFor="vaiHistorySearch">
             <i className="fas fa-magnifying-glass" />
-            <input id="vaiHistorySearch" type="search" placeholder="Buscar en el historial…" autoComplete="off" />
-            <kbd id="vaiHistoryCount">0</kbd>
+            <input id="vaiHistorySearch" type="search" placeholder="Buscar conversaciones…" autoComplete="off" />
           </label>
 
-          <div className="vai-history-head"><span>Conversaciones</span><small>Guardadas en este dispositivo</small></div>
+          <div className="vai-history-head">
+            <div><span>Historial</span><small>Tus conversaciones</small></div>
+            <kbd id="vaiHistoryCount">0</kbd>
+          </div>
           <div className="vai-history" id="vaiHistory" />
-
-          <div className="vai-side-foot">
-            <i className="fas fa-shield-halved" />
-            <span>La clave de Gemini permanece protegida en el servidor.</span>
+          <div className="vai-sidebar-footer">
+            <button className="vai-sidebar-collapse" id="vaiSidebarCollapse" type="button" aria-label="Contraer historial" aria-expanded="true" title="Contraer historial"><i className="fas fa-chevron-left" /><span className="vai-sidebar-collapse-copy">Contraer historial</span></button>
           </div>
         </aside>
 
-        <section className="vai-workspace">
+        <section className="vai-workspace orion-composer-layout">
           <header className="vai-toolbar">
-            <button className="vai-history-toggle" id="vaiHistoryToggle" type="button" aria-label="Abrir historial"><i className="fas fa-bars" /></button>
-            <div className="vai-toolbar-title">
-              <span>Asistente profesional <i className="vai-live-dot" /></span>
-              <strong id="vaiConversationTitle">Nueva conversación</strong>
-            </div>
-            <div className="vai-toolbar-actions">
-              <div className="vai-auto-route" id="vaiAutoRoute" title="VALL AI selecciona automáticamente la profundidad y el modelo">
-                <i className="fas fa-wand-magic-sparkles" />
-                <span><small>Selección automática</small><b>Modelo adaptativo</b></span>
-              </div>
-              <button className="vai-report-open" id="vaiReportOpen" type="button" title="Vista previa y exportación" aria-label="Abrir estudio de reportes"><i className="fas fa-file-pen" /><span>Reporte</span></button>
-              <button id="vaiDelete" type="button" title="Eliminar conversación" aria-label="Eliminar conversación"><i className="fas fa-trash-can" /></button>
-            </div>
+            <button className="vai-history-toggle" id="vaiHistoryToggle" type="button" aria-label="Abrir historial de conversaciones" aria-controls="vaiSidebar" aria-expanded="false">
+              <i className="fas fa-clock-rotate-left" />
+              <span>Historial</span>
+            </button>
           </header>
 
           <div className="vai-messages" id="vaiMessages" aria-live="polite">
             <section className="vai-welcome" id="vaiWelcome">
-              <div className="vai-welcome-mark"><img src="/assets/img/robot.svg" alt="VALL AI" /></div>
-              <span className="vai-eyebrow">INTELIGENCIA ECONÓMICA GENERATIVA</span>
+              <ConstelacionOrion className="vai-welcome-mark vai-orion--welcome" label="Constelación de ORION" />
+              <span className="vai-eyebrow">ORION · INTELIGENCIA ECONÓMICA</span>
               <h1>¿Qué quieres analizar hoy?</h1>
-              <p>Consulta mercados, tasas, divisas, commodities, geopolítica o solicita un reporte estructurado.</p>
-              <div className="vai-welcome-signals" aria-label="Capacidades de VALL AI">
+              <p>Conecta mercados y proteínas: precios de cerdo, pollo, huevo y res, noticias internacionales y comercio entre países, con fuentes y contexto.</p>
+              <div className="vai-welcome-signals" aria-label="Capacidades de ORION">
                 <span><i className="fas fa-database" /> Datos y contexto</span>
                 <span><i className="fas fa-chart-column" /> Análisis estructurado</span>
+                <span><i className="fas fa-diagram-project" /> Tablas, gráficas y mapas</span>
                 <span><i className="fas fa-file-arrow-down" /> Reportes exportables</span>
               </div>
               <div className="vai-prompts">
                 {SUGERENCIAS.map((s) => (
-                  <button key={s.titulo} type="button" data-prompt={s.prompt}>
+                  <button key={s.titulo} type="button" data-prompt={s.prompt} disabled={!ready}>
                     <i className={`fas ${s.icono}`} />
                     <span><b>{s.titulo}</b><small>{s.nota}</small></span>
                   </button>
@@ -170,27 +185,38 @@ export default function VallAi() {
           </div>
 
           <footer className="vai-composer-wrap">
-            <form className="vai-composer" id="vaiForm">
+            <ChatUsageBar />
+            <form className="vai-composer" id="vaiForm" aria-busy={!ready} onSubmit={event=>{if(!ready) event.preventDefault();}}>
+              <div className="vai-compose-head">
+                <div className="vai-compose-identity">
+                  <ConstelacionOrion id="vaiConversationFace" className="vai-conversation-face" label="ORION disponible" />
+                  <span><strong>Consulta con ORION</strong><small>Inteligencia económica en contexto</small></span>
+                </div>
+                <span className="vai-compose-mode"><i className="fas fa-wand-magic-sparkles" /> Análisis adaptativo</span>
+              </div>
               <div className="vai-dropzone" id="vaiDropzone" hidden>
                 <i className="fas fa-cloud-arrow-up" />
                 <strong>Suelta tus archivos aquí</strong>
                 <span>Imágenes, PDF, texto, CSV, Markdown o JSON</span>
               </div>
               <div className="vai-attachments" id="vaiAttachments" hidden aria-live="polite" />
-              <textarea id="vaiInput" rows={1} maxLength={4000} placeholder="Pregunta a VALL AI…" aria-label="Mensaje para VALL AI" />
+              <textarea id="vaiInput" rows={1} maxLength={4000} placeholder={ready ? 'Pregunta a ORION…' : 'Cargando ORION…'} disabled={!ready} aria-label="Mensaje para ORION" />
               <div className="vai-compose-bottom">
                 <div className="vai-compose-context">
-                  <button className="vai-attach" id="vaiAttach" type="button" title="Adjuntar archivos o imágenes" aria-label="Adjuntar archivos o imágenes"><i className="fas fa-paperclip" /></button>
+                  <button className="vai-attach" id="vaiAttach" type="button" disabled={!ready} title="Adjuntar archivos o imágenes" aria-label="Adjuntar archivos o imágenes"><i className="fas fa-paperclip" /></button>
                   <input id="vaiFileInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,text/csv,text/markdown,application/json,.md,.csv,.json,.txt,.pdf" />
-                  <span><i className="fas fa-sparkles" /> Contexto, tablas, gráficas y documentos</span>
+                  <span><b>Adjuntar contexto</b><small>PDF, CSV, imágenes o datos</small></span>
                 </div>
-                <div>
+                <div className="vai-compose-actions">
+                  <span className="vai-compose-shortcut"><kbd>Enter</kbd> enviar</span>
+                  <OrionModelSelector />
                   <button className="vai-stop" id="vaiStop" type="button" hidden><i className="fas fa-stop" /></button>
-                  <button className="vai-send" id="vaiSend" type="submit" aria-label="Enviar mensaje"><i className="fas fa-arrow-up" /></button>
+                  <button className="vai-send" id="vaiSend" type="submit" disabled={!ready} aria-label="Enviar mensaje"><i className="fas fa-arrow-up" /></button>
                 </div>
               </div>
             </form>
-            <p className="vai-disclaimer">VALL AI puede cometer errores. Verifica cifras sensibles antes de tomar decisiones.</p>
+            {loadError && <p role="alert">No se pudo iniciar ORION. Recarga la página para volver a intentarlo.</p>}
+            <p className="vai-disclaimer">ORION puede cometer errores. Verifica cifras sensibles antes de tomar decisiones.</p>
           </footer>
         </section>
       </main>
@@ -203,15 +229,15 @@ export default function VallAi() {
           <header className="vai-report-header">
             <div>
               <span>ESTUDIO DE DOCUMENTOS</span>
-              <h2 id="vaiReportStudioTitle">Vista previa del reporte</h2>
+              <h2 id="vaiReportStudioTitle">Editor y vista previa del reporte</h2>
               <p id="vaiReportScope"><i className="fas fa-crosshairs" /> Reporte solicitado detectado</p>
             </div>
-            <div className="vai-report-status"><i /><span id="vaiReportStatus">Cambios guardados localmente</span></div>
+            <div className="vai-report-status"><i /><span id="vaiReportStatus" role="status" aria-live="polite">Cambios guardados localmente</span></div>
             <button type="button" data-report-close aria-label="Cerrar"><i className="fas fa-xmark" /></button>
           </header>
 
           <div className="vai-report-toolbar">
-            <label>Título<input id="vaiReportTitle" maxLength={120} defaultValue="Reporte VALL AI" /></label>
+            <label>Título<input id="vaiReportTitle" maxLength={120} defaultValue="Reporte ORION" /></label>
             <label>
               Formato
               <select id="vaiReportFormat" defaultValue="docx">
@@ -228,11 +254,12 @@ export default function VallAi() {
             </label>
             <div className="vai-report-modes" role="group" aria-label="Modo del estudio">
               <button type="button" data-report-view="edit"><i className="fas fa-pen" /> Editar</button>
-              <button type="button" data-report-view="split" className="active"><i className="fas fa-columns" /> Dividido</button>
+              <button type="button" data-report-view="split" className="active"><i className="fas fa-columns" /> Editar y revisar</button>
               <button type="button" data-report-view="preview"><i className="fas fa-eye" /> Vista previa</button>
             </div>
             <button id="vaiReportRefresh" type="button"><i className="fas fa-rotate" /> Actualizar</button>
             <button className="primary" id="vaiReportExport" type="button"><i className="fas fa-download" /> Exportar</button>
+            <a id="vaiReportLibrary" className="vai-report-library" href="/informes" hidden>Ver en Mis informes</a>
           </div>
 
           <div className="vai-report-body">
@@ -255,7 +282,7 @@ export default function VallAi() {
                         </button>
                       )
                   ))}
-                  <button type="button" id="vaiReportSave" title="Guardar borrador"><i className="fas fa-floppy-disk" /><span>Guardar</span></button>
+                  <button type="button" id="vaiReportSave" title="Guardar en Mis informes"><i className="fas fa-floppy-disk" /><span>Guardar</span></button>
                 </div>
               </div>
               {/* contentEditable lo gobierna el script legacy; React solo lo monta
@@ -287,7 +314,7 @@ export default function VallAi() {
       {/* Modo llamada inmersiva */}
       <div id="vaiVoiceOverlay" className="vai-voice-overlay" hidden>
         <div className="vai-voice-orb-container">
-          <div className="vai-voice-orb" id="vaiVoiceOrb" />
+          <ConstelacionOrion id="vaiVoiceOrb" className="vai-voice-orb vai-orion--voice" label="ORION está escuchando" />
           <div className="vai-voice-ring" />
         </div>
         <div className="vai-voice-status" id="vaiVoiceStatus">Escuchando...</div>

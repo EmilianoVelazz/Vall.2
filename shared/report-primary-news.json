@@ -1,0 +1,8 @@
+[
+  {"id":"ecb","source":"BCE · comunicados y discursos","region":"Europa","areas":["finance"],"url":"https://www.ecb.europa.eu/rss/press.html","host":"ecb.europa.eu"},
+  {"id":"boj","source":"Banco de Japón · publicaciones","region":"Asia","areas":["finance"],"url":"https://www.boj.or.jp/en/rss/whatsnew.xml","host":"boj.or.jp"},
+  {"id":"fed","source":"Reserva Federal · política monetaria","region":"América","areas":["finance"],"url":"https://www.federalreserve.gov/feeds/press_monetary.xml","host":"federalreserve.gov"},
+  {"id":"wto","source":"OMC · noticias de comercio","region":"Global","areas":["finance","markets"],"url":"https://www.wto.org/library/rss/latest_news_e.xml","host":"wto.org"},
+  {"id":"fao","source":"FAO · noticias agroalimentarias","region":"Global","areas":["markets"],"url":"https://www.fao.org/feeds/fao-newsroom-rss","host":"fao.org"},
+  {"id":"eia","source":"EIA · Today in Energy","region":"Global","areas":["markets","finance"],"url":"https://www.eia.gov/rss/todayinenergy.xml","host":"eia.gov"}
+]

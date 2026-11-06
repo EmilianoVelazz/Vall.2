@@ -55,6 +55,7 @@ export default function MktChart({ ticker, rango, modo, panel }) {
     let cancelado = false;
     let chart = null;
     let observer = null;
+    const controller=new AbortController();
 
     (async () => {
       setEstado('cargando');
@@ -62,7 +63,7 @@ export default function MktChart({ ticker, rango, modo, panel }) {
 
       let velas = [];
       try {
-        const r = await fetch(`/api/stock-history?ticker=${encodeURIComponent(ticker)}&interval=${intervalo}&range=${rango}`);
+        const r = await fetch(`/api/stock-history?ticker=${encodeURIComponent(ticker)}&interval=${intervalo}&range=${rango}`,{signal:controller.signal});
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
         velas = (d.candles || []).filter((q) => q.open != null && q.close != null);
@@ -117,6 +118,7 @@ export default function MktChart({ ticker, rango, modo, panel }) {
 
     return () => {
       cancelado = true;
+      controller.abort();
       observer?.disconnect();
       if (chart) { try { chart.remove(); } catch { /* ya destruida */ } }
     };

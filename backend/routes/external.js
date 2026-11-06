@@ -4,6 +4,9 @@ const JSZip        = require('jszip');
 
 const { externalGet, gdeltFetch, yahooFetch, YF_UA } = require('../lib/http');
 const { verifyToken } = require('./auth');
+const { analysisLimiter, analysisWork, analysisCacheKey, proteinAnalysisInput } = require('../lib/private-analysis');
+const { boundedJson } = require('../lib/resource-limits');
+const { BoundedCache } = require('../lib/bounded-cache');
 
 const router = express.Router();
 
@@ -67,7 +70,7 @@ router.get('/banxico/:serie/history', async (req, res) => {
  * y no respondía nunca. Cada VDS.banxico() se quedaba colgado hasta que el
  * AbortController de data-service lo cortaba a los 9 s, y en la consola solo se
  * veía `net::ERR_ABORTED`. Son tres llamadas por carga de Finanzas — TIIE
- * (SF61745), FIX (SF43718) e inflación (SP74660) — o sea 27 s de esperas
+ * (SF43783), FIX (SF43718) e inflación anual (SP30578) — o sea 27 s de esperas
  * inútiles y tres recuadros vacíos, sin ningún error que señalara la causa.
  *
  * Que el cuerpo se borró y no que nunca existiera lo delata el circuit breaker
@@ -744,11 +747,11 @@ async function fetchBanxicoYield(serie) {
     if (!r.ok) throw new Error(`Banxico ${r.status}`);
     const json  = await r.json();
     const datos = json?.bmx?.series?.[0]?.datos || [];
-    const vals  = datos.map(d => parseFloat(d.dato)).filter(v => !isNaN(v));
-    if (!vals.length) throw new Error('sin dato');
-    const curr = vals[vals.length - 1];
-    const prev = vals.length >= 2 ? vals[vals.length - 2] : null;
-    return { yield: curr, prev };
+    const points = datos.map(d => ({ value: parseFloat(d.dato), date: d.fecha })).filter(d => !isNaN(d.value));
+    if (!points.length) throw new Error('sin dato');
+    const curr = points[points.length - 1];
+    const prev = points.length >= 2 ? points[points.length - 2] : null;
+    return { yield: curr.value, prev: prev?.value ?? null, date: curr.date || null };
 }
 
 async function fetchECBYield(seriesKey) {
@@ -782,7 +785,7 @@ router.get('/bond-yields', async (req, res) => {
             fetchYahooYield('^TNX'),
             fetchYahooYield('^TYX'),
             fetchECBYield('YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y'),
-            fetchBanxicoYield('SF61745'), // TIIE 28 días
+            fetchBanxicoYield('SF43783'), // TIIE 28 días
         ]);
 
         const val     = r => r.status === 'fulfilled' ? r.value : null;
@@ -952,14 +955,23 @@ router.get('/bond-spreads', async (req, res) => {
 const _mxRatesCache = { ts: 0, data: null };
 const MX_RATES_TTL  = 30 * 60 * 1000;
 
+// La página México y sus informes comparten datos y periodos de observación.
+const {getMexicoMacro}=require('../services/mexico-macro');
+router.get('/mexico-macro', async (req,res)=>{
+    res.set('Cache-Control','public, s-maxage=86400, stale-while-revalidate=172800');
+    try {res.json(await getMexicoMacro());}
+    catch {res.status(502).json({error:'No se pudo obtener el panorama macroeconómico de México.'});}
+});
+
 router.get('/mx-rates', async (req, res) => {
     if (_mxRatesCache.data && Date.now() - _mxRatesCache.ts < MX_RATES_TTL)
         return res.json(_mxRatesCache.data);
 
-    const [t28, t91, t182, c28, c91, c182, c364] = await Promise.allSettled([
-        fetchBanxicoYield('SF61745'),  // TIIE 28D
-        fetchBanxicoYield('SF43884'),  // TIIE 91D
-        fetchBanxicoYield('SF43885'),  // TIIE 182D
+    const [policy, t28, t91, t182, c28, c91, c182, c364] = await Promise.allSettled([
+        fetchBanxicoYield('SF61745'),  // Tasa objetivo de Banxico
+        fetchBanxicoYield('SF43783'),  // TIIE 28D
+        fetchBanxicoYield('SF43878'),  // TIIE 91D
+        fetchBanxicoYield('SF111916'), // TIIE 182D
         fetchBanxicoYield('SF43936'),  // Cetes 28D
         fetchBanxicoYield('SF43939'),  // Cetes 91D
         fetchBanxicoYield('SF43942'),  // Cetes 182D
@@ -967,27 +979,21 @@ router.get('/mx-rates', async (req, res) => {
     ]);
 
     const val = r => r.status === 'fulfilled' ? r.value : null;
-    const REF = { t28: 8.42, t91: 8.37, t182: 8.22, c28: 8.40, c91: 8.35, c182: 8.20, c364: 7.90 };
-
     const tiie = [
-        { label: '28D',  yield: val(t28)?.yield  ?? REF.t28,  prev: val(t28)?.prev  ?? null },
-        { label: '91D',  yield: val(t91)?.yield  ?? REF.t91,  prev: val(t91)?.prev  ?? null },
-        { label: '182D', yield: val(t182)?.yield ?? REF.t182, prev: val(t182)?.prev ?? null },
+        { label: '28D',  yield: val(t28)?.yield  ?? null, prev: val(t28)?.prev  ?? null },
+        { label: '91D',  yield: val(t91)?.yield  ?? null, prev: val(t91)?.prev  ?? null },
+        { label: '182D', yield: val(t182)?.yield ?? null, prev: val(t182)?.prev ?? null },
     ];
     const cetes = [
-        { label: '28D',  yield: val(c28)?.yield  ?? REF.c28,  prev: val(c28)?.prev  ?? null },
-        { label: '91D',  yield: val(c91)?.yield  ?? REF.c91,  prev: val(c91)?.prev  ?? null },
-        { label: '182D', yield: val(c182)?.yield ?? REF.c182, prev: val(c182)?.prev ?? null },
-        { label: '364D', yield: val(c364)?.yield ?? REF.c364, prev: val(c364)?.prev ?? null },
-    ];
-    const udibonos = [
-        { label: '3A',  maturity: 'Jun 2029', realYield: 4.15 },
-        { label: '10A', maturity: 'Nov 2034', realYield: 4.52 },
-        { label: '30A', maturity: 'Nov 2046', realYield: 4.78 },
+        { label: '28D',  yield: val(c28)?.yield  ?? null, prev: val(c28)?.prev  ?? null },
+        { label: '91D',  yield: val(c91)?.yield  ?? null, prev: val(c91)?.prev  ?? null },
+        { label: '182D', yield: val(c182)?.yield ?? null, prev: val(c182)?.prev ?? null },
+        { label: '364D', yield: val(c364)?.yield ?? null, prev: val(c364)?.prev ?? null },
     ];
 
-    const hasLive = [t28, t91, t182, c28, c91, c182, c364].some(r => r.status === 'fulfilled');
-    const data    = { tiie, cetes, udibonos, source: hasLive ? 'banxico' : 'reference', date: new Date().toISOString().slice(0, 10) };
+    const hasLive = [policy, t28, t91, t182, c28, c91, c182, c364].some(r => r.status === 'fulfilled');
+    const latest = [policy, t28, t91, t182, c28, c91, c182, c364].map(val).find(Boolean);
+    const data = { policyRate: val(policy), tiie, cetes, udibonos: [], source: hasLive ? 'banxico' : 'unavailable', date: latest?.date || null };
 
     if (hasLive) { _mxRatesCache.ts = Date.now(); _mxRatesCache.data = data; }
     res.json(data);
@@ -1483,14 +1489,16 @@ router.get('/open-interest', async (req, res) => {
     }
 });
 
-// ── PROTEÍNAS: Análisis VALL-ML de Datos Reales (Con Aprendizaje Autónomo) ──
+// ── PROTEÍNAS: Proyecto Loopus · datos reales y aprendizaje supervisado ─────
 // Genera un insight de IA consumiendo los datos verificados, y lo cachea.
-const _aiInsightCache = new Map();
+const _aiInsightCache = new BoundedCache({ maxEntries: 64, maxBytes: 1024 * 1024 });
 const AI_INSIGHT_TTL = 2 * 60 * 60 * 1000; // 2 horas
 
-router.post('/ml/insight-proteinas', express.json(), verifyToken, async (req, res) => {
-    const { inegi, wb, bls, woah, hogs, corn } = req.body || {};
-    const cacheKey = JSON.stringify({ inegi, wb, bls, hogs, corn }).slice(0, 50);
+router.post('/ml/insight-proteinas', verifyToken, analysisLimiter, boundedJson({ limit: '10kb' }), analysisWork(async (req, res) => {
+    let input;
+    try { input = proteinAnalysisInput(req.body); }
+    catch (error) { return res.status(400).json({ success: false, error: error.message }); }
+    const cacheKey = analysisCacheKey(req, input);
     const hit = _aiInsightCache.get(cacheKey);
     if (hit && Date.now() - hit.ts < AI_INSIGHT_TTL) {
         return res.json({ insight: hit.insight });
@@ -1500,16 +1508,16 @@ router.post('/ml/insight-proteinas', express.json(), verifyToken, async (req, re
         const { orchestrator } = require('../ai/orchestrator');
         
         const contextData = `
-DATOS VERIFICADOS DE MERCADO (Priorizar sobre tu memoria genérica):
-- INEGI (México al consumidor): Cerdo ${inegi?.precios?.cerdo?.valor || '?'} MXN/kg
-- CME Lean Hogs (Futuros): ${hogs?.price || '?'} USD/lb
-- BLS (EE.UU. al consumidor): Beef ${bls?.prices?.beef?.ultimo || '?'} USD/lb
-- Alertas Sanitarias (WOAH): ${woah?.alerts?.length || 0} brotes recientes reportados.
-- Maíz (Feed cost driver): ${corn?.price || '?'} USD/bu
+DATOS NUMÉRICOS PROPORCIONADOS POR EL CLIENTE (no constituyen por sí mismos evidencia verificada):
+- Referencia INEGI (México al consumidor): Cerdo ${input.porkMxn ?? '?'} MXN/kg
+- Referencia CME Lean Hogs (Futuros): ${input.hogsUsd ?? '?'} USD/lb
+- Referencia BLS (EE.UU. al consumidor): Beef ${input.beefUsd ?? '?'} USD/lb
+- Referencia WOAH: ${input.alerts} alertas proporcionadas; fecha y fuente no comprobadas aquí.
+- Referencia Maíz: ${input.cornUsd ?? '?'} USD/bu
         `.trim();
 
-        const prompt = `Eres VALL-ML especializado en mercados pecuarios.
-Basado en los DATOS VERIFICADOS proporcionados en tu contexto, genera un breve y contundente "insight" de mercado (máximo 3 líneas).
+        const prompt = `Eres Proyecto Loopus, el sistema de aprendizaje de VALL AI especializado en mercados pecuarios.
+Genera una lectura condicional de los datos numéricos proporcionados (máximo 3 líneas). No los declares verificados ni los presentes como cotizaciones vigentes sin fuente y fecha comprobadas.
 Usa formato HTML (<b> para negritas). No uses saludos ni introducciones, ve directo al grano.
 ENFOQUE: Detectar oportunidades de rentabilidad, exportación o presiones inflacionarias/sanitarias.`;
 
@@ -1522,18 +1530,18 @@ ENFOQUE: Detectar oportunidades de rentabilidad, exportación o presiones inflac
             taskType: 'decision'
         });
 
-        const insight = result.text;
+        const insight = String(result.text || '').slice(0, 12000);
         
-        boundedSet(_aiInsightCache, cacheKey, { ts: Date.now(), insight }, 10);
+        _aiInsightCache.set(cacheKey, { ts: Date.now(), insight });
         res.json({ insight });
     } catch (e) {
-        console.error('[VALL-ML Insight Error]:', e.message);
+        console.error('[Loopus Insight Error]:', e.message);
         res.json({ 
-            insight: `<b>VALL-ML:</b> Procesando divergencias... ` + 
-            (hogs ? `Mercado de futuros activo ($${hogs.price}). ` : '') +
-            (woah?.alerts?.length > 0 ? `⚠️ Precaución: ${woah.alerts.length} alertas sanitarias globales activas.` : 'Condiciones sanitarias bajo monitoreo.')
+            insight: `<b>Proyecto Loopus:</b> Procesando divergencias... ` +
+            (input.hogsUsd != null ? `Referencia de futuros proporcionada: ${input.hogsUsd}. ` : '') +
+            (input.alerts > 0 ? `Se proporcionaron ${input.alerts} alertas para revisar.` : 'Sin alertas verificadas en esta consulta.')
         });
     }
-});
+}));
 
 module.exports = router;

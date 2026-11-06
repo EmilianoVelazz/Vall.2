@@ -38,8 +38,8 @@
     };
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const norm = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const excludedCountry = country => country?.code === 'MX' || country?.name === 'Mexico';
-    const excludedCurrency = currency => currency?.code === 'MXN';
+    const excludedCountry = () => false;
+    const excludedCurrency = () => false;
     const regionKey = value => value === 'Americas' ? 'americas' : value === 'Europe' ? 'europe' : value === 'Asia' || value === 'Oceania' ? 'asia' : value === 'Africa' ? 'africa' : 'other';
     const format = (value, code) => Number(value).toLocaleString('es-MX',{maximumFractionDigits:value < .01 ? 6 : value < 1 ? 4 : value < 100 ? 4 : 2}) + ` ${code}`;
     const spanishCountryName = country => {try{return new Intl.DisplayNames(['es'],{type:'region'}).of(country.code)||country.spanishName||country.name;}catch{return country.spanishName||country.name;}};
@@ -54,7 +54,6 @@
         const map = window.VN_WORLD_MAP;
         const result = new Map();
         [...(map?.paises || []), ...Object.entries(map?.suplementos || {}).map(([ne,v])=>({ne,d:v.d}))].forEach(geo => {
-            if (geo.ne === 'Mexico') return;
             const lookup = NAME_ALIASES[geo.ne] || geo.ne;
             let country = byName.get(norm(lookup));
             if (!country && FALLBACK[geo.ne]) {
@@ -123,7 +122,6 @@
         const map=window.VN_WORLD_MAP, canvas=$('fcm-map-canvas'); if(!map||!canvas)return;
         const items=catalog();
         const paths=[...(map.paises||[]),...Object.entries(map.suplementos||{}).map(([ne,v])=>({ne,d:v.d}))].map(geo=>{
-            if(geo.ne==='Mexico')return '';
             const item=items.get(geo.ne); if(!item)return `<path class="fcm-country" d="${geo.d}" aria-hidden="true"></path>`;
             const filtered=!visible(item),rate=rateFor(item),movement=movementState(item);
             return `<path class="fcm-country has-rate is-${movement.key}${filtered?' is-filtered':''}" d="${geo.d}" data-fcm-country="${esc(geo.ne)}" style="--fcm-fill:${movement.color}" role="button" tabindex="${filtered?'-1':'0'}" aria-hidden="${filtered}" aria-label="${esc(item.spanishName)}, ${esc(movement.label)}, 1 ${esc(state.inverted?item.currency.code:state.base)} equivale a ${esc(format(rate,state.inverted?state.base:item.currency.code))}"></path>`;

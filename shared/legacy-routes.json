@@ -1,0 +1,15 @@
+{
+  "/index.html": "/login",
+  "/inicio.html": "/inicio",
+  "/geopolitica": "/inicio",
+  "/pages/finanzas.html": "/finanzas",
+  "/pages/mercados.html": "/mercados",
+  "/pages/geopolitica.html": "/inicio",
+  "/pages/mexico.html": "/mexico",
+  "/pages/mercadoproteinas.html": "/mercado-proteinas",
+  "/pages/configuracion.html": "/configuracion",
+  "/pages/vall-ai.html": "/orion",
+  "/finanzas/finanzas.html": "/finanzas",
+  "/mercados/mercados.html": "/mercados",
+  "/finanzas/inicio.html": "/inicio"
+}

@@ -1241,3 +1241,2517 @@ body.vn-dark-finanzas .hub-card-header{
 .hub-cta:hover {
     background: rgba(56, 189, 248, 0.1) !important;
 }
+
+/* Contrato responsivo final de Finanzas. Esta hoja se carga después de los
+   estilos heredados, por eso centraliza aquí las correcciones de tablet y
+   móvil que no deben volver a ser anuladas por el tema. */
+body.vn-dark-finanzas :is(.container,.favro-finance-shell,.ff-workspace,.ff-detail-navigation,.ff-detail-supplement,.ff-exchange-board,.ff-bolsa-chart-host,.panel,.debt-pro,.returns-pro,.fx-pro-panel) {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.vn-dark-finanzas :is(.ff-supplement-table-wrap,.returns-table-wrap,.sovereign-board-table,.cf-table-wrap,.table-wrap,.inst-table-wrap) {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px) {
+    body.vn-dark-finanzas .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-inline: 0 !important;
+        padding-inline: 1.25rem !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa {
+        --fin-bolsa-gutter: 1.25rem;
+    }
+
+    body.vn-dark-finanzas :is(.fin-layout,.bottom-grid,.debt-main-grid,.returns-main-grid,.returns-secondary-grid,.fx-pro-main-grid,.fx-pro-secondary-grid) {
+        grid-template-columns: minmax(0,1fr) !important;
+    }
+
+    body.vn-dark-finanzas :is(.hub-card-header,.ff-exchange-header,.ff-supplement-header,.debt-block-head,.returns-global-head,.returns-table-header-tools) {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 700px) {
+    body.vn-dark-finanzas .container {
+        padding-inline: .72rem !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa {
+        --fin-bolsa-gutter: .72rem;
+    }
+
+    body.vn-dark-finanzas .ff-detail-navigation {
+        grid-template-columns: 44px minmax(0,1fr) !important;
+        gap: .65rem !important;
+        padding: .8rem !important;
+    }
+
+    body.vn-dark-finanzas .ff-detail-tabs {
+        grid-column: 1 / -1;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: .45rem !important;
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: .25rem;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-inline: contain;
+    }
+
+    body.vn-dark-finanzas .ff-detail-tabs button {
+        flex: 0 0 104px;
+        min-width: 104px;
+        min-height: 48px;
+        scroll-snap-align: start;
+    }
+
+    body.vn-dark-finanzas :is(.panel,.debt-pro,.returns-pro,.fx-pro-panel,.ff-workspace,.ff-detail-supplement,.ff-exchange-board) {
+        padding: .85rem !important;
+        border-radius: 15px !important;
+    }
+
+    body.vn-dark-finanzas .hub-card-header {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+        padding: 1rem !important;
+    }
+
+    body.vn-dark-finanzas .hub-metrics {
+        display: grid !important;
+        grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+        padding: 0 1rem 1rem !important;
+    }
+
+    body.vn-dark-finanzas :is(.chart-intervals,.chart-type-switch,.returns-curve-tabs,.returns-view-tabs,.returns-history-periods,.returns-section-nav) {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+    }
+}
+
+/* Cierre final de cascada para Bolsa. Debe permanecer al final del archivo:
+   finanzas-premium.css conserva reglas muy específicas de la interfaz clara. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-row,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-exchange-card, .ff-exchange-data-box),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-bolsa-chart-host,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-row,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-exchange-card-chart, .ff-exchange-data-box),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    .market-chart-lab-head,
+    .market-chart-controls,
+    .market-chart-quote,
+    .ff-market-field,
+    .ff-market-search-field,
+    .chart-intervals,
+    .chart-type-switch,
+    .market-chart-canvas,
+    .ff-chart-reading,
+    .ff-chart-reading article
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card-chart,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel .market-chart-canvas {
+    background-image:
+        linear-gradient(rgba(156, 163, 175, .08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156, 163, 175, .08) 1px, transparent 1px) !important;
+    background-size: 36px 36px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(
+    .ff-exchange-header > div:last-child > label,
+    #vn-chart-type-global,
+    .ff-range-select,
+    .ff-badge
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(.chart-int-btn, .chart-type-btn) {
+    background: transparent !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(.chart-int-btn, .chart-type-btn):is(.active, [aria-pressed="true"]) {
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel #bmv-custom-btn {
+    background: #4b5563 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    #bmv-symbol,
+    #bmv-custom,
+    .market-chart-heading h3,
+    #ch-name,
+    .ff-quote-price strong,
+    .ff-quote-stat strong,
+    .ff-chart-reading strong
+) {
+    color: #ededed !important;
+}
+
+/* ========================================================================== */
+/* FINANZAS · CIERRE DE COLORIMETRÍA 2026                                    */
+/* Estas vistas se montan o se mueven con JavaScript después de cargar la     */
+/* página. Las reglas originales de finanzas-premium.css conservaban azul    */
+/* petróleo y cian; esta capa deja un único lenguaje grafito. Verde y rojo   */
+/* permanecen exclusivamente como estados financieros de alza y baja.         */
+/* ========================================================================== */
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa {
+    --fin-bg: #111827;
+    --fin-panel: #1f2937;
+    --fin-panel-raised: #4b5563;
+    --fin-line: #4b5563;
+    --fin-text-main: #ededed;
+    --fin-text-muted: #9ca3af;
+    --fin-accent-blue: #9ca3af;
+    --ff-ink: #ededed;
+    --ff-muted: #9ca3af;
+}
+
+/* Mapa: controles que todavía heredaban el azul del selector original. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(
+    #ffwm-select,
+    .ffwm-tool-btn,
+    .ffwm-zoom-value,
+    .ffwm-pan-hint,
+    .ffwm-tip
+) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+
+/* Tablero de bolsas y sus tarjetas creadas en finanzas-favro.js. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-header {
+    border-color: #4b5563 !important;
+    background: transparent !important;
+    background-image: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-header > div:last-child > label,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board #vn-chart-type-global,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-update {
+    border: 1px solid #4b5563 !important;
+    background: #111827 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-update {
+    border-radius: 999px !important;
+    padding: .42rem .72rem !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-row {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    background-image: none !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-row:hover {
+    border-color: #9ca3af !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .18) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(
+    .ff-exchange-card,
+    .ff-exchange-data-box,
+    .ff-exchange-card-chart
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card-chart {
+    background-image:
+        linear-gradient(rgba(156, 163, 175, .09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156, 163, 175, .09) 1px, transparent 1px) !important;
+    background-size: 34px 34px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card-chart::after,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-chart-glow,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-data-box::before {
+    display: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(
+    .ff-exchange-card-head strong,
+    .ff-exchange-card-quote strong,
+    .ff-data-box-title strong,
+    .ff-data-value,
+    .ff-badge
+) {
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(
+    .ff-exchange-card-head small,
+    .ff-exchange-card-foot,
+    .ff-exchange-help,
+    .ff-data-label,
+    .ff-data-box-title span
+) {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-range-select, .ff-badge) {
+    border-color: #4b5563 !important;
+    background-color: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-data-value.ff-positive-text {
+    color: var(--ff-positive, #5ec9b1) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-data-value.ff-negative-text {
+    color: var(--ff-negative, #ef7d8a) !important;
+}
+
+/* Laboratorio histórico: elimina paneles azules, botones cian y gráfica azul. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-bolsa-chart-host,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    .market-chart-lab-head,
+    .market-chart-controls,
+    .market-chart-quote,
+    .ff-market-field,
+    .ff-market-search-field,
+    .chart-intervals,
+    .chart-type-switch,
+    .market-chart-canvas,
+    .ff-chart-reading,
+    .ff-chart-reading article
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel .market-chart-canvas {
+    background-image:
+        linear-gradient(rgba(156, 163, 175, .08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156, 163, 175, .08) 1px, transparent 1px) !important;
+    background-size: 40px 40px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    #bmv-symbol,
+    #bmv-custom,
+    #vn-chart-type,
+    .ff-market-control > span:first-child,
+    .ff-market-control legend,
+    .market-chart-heading h3,
+    #ch-name,
+    .ff-quote-price strong,
+    .ff-quote-stat strong,
+    .ff-chart-reading strong
+) {
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    .market-chart-heading small,
+    .market-chart-heading p,
+    .ff-quote-identity > span,
+    .market-chart-quote span,
+    .market-chart-quote small,
+    .ff-chart-reading span,
+    .ff-chart-reading small,
+    .ff-chart-source
+) {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(.chart-int-btn, .chart-type-btn) {
+    border-color: transparent !important;
+    background: transparent !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(.chart-int-btn, .chart-type-btn):hover {
+    background: #1f2937 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    .chart-int-btn.active,
+    .chart-int-btn[aria-pressed="true"],
+    .chart-type-btn.active,
+    .chart-type-btn[aria-pressed="true"]
+) {
+    background: #4b5563 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel #bmv-custom-btn {
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel #bmv-custom-btn:hover {
+    background: #9ca3af !important;
+    color: #111827 !important;
+}
+
+/* Tooltips compartidos de Bolsa. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(.ff-spark-tip, .ffwm-tip) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #ededed !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .3) !important;
+}
+
+@media (max-width: 430px) {
+    body.vn-dark-finanzas .hub-metrics {
+        grid-template-columns: minmax(0,1fr) !important;
+    }
+
+    body.vn-dark-finanzas :is(.ff-news-actions,.ff-supplement-head-tools,.returns-chart-controls,.returns-history-controls) {
+        display: grid !important;
+        grid-template-columns: minmax(0,1fr) !important;
+        width: 100%;
+    }
+
+    body.vn-dark-finanzas :is(.ff-news-actions,.ff-supplement-head-tools,.returns-chart-controls,.returns-history-controls) > * {
+        width: 100%;
+        min-width: 0 !important;
+    }
+}
+
+/* ==========================================================================
+   FINANZAS · PALETA VALLNEWS 2026
+
+   Esta es deliberadamente la última capa del CSS importado por React. Las
+   hojas de /assets se insertan antes del bundle (usePageStyles), por lo que el
+   tema debe vivir aquí para ganar la cascada real y no solo la lista HOJAS.
+   ========================================================================== */
+
+html.vn-dark-pilot body.vn-dark-finanzas {
+    --dp-bg: #111827;
+    --dp-bg-raised: #1f2937;
+    --dp-surface: #1f2937;
+    --dp-surface-2: #4b5563;
+    --dp-surface-3: #4b5563;
+    --dp-line: #4b5563;
+    --dp-line-soft: rgba(156, 163, 175, .22);
+    --dp-text: #ededed;
+    --dp-text-2: #ededed;
+    --dp-muted: #9ca3af;
+    --ff-navy: #111827;
+    --ff-navy-2: #1f2937;
+    --ff-blue: #9ca3af;
+    --ff-cyan: #9ca3af;
+    --ff-gold: #9ca3af;
+    --ff-ink: #ededed;
+    --ff-muted: #9ca3af;
+    --ff-line: #4b5563;
+    --ff-surface: #1f2937;
+    --ff-surface-soft: #111827;
+    --fin-bg-color: #111827 !important;
+    --fin-card-bg: #1f2937 !important;
+    --fin-card-hover: #4b5563 !important;
+    --fin-border: #4b5563 !important;
+    --fin-border-hover: #9ca3af !important;
+    --fin-text-main: #ededed !important;
+    --fin-text-muted: #9ca3af !important;
+    --fin-text-dark: #ededed !important;
+    --fin-accent-blue: #9ca3af !important;
+    --fx-ui-bg: #111827;
+    --fx-ui-surface: #1f2937;
+    --fx-ui-soft: #111827;
+    --fx-ui-line: #4b5563;
+    --fx-ui-ink: #ededed;
+    --fx-ui-muted: #9ca3af;
+    color: #ededed !important;
+    background: #111827 !important;
+    background-image: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas .container {
+    width: min(100%, 1760px) !important;
+    max-width: 1760px !important;
+    margin-inline: auto !important;
+    padding: clamp(18px, 2.2vw, 36px) !important;
+    color: #ededed !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas .favro-finance-shell {
+    gap: clamp(16px, 1.6vw, 24px) !important;
+    color: #ededed !important;
+    background: transparent !important;
+}
+
+/* Ticker: deja de introducir vino y azul verdoso antes de llegar al contenido. */
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker::after {
+    background: linear-gradient(90deg, rgba(31, 41, 55, 0), #1f2937 82%) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label {
+    border-right-color: #4b5563 !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label::after {
+    background: linear-gradient(90deg, rgba(75, 85, 99, .8), rgba(31, 41, 55, 0)) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-item:hover {
+    background: rgba(75, 85, 99, .42) !important;
+}
+
+/* Portada: solo usa los cinco tonos entregados por el usuario. */
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero {
+    min-height: 176px !important;
+    padding: clamp(24px, 3vw, 40px) !important;
+    border: 1px solid #4b5563 !important;
+    border-radius: 12px !important;
+    background:
+        linear-gradient(118deg, #1f2937 0%, #1f2937 62%, #4b5563 100%) !important;
+    box-shadow: 0 16px 36px rgba(5, 10, 20, .2) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero::before {
+    opacity: .12 !important;
+    background-image:
+        linear-gradient(rgba(156, 163, 175, .18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156, 163, 175, .18) 1px, transparent 1px) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero::after {
+    border-color: rgba(156, 163, 175, .2) !important;
+    box-shadow: 0 0 0 44px rgba(156, 163, 175, .035), 0 0 0 96px rgba(156, 163, 175, .018) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero .ff-eyebrow {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero h1,
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero strong {
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero p,
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-update span {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-icon-button {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #ededed !important;
+    border-radius: 9px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-icon-button:hover {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    transform: none !important;
+}
+
+/* Hub: las fotografías remotas dejan de ser necesarias para entender cada
+   tarjeta. El texto y la minigráfica forman un tablero compacto y estable. */
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-modules {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(188px, auto)) !important;
+    gap: 16px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card {
+    min-height: 188px !important;
+    height: auto !important;
+    border: 1px solid #4b5563 !important;
+    border-radius: 11px !important;
+    background: #1f2937 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card:hover,
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card:focus-visible {
+    border-color: #9ca3af !important;
+    background:
+        linear-gradient(rgba(75, 85, 99, .3), rgba(75, 85, 99, .3)),
+        #1f2937 !important;
+    box-shadow: 0 14px 30px rgba(5, 10, 20, .22) !important;
+    transform: translateY(-2px) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card::before {
+    opacity: 1 !important;
+    background:
+        radial-gradient(circle at 92% 8%, rgba(156, 163, 175, .14), transparent 34%),
+        linear-gradient(145deg, #1f2937, #1f2937) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card::after {
+    top: 0 !important;
+    width: 100% !important;
+    height: 2px !important;
+    background: #9ca3af !important;
+    transform: scaleX(0) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card:hover::after,
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card:focus-visible::after {
+    transform: scaleX(1) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-photo {
+    display: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body {
+    min-height: 188px !important;
+    height: 100% !important;
+    padding: 20px !important;
+    gap: 12px !important;
+    background: transparent !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body header {
+    position: relative !important;
+    z-index: 2 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module-icon {
+    width: 42px !important;
+    height: 42px !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+    backdrop-filter: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body header small {
+    color: #9ca3af !important;
+    text-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body h2 {
+    color: #ededed !important;
+    font-size: clamp(1.45rem, 2vw, 1.75rem) !important;
+    text-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module .ffm-body p.ffm-description {
+    position: relative !important;
+    z-index: 2 !important;
+    max-width: 52ch !important;
+    margin: 0 !important;
+    color: #9ca3af !important;
+    font: 500 .78rem/1.5 "Inter", sans-serif !important;
+    text-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-spark {
+    left: auto !important;
+    right: 12px !important;
+    bottom: 46px !important;
+    width: 42% !important;
+    height: 48% !important;
+    opacity: .4 !important;
+    z-index: 1 !important;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 32%) !important;
+    mask-image: linear-gradient(90deg, transparent, #000 32%) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-foot {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    margin-top: auto !important;
+    padding-top: 12px !important;
+    border-top: 1px solid rgba(156, 163, 175, .24) !important;
+    background: transparent !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module-link {
+    margin: 0 !important;
+    padding: 8px 11px !important;
+    border: 1px solid #4b5563 !important;
+    border-radius: 8px !important;
+    background: #111827 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module-link:hover {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-stat em {
+    color: #9ca3af !important;
+    text-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-stat strong {
+    color: #ededed !important;
+    text-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-stat em::after {
+    background: #9ca3af !important;
+    box-shadow: none !important;
+}
+
+/* Superficies principales de los cuatro apartados. Un borde por módulo; las
+   subdivisiones internas se resuelven con espacio y líneas tenues. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-detail-navigation,
+    .ff-workspace,
+    .ff-detail-supplement,
+    .ff-exchange-board,
+    .ff-world-map,
+    .panel,
+    .debt-pro,
+    .returns-pro,
+    .fx-pro-panel,
+    .energy-pro,
+    .hub-card,
+    #bvmx-panel
+) {
+    color: #ededed !important;
+    border: 1px solid #4b5563 !important;
+    border-radius: 12px !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    box-shadow: 0 14px 32px rgba(5, 10, 20, .17) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ff-workspace,
+    .ff-detail-supplement,
+    .ff-exchange-board,
+    .panel,
+    .debt-pro,
+    .returns-pro,
+    .fx-pro-panel,
+    .energy-pro
+) {
+    padding: clamp(16px, 2vw, 28px) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ff-analysis-grid,
+    .ff-supplement-grid,
+    .ff-supplement-kpis,
+    .ff-range-metrics,
+    .hub-grid,
+    .hub-metrics,
+    .debt-kpi-grid,
+    .finance-sidebar-pulse-grid
+) {
+    gap: clamp(10px, 1.2vw, 18px) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ff-analysis-card,
+    .ff-supplement-chart-card,
+    .ff-supplement-table-card,
+    .ff-explainer,
+    .hub-m,
+    .debt-kpi,
+    .fx-pro-kpi,
+    .finance-sidebar-pulse
+) {
+    color: #ededed !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    background: #111827 !important;
+    box-shadow: inset 0 0 0 1px rgba(156, 163, 175, .2) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ff-analysis-card,
+    .ff-supplement-chart-card,
+    .ff-supplement-table-card,
+    .ff-explainer,
+    .debt-kpi,
+    .fx-pro-kpi,
+    .finance-sidebar-pulse
+) {
+    padding: clamp(14px, 1.5vw, 20px) !important;
+}
+
+/* Navegación, filtros y campos */
+html.vn-dark-pilot body.vn-dark-finanzas #ff-detail-navigation {
+    background: #1f2937 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #ff-detail-navigation :is(.ff-detail-back, .ff-detail-tabs button),
+html.vn-dark-pilot body.vn-dark-finanzas :is(.ff-segmented, .ff-chart-modes) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #ff-detail-navigation :is(.ff-detail-back, .ff-detail-tabs button):hover,
+html.vn-dark-pilot body.vn-dark-finanzas #ff-detail-navigation .ff-detail-tabs button.is-active {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(.ff-segmented button, .ff-chart-modes button) {
+    border: 0 !important;
+    background: transparent !important;
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(.ff-segmented button, .ff-chart-modes button).is-active {
+    background: #ededed !important;
+    color: #111827 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(input, select, textarea, .ff-search, .ff-compact-select) {
+    border-color: #4b5563 !important;
+    border-radius: 8px !important;
+    background-color: #111827 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(input, select, textarea):focus {
+    border-color: #9ca3af !important;
+    outline: 2px solid rgba(156, 163, 175, .24) !important;
+    outline-offset: 1px !important;
+}
+
+/* Mapas de Bolsa y Bonos: los colores verde/rojo conservan el significado del
+   dato, pero la consola, filtros y lienzo pertenecen a la paleta general. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-world-map,
+    #bond-world-map
+) :is(
+    .ffwm-toolbar,
+    .fbm-toolbar,
+    .ffwm-command,
+    .fbm-command,
+    .ffwm-footer,
+    .fbm-footer
+) {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-world-map,
+    #bond-world-map
+) :is(
+    .ffwm-map,
+    .fbm-map-wrap,
+    .ffwm-stage,
+    .fbm-map-stage
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image:
+        linear-gradient(rgba(75, 85, 99, .13) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(75, 85, 99, .13) 1px, transparent 1px) !important;
+    background-size: 32px 32px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-world-map,
+    #bond-world-map
+) :is(.ffwm-map-tools, .fbm-map-tools) {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    color: #ededed !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .2) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-world-map,
+    #bond-world-map
+) :is(.ffwm-filters button, .fbm-filters button) {
+    border-color: transparent !important;
+    background: transparent !important;
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-world-map,
+    #bond-world-map
+) :is(.ffwm-filters button, .fbm-filters button):is(:hover, :focus-visible, .is-active) {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-world-map,
+    #bond-world-map
+) :is(.ffwm-select-wrap, .fbm-country-picker, select) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ff-kicker,
+    .ff-detail-eyebrow,
+    .fbm-kicker,
+    .debt-pro-eyebrow,
+    .section-lbl
+) {
+    color: #9ca3af !important;
+}
+
+/* Gráficas y tablas */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ff-chart-stage,
+    .ff-supplement-chart,
+    .ff-mini-chart,
+    .ff-bolsa-chart-host,
+    .fbm-workspace,
+    .ffwm-workspace,
+    .fx-chart-wrap
+) {
+    border: 0 !important;
+    border-radius: 9px !important;
+    background: #111827 !important;
+    box-shadow: inset 0 0 0 1px rgba(156, 163, 175, .22) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ff-table-wrap,
+    .ff-supplement-table-wrap,
+    .returns-table-wrap,
+    .debt-table-wrap,
+    .fx-table-wrap
+) {
+    overflow: auto !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    background: #111827 !important;
+    box-shadow: inset 0 0 0 1px rgba(156, 163, 175, .22) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas table {
+    border: 0 !important;
+    border-collapse: collapse !important;
+    background: transparent !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas table :is(thead, th) {
+    background: #1f2937 !important;
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas table :is(th, td) {
+    padding: 12px 14px !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(156, 163, 175, .2) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas table tbody tr:last-child td {
+    border-bottom: 0 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas table tbody tr:hover td {
+    background: rgba(75, 85, 99, .28) !important;
+}
+
+/* Los colores vivos quedan reservados al significado del dato. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(.is-up, .positive, .up, .gain) {
+    color: #6ee7b7 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(.is-down, .negative, .down, .loss) {
+    color: #fca5a5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(.warning, .is-warning) {
+    color: #fcd34d !important;
+}
+
+/* ==========================================================================
+   CIERRE DE PALETA EN LAS VISTAS DE DETALLE
+
+   Bonos, Divisas y Daily News cargan armonías propias al activar la vista.
+   Sus selectores incluyen la clase de estado del body, por lo que requieren
+   un cierre con la misma especificidad. Sin él reaparecía la paleta azul.
+   ========================================================================== */
+
+/* Navegación compartida de los cuatro apartados. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation {
+    border-color: #4b5563 !important;
+    background: #171717 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation::before {
+    display: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation :is(.ff-detail-back, .ff-detail-tabs button) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation :is(.ff-detail-back, .ff-detail-tabs button):hover,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation .ff-detail-tabs button:is(.is-active, [aria-current="page"]) {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation :is(
+    .ff-detail-eyebrow,
+    .ff-detail-back i
+) {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation :is(h1, h2) {
+    color: #ededed !important;
+    -webkit-text-fill-color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-mode #ff-detail-navigation p {
+    color: #9ca3af !important;
+}
+
+/* Bolsa: carcasa y consola del mapa. El verde y el rojo del mapa continúan
+   indicando rendimiento positivo y negativo. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map {
+    border-color: #4b5563 !important;
+    background: #171717 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(
+    .ffwm-head,
+    .ffwm-toolbar,
+    .ffwm-command,
+    .ffwm-footer
+) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    background-image: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(
+    .ffwm-status,
+    .ffwm-market-feed,
+    .ffwm-select-wrap,
+    .ffwm-select-wrap select,
+    .fbm-fixed-maturity,
+    .ffwm-filters button
+) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-filters button:is(.is-active, [aria-pressed="true"]) {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+
+/* Divisas */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas {
+    --fx-blue-base: #1f2937;
+    --fx-blue-raised: #111827;
+    --fx-blue-deep: #111827;
+    --fx-blue-line: #4b5563;
+    --fx-blue-muted: #9ca3af;
+    --fx-blue-accent: #4b5563;
+    --fx-blue-accent-strong: #9ca3af;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas :is(
+    #currency-world-map,
+    #fx-history-lab,
+    #fx-pro-panel .fx-pro-block
+) {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map :is(
+    .fcm-header,
+    .fcm-toolbar,
+    .fcm-color-key,
+    .fcm-command,
+    .fcm-footer
+) {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map .fcm-map-wrap,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-history-lab .fx-history-chart-shell {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image:
+        linear-gradient(rgba(75, 85, 99, .12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(75, 85, 99, .12) 1px, transparent 1px) !important;
+    background-size: 32px 32px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map :is(
+    .fcm-status,
+    .fcm-country-picker select,
+    .fcm-base-control select,
+    .fcm-converter,
+    .fcm-converter > div,
+    .fcm-converter button,
+    .fcm-filters button,
+    .fcm-map-tools,
+    .fcm-pan-hint,
+    .fcm-hover-tip,
+    .fcm-map-empty
+),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-pro-panel :is(
+    .fx-pro-hero,
+    .fx-pro-kpi,
+    .fx-market-search,
+    .fx-market-filterbar,
+    .fx-pro-summary > div,
+    .fx-matrix-legend,
+    .fx-regime-dashboard,
+    .fx-regime-signals > div,
+    .fx-catalyst-list > div,
+    .fx-pro-chart-wrap,
+    .fx-pro-thesis,
+    .fx-market-search-control,
+    .advanced-chart-filter,
+    .visual-type-switch,
+    .fx-rate-matrix,
+    .fx-matrix-header,
+    .fx-matrix-colhead,
+    .fx-matrix-rowhead
+),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-history-lab :is(
+    .fx-history-control-deck,
+    .fx-history-toolbar,
+    .fx-history-compare,
+    .fx-history-mode-note,
+    .fx-history-stats,
+    .fx-history-visual,
+    .fx-history-data,
+    .fx-history-table-wrap,
+    .fx-history-field select,
+    .fx-history-periods,
+    .fx-history-modes,
+    .fx-history-chips button,
+    .fx-history-stats > div
+) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas :is(
+    #currency-world-map,
+    #fx-history-lab,
+    #fx-pro-panel
+) :is(button, select):is(.is-active, .active, [aria-pressed="true"], [aria-selected="true"]) {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-pro-panel .fx-matrix-cell:not(.is-up):not(.is-down) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #ededed !important;
+}
+
+/* Daily News: conserva la jerarquía editorial y las fotografías, pero cambia
+   papel blanco, vino y dorado por superficies neutrales de VALLNews. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-newsroom {
+    --fnb-ink: #ededed;
+    --fnb-ink-soft: #1f2937;
+    --fnb-paper: #1f2937;
+    --fnb-mute: #9ca3af;
+    --fnb-line: #4b5563;
+    --fnb-accent: #9ca3af;
+    --fnb-gold: #9ca3af;
+    border: 1px solid #4b5563 !important;
+    border-radius: 12px !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-newsroom::before {
+    display: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-masthead,
+    .fnb-reading-route,
+    .fnb-native-nav,
+    .fnb-trending,
+    .fnb-desk,
+    .fnb-radar,
+    .fnb-latest,
+    .fnb-departments,
+    .fnb-priority,
+    .fnb-perspectives,
+    .fnb-coverage,
+    .fnb-archive,
+    .fnb-newsroom-footer
+) {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-pulse,
+    .fnb-pulse-stats,
+    .fnb-pulse-stats > div,
+    .fnb-pulse-detail,
+    .fnb-route-visual,
+    .fnb-lead-fallback,
+    .fnb-brief,
+    .fnb-card,
+    .fnb-card-body,
+    .fnb-stream-item,
+    .fnb-department-lead,
+    .fnb-department-list button,
+    .fnb-priority li,
+    .fnb-perspective-card,
+    .fnb-archive-item,
+    .fnb-story-index-console,
+    .fnb-archive-search,
+    .fnb-archive-sort
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-title,
+    .fnb-cover-statement,
+    .fnb-section-head h3,
+    .fnb-editorial-heading h3,
+    .fnb-latest-head h3,
+    .fnb-card h4,
+    .fnb-stream-copy h4,
+    .fnb-department-copy h4,
+    .fnb-priority-head h3,
+    .fnb-priority li button,
+    .fnb-archive-copy h4,
+    strong
+) {
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-sub,
+    .fnb-edition small,
+    .fnb-section-head p,
+    .fnb-editorial-heading p,
+    .fnb-card p,
+    .fnb-stream-copy small,
+    .fnb-department-copy p,
+    .fnb-priority-head p,
+    .fnb-priority li small,
+    .fnb-archive-copy small
+) {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-kicker,
+    .fnb-title em,
+    .fnb-section-head span,
+    .fnb-editorial-heading span,
+    .fnb-latest-head span,
+    .fnb-native-links button.is-active
+) {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-refresh,
+    .fnb-filters button,
+    .fnb-native-links button,
+    .fnb-route-action,
+    .fnb-archive-more
+) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-refresh,
+    .fnb-filters button,
+    .fnb-native-links button,
+    .fnb-route-action,
+    .fnb-archive-more
+):is(:hover, .is-active, [aria-current="page"]) {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-trending-label,
+    .fnb-edition,
+    .fnb-brand,
+    .fnb-card-body,
+    .fnb-priority
+) {
+    border-color: #9ca3af !important;
+}
+
+/* Neutralización de los acentos editoriales directos (rosa/vino/dorado) que
+   no dependen de --fnb-accent. Los estados alza/baja del radar no se tocan. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-detail-navigation .ff-detail-eyebrow,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-kicker,
+    .fnb-title em,
+    .fnb-cover-statement em,
+    .fnb-edition span,
+    .fnb-pulse-kicker,
+    .fnb-route-heading span,
+    .fnb-route-heading i,
+    .fnb-reading-route > header span,
+    .fnb-reading-route > header i,
+    .fnb-route-index,
+    .fnb-route-action,
+    .fnb-reading-route-track button > i
+) {
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-brand,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-edition,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-priority {
+    border-color: #4b5563 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-brand::after {
+    color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-masthead::after,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-reading-route-track button::after,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-native-links button::after {
+    background: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-edition {
+    border-left-color: #9ca3af !important;
+    background: #111827 !important;
+    background-image: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-cover-actions :is(button, a),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-cover-actions .is-primary {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-cover-actions :is(button, a):hover,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-cover-actions .is-primary:hover {
+    border-color: #9ca3af !important;
+    background: #4b5563 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-reading-route {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-reading-route-track button {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-reading-route-track button:hover {
+    background: #1f2937 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-route-index,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-route-visual,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-route-visual b {
+    border-color: #4b5563 !important;
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse :is(
+    .fnb-pulse-head,
+    .fnb-pulse-stats,
+    .fnb-pulse-stats div,
+    .fnb-pulse-detail
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-masthead .fnb-pulse {
+    border-color: #4b5563 !important;
+    border-top-color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-live,
+    .fnb-kicker .fnb-live
+) {
+    background: #9ca3af !important;
+    box-shadow: 0 0 0 4px rgba(156, 163, 175, .12) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host :is(
+    .fnb-cover-scroll,
+    .fnb-cover-scroll i,
+    .fnb-cover-scroll span
+) {
+    color: #9ca3af !important;
+}
+
+@media (max-width: 900px) {
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-modules {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: none !important;
+    }
+}
+
+@media (max-width: 700px) {
+    html.vn-dark-pilot body.vn-dark-finanzas .container {
+        padding: 12px !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero {
+        min-height: 0 !important;
+        padding: 22px 18px !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card,
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body {
+        min-height: 202px !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body {
+        padding: 17px !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label {
+        flex: 0 0 58px !important;
+        width: 58px !important;
+        justify-content: center !important;
+        padding-inline: 7px !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label > span:not(.vn-live-dot) {
+        display: none !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label small {
+        display: inline !important;
+        color: #ededed !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas :is(
+        .ff-workspace,
+        .ff-detail-supplement,
+        .ff-exchange-board,
+        .panel,
+        .debt-pro,
+        .returns-pro,
+        .fx-pro-panel
+    ) {
+        padding: 14px !important;
+        border-radius: 10px !important;
+    }
+}
+
+/* Cierre cromático al final real de la cascada de Finanzas. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-row,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-exchange-card, .ff-exchange-data-box),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-bolsa-chart-host,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel {
+    border-color: #4b5563 !important;
+    background: #1f2937 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-row,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-exchange-card-chart, .ff-exchange-data-box),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    .market-chart-lab-head, .market-chart-controls, .market-chart-quote,
+    .ff-market-field, .ff-market-search-field, .chart-intervals,
+    .chart-type-switch, .market-chart-canvas, .ff-chart-reading,
+    .ff-chart-reading article
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card-chart,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel .market-chart-canvas {
+    background-image:
+        linear-gradient(rgba(156, 163, 175, .08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156, 163, 175, .08) 1px, transparent 1px) !important;
+    background-size: 36px 36px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(
+    .ff-exchange-header > div:last-child > label, #vn-chart-type-global,
+    .ff-range-select, .ff-badge
+) {
+    border-color: #4b5563 !important;
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(.chart-int-btn, .chart-type-btn) {
+    background: transparent !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(.chart-int-btn, .chart-type-btn):is(.active, [aria-pressed="true"]) {
+    background: #4b5563 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel #bmv-custom-btn {
+    background: #4b5563 !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    #bmv-symbol, #bmv-custom, .market-chart-heading h3, #ch-name,
+    .ff-quote-price strong, .ff-quote-stat strong, .ff-chart-reading strong
+) {
+    color: #ededed !important;
+}
+
+/* ===========================================================================
+   FINANZAS · MONOCROMO NEUTRO
+
+   La versión anterior llamaba "gris" a la paleta slate de Tailwind
+   (#111827, #1f2937, #4b5563). Esos colores conservan componente azul y se
+   notaban distintos al resto del sitio. Esta capa usa solamente RGB iguales
+   para que Finanzas sea una interfaz de grises real, incluso en las vistas que
+   se crean dinámicamente con JavaScript.
+   =========================================================================== */
+html.vn-dark-pilot body.vn-dark-finanzas {
+    --dp-bg: #171717;
+    --dp-bg-raised: #262626;
+    --dp-surface: #262626;
+    --dp-surface-2: #404040;
+    --dp-surface-3: #525252;
+    --dp-line: #525252;
+    --dp-line-strong: #737373;
+    --dp-line-soft: rgba(163, 163, 163, .22);
+    --dp-text: #f5f5f5;
+    --dp-text-2: #e5e5e5;
+    --dp-muted: #a3a3a3;
+    --dp-wine: #a3a3a3;
+    --dp-wine-soft: rgba(163, 163, 163, .14);
+    --dp-teal: #bdbdbd;
+    --dp-teal-soft: rgba(189, 189, 189, .13);
+    --dp-gold: #bdbdbd;
+    --dp-positive: #d4d4d4;
+    --dp-negative: #8a8a8a;
+    --ff-navy: #171717;
+    --ff-navy-2: #262626;
+    --ff-blue: #a3a3a3;
+    --ff-cyan: #a3a3a3;
+    --ff-gold: #bdbdbd;
+    --ff-ink: #f5f5f5;
+    --ff-muted: #a3a3a3;
+    --ff-line: #525252;
+    --ff-surface: #262626;
+    --ff-surface-soft: #171717;
+    --fin-bg: #171717;
+    --fin-panel: #262626;
+    --fin-panel-raised: #404040;
+    --fin-line: #525252;
+    --fin-bg-color: #171717 !important;
+    --fin-card-bg: #262626 !important;
+    --fin-card-hover: #404040 !important;
+    --fin-border: #525252 !important;
+    --fin-border-hover: #a3a3a3 !important;
+    --fin-text-main: #f5f5f5 !important;
+    --fin-text-muted: #a3a3a3 !important;
+    --fin-text-dark: #e5e5e5 !important;
+    --fin-accent-blue: #bdbdbd !important;
+    --fin-accent-green: #d4d4d4 !important;
+    --fin-accent-red: #8a8a8a !important;
+    --fin-accent-gold: #bdbdbd !important;
+    --fx-ui-bg: #171717;
+    --fx-ui-surface: #262626;
+    --fx-ui-soft: #1f1f1f;
+    --fx-ui-line: #525252;
+    --fx-ui-ink: #f5f5f5;
+    --fx-ui-muted: #a3a3a3;
+    --fx-ui-accent: #bdbdbd;
+    --fx-ui-accent-strong: #d4d4d4;
+    --bond-base: #262626;
+    --bond-raised: #1f1f1f;
+    --bond-deep: #171717;
+    --bond-line: #525252;
+    --bond-muted: #a3a3a3;
+    --bond-accent: #a3a3a3;
+    --bond-accent-strong: #d4d4d4;
+    --fx-blue-base: #262626;
+    --fx-blue-raised: #1f1f1f;
+    --fx-blue-deep: #171717;
+    --fx-blue-line: #525252;
+    --fx-blue-muted: #a3a3a3;
+    --fx-blue-accent: #a3a3a3;
+    --fx-blue-accent-strong: #d4d4d4;
+    --fnb-ink: #f5f5f5;
+    --fnb-ink-soft: #262626;
+    --fnb-paper: #262626;
+    --fnb-mute: #a3a3a3;
+    --fnb-line: #525252;
+    --fnb-accent: #bdbdbd;
+    --fnb-gold: #bdbdbd;
+    color: #f5f5f5 !important;
+    background: #171717 !important;
+}
+
+/* Navegación y superficies compartidas: no dejan pasar el azul heredado. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .header, .hdr-top, .hdr-nav, .hdr-divider, .vn-ticker, .footer,
+    .vn-topbar, .vn-nav, .vn-nav-lista,
+    .ff-hero, .ff-module, .ff-detail-navigation, .ff-world-map,
+    .ff-exchange-board, .ff-workspace, .ff-analysis-card,
+    .ff-detail-supplement, .panel, .debt-pro, .returns-pro, .fx-pro-panel,
+    .eq-pro-panel, .energy-pro-panel, .fnb-newsroom, .fnb-radar,
+    .fnb-coverage, .fnb-masthead, .fnb-archive-section, .fnb-spotlight-card
+) {
+    border-color: #525252 !important;
+    background: #262626 !important;
+    background-image: none !important;
+    color: #f5f5f5 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar :is(
+    .vn-cmd, .vn-cuenta, .vn-hamburger, .vn-nav-item, .vn-contexto
+) {
+    border-color: #525252 !important;
+    background: #1f1f1f !important;
+    color: #e5e5e5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-item.activo {
+    background: #404040 !important;
+    color: #f5f5f5 !important;
+}
+
+/* La portada posee selectores con ID en las hojas heredadas. Se iguala su
+   especificidad para que no vuelva a aparecer el azul slate en el hero o las
+   cuatro tarjetas de entrada. */
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(.ff-hero, .ff-module, .ff-module.ffm-card) {
+    border-color: #525252 !important;
+    background: #262626 !important;
+    background-image: none !important;
+    color: #f5f5f5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(.ff-hero::before, .ff-hero::after, .ff-module::before, .ff-module::after) {
+    background-image: none !important;
+    box-shadow: none !important;
+}
+
+/* Estos módulos se insertan/mueven con IDs propios; sus reglas heredadas
+   tienen más especificidad que una clase de panel normal. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-detail-navigation, #ff-world-map, #ff-exchange-board, #ff-workspace,
+    #ff-detail-supplement, #ff-news-detail-host, #bonds-panel, #bond-world-map,
+    #currency-world-map, #fx-pro-panel, #bvmx-panel, #ff-bolsa-chart-host,
+    #equity-lab-host, #credit-panel, #country-factsheet
+) {
+    border-color: #525252 !important;
+    background: #262626 !important;
+    background-image: none !important;
+    color: #f5f5f5 !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation, #ff-world-map, #ff-exchange-board, #ff-workspace,
+    #ff-detail-supplement, #ff-news-detail-host, #bonds-panel, #bond-world-map,
+    #currency-world-map, #fx-pro-panel, #bvmx-panel, #ff-bolsa-chart-host,
+    #equity-lab-host, #credit-panel, #country-factsheet
+) {
+    border-color: #525252 !important;
+    background: #262626 !important;
+    background-image: none !important;
+    color: #f5f5f5 !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    button, input, select, textarea, .ff-icon-button, .ff-detail-back,
+    .ff-detail-tabs button, .ffwm-tool-btn, .ffwm-zoom-value, .ffwm-pan-hint,
+    .ffwm-tip, .fbm-toolbar, .fbm-filter-status, .fnb-toolbar,
+    .fnb-filters button, .fnb-carousel-controls button
+) {
+    border-color: #525252 !important;
+    background-color: #1f1f1f !important;
+    background-image: none !important;
+    color: #e5e5e5 !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    button:hover, button:focus-visible, button.is-active,
+    button[aria-pressed="true"], .nav-link.active, .ff-detail-tabs button.is-active,
+    .ff-detail-tabs button[aria-current="page"]
+) {
+    border-color: #a3a3a3 !important;
+    background-color: #404040 !important;
+    color: #f5f5f5 !important;
+}
+
+/* Las gráficas, mapas SVG y colores escritos en línea por los scripts también
+   quedan en gris, sin alterar su geometría ni el comportamiento interactivo. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(canvas, svg) {
+    filter: grayscale(1) !important;
+}
+
+/* Los precios y minigráficas de la portada se generan con estilos en línea.
+   El filtro no modifica el layout y garantiza que esos valores sigan la misma
+   escala de grises sin necesidad de duplicar la lógica de datos en JavaScript. */
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance {
+    filter: grayscale(1);
+}
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker {
+    filter: grayscale(1);
+}
+
+/* Conserva la diferencia entre estados con luminosidad, no con color. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .is-up, .positive, .up, .gain, .ff-positive-text, .fnb-impact.alto
+) {
+    color: #d4d4d4 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .is-down, .negative, .down, .loss, .ff-negative-text, .fnb-impact.bajo
+) {
+    color: #8a8a8a !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .risk-medio, .fnb-impact.medio, .ff-warning, .warning
+) {
+    color: #bdbdbd !important;
+}
+
+/* ===========================================================================
+   BOLSA · GRAFITO Y SEÑAL DE MERCADO
+
+   Bolsa usa la escala grafito de la interfaz para separar superficies y gráficas.
+   El color solo comunica la dirección del mercado: verde apagado para alzas y
+   rojo apagado para bajas. El resto de Finanzas permanece monocromático.
+   =========================================================================== */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa {
+    --bolsa-base: #111827 !important;
+    --bolsa-raised: #4b5563 !important;
+    --bolsa-deep: #0b0f16 !important;
+    --bolsa-line: #4b5563 !important;
+    --bolsa-muted: #9ca3af !important;
+    --bolsa-accent: #4b5563 !important;
+    --bolsa-accent-strong: #9ca3af !important;
+    --ff-positive: #6fa487 !important;
+    --ff-negative: #bc7880 !important;
+    --dp-positive: #6fa487;
+    --dp-negative: #bc7880;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation, #ff-world-map, #ff-exchange-board, #ff-workspace,
+    #ff-detail-supplement, #bvmx-panel, #ff-bolsa-chart-host, #sectors-panel
+) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-base) !important;
+    color: #e5e7eb !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation .ff-detail-back,
+    #ff-detail-navigation .ff-detail-tabs button,
+    #ff-world-map button, #ff-world-map select,
+    #ff-exchange-board button, #ff-exchange-board select,
+    #bvmx-panel button, #bvmx-panel input, #bvmx-panel select
+) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-deep) !important;
+    color: #d1d5db !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation .ff-detail-tabs button.is-active,
+    #ff-detail-navigation .ff-detail-tabs button[aria-current="page"],
+    #ff-world-map button.is-active, #ff-world-map button[aria-pressed="true"],
+    #bvmx-panel button.active, #bvmx-panel button[aria-pressed="true"]
+) {
+    border-color: var(--bolsa-accent-strong) !important;
+    background: var(--bolsa-accent) !important;
+    color: #ededed !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-map {
+    border-color: var(--bolsa-line) !important;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(75, 85, 99, .26), transparent 44%),
+        linear-gradient(rgba(156, 163, 175, .08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156, 163, 175, .08) 1px, transparent 1px),
+        var(--bolsa-deep) !important;
+    background-size: auto, 44px 44px, 44px 44px, auto !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-pais {
+    fill: #4b5563 !important;
+    stroke: #9ca3af !important;
+    stroke-opacity: .58 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-pais.is-plano {
+    fill: #6b7280 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-pais.is-alza {
+    fill: #6fa487 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-pais.is-baja {
+    fill: #bc7880 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-marca-halo {
+    fill: rgba(156, 163, 175, .14) !important;
+    stroke: rgba(229, 231, 235, .38) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-marca-punto,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-marca.is-plano .ffwm-marca-punto {
+    fill: #9ca3af !important;
+    stroke: #e5e7eb !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-marca.is-alza .ffwm-marca-punto {
+    fill: #5e9077 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-marca.is-baja .ffwm-marca-punto {
+    fill: #a96770 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-exchange-board .ff-exchange-row,
+    #ff-exchange-board .ff-exchange-card,
+    #ff-exchange-board .ff-exchange-data-box,
+    #bvmx-panel .market-chart-canvas,
+    #bvmx-panel .market-chart-controls,
+    #bvmx-panel .market-chart-quote,
+    #bvmx-panel .ff-chart-reading
+) {
+    border-color: var(--bolsa-line) !important;
+    background: var(--bolsa-deep) !important;
+    color: #edf3f6 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-exchange-board .ff-exchange-card-chart,
+    #bvmx-panel .market-chart-canvas
+) {
+    background-image:
+        linear-gradient(rgba(156, 163, 175, .10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156, 163, 175, .10) 1px, transparent 1px) !important;
+}
+
+/* Bolsa recupera el color de sus gráficos; el filtro monocromo sigue vigente
+   en el resto de Finanzas. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map svg, #ff-exchange-board canvas, #ff-exchange-board svg,
+    #ff-detail-supplement canvas, #bvmx-panel canvas, #bvmx-panel svg,
+    #ff-bolsa-chart-host canvas
+) {
+    filter: none !important;
+}
+/* El filtro monocromo aplicado a la portada no puede revertirse desde un
+   descendiente: al entrar a Bolsa se desactiva en su contenedor. De este modo
+   las barras de desempeño conservan verde para alzas y rojo para bajas. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #favro-finance {
+    filter: none !important;
+}
+
+/* Tarjetas de desempeño: se elimina el último azul heredado y se conserva
+   contraste con los cinco grafitos solicitados. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement :is(
+    .ff-supplement-kpi, .ff-supplement-chart-card, .ff-supplement-table-card,
+    .ff-supplement-table-wrap, .ff-supplement-chart
+) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    background-image: none !important;
+    color: #e5e7eb !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement :is(
+    .ff-supplement-chart-card, .ff-supplement-table-card
+) > header,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap thead,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap th {
+    border-color: #4b5563 !important;
+    background: #4b5563 !important;
+    background-image: none !important;
+    color: #e5e7eb !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap :is(
+    tbody, tr, td
+) {
+    border-color: #4b5563 !important;
+    background: #111827 !important;
+    color: #d1d5db !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-note {
+    border-color: #4b5563 !important;
+    border-left-color: #9ca3af !important;
+    background: #111827 !important;
+    color: #9ca3af !important;
+}
+
+/* Predominio grafito: #1f2937 queda sólo como una capa de transición. Así la
+   vista deja de leerse azulada sin perder la jerarquía de la paleta elegida. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation, #ff-world-map, #ff-exchange-board, #ff-workspace,
+    #ff-detail-supplement, #bvmx-panel, #ff-bolsa-chart-host, #sectors-panel,
+    #ff-detail-supplement .ff-supplement-note
+) {
+    background-color: #111827 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-map, #ff-exchange-board .ff-exchange-row,
+    #ff-exchange-board .ff-exchange-card, #ff-exchange-board .ff-exchange-data-box,
+    #bvmx-panel .market-chart-canvas, #bvmx-panel .market-chart-controls,
+    #bvmx-panel .market-chart-quote, #bvmx-panel .ff-chart-reading
+) {
+    background-color: #0b0f16 !important;
+}
+
+/* Auditoría final de Bolsa: algunas hojas históricas aplicaban #1f2937 y
+   azules translúcidos a subcapas no cubiertas por los paneles principales.
+   La base de cada subcomponente se unifica en grafito; el color queda reservado
+   exclusivamente a las lecturas de alza y baja. */
+
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-map, #ff-world-map .ffwm-workspace,
+    #ff-exchange-board .ff-exchange-card-chart, #ff-exchange-board .ff-exchange-data-box,
+    #ff-detail-supplement .ff-supplement-chart, #bvmx-panel .market-chart-canvas,
+    #sectors-panel .sb-dashboard, #sectors-panel .sb-visual
+) {
+    background-color: #0b0f16 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation button.is-active,
+    #ff-detail-navigation button[aria-current="page"],
+    #ff-world-map button.is-active, #ff-world-map button[aria-pressed="true"],
+    #ff-exchange-board button.is-active, #ff-exchange-board button[aria-pressed="true"],
+    #bvmx-panel button.active, #bvmx-panel button[aria-pressed="true"],
+    #ff-detail-supplement button.is-active, #sectors-panel button.is-active
+) {
+    background-color: #4b5563 !important;
+    color: #ededed !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    .ff-kicker, .ffwm-market-feed, .ffwm-filter-status, .ffwm-command,
+    .ffwm-map-tools, .ffwm-toolbar, .ffwm-head, .ffwm-footer,
+    .ff-exchange-header, .sb-head, .sb-overview, .sb-foot
+) {
+    background-color: #111827 !important;
+    background-image: none !important;
+    color: #9ca3af !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-sector-track {
+    background: #0b0f16 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-sector-track i.up {
+    background: #6fa487 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-sector-track i.down {
+    background: #bc7880 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    .sb-cell.up, .sb-summary.up
+) {
+    background-color: rgba(111, 164, 135, .16) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    .sb-cell.down, .sb-summary.down
+) {
+    background-color: rgba(188, 120, 128, .16) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card.is-up .ff-delta-pill {
+    background-color: rgba(111, 164, 135, .16) !important;
+    color: #6fa487 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card.is-down .ff-delta-pill {
+    background-color: rgba(188, 120, 128, .16) !important;
+    color: #bc7880 !important;
+}
+
+/* Varias reglas antiguas usan la propiedad abreviada `background`, que puede
+   reinstalar el slate aunque se cambie sólo background-color. Este cierre usa
+   la misma propiedad sobre cada capa de Bolsa y elimina ese último retorno. */
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-map, #ff-world-map .ffwm-workspace,
+    #ff-exchange-board .ff-exchange-card-chart, #ff-exchange-board .ff-exchange-data-box,
+    #ff-detail-supplement .ff-supplement-chart, #bvmx-panel .market-chart-canvas,
+    #sectors-panel .sb-dashboard, #sectors-panel .sb-visual
+) {
+    background: #0b0f16 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation button.is-active,
+    #ff-detail-navigation button[aria-current="page"],
+    #ff-world-map button.is-active, #ff-world-map button[aria-pressed="true"],
+    #ff-exchange-board button.is-active, #ff-exchange-board button[aria-pressed="true"],
+    #bvmx-panel button.active, #bvmx-panel button[aria-pressed="true"],
+    #ff-detail-supplement button.is-active, #sectors-panel button.is-active
+) {
+    background: #4b5563 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card.is-up .ff-delta-pill {
+    background: rgba(111, 164, 135, .16) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board .ff-exchange-card.is-down .ff-delta-pill {
+    background: rgba(188, 120, 128, .16) !important;
+}
+
+/* Neutralización definitiva: #111827 y #1f2937 son slate con subtono azul.
+   Bolsa emplea carbón neutro en todas sus capas; sólo rendimiento conserva
+   color (verde apagado para alza, rojo apagado para baja). */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa {
+    --bolsa-base: #171717 !important;
+    --bolsa-raised: #303030 !important;
+    --bolsa-deep: #101010 !important;
+    --bolsa-line: #4a4a4a !important;
+    --bolsa-muted: #a3a3a3 !important;
+    --bolsa-accent: #3d3d3d !important;
+    --bolsa-accent-strong: #a3a3a3 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation, #ff-world-map, #ff-exchange-board,
+    #ff-detail-supplement, #bvmx-panel, #ff-bolsa-chart-host, #sectors-panel
+) {
+    background: #171717 !important;
+    border-color: #4a4a4a !important;
+    color: #e5e5e5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(
+    .ffwm-head, .ffwm-toolbar, .ffwm-command, .ffwm-footer,
+    .ffwm-map-tools, .ffwm-workspace, .ffwm-filter-status, .ffwm-market-feed,
+    .ffwm-select-wrap, .ffwm-select-wrap select, .fbm-fixed-maturity
+) {
+    background: #171717 !important;
+    border-color: #4a4a4a !important;
+    color: #a3a3a3 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-map, #ff-exchange-board .ff-exchange-card-chart,
+    #ff-exchange-board .ff-exchange-data-box, #ff-detail-supplement .ff-supplement-chart,
+    #bvmx-panel .market-chart-canvas, #sectors-panel .sb-dashboard,
+    #sectors-panel .sb-visual
+) {
+    background: #101010 !important;
+    border-color: #4a4a4a !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation button.is-active,
+    #ff-detail-navigation button[aria-current="page"],
+    #ff-world-map button.is-active, #ff-world-map button[aria-pressed="true"],
+    #ff-exchange-board button.is-active, #ff-exchange-board button[aria-pressed="true"],
+    #bvmx-panel button.active, #bvmx-panel button[aria-pressed="true"],
+    #ff-detail-supplement button.is-active, #sectors-panel button.is-active
+) {
+    background: #3d3d3d !important;
+    border-color: #a3a3a3 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-pais {
+    fill: #575757 !important;
+    stroke: #969696 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-pais.is-plano {
+    fill: #707070 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-marca-punto,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-marca.is-plano .ffwm-marca-punto {
+    fill: #a3a3a3 !important;
+    stroke: #ededed !important;
+}
+
+/* BOLSA · alineación final con Bonos: mismas capas de carbón, jerarquía gris
+   y color sólo para el movimiento. Se usan selectores directos porque las
+   hojas históricas de Bolsa tienen reglas más específicas para estos bloques. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel {
+    background: #171717 !important;
+    border-color: #4a4a4a !important;
+    color: #e5e5e5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation :is(
+    .ff-detail-back, .ff-detail-tabs button
+) {
+    background: #101010 !important;
+    border-color: #4a4a4a !important;
+    color: #a3a3a3 !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation .ff-detail-tabs button:is(
+    .is-active, [aria-current="page"]
+) {
+    background: #3d3d3d !important;
+    border-color: #a3a3a3 !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map :is(
+    .ffwm-head, .ffwm-toolbar, .ffwm-command, .ffwm-footer,
+    .ffwm-map-tools, .ffwm-workspace, .ffwm-filter-status,
+    .ffwm-market-feed, .ffwm-select-wrap, .ffwm-select-wrap select,
+    .fbm-fixed-maturity
+) {
+    background: #171717 !important;
+    border-color: #4a4a4a !important;
+    color: #a3a3a3 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-world-map .ffwm-map,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-exchange-board :is(.ff-exchange-card-chart, .ff-exchange-data-box),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-chart,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel .market-chart-canvas,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel :is(.sb-dashboard, .sb-visual) {
+    background: #101010 !important;
+    border-color: #4a4a4a !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement :is(
+    .ff-supplement-chart-card, .ff-supplement-table-card
+) > header,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap thead,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap th {
+    background: #303030 !important;
+    border-color: #4a4a4a !important;
+    color: #a3a3a3 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap :is(
+    tbody, tr, td
+) {
+    background: #171717 !important;
+    border-color: #4a4a4a !important;
+    color: #e5e5e5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    .is-up, .positive, .up, .gain, .ff-positive-text, .is-positive
+) {
+    color: #6fa487 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    .is-down, .negative, .down, .loss, .ff-negative-text, .is-negative
+) {
+    color: #bc7880 !important;
+}
+
+/* ===========================================================================
+   LEGADO DESACTIVADO · CIERRE DE CASCADA MONOCROMÁTICO
+   usePageStyles inserta las hojas dinámicas después de algunos estilos de la
+   página. Esta fue la cascada grafito anterior: fijaba #171717 y #101010 aun
+   después de que la vista recibiera los tokens de Mercados. Se conserva como
+   referencia temporal, pero nunca participa en la interfaz.
+   =========================================================================== */
+@media not all {
+html.vn-dark-pilot body.vn-dark-finanzas {
+    --fin-bg: #101010 !important; --fin-panel: #171717 !important;
+    --fin-panel-raised: #303030 !important; --fin-line: #4a4a4a !important;
+    --fin-text-main: #ededed !important; --fin-text-muted: #a3a3a3 !important;
+    --dp-bg: #101010 !important; --dp-bg-raised: #171717 !important;
+    --dp-surface: #171717 !important; --dp-surface-2: #303030 !important;
+    --dp-line: #4a4a4a !important; --dp-text: #ededed !important;
+    --dp-muted: #a3a3a3 !important; --dp-positive: #6fa487 !important;
+    --dp-negative: #bc7880 !important; --ff-navy: #171717 !important;
+    --ff-navy-2: #101010 !important; --ff-surface: #171717 !important;
+    --ff-surface-soft: #101010 !important; --ff-line: #4a4a4a !important;
+    --ff-ink: #ededed !important; --ff-muted: #a3a3a3 !important;
+    --bolsa-base: #171717 !important; --bolsa-raised: #303030 !important;
+    --bolsa-deep: #101010 !important; --bolsa-line: #4a4a4a !important;
+    --bolsa-muted: #a3a3a3 !important; --bolsa-accent: #3d3d3d !important;
+    --bolsa-accent-strong: #a3a3a3 !important; --bond-base: #171717 !important;
+    --bond-raised: #303030 !important; --bond-deep: #101010 !important;
+    --bond-line: #4a4a4a !important; --bond-muted: #a3a3a3 !important;
+    --fx-ui-bg: #101010 !important; --fx-ui-surface: #171717 !important;
+    --fx-ui-soft: #101010 !important; --fx-ui-line: #4a4a4a !important;
+    --fx-ui-ink: #ededed !important; --fx-ui-muted: #a3a3a3 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    #ff-detail-navigation, #ff-world-map, #bond-world-map, #currency-world-map,
+    #ff-exchange-board, #ff-detail-supplement, #ff-workspace, #bvmx-panel,
+    #sectors-panel, #bonds-panel, #credit-panel, #country-factsheet,
+    #rate-timeline, #ff-spreads-board, #fx-pro-panel, #fx-history-lab,
+    #fx-emerging-panel, #news-pro-panel, #equity-lab-host, .panel, .ff-module,
+    .debt-pro, .returns-pro, .fx-pro-panel, .fnb-front-page
+) {
+    background: #171717 !important;
+    border-color: #4a4a4a !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    button, input, select, textarea, .ffwm-map, .fbm-map-wrap, .fbm-map-stage,
+    .fcm-map-wrap, .fcm-map-stage, .market-chart-canvas,
+    .ff-exchange-card-chart, .ff-exchange-data-box, .ff-supplement-chart,
+    .credit-chart-wrap, .rtl-chart-wrap, .fx-history-chart, .fx-emerging-chart,
+    .sb-dashboard, .sb-visual, .ff-table-wrap, .ff-spreads-table-wrap, .cf-table-wrap
+) {
+    background: #101010 !important;
+    border-color: #4a4a4a !important;
+    color: #e5e5e5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    button.is-active, button.active, button[aria-current="page"], button[aria-pressed="true"],
+    thead, thead tr, th, .ffwm-head, .fbm-header, .fcm-header,
+    .ff-exchange-header, .ff-supplement-chart-card > header,
+    .ff-supplement-table-card > header, .sb-head, .sb-overview, .fx-history-header
+) { background: #303030 !important; border-color: #a3a3a3 !important; color: #ededed !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(tbody tr, tbody td) {
+    background: #171717 !important; border-color: #4a4a4a !important; color: #e5e5e5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .is-up, .up, .positive, .gain, .is-positive, .ff-positive-text, .ff-sp-pos
+) { color: #6fa487 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .is-down, .down, .negative, .loss, .is-negative, .ff-negative-text, .ff-sp-neg
+) { color: #bc7880 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ffwm-pais.is-alza, .fbm-country.has-data.is-up, .fcm-country.has-data.is-up
+) { fill: #6fa487 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ffwm-pais.is-baja, .fbm-country.has-data.is-down, .fcm-country.has-data.is-down
+) { fill: #bc7880 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .ffwm-pais.is-plano, .fbm-country.has-data.is-flat, .fcm-country.has-data.is-flat
+) { fill: #707070 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(
+    #ff-world-map svg, #bond-world-map svg, #currency-world-map svg, canvas
+) { filter: none !important; }
+
+/* Misma forma y mayor especificidad que las reglas heredadas de Bolsa. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation, #ff-world-map, #ff-exchange-board,
+    #ff-detail-supplement, #bvmx-panel, #ff-bolsa-chart-host, #sectors-panel
+):not(:root) {
+    background: #171717 !important;
+    border-color: #4a4a4a !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-map, #ff-world-map .ffwm-workspace,
+    #ff-exchange-board .ff-exchange-card-chart, #ff-exchange-board .ff-exchange-data-box,
+    #ff-detail-supplement .ff-supplement-chart, #bvmx-panel .market-chart-canvas,
+    #sectors-panel .sb-dashboard, #sectors-panel .sb-visual
+) { background: #101010 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation button.is-active, #ff-detail-navigation button[aria-current="page"],
+    #ff-world-map button.is-active, #ff-world-map button[aria-pressed="true"],
+    #ff-exchange-board button.is-active, #ff-exchange-board button[aria-pressed="true"],
+    #bvmx-panel button.active, #bvmx-panel button[aria-pressed="true"],
+    #ff-detail-supplement button.is-active, #sectors-panel button.is-active
+) { background: #3d3d3d !important; border-color: #a3a3a3 !important; }
+
+/* Mapas: los países sin lectura no son una señal y no deben verse azules. */
+html.vn-dark-pilot body.vn-dark-finanzas #bond-world-map .fbm-country:not(.is-up):not(.is-down):not(.is-flat),
+html.vn-dark-pilot body.vn-dark-finanzas #currency-world-map .fcm-country:not(.is-up):not(.is-down):not(.is-flat) {
+    fill: #575757 !important;
+    stroke: #969696 !important;
+}
+
+/* Los mapas y laboratorios se montan directamente bajo body al cambiar de
+   pestaña. Esta variante conserva la especificidad de cada modo de detalle. */
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation, #ff-world-map, #bond-world-map, #currency-world-map,
+    #ff-exchange-board, #ff-detail-supplement, #ff-workspace, #bvmx-panel,
+    #sectors-panel, #bonds-panel, #credit-panel, #country-factsheet,
+    #rate-timeline, #ff-spreads-board, #fx-pro-panel, #fx-history-lab,
+    #fx-emerging-panel, #news-pro-panel, #equity-lab-host
+) { background: #171717 !important; border-color: #4a4a4a !important; color: #ededed !important; box-shadow: none !important; }
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation button, #currency-world-map button, #currency-world-map select,
+    #currency-world-map .fcm-header, #currency-world-map .fcm-toolbar,
+    #fx-pro-panel button, #fx-pro-panel select, #fx-history-lab button,
+    #fx-history-lab select, #ff-world-map button, #bond-world-map button,
+    #bond-world-map select
+) { background: #101010 !important; border-color: #4a4a4a !important; color: #e5e5e5 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation button.is-active, #ff-detail-navigation button[aria-current="page"],
+    #currency-world-map button.is-active, #currency-world-map button[aria-pressed="true"],
+    #fx-pro-panel button.active, #fx-history-lab button.active
+) { background: #3d3d3d !important; border-color: #a3a3a3 !important; color: #ededed !important; }
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #currency-world-map .fcm-map-wrap, #currency-world-map .fcm-map-stage,
+    #fx-history-lab .fx-history-chart, #fx-pro-panel .fx-pro-block,
+    #bond-world-map .fbm-map-wrap, #bond-world-map .fbm-map-stage
+) { background: #101010 !important; border-color: #4a4a4a !important; }
+
+/* Divisas conserva algunas reglas de módulo con un selector de tres clases.
+   Se supera esa especificidad sin tocar los datos ni la funcionalidad. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas:not(.finanzas-theme-exception) :is(
+    #ff-detail-navigation, #currency-world-map, #fx-pro-panel,
+    #fx-history-lab, #fx-emerging-panel
+) {
+    background: #171717 !important;
+    background-color: #171717 !important;
+    border-color: #4a4a4a !important;
+    color: #ededed !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas:not(.finanzas-theme-exception) :is(
+    #currency-world-map .fcm-map-wrap, #currency-world-map .fcm-map-stage,
+    #fx-history-lab .fx-history-chart, #fx-pro-panel .fx-pro-block,
+    #fx-emerging-panel .fx-emerging-chart
+) { background: #101010 !important; background-color: #101010 !important; border-color: #4a4a4a !important; }
+
+/* Daily News era un módulo editorial independiente y conservaba una capa
+   azul. Se integra a Mercados sin perder sus niveles de lectura. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    #ff-detail-navigation, #ff-news-detail-host, #fnb-front-page,
+    .fnb-newsroom, .fnb-masthead, .fnb-radar, .fnb-coverage,
+    .fnb-archive-section, .fnb-spotlight-card, .fnb-lead-story
+) {
+    background: #171717 !important;
+    background-image: none !important;
+    border-color: #4a4a4a !important;
+    color: #ededed !important;
+    box-shadow: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) #ff-news-detail-host :not(svg):not(path):not(circle):not(line):not(polyline):not(polygon) {
+    background-color: #171717 !important;
+    background-image: none !important;
+    border-color: #4a4a4a !important;
+    color: #e5e5e5 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    #ff-detail-navigation button, #ff-news-detail-host button,
+    #ff-news-detail-host input, #ff-news-detail-host select,
+    .fnb-story-card, .fnb-story-item, .fnb-reading-card
+) { background: #101010 !important; border-color: #4a4a4a !important; color: #ededed !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    #ff-detail-navigation button.is-active, #ff-detail-navigation button[aria-current="page"],
+    .fnb-lead, .fnb-section-heading, .fnb-reading-route
+) { background: #303030 !important; border-color: #a3a3a3 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    .fnb-impact.alto, .fnb-impact.negative, .fnb-signal.down
+) { color: #bc7880 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    .fnb-impact.bajo, .fnb-impact.positive, .fnb-signal.up
+) { color: #6fa487 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    .fnb-pulse-head, .fnb-pulse-stats, .fnb-pulse-detail,
+    .fnb-pulse-plot, .fnb-pulse-section, .fnb-story-meta
+),
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    .fnb-pulse-head, .fnb-pulse-stats, .fnb-pulse-detail
+) * {
+    background-color: #171717 !important;
+    border-color: #4a4a4a !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) :is(
+    .fnb-pulse-head, .fnb-pulse-stats
+) { background: #303030 !important; }
+
+/* Controles comunes de Finanzas (cabecera incluida) comparten la misma base. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(.vn-ticker-label, .is-primary) {
+    background: #303030 !important;
+    border-color: #4a4a4a !important;
+    color: #ededed !important;
+}
+
+/* Subcapas de Bolsa que el laboratorio crea al seleccionar un activo. */
+
+
+
+
+}
+
+/* ===========================================================================
+   PALETA COMPARTIDA · FINANZAS
+
+   Finanzas heredaba un cierre de cascada monocromático que convertía toda la
+   vista en grafito y aplicaba `grayscale()` a gráficas y datos. Esta capa se
+   mantiene al final del bundle para que Finanzas use exactamente la misma
+   escala del producto: #111827, #1F2937, #4B5563, #9CA3AF y #EDEDED.
+   =========================================================================== */
+html.vn-dark-pilot body.vn-dark-finanzas {
+    --fin-bg: #111827 !important;
+    --fin-panel: #1F2937 !important;
+    --fin-panel-raised: #4B5563 !important;
+    --fin-control: #111827 !important;
+    --fin-line: #4B5563 !important;
+    --fin-text-main: #EDEDED !important;
+    --fin-text-muted: #9CA3AF !important;
+    --fin-accent-blue: #9CA3AF !important;
+    --fin-accent-green: #EDEDED !important;
+    --fin-accent-red: #9CA3AF !important;
+    --dp-bg: var(--fin-bg) !important;
+    --dp-bg-raised: var(--fin-control) !important;
+    --dp-surface: var(--fin-panel) !important;
+    --dp-surface-2: var(--fin-panel) !important;
+    --dp-surface-3: var(--fin-panel-raised) !important;
+    --dp-line: var(--fin-line) !important;
+    --dp-text: var(--fin-text-main) !important;
+    --dp-text-2: #EDEDED !important;
+    --dp-muted: var(--fin-text-muted) !important;
+    --dp-positive: var(--fin-accent-green) !important;
+    --dp-negative: var(--fin-accent-red) !important;
+    --ff-navy: var(--fin-panel) !important;
+    --ff-navy-2: var(--fin-bg) !important;
+    --ff-surface: var(--fin-panel) !important;
+    --ff-surface-soft: var(--fin-control) !important;
+    --ff-line: var(--fin-line) !important;
+    --ff-ink: var(--fin-text-main) !important;
+    --ff-muted: var(--fin-text-muted) !important;
+    --bolsa-base: var(--fin-panel) !important;
+    --bolsa-raised: var(--fin-panel-raised) !important;
+    --bolsa-deep: var(--fin-control) !important;
+    --bolsa-line: var(--fin-line) !important;
+    --bond-base: var(--fin-panel) !important;
+    --bond-raised: var(--fin-panel-raised) !important;
+    --bond-deep: var(--fin-control) !important;
+    --bond-line: var(--fin-line) !important;
+    --fx-ui-bg: var(--fin-bg) !important;
+    --fx-ui-surface: var(--fin-panel) !important;
+    --fx-ui-soft: var(--fin-control) !important;
+    --fx-ui-line: var(--fin-line) !important;
+    --fx-ui-ink: var(--fin-text-main) !important;
+    --fx-ui-muted: var(--fin-text-muted) !important;
+    background: var(--fin-bg) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .header, .hdr-top, .hdr-nav, .hdr-divider, .vn-ticker, .footer,
+    .vn-topbar, .vn-nav, .vn-nav-lista, .favro-finance-shell,
+    .ff-hero, .ff-module, .ff-detail-navigation, .ff-world-map,
+    .ff-exchange-board, .ff-workspace, .ff-analysis-card,
+    .ff-detail-supplement, .panel, .debt-pro, .returns-pro, .fx-pro-panel,
+    .eq-pro-panel, .energy-pro-panel, .fnb-newsroom, .fnb-radar,
+    .fnb-coverage, .fnb-masthead, .fnb-archive-section, .fnb-spotlight-card
+) {
+    border-color: var(--fin-line) !important;
+    background: var(--fin-panel) !important;
+    background-image: none !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(.ff-hero, .ff-module, .ff-module.ffm-card) {
+    border-color: var(--fin-line) !important;
+    background: var(--fin-panel) !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    button, input, select, textarea, .ff-icon-button, .ff-detail-back,
+    .ff-detail-tabs button, .ffwm-tool-btn, .ffwm-zoom-value, .ffwm-pan-hint,
+    .ffwm-tip, .fbm-toolbar, .fbm-filter-status, .fnb-toolbar,
+    .fnb-filters button, .fnb-carousel-controls button
+) {
+    border-color: var(--fin-line) !important;
+    background-color: var(--fin-control) !important;
+    color: var(--dp-text-2) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    button:hover, button:focus-visible, button.is-active,
+    button[aria-pressed="true"], .nav-link.active, .ff-detail-tabs button.is-active,
+    .ff-detail-tabs button[aria-current="page"]
+) {
+    border-color: var(--fin-accent-blue) !important;
+    background-color: var(--fin-panel-raised) !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(canvas, svg),
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance,
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker {
+    filter: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(.is-up, .positive, .up, .gain, .ff-positive-text) {
+    color: var(--fin-accent-green) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(.is-down, .negative, .down, .loss, .ff-negative-text) {
+    color: var(--fin-accent-red) !important;
+}
+
+/* Los apartados se construyen después de la portada y traen selectores con
+   IDs propios. Se declaran aquí, al final, para que Bolsa, Bonos, Divisas y
+   Daily News no puedan recuperar los grises de sus hojas históricas. */
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation, #ff-world-map, #bond-world-map, #currency-world-map,
+    #ff-exchange-board, #ff-detail-supplement, #ff-workspace, #bvmx-panel,
+    #sectors-panel, #bonds-panel, #credit-panel, #country-factsheet,
+    #rate-timeline, #ff-spreads-board, #fx-pro-panel, #fx-history-lab,
+    #fx-emerging-panel, #news-pro-panel, #equity-lab-host, #ff-news-detail-host,
+    #fnb-front-page
+) {
+    background: var(--fin-panel) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--fin-text-main) !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    .ffwm-map, .ffwm-workspace, .fbm-map-wrap, .fbm-map-stage,
+    .fcm-map-wrap, .fcm-map-stage, .market-chart-canvas,
+    .ff-exchange-card-chart, .ff-exchange-data-box, .ff-supplement-chart,
+    .credit-chart-wrap, .rtl-chart-wrap, .fx-history-chart, .fx-emerging-chart,
+    .fx-pro-block, .sb-dashboard, .sb-visual, .ff-table-wrap,
+    .ff-spreads-table-wrap, .cf-table-wrap
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--dp-text-2) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception)
+    #ff-news-detail-host :not(svg):not(path):not(circle):not(line):not(polyline):not(polygon) {
+    background-color: var(--fin-panel) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--dp-text-2) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception)
+    #ff-news-detail-host :is(button, input, select, .fnb-story-card, .fnb-story-item, .fnb-reading-card),
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation button, #ff-world-map button, #bond-world-map button,
+    #currency-world-map button, #currency-world-map select, #fx-pro-panel button,
+    #fx-pro-panel select, #fx-history-lab button, #fx-history-lab select
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--dp-text-2) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    button.is-active, button.active, button[aria-current="page"],
+    button[aria-pressed="true"], thead, thead tr, th, .ffwm-head,
+    .fbm-header, .fcm-header, .ff-exchange-header, .sb-head,
+    .sb-overview, .fx-history-header
+) {
+    background: var(--fin-panel-raised) !important;
+    border-color: var(--fin-accent-blue) !important;
+    color: var(--fin-text-main) !important;
+}
+
+/* Lienzos raíz: eran los últimos fondos grafito que quedaban visibles entre
+   módulos y alrededor de los laboratorios. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .container, .favro-finance-shell, #favro-finance, #pane-general,
+    #fin-layout-wrap, #ff-bolsa-chart-host
+) {
+    background-color: var(--fin-bg) !important;
+    background-image: none !important;
+}
+
+/* Superficies creadas por JavaScript dentro de cada laboratorio. El atributo
+   de clase añade la especificidad necesaria para superar sus reglas antiguas
+   sin teñir SVG, canvas ni imágenes de datos. */
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-world-map, #bond-world-map, #currency-world-map, #ff-exchange-board,
+    #ff-detail-supplement, #bvmx-panel, #sectors-panel, #bonds-panel,
+    #credit-panel, #fx-pro-panel, #fx-history-lab, #fx-emerging-panel,
+    #ff-news-detail-host
+) [class] {
+    border-color: var(--fin-line) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    .ff-exchange-card, .ff-exchange-row, .ff-supplement-kpi,
+    .ff-supplement-chart-card, .ff-supplement-table-card,
+    .ff-supplement-table-wrap, .ff-supplement-note, .market-chart-lab-head,
+    .market-chart-controls, .market-chart-quote, .ff-chart-reading,
+    .ff-chart-reading article, .ff-market-field, .ff-market-search-field,
+    .chart-intervals, .chart-type-switch, .sov-mx-grid, .sov-mx-row,
+    .fx-history-visual, .fx-emerging-card, .fnb-story-card, .fnb-story-item,
+    .fnb-reading-card, .fnb-coverage, .fnb-radar, .fnb-archive-section
+) {
+    background: var(--fin-panel) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--fin-text-main) !important;
+}

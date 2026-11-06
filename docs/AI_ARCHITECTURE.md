@@ -41,7 +41,8 @@ flowchart TD
 - `backend/ai/tool-registry.js`: contrato para herramientas futuras.
 - `backend/ai/response-schema.js`: sanitización, validación, parser y fallback.
 - `backend/ai/rich-response.schema.json`: contrato JSON versionado.
-- `assets/js/chat-widget.js`: selector de modo y renderer de componentes.
+- `frontend/src/pages/VallAi.jsx`: pantalla actual de ORION en React.
+- `assets/js/vall-ai-page-v4.js`: renderer activo de ORION y manejo de conversación. El antiguo chat flotante se retiró al quedar sin consumidores.
 - `assets/js/vendor/mermaid.min.js`: renderizador Mermaid local.
 
 ## Contrato

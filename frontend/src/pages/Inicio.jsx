@@ -1,486 +1,206 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
-import ExecutiveReportsHub from '../components/ExecutiveReportsHub.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
-import loadScripts from '../lib/loadScripts.js';
-import iniciarFondo from '../lib/fondoWebGL.js';
-import { useRevelado, useCifrasVivas } from '../lib/animaInicio.js';
+import { DARK_PILOT, ESQUELETO } from '../lib/hojasComunes.js';
+import { FUENTES_NOTICIAS, reunirNoticias } from '../lib/noticias.js';
+import { ACTIVOS_INICIO, cargarCotizacion, precio, porcentaje, fechaCotizacion, geometriaSerie } from '../lib/inicioMercados.js';
+import useInicioMotion from '../lib/useInicioMotion.js';
+import InicioNewsCarousel from '../components/InicioNewsCarousel.jsx';
 import './Inicio.css';
-import { DARK_PILOT, DATOS } from '../lib/hojasComunes.js';
 
-/*
- * Portada VALLNews — diario financiero instrumentado.
- *
- * QUÉ SE FUE Y POR QUÉ
- * La versión anterior era una pila de rectángulos redondeados: bienvenida,
- * carrusel, nota, pulso, llamada a VALL AI y cuatro tarjetas laterales, todos
- * con el mismo relleno, el mismo radio y el mismo hueco. Con todo al mismo peso
- * no había jerarquía y la página se leía como una cuadrícula, no como una
- * portada. Además el carrusel repetía exactamente el recurso de la nota
- * principal —foto a sangre con titular serif enorme— y empujaba el contenido
- * real por debajo del pliegue.
- *
- * Ahora la estructura la marcan reglas finas y columnas, no cajas: cinta de
- * cotizaciones fija, cabecera a sangre con fondo WebGL, espina de datos al
- * costado del titular, portada a dos columnas y tira de secciones al pie.
- *
- * EL CONTRATO CON live-engine.js — LO IMPORTANTE
- * live-engine escribe por getElementById. Si un id desaparece, ese dato deja de
- * actualizarse SIN ERROR: se queda el texto de ejemplo del marcado y parece que
- * funciona. Están todos aquí, y esta versión monta además cinco que el marcado
- * anterior no tenía, así que ahora sí se actualizan:
- *   cinta      tickerInner
- *   portada    slide-finanzas (fondo), st-finanzas, sd-fin-desc
- *   río        st-mercados/geo/mexico, sd-mkt/geo/mex-desc,
- *              sd-0…sd-2 (marcas de tiempo),
- *              slide-mercados/geo/mexico (miniaturas)
- *   tira       card-finanzas/mercados/geo/mexico (fondos),
- *              ct-finanzas/mercados/geopolitica/mexico
- *   VALL·AI    idx-vai-arc/num/asset/verdict/warn, vaiSelect(+Icon/+Lbl)
- *   pulso      pulse-usdmxn/tiie/corn/wti y pulse-corn/wti-change
- *   chrome     sectionDate, lastUpdated, backendBadge, refreshBtn
- *
- * Proteínas salió de la portada el 2026-08-18, así que ya NO se montan
- * st-proteinas, sd-prot-desc, sd-3, slide-proteinas, card-proteinas ni
- * ct-proteinas. No hay que tocar live-engine: set() y _bgFor() comprueban que
- * el nodo exista y no hacen nada si falta. La cifra del maíz sí se conserva
- * (pulse-corn), porque es un precio que se lee por sí mismo.
- *
- * Los ids de imagen (slide-*, card-*) van en la CAPA de la foto, no en el
- * enlace: _bgFor() lee y reescribe `style.backgroundImage` de ese nodo, y si
- * fuese el enlace entero no se podría escalar la foto en hover sin arrastrar el
- * texto con ella.
- */
+const HOJAS = [...ESQUELETO, DARK_PILOT];
+const INDEXES = ACTIVOS_INICIO.filter(asset => asset.group === 'bolsa');
+const PERIODOS = [{ id: '1mo', label: '1M' }, { id: '3mo', label: '3M' }, { id: '1y', label: '1A' }];
+const Icon = ({ name }) => <i className={`fa-solid ${name}`} aria-hidden="true" />;
+const assetByTicker = ticker => ACTIVOS_INICIO.find(asset => asset.ticker === ticker);
+const changeClass = value => value == null ? '' : value < 0 ? 'ih-down' : value > 0 ? 'ih-up' : '';
 
-const HOJAS = [
-  '/assets/css/base.css?v=2',
-  '/assets/css/header.css',
-  '/assets/css/footer.css',
-  '/assets/css/responsive.css',
-  DARK_PILOT,
-];
+function usePortadaDatos(refresh) {
+  const [quotes, setQuotes] = useState({});
+  const [editions, setEditions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [checked, setChecked] = useState(null);
+  const [newsStale, setNewsStale] = useState(false);
+  useEffect(() => {
+    let active = true, next = 0;
+    const controllers = new Set();
+    setLoading(true);
+    setNewsLoading(true);
+    async function request(task) {
+      const controller = new AbortController();
+      controllers.add(controller);
+      const timeout = setTimeout(() => controller.abort(), 24000);
+      try { return await task(controller.signal); }
+      finally { clearTimeout(timeout); controllers.delete(controller); }
+    }
+    async function worker() {
+      while (active && next < ACTIVOS_INICIO.length) {
+        const asset = ACTIVOS_INICIO[next++];
+        try {
+          const data = await request(signal => cargarCotizacion(asset.ticker, '1mo', signal));
+          if (active) setQuotes(previous => ({ ...previous, [asset.ticker]: { ...data, status: 'ready' } }));
+        } catch {
+          if (active) setQuotes(previous => ({ ...previous, [asset.ticker]: previous[asset.ticker]?.price != null
+            ? { ...previous[asset.ticker], status: 'stale' } : { status: 'error' } }));
+        }
+      }
+    }
+    Promise.all(Array.from({ length: 4 }, worker)).then(() => {
+      if (active) { setLoading(false); setChecked(new Date()); }
+    });
+    Promise.all(FUENTES_NOTICIAS.map(async source => {
+      try {
+        const payload = await request(async signal => {
+          const response = await fetch(source.url, { signal, credentials: 'include' });
+          if (!response.ok) throw new Error('Fuente no disponible');
+          return response.json();
+        });
+        if (!payload.success || !Array.isArray(payload.data?.noticias)) throw new Error('Sin noticias');
+        return { id: source.id, articles: payload.data.noticias, stale: !!payload.stale };
+      } catch { return { id: source.id, articles: [], failed: true }; }
+    })).then(results => { if (active) {
+      setEditions(previous => results.map(result => result.failed ? { ...result, articles: previous.find(edition => edition.id === result.id)?.articles || [] } : result));
+      setNewsStale(results.some(result => result.failed || result.stale));
+      setNewsLoading(false);
+    } });
+    return () => { active = false; controllers.forEach(controller => controller.abort()); };
+  }, [refresh]);
+  const news = useMemo(() => reunirNoticias(editions), [editions]);
+  return { quotes, news, loading, newsLoading, checked, newsStale };
+}
 
-const LIBS = [
-  ...DATOS,
-  '/assets/js/live-engine.js?v=25',
-];
+function OrionBackdrop() {
+  return <svg className="ih-constellation" viewBox="0 0 250 300" aria-hidden="true">
+    <defs><radialGradient id="ih-star-glow"><stop stopColor="#d5e8ff" stopOpacity=".28" /><stop offset="1" stopColor="#d5e8ff" stopOpacity="0" /></radialGradient></defs>
+    <g fill="none" stroke="currentColor" strokeWidth=".8"><path d="M123 28 57 86 104 139 72 268 M123 28 194 87 149 157 204 274 M57 86 194 87 M104 139 126 149 149 157 M126 149 125 186 123 211" /></g>
+    {[[123,28,3.8],[57,86,3],[194,87,3],[104,139,2.8],[126,149,4],[149,157,2.8],[125,186,2],[123,211,2.2],[72,268,3.1],[204,274,4]].map(([x,y,r], i) => <g key={i}><circle cx={x} cy={y} r={r * 8} fill="url(#ih-star-glow)" /><circle cx={x} cy={y} r={r} fill="#e4eefc" /></g>)}
+  </svg>;
+}
 
-/* El titular se parte en palabras para revelarlas escalonadas. En el marcado y
-   no calculado con split() en render: así el <em> de "mañana" queda explícito y
-   no hay que reconstruir el énfasis a partir de la posición. */
-const TITULAR = [
-  { txt: 'Entiende' }, { txt: 'hoy' }, { txt: 'lo' }, { txt: 'que' },
-  { txt: 'moverá' }, { txt: 'mañana.', em: true },
-];
+function Sparkline({ quote, color = '#5dccad' }) {
+  const gradient = useId().replace(/:/g, '');
+  const candles = quote?.candles || [];
+  const geometry = geometriaSerie(candles, 180, 44, 3);
+  if (!geometry || candles.length < 2) return <div className="ih-spark-empty">{quote?.status === 'error' ? 'Sin histórico' : quote ? 'Histórico no disponible' : 'Consultando…'}</div>;
+  return <svg className="ih-spark" viewBox="0 0 180 44" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop stopColor={color} stopOpacity=".23" /><stop offset="1" stopColor={color} stopOpacity="0" /></linearGradient></defs>
+    <polygon points={`3,44 ${geometry.points} 177,44`} fill={`url(#${gradient})`} />
+    <polyline points={geometry.points} fill="none" stroke={color} strokeWidth="1.8" vectorEffect="non-scaling-stroke" />
+  </svg>;
+}
 
-/* La espina de datos: las cuatro cifras que resumen el día. `idCambio` solo lo
-   tienen las dos que live-engine sabe variar; inventarle un porcentaje a las
-   otras dos sería fabricar un dato. */
-const PULSO = [
-  { clave: 'dolar', etiqueta: 'Dólar FIX',    idValor: 'pulse-usdmxn', valor: '$17.20', detalle: 'Banxico · MXN',      icono: 'fa-peso-sign',        ruta: '/mexico',             tono: 'mexico' },
-  { clave: 'tiie',  etiqueta: 'TIIE 28d',     idValor: 'pulse-tiie',   valor: '6.50%',  detalle: 'Tasa interbancaria', icono: 'fa-building-columns', ruta: '/finanzas',           tono: 'finanzas' },
-  /* El maíz se queda —es un precio relevante por sí mismo y live-engine ya lo
-     trae— pero apunta a Mercados y no a Proteínas: Proteínas salió de la
-     portada, y Mercados cotiza el mismo contrato (ZC=F, Granos & Forrajes). */
-  { clave: 'maiz',  etiqueta: 'Maíz CME',     idValor: 'pulse-corn',   valor: '$4.97',  detalle: 'CME · $/bushel',     icono: 'fa-seedling',         ruta: '/mercados',           tono: 'proteinas', idCambio: 'pulse-corn-change' },
-  { clave: 'wti',   etiqueta: 'Petróleo WTI', idValor: 'pulse-wti',    valor: '$80.46', detalle: 'Energía global',     icono: 'fa-oil-well',         ruta: '/mercados',           tono: 'mercados',  idCambio: 'pulse-wti-change' },
-];
+function AssetCard({ asset, quote, onSelect }) {
+  return <button type="button" className="ih-asset" style={{ '--asset-color': asset.color }} onClick={() => onSelect(asset.ticker)} aria-label={`Ver gráfica de ${asset.name}`}>
+    <span className="ih-asset-head"><span className="ih-asset-icon"><Icon name={asset.icon} /></span><strong>{asset.short}</strong><Icon name="fa-arrow-up-right-from-square" /></span>
+    <span className="ih-asset-price">{precio(quote?.price)} <span className={changeClass(quote?.change)}>{porcentaje(quote?.change)}</span></span>
+    <span className="ih-unit">{asset.unit} · {asset.group === 'agro' || asset.group === 'metales' ? 'Futuros' : asset.group === 'acciones' ? asset.ticker : 'Índice'}</span>
+    <Sparkline quote={quote} color={asset.color} />
+    <span className="ih-asset-date">{quote?.status === 'stale' ? 'Último dato guardado' : quote?.date ? `Histórico al ${fechaCotizacion(quote.date)}` : quote?.status === 'error' ? 'Cotización no disponible' : 'Consultando fuente…'}</span>
+  </button>;
+}
 
-/* Los cuatro titulares secundarios. `idFoto` es el slide-* cuya imagen sustituye
-   live-engine por la del artículo real; `img` es la de reserva del marcado, a la
-   que _bgFor vuelve cuando la noticia llega sin foto propia. */
-const RIO = [
-  {
-    clave: 'mercados', ruta: '/mercados', tono: 'mercados', etiqueta: 'Mercados',
-    icono: 'fa-chart-bar', fuente: 'BLOOMBERG', img: '/assets/img/mercados.webp',
-    idTitulo: 'st-mercados', idDesc: 'sd-mkt-desc', idFecha: 'sd-0', idFoto: 'slide-mercados',
-    titulo: 'Mercados globales: volatilidad ante datos macro de EE.UU.',
-    desc: 'Los índices reaccionan a los datos de empleo y a las expectativas de política monetaria de la Fed.',
-  },
-  {
-    clave: 'geo', ruta: '/geopolitica', tono: 'geo', etiqueta: 'Geopolítica',
-    icono: 'fa-earth-americas', fuente: 'REUTERS', img: '/assets/img/geo.webp',
-    idTitulo: 'st-geo', idDesc: 'sd-geo-desc', idFecha: 'sd-1', idFoto: 'slide-geo',
-    titulo: 'Tensiones globales incrementan el riesgo en cadenas de suministro',
-    desc: 'Las tensiones en regiones clave afectan directamente a las cadenas de suministro globales.',
-  },
-  {
-    clave: 'mexico', ruta: '/mexico', tono: 'mexico', etiqueta: 'México',
-    icono: 'fa-peso-sign', fuente: 'BANXICO', img: '/assets/img/mexico2.webp',
-    idTitulo: 'st-mexico', idDesc: 'sd-mex-desc', idFecha: 'sd-2', idFoto: 'slide-mexico',
-    titulo: 'Tipo de cambio: el peso frente al dólar en tiempo real',
-    desc: 'El mercado cambiario refleja el pulso de la economía mexicana.',
-  },
-];
+function HistoryChart({ ticker, onTicker, quotes, refresh }) {
+  const asset = assetByTicker(ticker);
+  const [range, setRange] = useState('1mo');
+  const [mode, setMode] = useState('candles');
+  const [history, setHistory] = useState(null);
+  const [hover, setHover] = useState(null);
+  const gradient = useId().replace(/:/g, '');
+  const labelId = useId();
+  useEffect(() => {
+    setHover(null);
+    if (range === '1mo') return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 24000);
+    let active = true;
+    const key = `${ticker}:${range}`;
+    setHistory({ key, status: 'loading' });
+    cargarCotizacion(ticker, range, controller.signal)
+      .then(data => { if (active) setHistory({ ...data, key, status: 'ready' }); })
+      .catch(() => { if (active) setHistory({ key, status: 'error' }); })
+      .finally(() => clearTimeout(timer));
+    return () => { active = false; clearTimeout(timer); controller.abort(); };
+  }, [ticker, range, refresh]);
+  const quote = range === '1mo' ? quotes[ticker] : history?.key === `${ticker}:${range}` ? history : null;
+  const candles = quote?.candles || [];
+  const geometry = geometriaSerie(candles, 540, 178, 6, mode === 'candles');
+  const selected = candles[Math.min(hover ?? candles.length - 1, candles.length - 1)];
+  const first = candles[0]?.close, last = candles.at(-1)?.close;
+  const periodChange = first > 0 ? (last / first - 1) * 100 : null;
+  const candleWidth = Math.max(1, Math.min(12, 520 / Math.max(candles.length, 1) * .62));
+  function pointer(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width * 620 - 60;
+    setHover(Math.max(0, Math.min(candles.length - 1, Math.round((x - 6) / 528 * (candles.length - 1)))));
+  }
+  return <article className="ih-chart-card" style={{ '--asset-color': asset.color }}>
+    <div className="ih-chart-header"><div><label className="ih-eyebrow" htmlFor={labelId}>Explorar histórico</label><select id={labelId} value={ticker} onChange={event => onTicker(event.target.value)} aria-label="Activo de la gráfica">{ACTIVOS_INICIO.map(item => <option key={item.ticker} value={item.ticker}>{item.name}</option>)}</select></div><span className="ih-chart-badge">{asset.unit}</span></div>
+    <div className="ih-chart-value"><strong>{precio(quote?.price)}</strong><span className={changeClass(periodChange)}>{porcentaje(periodChange)} <small>en el periodo</small></span></div>
+    <div className="ih-chart-controls"><div aria-label={`Periodo de ${asset.name}`} role="group">{PERIODOS.map(period => <button type="button" key={period.id} aria-pressed={range === period.id} onClick={() => setRange(period.id)}>{period.label}</button>)}</div><div aria-label={`Tipo de gráfica de ${asset.name}`} role="group"><button type="button" aria-pressed={mode === 'candles'} onClick={() => setMode('candles')}>Velas</button><button type="button" aria-pressed={mode === 'line'} onClick={() => setMode('line')}>Línea</button></div></div>
+    {geometry ? <>
+      <svg className="ih-history-chart" viewBox="0 0 620 226" role="img" aria-label={`${asset.name}: ${candles.length} sesiones diarias. Usa las flechas para explorar los cierres.`} tabIndex={0} onPointerMove={pointer} onPointerLeave={() => setHover(null)} onKeyDown={event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        setHover(previous => event.key === 'Home' ? 0 : event.key === 'End' ? candles.length - 1 : Math.max(0, Math.min(candles.length - 1, (previous ?? candles.length - 1) + (event.key === 'ArrowLeft' ? -1 : 1))));
+      }}>
+        <title>{asset.name} · histórico diario</title>
+        <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop stopColor={asset.color} stopOpacity=".18" /><stop offset="1" stopColor={asset.color} stopOpacity="0" /></linearGradient></defs>
+        {[0,1,2,3].map(step => { const value = geometry.max - step / 3 * (geometry.max - geometry.min), y = 12 + geometry.y(value); return <g key={step}><line x1="60" x2="600" y1={y} y2={y} className="ih-gridline" /><text x="52" y={y + 4} textAnchor="end">{new Intl.NumberFormat('es-MX', { maximumFractionDigits: value < 100 ? 2 : 0 }).format(value)}</text></g>; })}
+        <g transform="translate(60 12)">{mode === 'line' ? <><polygon points={`6,178 ${geometry.points} 534,178`} fill={`url(#${gradient})`} /><polyline points={geometry.points} stroke={asset.color} fill="none" strokeWidth="2" vectorEffect="non-scaling-stroke" /></> : candles.map((c, index) => <g key={`${c.time}-${index}`} className={c.close >= c.open ? 'ih-candle-up' : 'ih-candle-down'}><line x1={geometry.x(index)} x2={geometry.x(index)} y1={geometry.y(c.high)} y2={geometry.y(c.low)} /><rect x={geometry.x(index) - candleWidth / 2} y={Math.min(geometry.y(c.open), geometry.y(c.close))} width={candleWidth} height={Math.max(1, Math.abs(geometry.y(c.close) - geometry.y(c.open)))} /></g>)}
+          {hover != null && selected && <><line x1={geometry.x(hover)} x2={geometry.x(hover)} y1="0" y2="178" className="ih-crosshair" /><circle cx={geometry.x(hover)} cy={geometry.y(selected.close)} r="3.5" fill={asset.color} /></>}
+        </g>
+        <text x="66" y="214">{fechaCotizacion(candles[0].time)}</text><text x="330" y="214" textAnchor="middle">{fechaCotizacion(candles[Math.floor(candles.length / 2)].time)}</text><text x="594" y="214" textAnchor="end">{fechaCotizacion(candles.at(-1).time)}</text>
+      </svg>
+      <div className="ih-chart-caption"><span>{fechaCotizacion(selected?.time)} · cierre <strong>{precio(selected?.close)}</strong></span><span>{candles.length} sesiones · diario{quote.status === 'stale' ? ' · dato guardado' : ''}</span></div>
+    </> : <div className="ih-chart-empty" role="status"><Icon name="fa-chart-line" /><span>{quote?.status === 'error' || quote?.status === 'ready' ? 'El histórico no está disponible.' : 'Consultando el histórico…'}</span><small>{quote?.status === 'error' ? 'Prueba otro activo o actualiza las fuentes.' : 'Datos de la fuente, sin valores de ejemplo.'}</small></div>}
+  </article>;
+}
 
-/* La tira del pie: acceso a las cinco secciones. live-engine rota aquí el
-   titular (ct-*) y la fotografía (card-*) con las noticias clasificadas. */
-const MODULOS = [
-  { clave: 'finanzas',  ruta: '/finanzas',          tono: 'finanzas',  img: '/assets/img/finanzas.webp', icono: 'fa-chart-line',     etiqueta: 'Finanzas',    idCard: 'card-finanzas',  idTitulo: 'ct-finanzas',    resumen: 'Tasas, divisas y deuda en una sola lectura.',           titulo: 'Banxico: expectativas de inflación para el cierre de Q2' },
-  { clave: 'mercados',  ruta: '/mercados',          tono: 'mercados',  img: '/assets/img/mercados.webp', icono: 'fa-globe',          etiqueta: 'Mercados',    idCard: 'card-mercados',  idTitulo: 'ct-mercados',    resumen: 'Commodities y señales que mueven tus costos.',          titulo: 'Cierre de refinería en la Costa del Golfo' },
-  { clave: 'geo',       ruta: '/geopolitica',       tono: 'geo',       img: '/assets/img/geo.webp',      icono: 'fa-earth-americas', etiqueta: 'Geopolítica', idCard: 'card-geo',       idTitulo: 'ct-geopolitica', resumen: 'Riesgo global y rutas comerciales con contexto.',       titulo: 'El cierre de rutas en Medio Oriente encarece los contenedores un 22 %' },
-  { clave: 'mexico',    ruta: '/mexico',            tono: 'mexico',    img: '/assets/img/mexico2.webp',  icono: 'fa-peso-sign',      etiqueta: 'México',      idCard: 'card-mexico',    idTitulo: 'ct-mexico',      resumen: 'Peso, Banxico y el pulso económico del país.',          titulo: 'Dólar a $17.20 · tipo de cambio al día' },
-];
-
-/* Para escribir el número de secciones con letra en la tira. Solo los que puede
-   dar MODULOS; si algún día se pasa, se cae al dígito y no a «undefined». */
-const NUMEROS = { 3: 'Tres', 4: 'Cuatro', 5: 'Cinco', 6: 'Seis', 7: 'Siete' };
-
-/* Lo que se ve en la cinta hasta que llega el primer dato real. Va con los
-   mismos valores del marcado del pulso para no contarle al lector dos cifras
-   distintas del mismo indicador en la misma pantalla. */
-const CINTA_INICIAL = [
-  ['USD/MXN', '$17.20'], ['TIIE 28d', '6.50%'], ['Maíz CME', '$4.97/bu'],
-  ['WTI', '$80.46/bbl'], ['Cargando…', '—'],
+const EXPLORE = [
+  { to: '/finanzas', number: '01', title: 'Finanzas globales', description: 'Bolsa, bonos y divisas. Profundiza en los movimientos que estás siguiendo.', icon: 'fa-chart-line' },
+  { to: '/mercados', number: '02', title: 'Mercados productivos', description: 'Conecta granos, ganado y materias primas con sus precios de referencia.', icon: 'fa-wheat-awn' },
+  { to: '/mexico', number: '03', title: 'La mirada de México', description: 'Bolsa mexicana y actividad productiva, dentro del contexto mundial.', icon: 'fa-flag' },
 ];
 
 export default function Inicio() {
   usePageStyles(HOJAS);
-
-  const raiz = useRef(null);
-  const lienzo = useRef(null);
-
+  const rootRef = useRef(null);
+  useInicioMotion(rootRef);
+  const [refresh, setRefresh] = useState(0);
+  const [group, setGroup] = useState('agro');
+  const [firstTicker, setFirstTicker] = useState('^GSPC');
+  const [secondTicker, setSecondTicker] = useState('^NDX');
+  const { quotes, news, loading, newsLoading, checked, newsStale } = usePortadaDatos(refresh);
   useEffect(() => {
     document.documentElement.classList.add('vn-dark-pilot');
     document.body.classList.add('vn-dark-pilot', 'vn-dark-inicio');
-    return () => {
-      document.documentElement.classList.remove('vn-dark-pilot');
-      document.body.classList.remove('vn-dark-pilot', 'vn-dark-inicio');
-    };
+    document.title = 'Inicio | VALLNews';
+    return () => { document.documentElement.classList.remove('vn-dark-pilot'); document.body.classList.remove('vn-dark-pilot', 'vn-dark-inicio'); };
   }, []);
-
-  // Se congela al montar: live-engine reescribe sd-0…sd-3 con su propia marca
-  // de tiempo, y si este valor cambiara en un re-render React se la pisaría.
-  const [fechas] = useState(() => {
-    const hoy = new Date();
-    return {
-      corta: hoy.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }),
-      larga: hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-      saludo: hoy.getHours() < 12 ? 'Buenos días' : hoy.getHours() < 19 ? 'Buenas tardes' : 'Buenas noches',
-    };
-  });
-
-  useRevelado(raiz);
-  useCifrasVivas(['pulse-usdmxn', 'pulse-tiie', 'pulse-corn', 'pulse-wti', 'idx-vai-num']);
-
-  // ── Fondo WebGL de la cabecera ──────────────────────────────────────────────
-  useEffect(() => iniciarFondo(lienzo.current) || undefined, []);
-
-  // ── Motor de datos en vivo ──────────────────────────────────────────────────
-  useEffect(() => {
-    let vivo = true;
-
-    (async () => {
-      try {
-        await loadScripts(LIBS);
-      } catch (e) {
-        console.error('Inicio: no se pudo cargar el motor de datos en vivo', e);
-        return;
-      }
-      if (!vivo) return;
-      // En la primera visita el propio script ya arrancó al cargarse; init() es
-      // idempotente, así que esta llamada solo hace algo al volver a la página.
-      window.VNLive?.init();
-    })();
-
-    return () => {
-      vivo = false;
-      window.VNLive?.stop();
-    };
-  }, []);
-
-  return (
-    <>
-      <Header />
-      <div className="hdr-divider" />
-
-      {/* ── Cinta de cotizaciones ─────────────────────────────────────────────
-          Se queda pegada bajo la barra al bajar: es el indicador de que los
-          datos siguen vivos mientras se lee el resto de la portada. */}
-      <div className="in-cinta">
-        <span className="in-cinta-etq" aria-hidden="true">
-          <span className="in-live-dot" /> En vivo
-        </span>
-        <div className="in-cinta-pista">
-          {/* live-engine sustituye el contenido entero por la fila duplicada y le
-              aplica la animación `vn-ticker`. Hasta entonces se ve esto. */}
-          <div className="in-cinta-int" id="tickerInner">
-            {CINTA_INICIAL.map(([lbl, val], i) => (
-              /* El separador va como hermano, no dentro del item: es como lo
-                 emite renderTicker, y así el marcado inicial y el de después
-                 caen sobre exactamente las mismas reglas. */
-              <Fragment key={lbl}>
-                {i > 0 && <span className="tk-sep">◆</span>}
-                <span className="tk-item">
-                  <span className="tk-lbl">{lbl}</span>
-                  <span className="tk-val">{val}</span>
-                </span>
-              </Fragment>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <main className="in-main" ref={raiz}>
-
-        {/* ── Cabecera editorial ───────────────────────────────────────────── */}
-        <header className="in-masthead">
-          {/* El lienzo es decoración: si no hay WebGL se queda transparente y
-              manda el degradado de .in-masthead, que ya es un fondo completo. */}
-          <canvas className="in-masthead-lienzo" ref={lienzo} aria-hidden="true" />
-          <span className="in-masthead-velo" aria-hidden="true" />
-
-          <div className="in-chrome">
-            <span className="in-chrome-marca">
-              <span className="in-punto" aria-hidden="true" />Portada
-            </span>
-            <time className="in-fecha" id="sectionDate">{fechas.larga}</time>
-            <span className="in-regla" aria-hidden="true" />
-            <span className="in-upd">Act.&nbsp;<span id="lastUpdated">—</span></span>
-            <span className="in-badge" id="backendBadge">VALL AI</span>
-            <button className="in-refresh" id="refreshBtn" type="button" title="Actualizar datos" aria-label="Actualizar datos">
-              <i className="fas fa-rotate-right" aria-hidden="true" />
-            </button>
-          </div>
-
-          <div className="in-masthead-cuerpo">
-            <div className="in-titular">
-              <span className="in-kicker" data-revelar="">
-                <span className="in-live-dot" aria-hidden="true" /> {fechas.saludo} · Inteligencia en vivo
-              </span>
-              <h1>
-                {TITULAR.map((p, i) => (
-                  <span className="in-palabra" key={p.txt} style={{ '--i': i }}>
-                    <span className={p.em ? 'in-palabra-int in-palabra-em' : 'in-palabra-int'}>{p.txt}</span>
-                  </span>
-                ))}
-              </h1>
-              <p data-revelar="">
-                Mercados, México y riesgo global convertidos en una lectura clara para tomar
-                mejores decisiones.
-              </p>
-              <div className="in-acciones" data-revelar="">
-                <a className="in-cta in-cta-primary" href="#portada-hoy">
-                  Ver la portada de hoy <i className="fas fa-arrow-down" aria-hidden="true" />
-                </a>
-                <Link className="in-cta in-cta-ghost" to="/vall-ai">
-                  Preguntar a VALL AI <i className="fas fa-wand-magic-sparkles" aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
-
-            {/* ── Espina de datos ────────────────────────────────────────────
-                Lo que antes era una retícula de cuatro tarjetas. Aquí son
-                cuatro filas separadas por una regla: se leen como una tabla de
-                cotizaciones y no como cuatro botones. */}
-            {/* role="group": sin él, un aria-label sobre un <div> genérico no lo
-                expone ningún lector de pantalla. */}
-            <div className="in-espina" role="group" aria-label="Pulso del mercado">
-              <div className="in-espina-cab">
-                <span>Pulso del mercado</span>
-                <span className="in-espina-live"><span aria-hidden="true" /> en vivo</span>
-              </div>
-              {PULSO.map((dato, i) => (
-                <Link
-                  className={`in-cifra in-tono-${dato.tono}`}
-                  to={dato.ruta}
-                  key={dato.clave}
-                  data-revelar=""
-                  style={{ '--i': i }}
-                >
-                  <span className="in-cifra-icono"><i className={`fas ${dato.icono}`} aria-hidden="true" /></span>
-                  <span className="in-cifra-texto">
-                    <span className="in-cifra-etq">{dato.etiqueta}</span>
-                    <span className="in-cifra-pie">{dato.detalle}</span>
-                  </span>
-                  <span className="in-cifra-valor">
-                    <strong id={dato.idValor}>{dato.valor}</strong>
-                    {dato.idCambio && <span className="in-cifra-var" id={dato.idCambio}>—</span>}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </header>
-
-        <ExecutiveReportsHub />
-
-        {/* ── Portada ──────────────────────────────────────────────────────── */}
-        <section className="in-portada" id="portada-hoy">
-          <div className="in-columna-mayor">
-            <Link className="in-lead" to="/finanzas" data-revelar="">
-              <span
-                className="in-lead-fondo"
-                aria-hidden="true"
-                style={{ backgroundImage: "url('/assets/img/finanzas.webp')" }}
-              >
-                <span
-                  className="in-lead-foto"
-                  id="slide-finanzas"
-                  style={{ backgroundImage: "url('/assets/img/finanzas.webp')" }}
-                />
-              </span>
-              <span className="in-lead-velo" aria-hidden="true" />
-              {/* <div> y no <span>: lleva dentro un <h2> y un <p>, y <span> es
-                  contenido de frase. <a> en cambio es transparente, así que el
-                  enlace envolviéndolo todo sí es válido. */}
-              <div className="in-lead-int">
-                <span className="in-lead-meta">
-                  <span className="in-pill" data-tono="finanzas">
-                    <i className="fas fa-building-columns" aria-hidden="true" /> Macro MX
-                  </span>
-                  <span className="in-sub">BANXICO</span>
-                  <span className="in-riesgo in-riesgo-alto">
-                    <i className="fas fa-triangle-exclamation" aria-hidden="true" /> Alto impacto
-                  </span>
-                </span>
-                <h2 className="in-lead-tit" id="st-finanzas">
-                  Banxico: expectativas de inflación para el cierre de Q2
-                </h2>
-                <p className="in-lead-desc" id="sd-fin-desc">
-                  El consenso de analistas proyecta movimientos en tasas y mercados globales.
-                </p>
-                <span className="in-ir">
-                  Abrir Finanzas <i className="fas fa-arrow-right" aria-hidden="true" />
-                </span>
-              </div>
-            </Link>
-
-            <Link className="in-descubre" to="/vall-ai" data-revelar="">
-              <span className="in-descubre-icono"><i className="fas fa-wand-magic-sparkles" aria-hidden="true" /></span>
-              <span className="in-descubre-texto">
-                <small>Análisis personalizado</small>
-                <strong>Convierte estos datos en una decisión con VALL AI</strong>
-              </span>
-              <span className="in-descubre-ir">Analizar ahora <i className="fas fa-arrow-right" aria-hidden="true" /></span>
-            </Link>
-          </div>
-
-          <aside className="in-columna-menor">
-            {/* ── VALL·AI ───────────────────────────────────────────────────── */}
-            <div className="in-vai" data-revelar="">
-              <div className="in-vai-cab">
-                <span className="in-vai-marca">VALL<span className="in-vai-punto">·</span>AI</span>
-                <div
-                  className="in-vai-sel"
-                  id="vaiSelect"
-                  role="button"
-                  tabIndex={0}
-                  title="Clic para alternar entre vista México y vista Global"
-                >
-                  <i className="fas fa-chart-line" id="vaiSelectIcon" aria-hidden="true" />
-                  <span id="vaiSelectLbl">Finanzas</span>
-                  <i className="fas fa-chevron-down in-vai-flecha" aria-hidden="true" />
-                </div>
-              </div>
-
-              <div className="in-vai-cuerpo">
-                <div className="in-vai-aguja">
-                  <svg viewBox="0 0 100 100" aria-hidden="true">
-                    <circle className="in-g-bg" cx="50" cy="50" r="40" />
-                    {/* 251.2 = circunferencia de r=40. live-engine calcula el
-                        strokeDashoffset contra ese número exacto; cambiar el
-                        radio descuadra la aguja sin dar ningún error. */}
-                    <circle id="idx-vai-arc" className="in-g-arc" cx="50" cy="50" r="40" />
-                  </svg>
-                  <div className="in-g-num" id="idx-vai-num">74%</div>
-                </div>
-                <div className="in-vai-lectura">
-                  <span className="in-vai-lbl">Predicción</span>
-                  <span className="in-vai-activo" id="idx-vai-asset">MERCADO MX</span>
-                  <span className="in-vai-veredicto" id="idx-vai-verdict">Bajista</span>
-                </div>
-              </div>
-              <p className="in-vai-aviso" id="idx-vai-warn">Cargando datos en vivo…</p>
-            </div>
-
-            {/* ── Río de titulares ──────────────────────────────────────────── */}
-            <div className="in-rio-cab">
-              <h2>Lo último</h2>
-              <span className="in-rio-cuenta">{RIO.length} secciones</span>
-            </div>
-            <ul className="in-rio">
-              {RIO.map((n, i) => (
-                <li key={n.clave} data-revelar="" style={{ '--i': i }}>
-                  <Link className={`in-rio-item in-tono-${n.tono}`} to={n.ruta}>
-                    {/* Misma pareja de capas que en la nota principal: la de
-                        fuera es el respaldo que live-engine no toca. */}
-                    <span
-                      className="in-rio-fondo"
-                      aria-hidden="true"
-                      style={{ backgroundImage: `url('${n.img}')` }}
-                    >
-                      <span
-                        className="in-rio-foto"
-                        id={n.idFoto}
-                        style={{ backgroundImage: `url('${n.img}')` }}
-                      />
-                    </span>
-                    <span className="in-rio-texto">
-                      <span className="in-rio-linea">
-                        <span className="in-rio-sec">
-                          <i className={`fas ${n.icono}`} aria-hidden="true" /> {n.etiqueta}
-                        </span>
-                        <span className="in-rio-fecha" id={n.idFecha}>{fechas.corta}</span>
-                      </span>
-                      <span className="in-rio-tit" id={n.idTitulo}>{n.titulo}</span>
-                      <span className="in-rio-desc" id={n.idDesc}>{n.desc}</span>
-                      <span className="in-rio-src">{n.fuente}</span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </section>
-
-        {/* ── Tira de secciones ────────────────────────────────────────────── */}
-        <section className="in-tira" aria-labelledby="tira-titulo">
-          <div className="in-tira-cab">
-            <h2 id="tira-titulo">Explora la plataforma</h2>
-            {/* El número sale de MODULOS y no está escrito a mano: al quitar
-                Proteínas, «Cinco frentes» se quedó mintiendo un rato. */}
-            <span className="in-tira-nota">{NUMEROS[MODULOS.length] || MODULOS.length} frentes, una misma lectura del riesgo</span>
-          </div>
-          <nav className="in-tira-pista" aria-label="Secciones del sitio">
-            {MODULOS.map((m, i) => (
-              <Link
-                className={`in-col in-tono-${m.tono}`}
-                to={m.ruta}
-                key={m.clave}
-                data-revelar=""
-                style={{ '--i': i }}
-              >
-                <span
-                  className="in-col-fondo"
-                  aria-hidden="true"
-                  style={{ backgroundImage: `url('${m.img}')` }}
-                >
-                  <span
-                    className="in-col-foto"
-                    id={m.idCard}
-                    style={{ backgroundImage: `url('${m.img}')` }}
-                  />
-                </span>
-                <span className="in-col-int">
-                  <span className="in-col-num" aria-hidden="true">0{i + 1}</span>
-                  <span className="in-col-etq">
-                    <i className={`fas ${m.icono}`} aria-hidden="true" /> {m.etiqueta}
-                  </span>
-                  <span className="in-col-tit" id={m.idTitulo}>{m.titulo}</span>
-                  <span className="in-col-resumen">{m.resumen}</span>
-                  <span className="in-col-ir">Explorar <i className="fas fa-arrow-right" aria-hidden="true" /></span>
-                </span>
-              </Link>
-            ))}
-          </nav>
-        </section>
-
-      </main>
-
-      <Footer />
-    </>
-  );
+  const cards = group === 'agro' ? ACTIVOS_INICIO.filter(asset => asset.group === 'agro')
+    : group === 'bolsa' ? ['^GSPC', '^NDX', '^MXX', 'AAPL', 'NVDA'].map(assetByTicker)
+      : ['GC=F', 'SI=F'].map(assetByTicker);
+  const available = Object.values(quotes).filter(quote => quote.status === 'ready').length;
+  const failed = Object.values(quotes).filter(quote => quote.status === 'error' || quote.status === 'stale').length;
+  function selectAsset(ticker) {
+    setFirstTicker(ticker);
+    document.getElementById('ih-charts')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+  }
+  return <><Header /><main className="ih-page" ref={rootRef}>
+    <nav className="ih-category-nav" aria-label="Explorar el inicio"><a href="#ih-news">En el radar</a><a href="#ih-charts">Mercados</a><a href="#ih-assets" onClick={() => setGroup('agro')}>Proteínas y campo</a><a href="#ih-orion">Conoce ORION <Icon name="fa-arrow-right" /></a></nav>
+    <section className="ih-hero" aria-labelledby="ih-title">
+      <div className="ih-hero-copy"><span className="ih-eyebrow">VALLNEWS · El valor de la perspectiva</span><h1 id="ih-title">Todo está<br />conectado.<br /><span>Encuentra la señal.</span></h1><p>Noticias, mercados y proteínas. Conectamos lo que pasa en el mundo con la información que necesitas para entender tu sector.</p><div className="ih-hero-actions"><a href="#ih-charts" className="ih-button ih-button-primary">Explorar el panorama <Icon name="fa-arrow-down" /></a><Link className="ih-button ih-button-quiet" to="/orion">Preguntar a ORION <Icon name="fa-arrow-up-right-from-square" /></Link></div><div className="ih-hero-signature"><span className="ih-signature-symbol"><Icon name="fa-earth-americas" /></span><p>Del mercado global<br /><strong>a tu próxima decisión.</strong></p><span className="ih-signature-line" /><small>Economía.<br />Producción.<br />Perspectiva.</small></div></div>
+      <InicioNewsCarousel news={news} loading={newsLoading} stale={newsStale} onRefresh={() => setRefresh(value => value + 1)} />
+    </section>
+    <section className="ih-global-section" data-ih-reveal aria-labelledby="ih-global-title"><div className="ih-section-heading"><div><span className="ih-eyebrow">El pulso del mundo</span><h2 id="ih-global-title">Muchas señales. Una mirada.</h2></div><div className="ih-check"><span>{loading ? 'Consultando mercados…' : checked ? `Consulta ${new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }).format(checked)} · CDMX` : 'Preparando datos'}</span><button type="button" disabled={loading || newsLoading} onClick={() => setRefresh(value => value + 1)} aria-label="Actualizar mercados y noticias" title="Actualizar fuentes"><Icon name="fa-rotate-right" /></button></div></div><div className="ih-global-panel">{INDEXES.map(asset => <button type="button" key={asset.ticker} className="ih-global-row" onClick={() => selectAsset(asset.ticker)} aria-label={`Ver gráfica de ${asset.name}`}><span className="ih-global-top"><span className="ih-region">{asset.region === 'México' ? 'MX' : asset.region === 'Alemania' ? 'DE' : asset.region === 'Japón' ? 'JP' : 'US'}</span><span>{asset.region}</span><Icon name="fa-arrow-up-right-from-square" /></span><span className="ih-global-name"><strong>{asset.short}</strong></span><span className="ih-global-price"><strong>{precio(quotes[asset.ticker]?.price)}</strong><small className={changeClass(quotes[asset.ticker]?.change)}>{porcentaje(quotes[asset.ticker]?.change)}</small></span><Sparkline quote={quotes[asset.ticker]} color={asset.color} /></button>)}</div><p className="ih-panel-foot">Índices en puntos · variación de sesión · desliza para explorar en pantallas pequeñas</p></section>
+    <section id="ih-assets" className="ih-assets-section" data-ih-reveal aria-labelledby="ih-assets-title"><div className="ih-section-heading"><div><span className="ih-eyebrow">De la bolsa al campo</span><h2 id="ih-assets-title">{group === 'agro' ? 'La economía que alimenta al mundo.' : group === 'bolsa' ? 'Empresas e índices en tu radar.' : 'El valor de los metales.'}</h2><p>Elige una referencia para explorar su histórico.</p></div><div className="ih-tabs" role="group" aria-label="Familia de activos">{[{ id: 'bolsa', label: 'Bolsa' }, { id: 'agro', label: 'Agropecuarios' }, { id: 'metales', label: 'Metales' }].map(tab => <button type="button" key={tab.id} aria-pressed={group === tab.id} onClick={() => setGroup(tab.id)}>{tab.label}</button>)}</div></div><div className={`ih-asset-grid ${group === 'metales' ? 'ih-asset-grid-metals' : ''}`}>{cards.map(asset => <AssetCard key={asset.ticker} asset={asset} quote={quotes[asset.ticker]} onSelect={selectAsset} />)}</div></section>
+    <section id="ih-charts" className="ih-analysis-section" data-ih-reveal aria-labelledby="ih-charts-title"><div className="ih-section-heading"><div><span className="ih-eyebrow">De la señal a la evidencia</span><h2 id="ih-charts-title">Pon el mercado en perspectiva.</h2><p>Dos gráficas, tu selección. Compara activos, periodos y movimientos.</p></div><Link to="/finanzas" className="ih-text-link">Explorar Finanzas <Icon name="fa-arrow-right" /></Link></div><div className="ih-analysis-grid"><HistoryChart ticker={firstTicker} onTicker={setFirstTicker} quotes={quotes} refresh={refresh} /><HistoryChart ticker={secondTicker} onTicker={setSecondTicker} quotes={quotes} refresh={refresh} /></div></section>
+    <section className="ih-metals-strip" data-ih-reveal aria-label="Metales preciosos"><div><span className="ih-eyebrow">Otros puntos de referencia</span><h2>Oro y plata</h2></div>{ACTIVOS_INICIO.filter(asset => asset.group === 'metales').map(asset => <button type="button" key={asset.ticker} onClick={() => selectAsset(asset.ticker)}><span className="ih-metal-icon" style={{ color: asset.color }}><Icon name={asset.icon} /></span><span><strong>{asset.name}</strong><small>{asset.unit} · futuros</small></span><Sparkline quote={quotes[asset.ticker]} color={asset.color} /><span className="ih-metal-price"><strong>{precio(quotes[asset.ticker]?.price)}</strong><small className={changeClass(quotes[asset.ticker]?.change)}>{porcentaje(quotes[asset.ticker]?.change)}</small></span><Icon name="fa-arrow-right" /></button>)}</section>
+    <section id="ih-orion" className="ih-orion-feature" data-ih-reveal aria-labelledby="ih-orion-title"><div className="ih-orion-art" aria-hidden="true"><div className="ih-orion-orbit" /><div className="ih-orion-orbit ih-orion-orbit-secondary" /><OrionBackdrop /><span className="ih-orion-wordmark">ORION<span>INTELIGENCIA CON PERSPECTIVA</span></span><span className="ih-orion-coordinate">MERCADOS ↔ PROTEÍNAS ↔ CONTEXTO</span></div><div className="ih-orion-copy"><span className="ih-eyebrow">Nuestro punto de conexión</span><h2 id="ih-orion-title">Los datos abren<br /><span>mejores preguntas.</span></h2><p>ORION te ayuda a conectar precios, noticias y comercio. Explora escenarios, contrasta fuentes y convierte una pregunta en una lectura más completa.</p><div className="ih-orion-capabilities"><span><Icon name="fa-link" /> Fuentes para contrastar</span><span><Icon name="fa-chart-line" /> Escenarios para explorar</span><span><Icon name="fa-file-lines" /> Informes para compartir</span></div><Link to="/orion" className="ih-button ih-button-primary">Iniciar una conversación <Icon name="fa-arrow-right" /></Link></div></section>
+    <section className="ih-explore-section" data-ih-reveal aria-labelledby="ih-explore-title"><div className="ih-section-heading"><div><span className="ih-eyebrow">Elige tu siguiente perspectiva</span><h2 id="ih-explore-title">Tu sector no vive aislado.</h2></div><span className="ih-explore-note">Explora sus conexiones.</span></div><div className="ih-explore-grid">{EXPLORE.map(item => <Link key={item.to} to={item.to} className="ih-explore-card"><div className="ih-explore-card-top"><span className="ih-explore-number">{item.number}</span><Icon name={item.icon} /></div><h3>{item.title}</h3><p>{item.description}</p><span className="ih-explore-link">Explorar <Icon name="fa-arrow-right" /></span></Link>)}</div></section>
+    <div className="ih-data-note"><Icon name="fa-circle-info" /><p>Cotizaciones e históricos vía Yahoo Finance. Las series pueden tener retraso; revisa su fecha. Las variaciones de las tarjetas corresponden a la sesión y las de las gráficas, al periodo elegido. Futuros: ¢ USD/lb = centavos por libra; ¢ USD/bu = centavos por bushel. {failed > 0 && `${failed} ${failed === 1 ? 'activo no pudo actualizarse' : 'activos no pudieron actualizarse'}. `}{!loading && `${available} de ${ACTIVOS_INICIO.length} activos consultados.`}</p></div>
+  </main><Footer /></>;
 }

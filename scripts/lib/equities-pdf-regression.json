@@ -1,0 +1,2652 @@
+{
+  "collection": "finance",
+  "key": "equities",
+  "title": "Bolsa",
+  "generatedAt": "2026-10-12T20:00:00Z",
+  "summary": "El corte reúne 14 referencias de renta variable en América, Europa y Asia, más VIX como contexto de volatilidad. Ibovespa lidera la sesión (+1.38%); S&P/ASX 200 registra la variación relativa más débil (+0.00%).",
+  "objective": "Dar a dirección una lectura ejecutiva de renta variable en América, Europa y Asia: cierres, tendencia, dispersión regional, volatilidad implícita y los puntos que pueden alterar el tono de la semana.",
+  "closing": "La muestra amplía la lectura a referencias de América, Europa y Asia, pero no representa todas las bolsas ni sustituye el análisis de una cartera, sector o país. Úsala para detectar dirección y dispersión regional; cualquier exposición debe contrastarse con su índice, moneda, horario de cierre y precio específico.",
+  "takeaways": [
+    "Ibovespa encabeza el movimiento diario (+1.38%), con +11.05% acumulado en el último mes.",
+    "S&P/ASX 200 es la referencia más rezagada de la sesión (+0.00%); conviene diferenciar ese cierre de su lectura YTD (+0.63%).",
+    "El VIX cerró en 15.24 (+2.70% diario). Es una medida de volatilidad implícita y no una proyección de dirección."
+  ],
+  "watchlist": [
+    "Datos de inflación, empleo y bancos centrales de Estados Unidos, Europa y Asia, por su efecto sobre tasas y valuaciones.",
+    "Resultados corporativos, revisiones de utilidades y calendario de cierres de cada mercado antes de comparar una sesión con otra.",
+    "Cambios simultáneos en VIX, Treasury, dólar y divisas regionales que puedan confirmar o cuestionar el movimiento de las acciones."
+  ],
+  "sections": [
+    {
+      "heading": "Lectura De Tendencia Y Dispersión Regional",
+      "text": "La gráfica normaliza cada índice a 100 al inicio del periodo para hacer visible la diferencia de dirección entre referencias con niveles muy distintos. El PDF agrupa los cierres por América, Europa y Asia; los horarios de cada plaza no son simultáneos. Ibovespa aporta la mejor señal diaria del grupo, mientras que S&P/ASX 200 sirve como contraste."
+    },
+    {
+      "heading": "Volatilidad, Horario Y Participación",
+      "text": "El VIX en 15.24 contextualiza la prima de incertidumbre implícita. No sustituye datos de volumen, amplitud de mercado ni resultados corporativos. Antes de atribuir una causa al movimiento, revisa la hora del cierre, la moneda y la fuente primaria de cada plaza."
+    },
+    {
+      "heading": "Pregunta Para Comité",
+      "text": "¿El movimiento de los índices cambia una exposición real o sólo modifica la valoración de corto plazo? Define el activo, el horizonte y la señal que confirmaría o invalidaría la hipótesis antes de actuar."
+    },
+    {
+      "heading": "Información Complementaria Para Renta Variable",
+      "text": "Desempeño regional: ¿Cómo difieren los cierres y horizontes entre regiones y mercados?\nInformación a contrastar o solicitar: Índice, país, moneda, hora de cierre y serie comparable.\n\nEmisoras y sectores: ¿Qué exposición real tiene la empresa a las emisoras o sectores observados?\nInformación a contrastar o solicitar: Cartera, participación por sector, resultados y comunicados del emisor.\n\nValuación y liquidez: ¿Hay evidencia para explicar el movimiento más allá del precio?\nInformación a contrastar o solicitar: Utilidades, múltiplos, volumen, amplitud y liquidez; no inferirlos de índices.\n\nVolatilidad y concentración: ¿Qué condición pondría en duda la lectura de la cartera?\nInformación a contrastar o solicitar: Exposición por activo, moneda, horizonte y límites de concentración."
+    },
+    {
+      "heading": "Lectura Cuantitativa Del Periodo Mostrado",
+      "text": "Las comparaciones de todas las series se detallan en la tabla Comparaciones calculadas de las gráficas. El inicio, el cierre, el rango y el cambio corresponden a los puntos mostrados de cada gráfica, con sus fechas y unidades. Contrasta el movimiento de la última sesión con la trayectoria del periodo y con la exposición real del destinatario antes de plantear una decisión.\n\nCálculos de VALLNews sobre los puntos mostrados, con extremos y fechas de cada serie. Las gráficas pueden estar muestreadas: el rango corresponde a esos puntos, no al máximo o mínimo de toda la historia diaria. Un cambio del tramo no equivale a una variación de sesión ni a un pronóstico. En rendimientos, p. p. significa puntos porcentuales y pb puntos base."
+    }
+  ],
+  "metrics": [
+    {
+      "label": "S&P 500",
+      "value": "7,807.39",
+      "change": "-0.05%"
+    },
+    {
+      "label": "Nasdaq Composite",
+      "value": "27,250.03",
+      "change": "-0.42%"
+    },
+    {
+      "label": "Dow Jones",
+      "value": "51,851.53",
+      "change": "+0.38%"
+    },
+    {
+      "label": "S&P/BMV IPC",
+      "value": "66,760.77",
+      "change": "+1.08%"
+    },
+    {
+      "label": "Ibovespa",
+      "value": "209,067.00",
+      "change": "+1.38%"
+    },
+    {
+      "label": "Euro Stoxx 50",
+      "value": "6,201.21",
+      "change": "+0.45%"
+    },
+    {
+      "label": "FTSE 100",
+      "value": "10,656.28",
+      "change": "+0.99%"
+    },
+    {
+      "label": "DAX 40",
+      "value": "25,277.68",
+      "change": "+0.76%"
+    },
+    {
+      "label": "CAC 40",
+      "value": "7,832.88",
+      "change": "+0.38%"
+    },
+    {
+      "label": "Nikkei 225",
+      "value": "69,030.92",
+      "change": "-0.02%"
+    },
+    {
+      "label": "Hang Seng",
+      "value": "0.00",
+      "change": "-100.00%"
+    },
+    {
+      "label": "Shanghai Composite",
+      "value": "0.00",
+      "change": "-100.00%"
+    },
+    {
+      "label": "KOSPI",
+      "value": "0.00",
+      "change": "-100.00%"
+    },
+    {
+      "label": "S&P/ASX 200",
+      "value": "8,783.20",
+      "change": "+0.00%"
+    },
+    {
+      "label": "VIX",
+      "value": "15.24",
+      "change": "+2.70%"
+    }
+  ],
+  "visuals": [
+    {
+      "type": "line",
+      "title": "Índices: evolución relativa por región",
+      "unit": "Índice base 100",
+      "series": [
+        {
+          "label": "S&P 500",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 101.2116
+            },
+            {
+              "date": "2025-10-29",
+              "value": 103.5444
+            },
+            {
+              "date": "2025-11-06",
+              "value": 100.9858
+            },
+            {
+              "date": "2025-11-14",
+              "value": 101.193
+            },
+            {
+              "date": "2025-11-24",
+              "value": 100.7574
+            },
+            {
+              "date": "2025-12-04",
+              "value": 103.0415
+            },
+            {
+              "date": "2025-12-12",
+              "value": 102.595
+            },
+            {
+              "date": "2025-12-22",
+              "value": 103.3626
+            },
+            {
+              "date": "2025-12-31",
+              "value": 102.8668
+            },
+            {
+              "date": "2026-01-09",
+              "value": 104.6818
+            },
+            {
+              "date": "2026-01-20",
+              "value": 102.1359
+            },
+            {
+              "date": "2026-01-28",
+              "value": 104.8584
+            },
+            {
+              "date": "2026-02-05",
+              "value": 102.1591
+            },
+            {
+              "date": "2026-02-13",
+              "value": 102.7266
+            },
+            {
+              "date": "2026-02-24",
+              "value": 103.5366
+            },
+            {
+              "date": "2026-03-05",
+              "value": 102.6446
+            },
+            {
+              "date": "2026-03-13",
+              "value": 99.6614
+            },
+            {
+              "date": "2026-03-23",
+              "value": 98.8922
+            },
+            {
+              "date": "2026-03-31",
+              "value": 98.1036
+            },
+            {
+              "date": "2026-04-09",
+              "value": 102.5537
+            },
+            {
+              "date": "2026-04-17",
+              "value": 107.0828
+            },
+            {
+              "date": "2026-04-27",
+              "value": 107.8018
+            },
+            {
+              "date": "2026-05-05",
+              "value": 109.0838
+            },
+            {
+              "date": "2026-05-13",
+              "value": 111.8642
+            },
+            {
+              "date": "2026-05-21",
+              "value": 111.8863
+            },
+            {
+              "date": "2026-06-02",
+              "value": 114.3516
+            },
+            {
+              "date": "2026-06-10",
+              "value": 109.2005
+            },
+            {
+              "date": "2026-06-18",
+              "value": 112.7107
+            },
+            {
+              "date": "2026-06-29",
+              "value": 111.8068
+            },
+            {
+              "date": "2026-07-08",
+              "value": 112.4422
+            },
+            {
+              "date": "2026-07-16",
+              "value": 113.2094
+            },
+            {
+              "date": "2026-07-24",
+              "value": 111.3793
+            },
+            {
+              "date": "2026-08-03",
+              "value": 114.2122
+            },
+            {
+              "date": "2026-08-11",
+              "value": 116.1311
+            },
+            {
+              "date": "2026-08-19",
+              "value": 115.8273
+            },
+            {
+              "date": "2026-08-28",
+              "value": 115.8841
+            },
+            {
+              "date": "2026-09-08",
+              "value": 115.3094
+            },
+            {
+              "date": "2026-09-16",
+              "value": 113.4805
+            },
+            {
+              "date": "2026-09-24",
+              "value": 115.7694
+            },
+            {
+              "date": "2026-10-02",
+              "value": 116.0488
+            },
+            {
+              "date": "2026-10-12",
+              "value": 117.3211
+            }
+          ]
+        },
+        {
+          "label": "S&P/BMV IPC",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 99.5556
+            },
+            {
+              "date": "2025-10-29",
+              "value": 103.7805
+            },
+            {
+              "date": "2025-11-06",
+              "value": 103.355
+            },
+            {
+              "date": "2025-11-14",
+              "value": 102.1026
+            },
+            {
+              "date": "2025-11-25",
+              "value": 103.5539
+            },
+            {
+              "date": "2025-12-04",
+              "value": 104.3735
+            },
+            {
+              "date": "2025-12-15",
+              "value": 105.3749
+            },
+            {
+              "date": "2025-12-23",
+              "value": 107.454
+            },
+            {
+              "date": "2026-01-02",
+              "value": 105.0721
+            },
+            {
+              "date": "2026-01-12",
+              "value": 109.3382
+            },
+            {
+              "date": "2026-01-20",
+              "value": 110.8744
+            },
+            {
+              "date": "2026-01-28",
+              "value": 114.6034
+            },
+            {
+              "date": "2026-02-06",
+              "value": 115.9955
+            },
+            {
+              "date": "2026-02-16",
+              "value": 116.8862
+            },
+            {
+              "date": "2026-02-24",
+              "value": 116.2007
+            },
+            {
+              "date": "2026-03-05",
+              "value": 112.0146
+            },
+            {
+              "date": "2026-03-13",
+              "value": 107.5417
+            },
+            {
+              "date": "2026-03-24",
+              "value": 107.7485
+            },
+            {
+              "date": "2026-04-01",
+              "value": 114.1812
+            },
+            {
+              "date": "2026-04-13",
+              "value": 114.0061
+            },
+            {
+              "date": "2026-04-21",
+              "value": 112.7186
+            },
+            {
+              "date": "2026-04-29",
+              "value": 109.914
+            },
+            {
+              "date": "2026-05-08",
+              "value": 114.4328
+            },
+            {
+              "date": "2026-05-18",
+              "value": 112.0569
+            },
+            {
+              "date": "2026-05-26",
+              "value": 113.3549
+            },
+            {
+              "date": "2026-06-04",
+              "value": 110.3974
+            },
+            {
+              "date": "2026-06-12",
+              "value": 111.3186
+            },
+            {
+              "date": "2026-06-22",
+              "value": 109.9601
+            },
+            {
+              "date": "2026-06-30",
+              "value": 109.7004
+            },
+            {
+              "date": "2026-07-08",
+              "value": 109.1155
+            },
+            {
+              "date": "2026-07-16",
+              "value": 108.7001
+            },
+            {
+              "date": "2026-07-24",
+              "value": 108.7446
+            },
+            {
+              "date": "2026-08-03",
+              "value": 109.259
+            },
+            {
+              "date": "2026-08-11",
+              "value": 107.4038
+            },
+            {
+              "date": "2026-08-19",
+              "value": 104.8394
+            },
+            {
+              "date": "2026-08-28",
+              "value": 107.2721
+            },
+            {
+              "date": "2026-09-07",
+              "value": 106.0324
+            },
+            {
+              "date": "2026-09-15",
+              "value": 104.0331
+            },
+            {
+              "date": "2026-09-24",
+              "value": 105.2733
+            },
+            {
+              "date": "2026-10-02",
+              "value": 105.7115
+            },
+            {
+              "date": "2026-10-12",
+              "value": 109.3631
+            }
+          ]
+        },
+        {
+          "label": "Euro Stoxx 50",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 102.1307
+            },
+            {
+              "date": "2025-10-29",
+              "value": 102.4716
+            },
+            {
+              "date": "2025-11-06",
+              "value": 100.7721
+            },
+            {
+              "date": "2025-11-14",
+              "value": 102.2554
+            },
+            {
+              "date": "2025-11-24",
+              "value": 99.2903
+            },
+            {
+              "date": "2025-12-02",
+              "value": 102.1189
+            },
+            {
+              "date": "2025-12-11",
+              "value": 103.3363
+            },
+            {
+              "date": "2025-12-19",
+              "value": 103.4511
+            },
+            {
+              "date": "2026-01-06",
+              "value": 106.53
+            },
+            {
+              "date": "2026-01-14",
+              "value": 107.8457
+            },
+            {
+              "date": "2026-01-22",
+              "value": 106.9678
+            },
+            {
+              "date": "2026-01-30",
+              "value": 106.8177
+            },
+            {
+              "date": "2026-02-09",
+              "value": 108.8148
+            },
+            {
+              "date": "2026-02-17",
+              "value": 108.1474
+            },
+            {
+              "date": "2026-02-25",
+              "value": 110.8677
+            },
+            {
+              "date": "2026-03-05",
+              "value": 103.8559
+            },
+            {
+              "date": "2026-03-13",
+              "value": 102.6655
+            },
+            {
+              "date": "2026-03-23",
+              "value": 100.1101
+            },
+            {
+              "date": "2026-03-31",
+              "value": 100.0277
+            },
+            {
+              "date": "2026-04-10",
+              "value": 106.428
+            },
+            {
+              "date": "2026-04-21",
+              "value": 106.5023
+            },
+            {
+              "date": "2026-04-29",
+              "value": 104.4591
+            },
+            {
+              "date": "2026-05-08",
+              "value": 106.1661
+            },
+            {
+              "date": "2026-05-19",
+              "value": 105.082
+            },
+            {
+              "date": "2026-05-28",
+              "value": 108.7447
+            },
+            {
+              "date": "2026-06-05",
+              "value": 108.8697
+            },
+            {
+              "date": "2026-06-15",
+              "value": 111.8754
+            },
+            {
+              "date": "2026-06-23",
+              "value": 111.8955
+            },
+            {
+              "date": "2026-07-01",
+              "value": 112.8284
+            },
+            {
+              "date": "2026-07-09",
+              "value": 112.8602
+            },
+            {
+              "date": "2026-07-17",
+              "value": 111.9012
+            },
+            {
+              "date": "2026-07-27",
+              "value": 112.8232
+            },
+            {
+              "date": "2026-08-04",
+              "value": 116.4957
+            },
+            {
+              "date": "2026-08-12",
+              "value": 117.345
+            },
+            {
+              "date": "2026-08-21",
+              "value": 116.0561
+            },
+            {
+              "date": "2026-08-31",
+              "value": 115.3007
+            },
+            {
+              "date": "2026-09-08",
+              "value": 115.1752
+            },
+            {
+              "date": "2026-09-16",
+              "value": 112.5411
+            },
+            {
+              "date": "2026-09-24",
+              "value": 112.6489
+            },
+            {
+              "date": "2026-10-02",
+              "value": 112.0382
+            },
+            {
+              "date": "2026-10-12",
+              "value": 111.3685
+            }
+          ]
+        },
+        {
+          "label": "DAX 40",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 99.7626
+            },
+            {
+              "date": "2025-10-29",
+              "value": 98.9186
+            },
+            {
+              "date": "2025-11-06",
+              "value": 97.3187
+            },
+            {
+              "date": "2025-11-17",
+              "value": 96.7303
+            },
+            {
+              "date": "2025-11-25",
+              "value": 96.2141
+            },
+            {
+              "date": "2025-12-03",
+              "value": 97.1534
+            },
+            {
+              "date": "2025-12-11",
+              "value": 99.6173
+            },
+            {
+              "date": "2025-12-19",
+              "value": 99.5919
+            },
+            {
+              "date": "2026-01-05",
+              "value": 101.9713
+            },
+            {
+              "date": "2026-01-13",
+              "value": 104.2346
+            },
+            {
+              "date": "2026-01-22",
+              "value": 101.9212
+            },
+            {
+              "date": "2026-01-30",
+              "value": 100.6187
+            },
+            {
+              "date": "2026-02-09",
+              "value": 102.5707
+            },
+            {
+              "date": "2026-02-17",
+              "value": 102.5032
+            },
+            {
+              "date": "2026-02-25",
+              "value": 103.2311
+            },
+            {
+              "date": "2026-03-05",
+              "value": 97.6538
+            },
+            {
+              "date": "2026-03-13",
+              "value": 96.143
+            },
+            {
+              "date": "2026-03-24",
+              "value": 92.8201
+            },
+            {
+              "date": "2026-04-01",
+              "value": 95.5345
+            },
+            {
+              "date": "2026-04-13",
+              "value": 97.3532
+            },
+            {
+              "date": "2026-04-21",
+              "value": 99.52
+            },
+            {
+              "date": "2026-04-29",
+              "value": 98.223
+            },
+            {
+              "date": "2026-05-08",
+              "value": 99.7978
+            },
+            {
+              "date": "2026-05-19",
+              "value": 100.0521
+            },
+            {
+              "date": "2026-05-27",
+              "value": 103.2388
+            },
+            {
+              "date": "2026-06-04",
+              "value": 102.284
+            },
+            {
+              "date": "2026-06-12",
+              "value": 101.0143
+            },
+            {
+              "date": "2026-06-22",
+              "value": 103.0825
+            },
+            {
+              "date": "2026-06-30",
+              "value": 102.4925
+            },
+            {
+              "date": "2026-07-08",
+              "value": 102.0892
+            },
+            {
+              "date": "2026-07-17",
+              "value": 101.8167
+            },
+            {
+              "date": "2026-07-27",
+              "value": 103.9901
+            },
+            {
+              "date": "2026-08-04",
+              "value": 107.4398
+            },
+            {
+              "date": "2026-08-12",
+              "value": 107.9676
+            },
+            {
+              "date": "2026-08-20",
+              "value": 106.5406
+            },
+            {
+              "date": "2026-08-28",
+              "value": 108.9473
+            },
+            {
+              "date": "2026-09-07",
+              "value": 106.6369
+            },
+            {
+              "date": "2026-09-16",
+              "value": 104.7147
+            },
+            {
+              "date": "2026-09-24",
+              "value": 103.6026
+            },
+            {
+              "date": "2026-10-02",
+              "value": 103.4577
+            },
+            {
+              "date": "2026-10-12",
+              "value": 103.6483
+            }
+          ]
+        },
+        {
+          "label": "Nikkei 225",
+          "points": [
+            {
+              "date": "2025-10-09",
+              "value": 100
+            },
+            {
+              "date": "2025-10-20",
+              "value": 101.2455
+            },
+            {
+              "date": "2025-10-28",
+              "value": 103.3732
+            },
+            {
+              "date": "2025-11-06",
+              "value": 104.7411
+            },
+            {
+              "date": "2025-11-14",
+              "value": 103.6971
+            },
+            {
+              "date": "2025-11-25",
+              "value": 100.1628
+            },
+            {
+              "date": "2025-12-02",
+              "value": 101.4883
+            },
+            {
+              "date": "2025-12-10",
+              "value": 104.1629
+            },
+            {
+              "date": "2025-12-18",
+              "value": 100.8667
+            },
+            {
+              "date": "2025-12-26",
+              "value": 104.4667
+            },
+            {
+              "date": "2026-01-08",
+              "value": 105.2219
+            },
+            {
+              "date": "2026-01-19",
+              "value": 110.2987
+            },
+            {
+              "date": "2026-01-27",
+              "value": 109.784
+            },
+            {
+              "date": "2026-02-04",
+              "value": 111.7597
+            },
+            {
+              "date": "2026-02-13",
+              "value": 117.2117
+            },
+            {
+              "date": "2026-02-24",
+              "value": 117.9921
+            },
+            {
+              "date": "2026-03-03",
+              "value": 115.8471
+            },
+            {
+              "date": "2026-03-11",
+              "value": 113.2665
+            },
+            {
+              "date": "2026-03-19",
+              "value": 109.8642
+            },
+            {
+              "date": "2026-03-30",
+              "value": 106.804
+            },
+            {
+              "date": "2026-04-07",
+              "value": 109.9816
+            },
+            {
+              "date": "2026-04-15",
+              "value": 119.6659
+            },
+            {
+              "date": "2026-04-23",
+              "value": 121.7367
+            },
+            {
+              "date": "2026-05-07",
+              "value": 129.3398
+            },
+            {
+              "date": "2026-05-15",
+              "value": 126.4074
+            },
+            {
+              "date": "2026-05-25",
+              "value": 134.1243
+            },
+            {
+              "date": "2026-06-01",
+              "value": 137.7804
+            },
+            {
+              "date": "2026-06-09",
+              "value": 134.6563
+            },
+            {
+              "date": "2026-06-17",
+              "value": 143.8897
+            },
+            {
+              "date": "2026-06-25",
+              "value": 148.9619
+            },
+            {
+              "date": "2026-07-03",
+              "value": 143.5641
+            },
+            {
+              "date": "2026-07-13",
+              "value": 138.4152
+            },
+            {
+              "date": "2026-07-22",
+              "value": 136.0951
+            },
+            {
+              "date": "2026-07-30",
+              "value": 127.3505
+            },
+            {
+              "date": "2026-08-07",
+              "value": 135.0476
+            },
+            {
+              "date": "2026-08-18",
+              "value": 138.864
+            },
+            {
+              "date": "2026-08-25",
+              "value": 135.5616
+            },
+            {
+              "date": "2026-09-02",
+              "value": 132.4106
+            },
+            {
+              "date": "2026-09-10",
+              "value": 134.3564
+            },
+            {
+              "date": "2026-09-18",
+              "value": 133.8377
+            },
+            {
+              "date": "2026-10-01",
+              "value": 141.9434
+            },
+            {
+              "date": "2026-10-09",
+              "value": 142.0961
+            }
+          ]
+        },
+        {
+          "label": "Hang Seng",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 100.5333
+            },
+            {
+              "date": "2025-10-30",
+              "value": 101.5188
+            },
+            {
+              "date": "2025-11-07",
+              "value": 101.361
+            },
+            {
+              "date": "2025-11-17",
+              "value": 101.9112
+            },
+            {
+              "date": "2025-11-25",
+              "value": 100.0196
+            },
+            {
+              "date": "2025-12-03",
+              "value": 99.5027
+            },
+            {
+              "date": "2025-12-11",
+              "value": 98.6134
+            },
+            {
+              "date": "2025-12-19",
+              "value": 99.2315
+            },
+            {
+              "date": "2025-12-31",
+              "value": 98.9998
+            },
+            {
+              "date": "2026-01-09",
+              "value": 101.3222
+            },
+            {
+              "date": "2026-01-19",
+              "value": 102.605
+            },
+            {
+              "date": "2026-01-27",
+              "value": 104.7798
+            },
+            {
+              "date": "2026-02-04",
+              "value": 103.6997
+            },
+            {
+              "date": "2026-02-12",
+              "value": 104.4151
+            },
+            {
+              "date": "2026-02-25",
+              "value": 103.3845
+            },
+            {
+              "date": "2026-03-05",
+              "value": 97.8055
+            },
+            {
+              "date": "2026-03-13",
+              "value": 98.3627
+            },
+            {
+              "date": "2026-03-23",
+              "value": 94.1791
+            },
+            {
+              "date": "2026-03-31",
+              "value": 95.746
+            },
+            {
+              "date": "2026-04-13",
+              "value": 99.1169
+            },
+            {
+              "date": "2026-04-20",
+              "value": 101.8215
+            },
+            {
+              "date": "2026-04-28",
+              "value": 99.19
+            },
+            {
+              "date": "2026-05-07",
+              "value": 102.8459
+            },
+            {
+              "date": "2026-05-15",
+              "value": 100.2829
+            },
+            {
+              "date": "2026-05-26",
+              "value": 98.8797
+            },
+            {
+              "date": "2026-06-03",
+              "value": 99.0101
+            },
+            {
+              "date": "2026-06-11",
+              "value": 93.6646
+            },
+            {
+              "date": "2026-06-22",
+              "value": 91.8076
+            },
+            {
+              "date": "2026-06-30",
+              "value": 88.3796
+            },
+            {
+              "date": "2026-07-09",
+              "value": 92.8183
+            },
+            {
+              "date": "2026-07-17",
+              "value": 94.8734
+            },
+            {
+              "date": "2026-07-27",
+              "value": 97.3646
+            },
+            {
+              "date": "2026-08-04",
+              "value": 99.8588
+            },
+            {
+              "date": "2026-08-12",
+              "value": 98.2645
+            },
+            {
+              "date": "2026-08-20",
+              "value": 99.2623
+            },
+            {
+              "date": "2026-08-28",
+              "value": 98.8231
+            },
+            {
+              "date": "2026-09-07",
+              "value": 98.16
+            },
+            {
+              "date": "2026-09-15",
+              "value": 95.279
+            },
+            {
+              "date": "2026-09-23",
+              "value": 95.9236
+            },
+            {
+              "date": "2026-10-02",
+              "value": 92.5947
+            },
+            {
+              "date": "2026-10-12",
+              "value": 0
+            }
+          ]
+        }
+      ],
+      "note": "Base 100 en el primer cierre del periodo mostrado; incluye referencias de América, Europa y Asia para comparar direcciones, no niveles absolutos."
+    },
+    {
+      "type": "line",
+      "title": "Bolsa de América · evolución relativa",
+      "unit": "Índice base 100",
+      "series": [
+        {
+          "label": "S&P 500",
+          "points": [
+            {
+              "date": "2026-02-24",
+              "value": 100
+            },
+            {
+              "date": "2026-03-05",
+              "value": 99.1385
+            },
+            {
+              "date": "2026-03-13",
+              "value": 96.2572
+            },
+            {
+              "date": "2026-03-23",
+              "value": 95.5143
+            },
+            {
+              "date": "2026-03-31",
+              "value": 94.7526
+            },
+            {
+              "date": "2026-04-09",
+              "value": 99.0507
+            },
+            {
+              "date": "2026-04-17",
+              "value": 103.4251
+            },
+            {
+              "date": "2026-04-27",
+              "value": 104.1195
+            },
+            {
+              "date": "2026-05-05",
+              "value": 105.3577
+            },
+            {
+              "date": "2026-05-13",
+              "value": 108.0432
+            },
+            {
+              "date": "2026-05-21",
+              "value": 108.0645
+            },
+            {
+              "date": "2026-06-02",
+              "value": 110.4456
+            },
+            {
+              "date": "2026-06-10",
+              "value": 105.4705
+            },
+            {
+              "date": "2026-06-18",
+              "value": 108.8607
+            },
+            {
+              "date": "2026-06-29",
+              "value": 107.9877
+            },
+            {
+              "date": "2026-07-08",
+              "value": 108.6013
+            },
+            {
+              "date": "2026-07-16",
+              "value": 109.3424
+            },
+            {
+              "date": "2026-07-24",
+              "value": 107.5748
+            },
+            {
+              "date": "2026-08-03",
+              "value": 110.3109
+            },
+            {
+              "date": "2026-08-11",
+              "value": 112.1643
+            },
+            {
+              "date": "2026-08-19",
+              "value": 111.8709
+            }
+          ]
+        },
+        {
+          "label": "Nasdaq Composite",
+          "points": [
+            {
+              "date": "2026-02-24",
+              "value": 100
+            },
+            {
+              "date": "2026-03-05",
+              "value": 99.4984
+            },
+            {
+              "date": "2026-03-13",
+              "value": 96.6833
+            },
+            {
+              "date": "2026-03-23",
+              "value": 95.9896
+            },
+            {
+              "date": "2026-03-31",
+              "value": 94.432
+            },
+            {
+              "date": "2026-04-09",
+              "value": 99.8195
+            },
+            {
+              "date": "2026-04-17",
+              "value": 107.019
+            },
+            {
+              "date": "2026-04-27",
+              "value": 108.8499
+            },
+            {
+              "date": "2026-05-05",
+              "value": 110.7701
+            },
+            {
+              "date": "2026-05-13",
+              "value": 115.4772
+            },
+            {
+              "date": "2026-05-21",
+              "value": 114.9994
+            },
+            {
+              "date": "2026-06-02",
+              "value": 118.5019
+            },
+            {
+              "date": "2026-06-10",
+              "value": 110.0851
+            },
+            {
+              "date": "2026-06-18",
+              "value": 115.9828
+            },
+            {
+              "date": "2026-06-29",
+              "value": 112.9308
+            },
+            {
+              "date": "2026-07-08",
+              "value": 113.1517
+            },
+            {
+              "date": "2026-07-16",
+              "value": 113.2011
+            },
+            {
+              "date": "2026-07-24",
+              "value": 109.238
+            },
+            {
+              "date": "2026-08-03",
+              "value": 113.3409
+            },
+            {
+              "date": "2026-08-11",
+              "value": 115.6657
+            },
+            {
+              "date": "2026-08-19",
+              "value": 115.1656
+            }
+          ]
+        },
+        {
+          "label": "Dow Jones",
+          "points": [
+            {
+              "date": "2026-02-24",
+              "value": 100
+            },
+            {
+              "date": "2026-03-05",
+              "value": 97.5196
+            },
+            {
+              "date": "2026-03-13",
+              "value": 94.6801
+            },
+            {
+              "date": "2026-03-23",
+              "value": 93.9684
+            },
+            {
+              "date": "2026-03-31",
+              "value": 94.239
+            },
+            {
+              "date": "2026-04-09",
+              "value": 97.9894
+            },
+            {
+              "date": "2026-04-17",
+              "value": 100.555
+            },
+            {
+              "date": "2026-04-27",
+              "value": 99.9864
+            },
+            {
+              "date": "2026-05-05",
+              "value": 100.2517
+            },
+            {
+              "date": "2026-05-13",
+              "value": 101.0548
+            },
+            {
+              "date": "2026-05-21",
+              "value": 102.2596
+            },
+            {
+              "date": "2026-06-02",
+              "value": 104.3382
+            },
+            {
+              "date": "2026-06-10",
+              "value": 101.5136
+            },
+            {
+              "date": "2026-06-18",
+              "value": 104.8606
+            },
+            {
+              "date": "2026-06-29",
+              "value": 106.1175
+            },
+            {
+              "date": "2026-07-08",
+              "value": 106.4543
+            },
+            {
+              "date": "2026-07-16",
+              "value": 106.8704
+            },
+            {
+              "date": "2026-07-24",
+              "value": 105.6386
+            },
+            {
+              "date": "2026-08-03",
+              "value": 108.1422
+            },
+            {
+              "date": "2026-08-11",
+              "value": 109.3897
+            },
+            {
+              "date": "2026-08-19",
+              "value": 108.7211
+            }
+          ]
+        },
+        {
+          "label": "S&P/BMV IPC",
+          "points": [
+            {
+              "date": "2026-02-24",
+              "value": 100
+            },
+            {
+              "date": "2026-03-05",
+              "value": 96.3975
+            },
+            {
+              "date": "2026-03-13",
+              "value": 92.5482
+            },
+            {
+              "date": "2026-03-24",
+              "value": 92.7261
+            },
+            {
+              "date": "2026-04-01",
+              "value": 98.2621
+            },
+            {
+              "date": "2026-04-13",
+              "value": 98.1114
+            },
+            {
+              "date": "2026-04-21",
+              "value": 97.0034
+            },
+            {
+              "date": "2026-04-29",
+              "value": 94.5897
+            },
+            {
+              "date": "2026-05-08",
+              "value": 98.4785
+            },
+            {
+              "date": "2026-05-18",
+              "value": 96.4339
+            },
+            {
+              "date": "2026-05-26",
+              "value": 97.5509
+            },
+            {
+              "date": "2026-06-04",
+              "value": 95.0058
+            },
+            {
+              "date": "2026-06-12",
+              "value": 95.7986
+            },
+            {
+              "date": "2026-06-22",
+              "value": 94.6295
+            },
+            {
+              "date": "2026-06-30",
+              "value": 94.4059
+            },
+            {
+              "date": "2026-07-08",
+              "value": 93.9026
+            },
+            {
+              "date": "2026-07-16",
+              "value": 93.5451
+            },
+            {
+              "date": "2026-07-24",
+              "value": 93.5834
+            },
+            {
+              "date": "2026-08-03",
+              "value": 94.026
+            },
+            {
+              "date": "2026-08-11",
+              "value": 92.4296
+            },
+            {
+              "date": "2026-08-19",
+              "value": 90.2226
+            }
+          ]
+        },
+        {
+          "label": "Ibovespa",
+          "points": [
+            {
+              "date": "2026-02-24",
+              "value": 100
+            },
+            {
+              "date": "2026-03-04",
+              "value": 96.8019
+            },
+            {
+              "date": "2026-03-12",
+              "value": 93.6263
+            },
+            {
+              "date": "2026-03-20",
+              "value": 92.0252
+            },
+            {
+              "date": "2026-03-30",
+              "value": 95.3126
+            },
+            {
+              "date": "2026-04-08",
+              "value": 100.3713
+            },
+            {
+              "date": "2026-04-17",
+              "value": 102.2163
+            },
+            {
+              "date": "2026-04-28",
+              "value": 98.5007
+            },
+            {
+              "date": "2026-05-07",
+              "value": 95.6802
+            },
+            {
+              "date": "2026-05-15",
+              "value": 92.5814
+            },
+            {
+              "date": "2026-05-25",
+              "value": 92.6205
+            },
+            {
+              "date": "2026-06-02",
+              "value": 90.9698
+            },
+            {
+              "date": "2026-06-11",
+              "value": 89.5593
+            },
+            {
+              "date": "2026-06-19",
+              "value": 88.0339
+            },
+            {
+              "date": "2026-06-29",
+              "value": 90.4512
+            },
+            {
+              "date": "2026-07-07",
+              "value": 89.8329
+            },
+            {
+              "date": "2026-07-15",
+              "value": 91.9166
+            },
+            {
+              "date": "2026-07-23",
+              "value": 92.2889
+            },
+            {
+              "date": "2026-07-31",
+              "value": 92.9547
+            },
+            {
+              "date": "2026-08-10",
+              "value": 89.916
+            },
+            {
+              "date": "2026-08-19",
+              "value": 87.6443
+            }
+          ]
+        }
+      ],
+      "note": "Comparación de índices de la misma región con cierres observados. Base común: cierre del 2026-02-24; ventana hasta 2026-08-19. Se muestran hasta 42 observaciones por serie, conservando extremos; no se interpolan fechas sin dato. El índice compara cambios relativos, no niveles de precio ni márgenes."
+    },
+    {
+      "type": "line",
+      "title": "Bolsa de Europa · evolución relativa",
+      "unit": "Índice base 100",
+      "series": [
+        {
+          "label": "Euro Stoxx 50",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 102.1307
+            },
+            {
+              "date": "2025-10-29",
+              "value": 102.4716
+            },
+            {
+              "date": "2025-11-06",
+              "value": 100.7721
+            },
+            {
+              "date": "2025-11-14",
+              "value": 102.2554
+            },
+            {
+              "date": "2025-11-24",
+              "value": 99.2903
+            },
+            {
+              "date": "2025-12-02",
+              "value": 102.1189
+            },
+            {
+              "date": "2025-12-11",
+              "value": 103.3363
+            },
+            {
+              "date": "2025-12-19",
+              "value": 103.4511
+            },
+            {
+              "date": "2026-01-06",
+              "value": 106.53
+            },
+            {
+              "date": "2026-01-14",
+              "value": 107.8457
+            },
+            {
+              "date": "2026-01-22",
+              "value": 106.9678
+            },
+            {
+              "date": "2026-01-30",
+              "value": 106.8177
+            },
+            {
+              "date": "2026-02-09",
+              "value": 108.8148
+            },
+            {
+              "date": "2026-02-17",
+              "value": 108.1474
+            },
+            {
+              "date": "2026-02-25",
+              "value": 110.8677
+            },
+            {
+              "date": "2026-03-05",
+              "value": 103.8559
+            },
+            {
+              "date": "2026-03-13",
+              "value": 102.6655
+            },
+            {
+              "date": "2026-03-23",
+              "value": 100.1101
+            },
+            {
+              "date": "2026-03-31",
+              "value": 100.0277
+            },
+            {
+              "date": "2026-04-10",
+              "value": 106.428
+            },
+            {
+              "date": "2026-04-21",
+              "value": 106.5023
+            },
+            {
+              "date": "2026-04-29",
+              "value": 104.4591
+            },
+            {
+              "date": "2026-05-08",
+              "value": 106.1661
+            },
+            {
+              "date": "2026-05-19",
+              "value": 105.082
+            },
+            {
+              "date": "2026-05-28",
+              "value": 108.7447
+            },
+            {
+              "date": "2026-06-05",
+              "value": 108.8697
+            },
+            {
+              "date": "2026-06-15",
+              "value": 111.8754
+            },
+            {
+              "date": "2026-06-23",
+              "value": 111.8955
+            },
+            {
+              "date": "2026-07-01",
+              "value": 112.8284
+            },
+            {
+              "date": "2026-07-09",
+              "value": 112.8602
+            },
+            {
+              "date": "2026-07-17",
+              "value": 111.9012
+            },
+            {
+              "date": "2026-07-27",
+              "value": 112.8232
+            },
+            {
+              "date": "2026-08-04",
+              "value": 116.4957
+            },
+            {
+              "date": "2026-08-12",
+              "value": 117.345
+            },
+            {
+              "date": "2026-08-21",
+              "value": 116.0561
+            },
+            {
+              "date": "2026-08-31",
+              "value": 115.3007
+            },
+            {
+              "date": "2026-09-08",
+              "value": 115.1752
+            },
+            {
+              "date": "2026-09-16",
+              "value": 112.5411
+            },
+            {
+              "date": "2026-09-24",
+              "value": 112.6489
+            },
+            {
+              "date": "2026-10-02",
+              "value": 112.0382
+            },
+            {
+              "date": "2026-10-12",
+              "value": 111.3685
+            }
+          ]
+        },
+        {
+          "label": "FTSE 100",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 99.8316
+            },
+            {
+              "date": "2025-10-29",
+              "value": 103.3168
+            },
+            {
+              "date": "2025-11-06",
+              "value": 103.1018
+            },
+            {
+              "date": "2025-11-17",
+              "value": 102.4622
+            },
+            {
+              "date": "2025-11-25",
+              "value": 101.7643
+            },
+            {
+              "date": "2025-12-03",
+              "value": 102.639
+            },
+            {
+              "date": "2025-12-11",
+              "value": 102.7566
+            },
+            {
+              "date": "2025-12-19",
+              "value": 104.8131
+            },
+            {
+              "date": "2025-12-31",
+              "value": 105.1732
+            },
+            {
+              "date": "2026-01-09",
+              "value": 107.2192
+            },
+            {
+              "date": "2026-01-20",
+              "value": 107.2425
+            },
+            {
+              "date": "2026-01-28",
+              "value": 107.5348
+            },
+            {
+              "date": "2026-02-05",
+              "value": 109.1741
+            },
+            {
+              "date": "2026-02-13",
+              "value": 110.627
+            },
+            {
+              "date": "2026-02-23",
+              "value": 113.1506
+            },
+            {
+              "date": "2026-03-03",
+              "value": 111.0263
+            },
+            {
+              "date": "2026-03-11",
+              "value": 109.6464
+            },
+            {
+              "date": "2026-03-20",
+              "value": 105.0345
+            },
+            {
+              "date": "2026-03-30",
+              "value": 107.2552
+            },
+            {
+              "date": "2026-04-09",
+              "value": 112.2907
+            },
+            {
+              "date": "2026-04-17",
+              "value": 112.9695
+            },
+            {
+              "date": "2026-04-27",
+              "value": 109.3001
+            },
+            {
+              "date": "2026-05-06",
+              "value": 110.5455
+            },
+            {
+              "date": "2026-05-15",
+              "value": 107.969
+            },
+            {
+              "date": "2026-05-26",
+              "value": 111.1036
+            },
+            {
+              "date": "2026-06-03",
+              "value": 109.4187
+            },
+            {
+              "date": "2026-06-11",
+              "value": 109.118
+            },
+            {
+              "date": "2026-06-19",
+              "value": 109.747
+            },
+            {
+              "date": "2026-06-29",
+              "value": 111.0273
+            },
+            {
+              "date": "2026-07-07",
+              "value": 112.9515
+            },
+            {
+              "date": "2026-07-16",
+              "value": 111.9593
+            },
+            {
+              "date": "2026-07-24",
+              "value": 113.696
+            },
+            {
+              "date": "2026-08-03",
+              "value": 114.9827
+            },
+            {
+              "date": "2026-08-11",
+              "value": 114.8397
+            },
+            {
+              "date": "2026-08-19",
+              "value": 113.7723
+            },
+            {
+              "date": "2026-08-27",
+              "value": 114.2922
+            },
+            {
+              "date": "2026-09-07",
+              "value": 114.6057
+            },
+            {
+              "date": "2026-09-16",
+              "value": 113.1909
+            },
+            {
+              "date": "2026-09-24",
+              "value": 113.1009
+            },
+            {
+              "date": "2026-10-02",
+              "value": 110.7922
+            },
+            {
+              "date": "2026-10-12",
+              "value": 112.8497
+            }
+          ]
+        },
+        {
+          "label": "DAX 40",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 99.7626
+            },
+            {
+              "date": "2025-10-29",
+              "value": 98.9186
+            },
+            {
+              "date": "2025-11-06",
+              "value": 97.3187
+            },
+            {
+              "date": "2025-11-17",
+              "value": 96.7303
+            },
+            {
+              "date": "2025-11-25",
+              "value": 96.2141
+            },
+            {
+              "date": "2025-12-03",
+              "value": 97.1534
+            },
+            {
+              "date": "2025-12-11",
+              "value": 99.6173
+            },
+            {
+              "date": "2025-12-19",
+              "value": 99.5919
+            },
+            {
+              "date": "2026-01-05",
+              "value": 101.9713
+            },
+            {
+              "date": "2026-01-13",
+              "value": 104.2346
+            },
+            {
+              "date": "2026-01-22",
+              "value": 101.9212
+            },
+            {
+              "date": "2026-01-30",
+              "value": 100.6187
+            },
+            {
+              "date": "2026-02-09",
+              "value": 102.5707
+            },
+            {
+              "date": "2026-02-17",
+              "value": 102.5032
+            },
+            {
+              "date": "2026-02-25",
+              "value": 103.2311
+            },
+            {
+              "date": "2026-03-05",
+              "value": 97.6538
+            },
+            {
+              "date": "2026-03-13",
+              "value": 96.143
+            },
+            {
+              "date": "2026-03-24",
+              "value": 92.8201
+            },
+            {
+              "date": "2026-04-01",
+              "value": 95.5345
+            },
+            {
+              "date": "2026-04-13",
+              "value": 97.3532
+            },
+            {
+              "date": "2026-04-21",
+              "value": 99.52
+            },
+            {
+              "date": "2026-04-29",
+              "value": 98.223
+            },
+            {
+              "date": "2026-05-08",
+              "value": 99.7978
+            },
+            {
+              "date": "2026-05-19",
+              "value": 100.0521
+            },
+            {
+              "date": "2026-05-27",
+              "value": 103.2388
+            },
+            {
+              "date": "2026-06-04",
+              "value": 102.284
+            },
+            {
+              "date": "2026-06-12",
+              "value": 101.0143
+            },
+            {
+              "date": "2026-06-22",
+              "value": 103.0825
+            },
+            {
+              "date": "2026-06-30",
+              "value": 102.4925
+            },
+            {
+              "date": "2026-07-08",
+              "value": 102.0892
+            },
+            {
+              "date": "2026-07-17",
+              "value": 101.8167
+            },
+            {
+              "date": "2026-07-27",
+              "value": 103.9901
+            },
+            {
+              "date": "2026-08-04",
+              "value": 107.4398
+            },
+            {
+              "date": "2026-08-12",
+              "value": 107.9676
+            },
+            {
+              "date": "2026-08-20",
+              "value": 106.5406
+            },
+            {
+              "date": "2026-08-28",
+              "value": 108.9473
+            },
+            {
+              "date": "2026-09-07",
+              "value": 106.6369
+            },
+            {
+              "date": "2026-09-16",
+              "value": 104.7147
+            },
+            {
+              "date": "2026-09-24",
+              "value": 103.6026
+            },
+            {
+              "date": "2026-10-02",
+              "value": 103.4577
+            },
+            {
+              "date": "2026-10-12",
+              "value": 103.6483
+            }
+          ]
+        },
+        {
+          "label": "CAC 40",
+          "points": [
+            {
+              "date": "2025-10-13",
+              "value": 100
+            },
+            {
+              "date": "2025-10-21",
+              "value": 104.0911
+            },
+            {
+              "date": "2025-10-29",
+              "value": 103.3604
+            },
+            {
+              "date": "2025-11-07",
+              "value": 100.2006
+            },
+            {
+              "date": "2025-11-17",
+              "value": 102.3286
+            },
+            {
+              "date": "2025-11-25",
+              "value": 101.1537
+            },
+            {
+              "date": "2025-12-03",
+              "value": 101.9304
+            },
+            {
+              "date": "2025-12-11",
+              "value": 101.9094
+            },
+            {
+              "date": "2025-12-22",
+              "value": 102.3545
+            },
+            {
+              "date": "2026-01-02",
+              "value": 103.2889
+            },
+            {
+              "date": "2026-01-12",
+              "value": 105.3502
+            },
+            {
+              "date": "2026-01-20",
+              "value": 101.6173
+            },
+            {
+              "date": "2026-01-28",
+              "value": 101.669
+            },
+            {
+              "date": "2026-02-06",
+              "value": 104.2799
+            },
+            {
+              "date": "2026-02-16",
+              "value": 104.8176
+            },
+            {
+              "date": "2026-02-24",
+              "value": 107.3724
+            },
+            {
+              "date": "2026-03-04",
+              "value": 102.9425
+            },
+            {
+              "date": "2026-03-12",
+              "value": 100.6324
+            },
+            {
+              "date": "2026-03-23",
+              "value": 97.3777
+            },
+            {
+              "date": "2026-03-31",
+              "value": 98.5213
+            },
+            {
+              "date": "2026-04-10",
+              "value": 104.1004
+            },
+            {
+              "date": "2026-04-20",
+              "value": 105.001
+            },
+            {
+              "date": "2026-04-28",
+              "value": 102.1405
+            },
+            {
+              "date": "2026-05-07",
+              "value": 103.3755
+            },
+            {
+              "date": "2026-05-18",
+              "value": 100.6709
+            },
+            {
+              "date": "2026-05-26",
+              "value": 103.0104
+            },
+            {
+              "date": "2026-06-03",
+              "value": 102.7244
+            },
+            {
+              "date": "2026-06-11",
+              "value": 103.3593
+            },
+            {
+              "date": "2026-06-19",
+              "value": 106.1364
+            },
+            {
+              "date": "2026-06-30",
+              "value": 105.9203
+            },
+            {
+              "date": "2026-07-08",
+              "value": 104.013
+            },
+            {
+              "date": "2026-07-16",
+              "value": 105.5909
+            },
+            {
+              "date": "2026-07-24",
+              "value": 105.5206
+            },
+            {
+              "date": "2026-08-03",
+              "value": 108.5649
+            },
+            {
+              "date": "2026-08-12",
+              "value": 109.3352
+            },
+            {
+              "date": "2026-08-20",
+              "value": 106.5391
+            },
+            {
+              "date": "2026-08-28",
+              "value": 105.8848
+            },
+            {
+              "date": "2026-09-07",
+              "value": 104.6871
+            },
+            {
+              "date": "2026-09-15",
+              "value": 101.9664
+            },
+            {
+              "date": "2026-09-24",
+              "value": 101.8549
+            },
+            {
+              "date": "2026-10-02",
+              "value": 99.5328
+            },
+            {
+              "date": "2026-10-12",
+              "value": 98.7223
+            }
+          ]
+        }
+      ],
+      "note": "Comparación de índices de la misma región con cierres observados. Base común: cierre del 2025-10-13; ventana hasta 2026-10-12. Se muestran hasta 42 observaciones por serie, conservando extremos; no se interpolan fechas sin dato. El índice compara cambios relativos, no niveles de precio ni márgenes."
+    }
+  ],
+  "personalization": {
+    "audience": "purchasing",
+    "decisionHorizon": "quarter",
+    "confidentiality": "internal"
+  },
+  "tables": [
+    {
+      "title": "Tabla de desempeño global por referencia",
+      "columns": [
+        "Región",
+        "Mercado",
+        "Referencia",
+        "Último",
+        "Día",
+        "5 sesiones",
+        "1 mes",
+        "YTD"
+      ],
+      "rows": [
+        [
+          "América",
+          "Brasil",
+          "Ibovespa",
+          "209,067.00",
+          "+1.38%",
+          "+8.82%",
+          "+11.05%",
+          "+30.23%"
+        ],
+        [
+          "América",
+          "México",
+          "S&P/BMV IPC",
+          "66,760.77",
+          "+1.08%",
+          "+2.75%",
+          "+4.14%",
+          "+4.08%"
+        ],
+        [
+          "Europa",
+          "Reino Unido",
+          "FTSE 100",
+          "10,656.28",
+          "+0.99%",
+          "+1.51%",
+          "+0.06%",
+          "+7.09%"
+        ],
+        [
+          "Europa",
+          "Alemania",
+          "DAX 40",
+          "25,277.68",
+          "+0.76%",
+          "+0.09%",
+          "-1.14%",
+          "+3.01%"
+        ],
+        [
+          "Europa",
+          "Eurozona",
+          "Euro Stoxx 50",
+          "6,201.21",
+          "+0.45%",
+          "-0.66%",
+          "-1.96%",
+          "+4.68%"
+        ],
+        [
+          "América",
+          "Estados Unidos",
+          "Dow Jones",
+          "51,851.53",
+          "+0.38%",
+          "+1.14%",
+          "-1.37%",
+          "+7.17%"
+        ],
+        [
+          "Europa",
+          "Francia",
+          "CAC 40",
+          "7,832.88",
+          "+0.38%",
+          "-0.02%",
+          "-4.24%",
+          "-4.42%"
+        ],
+        [
+          "Asia",
+          "Japón",
+          "Nikkei 225",
+          "69,030.92",
+          "-0.02%",
+          "+1.06%",
+          "+3.96%",
+          "+33.18%"
+        ],
+        [
+          "América",
+          "Estados Unidos",
+          "S&P 500",
+          "7,807.39",
+          "-0.05%",
+          "+0.43%",
+          "+1.96%",
+          "+13.84%"
+        ],
+        [
+          "América",
+          "Estados Unidos",
+          "Nasdaq Composite",
+          "27,250.03",
+          "-0.42%",
+          "-0.83%",
+          "+3.48%",
+          "+17.28%"
+        ],
+        [
+          "Asia",
+          "Hong Kong",
+          "Hang Seng",
+          "0.00",
+          "-100.00%",
+          "-100.00%",
+          "-100.00%",
+          "-100.00%"
+        ],
+        [
+          "Asia",
+          "China",
+          "Shanghai Composite",
+          "0.00",
+          "-100.00%",
+          "-100.00%",
+          "-100.00%",
+          "-100.00%"
+        ],
+        [
+          "Asia",
+          "Corea del Sur",
+          "KOSPI",
+          "0.00",
+          "-100.00%",
+          "-100.00%",
+          "-100.00%",
+          "-100.00%"
+        ],
+        [
+          "Asia",
+          "Australia",
+          "S&P/ASX 200",
+          "8,783.20",
+          "+0.00%",
+          "+0.54%",
+          "+0.38%",
+          "+0.63%"
+        ]
+      ],
+      "note": "Porcentajes calculados con cierres diarios de Yahoo Finance. Los horarios de cierre difieren por región; VIX se muestra aparte como contexto de volatilidad, no como índice de retorno."
+    },
+    {
+      "title": "Comparaciones calculadas de las gráficas",
+      "columns": [
+        "Serie / gráfica",
+        "Periodo / observaciones",
+        "Inicio / cierre",
+        "Cambio del tramo",
+        "Mínimo / máximo mostrado",
+        "Unidad"
+      ],
+      "rows": [
+        [
+          "S&P 500 · Índices: evolución relativa por región",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 117.3211",
+          "17.3211 %",
+          "98.1036 / 117.3211",
+          "Índice base 100"
+        ],
+        [
+          "S&P/BMV IPC · Índices: evolución relativa por región",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 109.3631",
+          "9.3631 %",
+          "99.5556 / 116.8862",
+          "Índice base 100"
+        ],
+        [
+          "Euro Stoxx 50 · Índices: evolución relativa por región",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 111.3685",
+          "11.3685 %",
+          "99.2903 / 117.345",
+          "Índice base 100"
+        ],
+        [
+          "DAX 40 · Índices: evolución relativa por región",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 103.6483",
+          "3.6483 %",
+          "92.8201 / 108.9473",
+          "Índice base 100"
+        ],
+        [
+          "Nikkei 225 · Índices: evolución relativa por región",
+          "2025-10-09 a 2026-10-09 · 42 datos",
+          "100 / 142.0961",
+          "42.0961 %",
+          "100 / 148.9619",
+          "Índice base 100"
+        ],
+        [
+          "Hang Seng · Índices: evolución relativa por región",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 0",
+          "-100 %",
+          "0 / 104.7798",
+          "Índice base 100"
+        ],
+        [
+          "S&P 500 · Bolsa de América · evolución relativa",
+          "2026-02-24 a 2026-08-19 · 21 datos",
+          "100 / 111.8709",
+          "11.8709 %",
+          "94.7526 / 112.1643",
+          "Índice base 100"
+        ],
+        [
+          "Nasdaq Composite · Bolsa de América · evolución relativa",
+          "2026-02-24 a 2026-08-19 · 21 datos",
+          "100 / 115.1656",
+          "15.1656 %",
+          "94.432 / 118.5019",
+          "Índice base 100"
+        ],
+        [
+          "Dow Jones · Bolsa de América · evolución relativa",
+          "2026-02-24 a 2026-08-19 · 21 datos",
+          "100 / 108.7211",
+          "8.7211 %",
+          "93.9684 / 109.3897",
+          "Índice base 100"
+        ],
+        [
+          "S&P/BMV IPC · Bolsa de América · evolución relativa",
+          "2026-02-24 a 2026-08-19 · 21 datos",
+          "100 / 90.2226",
+          "-9.7774 %",
+          "90.2226 / 100",
+          "Índice base 100"
+        ],
+        [
+          "Ibovespa · Bolsa de América · evolución relativa",
+          "2026-02-24 a 2026-08-19 · 21 datos",
+          "100 / 87.6443",
+          "-12.3557 %",
+          "87.6443 / 102.2163",
+          "Índice base 100"
+        ],
+        [
+          "Euro Stoxx 50 · Bolsa de Europa · evolución relativa",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 111.3685",
+          "11.3685 %",
+          "99.2903 / 117.345",
+          "Índice base 100"
+        ],
+        [
+          "FTSE 100 · Bolsa de Europa · evolución relativa",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 112.8497",
+          "12.8497 %",
+          "99.8316 / 114.9827",
+          "Índice base 100"
+        ],
+        [
+          "DAX 40 · Bolsa de Europa · evolución relativa",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 103.6483",
+          "3.6483 %",
+          "92.8201 / 108.9473",
+          "Índice base 100"
+        ],
+        [
+          "CAC 40 · Bolsa de Europa · evolución relativa",
+          "2025-10-13 a 2026-10-12 · 42 datos",
+          "100 / 98.7223",
+          "-1.2777 %",
+          "97.3777 / 109.3352",
+          "Índice base 100"
+        ]
+      ],
+      "note": "Cálculos de VALLNews sobre los puntos mostrados, con extremos y fechas de cada serie. Las gráficas pueden estar muestreadas: el rango corresponde a esos puntos, no al máximo o mínimo de toda la historia diaria. Un cambio del tramo no equivale a una variación de sesión ni a un pronóstico. En rendimientos, p. p. significa puntos porcentuales y pb puntos base."
+    },
+    {
+      "kind": "guide",
+      "title": "Guía sectorial de validación",
+      "columns": [
+        "Frente",
+        "Pregunta de decisión",
+        "Información necesaria"
+      ],
+      "rows": [
+        [
+          "Desempeño regional",
+          "¿Cómo difieren los cierres y horizontes entre regiones y mercados?",
+          "Índice, país, moneda, hora de cierre y serie comparable"
+        ],
+        [
+          "Emisoras y sectores",
+          "¿Qué exposición real tiene la empresa a las emisoras o sectores observados?",
+          "Cartera, participación por sector, resultados y comunicados del emisor"
+        ],
+        [
+          "Valuación y liquidez",
+          "¿Hay evidencia para explicar el movimiento más allá del precio?",
+          "Utilidades, múltiplos, volumen, amplitud y liquidez; no inferirlos de índices"
+        ],
+        [
+          "Volatilidad y concentración",
+          "¿Qué condición pondría en duda la lectura de la cartera?",
+          "Exposición por activo, moneda, horizonte y límites de concentración"
+        ]
+      ],
+      "note": "Campos a contrastar con las fuentes del corte y los datos de la empresa. Esta guía no acredita que todas las variables estén disponibles ni contiene cotizaciones adicionales."
+    }
+  ],
+  "sources": [
+    "Corte archivado del PDF proporcionado por el usuario: 12 de octubre de 2026. Material de regresión para revisar el diseño; no representa una consulta de precios actuales.",
+    "Yahoo Finance · fuente declarada en el archivo, sin revalidación de cifras."
+  ]
+}

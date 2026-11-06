@@ -1,0 +1,19 @@
+# Informes ejecutivos de México
+
+Los cuatro informes diarios de México comparten una lectura breve de hechos, repercusiones para el negocio y seguimiento. Se eliminan las cuatro tarjetas de conteos, las secciones genéricas repetidas y las líneas que sólo unían dos observaciones. El formato se deriva de la evidencia original sin modificar precios ni fechas del catálogo.
+
+Panorama nacional muestra cada indicador anual con su unidad, año y observación previa disponible. Las diferencias entre tasas porcentuales se expresan en puntos porcentuales; las magnitudes usan cambio relativo con base positiva. Se recupera la historia anual que antes quedaba reducida a una sola barra. El tipo de cambio tiene su propio bloque; las cotizaciones de emisoras se consultan en Bolsa.
+
+Bolsa compara cada emisora en MXN contra sus propias observaciones fechadas, separa USD/MXN y ofrece trayectorias base 100 con una fecha común real. No utiliza un precio previo sin fecha para fabricar una variación diaria. La edición semanal identifica su base semanal y ambas fechas, en lugar de mostrar el cierre del día anterior junto a un porcentaje de siete días. No se comparan empresas mediante el nivel absoluto del precio de una acción.
+
+Proteínas presenta cerdo, res, pollo y huevo únicamente donde existen precios recientes verificables. Mantiene estado, presentación, unidad y periodo. Una fuente semanal o mensual no recibe cambio diario. Los registros antiguos, como el pollo mensual de marzo de 2025, permanecen en el respaldo y no aparecen como precios vigentes del corte. Una historia sólo aporta variaciones si coincide inequívocamente con la identidad comercial y el último valor del registro actual; los cambios de plazas no se unen automáticamente. No se muestran identificadores internos en el resumen ni en las gráficas.
+
+Producción distingue los volúmenes agrícolas de 2025 del valor minero de 2024. Explica la concentración regional y conserva todas las cifras estatales en la página y sus respaldos. La gráfica minera utiliza miles de millones de MXN, identificados expresamente; la tabla conserva los pesos publicados. No interpreta producción histórica como inventario disponible hoy.
+
+El lector muestra una gráfica seleccionable a la vez, con hasta cuatro líneas y grupos compatibles. Ofrece filtros reales por estado en Proteínas y Producción. Los filtros se vinculan al informe: cambiar de reporte no arrastra un estado que pueda dejar vacía la nueva vista. Los controles principales incluyen traducciones en los cinco idiomas adicionales del proyecto. La paleta sigue los azules, grises, olivos y otros tonos sobrios compartidos.
+
+Los PDF individuales conservan el límite de tres páginas y no llevan una marca de agua sobre los datos. En el corte revisado: Panorama y Bolsa, dos páginas; Proteínas y Producción, tres. Panorama general integrado conserva su extensión completa. Los anexos mantienen las tablas originales, presentaciones y plazas; CSV y Excel incluyen datos de gráficas, y Excel conserva su precisión numérica aunque las etiquetas visuales usen dos decimales.
+
+Validaciones: pruebas originales de México, nuevas pruebas de identidad y frecuencia, guardado privado y exportación con tablas y gráficas equivalentes, panorama integrado, regresiones de Mercados y noticias financieras, compilación y ESLint. Se simularon ocho descargas HTTP autenticadas de PDF, cuatro CSV y cuatro Excel. Se revisaron páginas renderizadas y el lector de escritorio/móvil, incluida la limpieza de filtros al cambiar de informe. Evidencia local en `output/mexico-ejecutivo-20261028/`.
+
+No se migran tablas ni se cambian las cotizaciones para activar el diseño. La versión de presentación se actualiza para invalidar vistas previas anteriores. Se reinicia el servidor local y se mantienen desactivados los envíos automáticos de correo.

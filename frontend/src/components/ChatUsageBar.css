@@ -1,0 +1,13 @@
+.vai-chat-usage{width:100%;max-width:980px;margin:0 auto 10px;padding:10px 14px;border:1px solid #dbe2e8;border-radius:12px;background:#f7f9fb;color:#42566b;font:12px/1.45 system-ui,sans-serif;box-sizing:border-box}
+.vai-chat-usage p{margin:3px 0}.vai-chat-usage button{color:#30475d;background:transparent;border:1px solid #c5d0da;border-radius:5px;cursor:pointer}
+.vai-credit-windows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.vai-credit-window{min-width:0}.vai-credit-window>div{display:flex;justify-content:space-between;gap:7px;flex-wrap:wrap}
+.vai-credit-window strong{font-weight:650}.vai-credit-window span,.vai-credit-window small{font-size:11px}
+.vai-credit-window progress{display:block;width:100%;height:6px;margin:5px 0;appearance:none;border:0;border-radius:4px;background:#e1e7ec;overflow:hidden}
+.vai-credit-window progress::-webkit-progress-bar{background:#e1e7ec;border-radius:4px}.vai-credit-window progress::-webkit-progress-value{background:#829bb1;border-radius:4px}.vai-credit-window progress::-moz-progress-bar{background:#829bb1;border-radius:4px}
+.vai-chat-usage details{margin-top:7px}.vai-chat-usage summary{cursor:pointer;font-size:11px}.vai-chat-usage details p{margin:6px 0}.vai-credit-alert{padding:7px 0;font-weight:600}
+body.vall-ai-body .vai-chat-usage{max-width:760px;border-color:#3d4959;background:#1f2937;color:#c2cbd6}
+body.vall-ai-body .vai-chat-usage button{color:#d4dce5;border-color:#536172}
+body.vall-ai-body .vai-chat-usage details[open]{max-height:23vh;overflow-y:auto;overscroll-behavior:contain}
+body.vall-ai-body .vai-credit-window progress,body.vall-ai-body .vai-credit-window progress::-webkit-progress-bar{background:#3d4959}
+@media(max-width:600px){.vai-chat-usage{padding:8px 10px}.vai-credit-windows{gap:9px}.vai-credit-window>div{display:block}.vai-credit-window span{display:block}.vai-credit-window small{font-size:10px}}

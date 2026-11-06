@@ -1,6 +1,7 @@
 'use strict';
 
 const { externalGet } = require('../lib/http');
+const { findCurrencyMentions } = require('./currency-catalog');
 
 // Las consultas sencillas de conversión no necesitan depender de la
 // interpretación del modelo. Se detectan y se enriquecen con una referencia
@@ -8,14 +9,6 @@ const { externalGet } = require('../lib/http');
 // contexto, escenarios o una explicación financiera.
 const CACHE_MS = 60 * 60 * 1000;
 let rateCache = null;
-
-const CURRENCIES = [
-    { code: 'USD', re: /\b(?:usd|d[oó]lar(?:es)?|d[oó]lar(?:es)? estadounidenses?)\b/gi },
-    { code: 'MXN', re: /\b(?:mxn|peso(?:s)?(?: mexicano(?:s)?)?)\b/gi },
-    { code: 'EUR', re: /\b(?:eur|euro(?:s)?)\b/gi },
-    { code: 'CAD', re: /\b(?:cad|d[oó]lar(?:es)? canadiense(?:s)?)\b/gi },
-    { code: 'GBP', re: /\b(?:gbp|libra(?:s)? esterlina(?:s)?)\b/gi },
-];
 
 function parseAmount(raw) {
     const compact = String(raw || '').replace(/\s/g, '');
@@ -28,13 +21,7 @@ function parseAmount(raw) {
 }
 
 function findCurrencies(text) {
-    const found = [];
-    for (const currency of CURRENCIES) {
-        currency.re.lastIndex = 0;
-        let match;
-        while ((match = currency.re.exec(text))) found.push({ code: currency.code, index: match.index });
-    }
-    return found.sort((a, b) => a.index - b.index);
+    return findCurrencyMentions(text).map(currency => ({ code: currency.code, index: currency.index }));
 }
 
 function parseCurrencyPair(message) {

@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {columnSpacing} from './lib/report-spacing-audit.mjs';
+const page={width:600,height:840},box=(x,y,width,height)=>({x,y,width,height});
+const sample=columnSpacing([box(36,65,260,100),box(36,285,260,80),box(304,65,260,310)],page);
+assert.equal(sample.maxInteriorGap,120,'Detecta un hueco real acotado por dos bloques');
+assert.equal(sample.columns[0].trailing,397,'El cierre libre no se confunde con un hueco interior');
+assert.equal(sample.columns[1].gaps.length,0,'Columnas independientes');
+assert.equal(columnSpacing([box(36,65,528,400),box(60,90,100,20)],page).maxInteriorGap,0,'El área interna de una gráfica no es un hueco de maquetación');
+assert.equal(columnSpacing([box(36,10,528,15),box(36,790,528,15)],page).maxInteriorGap,0,'Encabezado y pie quedan fuera del cuerpo');
+assert.equal(columnSpacing([box(36,65,260,100),box(36,171,528,100)],page).maxInteriorGap,6,'Detecta separación bajo un bloque de ancho completo');
+assert.equal(columnSpacing([box(36,65,528,20),box(36,85,120,200),box(156,85,12,200),box(168,85,396,200),box(36,291,528,20)],page).maxInteriorGap,6,'Una celda estrecha no produce un falso hueco en una tabla');
+assert.equal(columnSpacing([box(36,65,528,20),...Array.from({length:4},(_,i)=>box(36+i*134,91,126,60)),box(36,157,528,20)],page).maxInteriorGap,6,'El pasillo entre dos indicadores no oculta una fila ocupada');
+console.log('Auditor de espacios: OK · huecos conocidos, columnas, márgenes y límites de gráficas.');

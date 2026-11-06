@@ -18,11 +18,7 @@
     };
     const FIXED_MATURITY = '10Y';
     const FIXED_MATURITY_LABEL = '10 años';
-    const YIELD_PALETTE = {
-        low: [74, 128, 136],
-        middle: [102, 145, 126],
-        high: [174, 126, 99],
-    };
+    const MOVE_COLORS = { up: '#59D2AA', down: '#FF7F91', flat: '#4C5F70' };
     const REGIONS = {
         us:'americas', mx:'americas', ca:'americas', br:'americas', cl:'americas',
         gb:'europe', de:'europe', fr:'europe', it:'europe', es:'europe', ch:'europe', pl:'europe',
@@ -30,10 +26,6 @@
         za:'africa',
     };
     const EMERGING = new Set(['mx', 'br', 'cn', 'in', 'za', 'cl', 'id', 'pl']);
-    /* México se excluye solamente de esta visualización. Sus tasas y bonos
-       continúan disponibles en los demás módulos de Finanzas. */
-    const EXCLUDED_KEYS = new Set(['mx']);
-    const EXCLUDED_GEOGRAPHIES = new Set(['Mexico']);
     const FILTER_LABELS = { all:'Vista global', americas:'Américas', europe:'Europa', asia:'Asia–Pacífico', emerging:'Mercados emergentes' };
     const EXCLUDED_RATES = /TIIE|Tasa objetivo|Tasa base|LPR|SELIC/i;
     const state = { data: [], selected: '', pinned: '', fallback: false, filter: 'all', zoom: 1 };
@@ -50,7 +42,6 @@
 
     function pointsForMaturity() {
         return state.data.map(entry => {
-            if (EXCLUDED_KEYS.has(entry.key)) return null;
             const ne = KEY_TO_NE[entry.key];
             if (!ne) return null; // Zona Euro es un agregado, no un país.
             const bond = (entry.bonds || []).find(item => item.maturity === FIXED_MATURITY && !EXCLUDED_RATES.test(item.label || ''));
@@ -76,13 +67,14 @@
         return points.filter(point => point.region === state.filter);
     }
 
-    function colorFor(value, min, max) {
-        const ratio = max === min ? .5 : Math.max(0, Math.min(1, (value - min) / (max - min)));
-        const start = ratio <= .5 ? YIELD_PALETTE.low : YIELD_PALETTE.middle;
-        const end = ratio <= .5 ? YIELD_PALETTE.middle : YIELD_PALETTE.high;
-        const progress = ratio <= .5 ? ratio * 2 : (ratio - .5) * 2;
-        const mixed = start.map((channel, index) => Math.round(channel + (end[index] - channel) * progress));
-        return `rgb(${mixed.join(' ')})`;
+    function movementFor(point) {
+        if (!Number.isFinite(point.prev)) return 'flat';
+        const change = point.yield - point.prev;
+        return change > .005 ? 'up' : change < -.005 ? 'down' : 'flat';
+    }
+
+    function colorFor(point) {
+        return MOVE_COLORS[movementFor(point)];
     }
 
     function centerFor(map, point) {
@@ -125,19 +117,15 @@
         if (filterStatus) filterStatus.textContent = `${FILTER_LABELS[state.filter]} · ${filteredPoints.length} de ${points.length} mercados`;
     }
 
-    function updateLegend(values) {
-        const sorted = [...values].sort((a, b) => a - b);
-        const min = sorted[0];
-        const max = sorted[sorted.length - 1];
-        const middle = Math.floor(sorted.length / 2);
-        const median = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-        if ($('fbm-legend-min')) $('fbm-legend-min').textContent = Number.isFinite(min) ? number(min) + '%' : '—';
-        if ($('fbm-legend-max')) $('fbm-legend-max').textContent = Number.isFinite(max) ? number(max) + '%' : '—';
+    function updateLegend(points) {
+        const ups = points.filter(point => movementFor(point) === 'up').length;
+        const downs = points.filter(point => movementFor(point) === 'down').length;
+        if ($('fbm-legend-min')) $('fbm-legend-min').textContent = `${downs} bajas`;
+        if ($('fbm-legend-max')) $('fbm-legend-max').textContent = `${ups} alzas`;
         const marker = $('fbm-legend-marker');
         if (marker) {
-            const position = max === min ? 50 : ((median - min) / (max - min)) * 100;
-            marker.style.left = `${Math.max(4, Math.min(96, position)).toFixed(1)}%`;
-            marker.title = `Mediana ${number(median)}%`;
+            marker.style.left = '50%';
+            marker.title = `${downs} bajas y ${ups} alzas`;
         }
     }
 
@@ -302,30 +290,27 @@
         const points = visiblePoints(allPoints);
         const visibleKeys = new Set(points.map(point => point.key));
         const byNe = new Map(allPoints.map(point => [point.ne, point]));
-        const values = allPoints.map(point => point.yield);
-        const min = values.length ? Math.min(...values) : 0;
-        const max = values.length ? Math.max(...values) : 1;
-        updateLegend(values);
+        updateLegend(allPoints);
         const empty = $('fbm-map-empty');
         if (empty) empty.hidden = points.length > 0;
 
         const countries = [...map.paises];
-        Object.entries(map.suplementos || {}).forEach(([ne, supplement]) => {
-            if (!EXCLUDED_GEOGRAPHIES.has(ne)) countries.push({ ne, d: supplement.d });
-        });
+        Object.entries(map.suplementos || {}).forEach(([ne, supplement]) => countries.push({ ne, d: supplement.d }));
         const paths = countries.map(country => {
             const point = byNe.get(country.ne);
             if (!point) return `<path class="fbm-country" d="${country.d}" aria-hidden="true"></path>`;
-            const fill = colorFor(point.yield, min, max);
+            const movement = movementFor(point);
+            const fill = colorFor(point);
             const filtered = !visibleKeys.has(point.key);
-            return `<path class="fbm-country has-data${point.indicative ? ' is-reference' : ' is-live'}${filtered ? ' is-filtered' : ''}" d="${country.d}" data-fbm-key="${esc(point.key)}" style="--fbm-fill:${fill}" role="button" tabindex="${filtered ? '-1' : '0'}" aria-hidden="${filtered}" aria-label="${esc(point.country)}, ${number(point.yield)} por ciento"><title>${esc(point.country)} · ${number(point.yield)}%</title></path>`;
+            return `<path class="fbm-country has-data is-${movement}${point.indicative ? ' is-reference' : ' is-live'}${filtered ? ' is-filtered' : ''}" d="${country.d}" data-fbm-key="${esc(point.key)}" style="--fbm-fill:${fill}" role="button" tabindex="${filtered ? '-1' : '0'}" aria-hidden="${filtered}" aria-label="${esc(point.country)}, ${number(point.yield)} por ciento"><title>${esc(point.country)} · ${number(point.yield)}%</title></path>`;
         }).join('');
         const markers = allPoints.map(point => {
             const center = centerFor(map, point);
             if (!center) return '';
-            const fill = colorFor(point.yield, min, max);
+            const movement = movementFor(point);
+            const fill = colorFor(point);
             const filtered = !visibleKeys.has(point.key);
-            return `<g class="fbm-marker${point.indicative ? ' is-reference' : ' is-live'}${filtered ? ' is-filtered' : ''}" data-fbm-key="${esc(point.key)}" transform="translate(${center.x} ${center.y})" role="button" tabindex="${filtered ? '-1' : '0'}" aria-hidden="${filtered}" aria-label="${esc(point.country)}, ${number(point.yield)} por ciento">
+            return `<g class="fbm-marker is-${movement}${point.indicative ? ' is-reference' : ' is-live'}${filtered ? ' is-filtered' : ''}" data-fbm-key="${esc(point.key)}" transform="translate(${center.x} ${center.y})" role="button" tabindex="${filtered ? '-1' : '0'}" aria-hidden="${filtered}" aria-label="${esc(point.country)}, ${number(point.yield)} por ciento">
                 <circle class="fbm-marker-halo" r="9"></circle><circle class="fbm-marker-dot" r="4" style="--fbm-fill:${fill}"></circle>
                 <title>${esc(point.country)} · ${number(point.yield)}%</title>
             </g>`;

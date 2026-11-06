@@ -1,0 +1,67 @@
+{
+  "version": "2026-10-15.1",
+  "status": "draft_pending_human_review",
+  "notice": "Documentos ficticios para evaluación. No son noticias ni cotizaciones reales.",
+  "cases": [
+    {
+      "id": "commitment-not-execution",
+      "question": "SIMULACIÓN: ¿Qué acuerdos comerciales de soya entre China y Estados Unidos aparecen en septiembre de 2026? Distingue compromiso y compra realizada.",
+      "date": "2026-09-25",
+      "excerpt": "SIMULACIÓN. China y Estados Unidos anunciaron un compromiso de compra de soya. No se informan compras ejecutadas ni volúmenes recibidos.",
+      "required": [{"id":"commitment","pattern":"compromiso"},{"id":"execution-unconfirmed","pattern":"no.{0,50}(?:ejecut|realiz|recibid)|sin.{0,40}(?:ejecut|realiz)"}],
+      "forbidden": [{"id":"invented-execution","pattern":"(?:ya compr[oó]|compras? ejecutadas? por|recibi[oó] \\d)"}],
+      "reference": "El 2026-09-25 se anunció un compromiso de compra de soya; no se informan compras ejecutadas ni volúmenes recibidos. [Documento]({url}).",
+      "mutations": ["China ya compró soya y recibió 900 toneladas. [Documento]({url}) (2026-09-25)."]
+    },
+    {
+      "id": "proposal-not-enacted",
+      "question": "SIMULACIÓN: ¿Está vigente el arancel del acuerdo comercial de septiembre de 2026 entre China y Estados Unidos?",
+      "date": "2026-09-25",
+      "excerpt": "SIMULACIÓN. Se recomendó reducir el arancel de la soya 10%. La recomendación no entró en vigor y no tiene fecha de aplicación confirmada.",
+      "required": [{"id":"proposal","pattern":"recomend|propuest"},{"id":"not-enacted","pattern":"no.{0,45}(?:vigor|vigente|aplicaci[oó]n)|sin.{0,35}(?:vigor|aplicaci[oó]n)"}],
+      "forbidden": [{"id":"enacted-as-fact","pattern":"ya (?:entr[oó] en vigor|se aplica)|reducci[oó]n vigente"}],
+      "reference": "El 2026-09-25 se recomendó reducir el arancel de soya 10%; la recomendación no entró en vigor ni tiene fecha de aplicación confirmada. [Documento]({url}).",
+      "mutations": ["La reducción vigente del arancel es 10%; ya se aplica. [Documento]({url}) (2026-09-25)."]
+    },
+    {
+      "id": "publication-and-effective-date",
+      "question": "SIMULACIÓN: ¿Cuándo se publicó y cuándo se aplica la medida comercial de soya entre China y Estados Unidos anunciada en septiembre de 2026?",
+      "date": "2026-09-25",
+      "excerpt": "SIMULACIÓN. El documento fue publicado el 2026-09-25. Anuncia una medida sobre soya cuya fecha de aplicación es el 2026-10-01.",
+      "required": [{"id":"publication","pattern":"public.{0,55}2026-09-25|2026-09-25.{0,35}public"},{"id":"application","pattern":"aplica.{0,45}2026-10-01|2026-10-01.{0,35}aplica"}],
+      "forbidden": [],
+      "reference": "El documento se publicó el 2026-09-25 y anuncia una medida sobre soya cuya fecha de aplicación es el 2026-10-01. [Documento]({url}).",
+      "mutations": ["La medida se publicó y aplica el 2026-09-25. [Documento]({url})."]
+    },
+    {
+      "id": "background-not-current",
+      "question": "SIMULACIÓN: ¿Qué anuncios comerciales de soya entre China y Estados Unidos se documentaron en septiembre de 2026? Sólo se aporta un documento de 2025.",
+      "date": "2025-09-25",
+      "excerpt": "SIMULACIÓN. En 2025 se publicó un anuncio comercial sobre soya entre China y Estados Unidos. Este documento no informa anuncios de septiembre de 2026.",
+      "required": [{"id":"background","pattern":"antecedente|fuera del periodo|hist[oó]rico"},{"id":"limited-coverage","pattern":"no.{0,60}(?:confirm|verific|informa)|cobertura.{0,25}parcial"}],
+      "forbidden": [{"id":"universal-absence","pattern":"no (?:hubo|existen|hay) acuerdos"}],
+      "reference": "Como antecedente fuera del periodo, el 2025-09-25 se publicó un anuncio sobre soya. No confirma anuncios de septiembre de 2026; la cobertura es parcial. [Documento]({url}).",
+      "mutations": ["El 2025-09-25 se anunció un acuerdo nuevo de este periodo. [Documento]({url}).", "No hubo acuerdos de soya. [Documento]({url}) (2025-09-25)."]
+    },
+    {
+      "id": "quantity-with-unit",
+      "question": "SIMULACIÓN: ¿Qué volumen de soya documenta el acuerdo comercial entre China y Estados Unidos de septiembre de 2026? Conserva la unidad.",
+      "date": "2026-09-25",
+      "excerpt": "SIMULACIÓN. El documento informa un volumen de soya de 1200 toneladas. No es un importe en dólares ni un volumen en kilogramos.",
+      "required": [{"id":"volume-unit","pattern":"1200\\s+toneladas"}],
+      "forbidden": [{"id":"wrong-unit","pattern":"1200\\s*(?:USD|d[oó]lares|kg|kilogramos)"}],
+      "reference": "El documento publicado el 2026-09-25 informa un volumen de soya de 1200 toneladas. [Documento]({url}).",
+      "mutations": ["El volumen de soya fue de 200 toneladas. [Documento]({url}) (2026-09-25).", "El volumen de soya fue 1200 kg. [Documento]({url}) (2026-09-25)."]
+    },
+    {
+      "id": "conditional-financial-effect",
+      "question": "SIMULACIÓN: Soy comprador de soya. ¿Cómo afectaría a mi margen el acuerdo comercial entre China y Estados Unidos de septiembre de 2026? No he dado costos de mi negocio.",
+      "date": "2026-09-25",
+      "excerpt": "SIMULACIÓN. China y Estados Unidos anunciaron un compromiso de compra de soya. No se documentan precios contratados, fecha de entrega ni efectos sobre márgenes de empresas.",
+      "required": [{"id":"conditional-effect","pattern":"si.{0,100}(?:costo|compra|ejecut)|efecto.{0,35}condicional"},{"id":"verification","pattern":"verifica|comprueba|confirm|costo puesto"}],
+      "forbidden": [{"id":"guaranteed-profit","pattern":"(?:tu margen|tu ganancia|tu utilidad).{0,35}(?:aumentar[aá]|subir[aá]|garantiz)"}],
+      "reference": "El 2026-09-25 se anunció un compromiso de compra de soya, sin precios contratados ni efectos documentados sobre márgenes. [Documento]({url}).\n\nSi cambia tu costo de compra y mantienes el precio de venta, cambiaría tu margen. Verifica el costo puesto en destino y las condiciones contratadas antes de trasladar el anuncio a tu negocio.",
+      "mutations": ["Tu margen aumentará 10% por el acuerdo. [Documento]({url}) (2026-09-25)."]
+    }
+  ]
+}

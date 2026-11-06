@@ -25,8 +25,8 @@
         market: {
             usdmxn:   null,   // open.er-api.com
             fix:      null,   // Banxico SF43718 (oficial)
-            tiie:     null,   // Banxico SF61745
-            infl:     null,   // Banxico SP74660
+            tiie:     null,   // Banxico SF43783 (TIIE 28 días)
+            infl:     null,   // Banxico SP30578 (INPC, variación anual)
             corn:     null,   // { price, pct }
             hogs:     null,   // { price, pct }
             soybeans: null,   // { price, pct }
@@ -214,7 +214,7 @@
     async function loadMarket(force = false) {
         if (force) {
             [
-                'rate_usdmxn','bnx_SF43718','bnx_SF61745','bnx_SP74660',
+                'rate_usdmxn','bnx_SF43718','bnx_SF43783','bnx_SP30578',
                 'av_cp_CORN','av_cp_LEAN_HOGS','av_cp_SOYBEANS',
                 'av_cp_WHEAT','av_cp_CRUDE_OIL','av_q_QQQ',
             ].forEach(k => VDS.clear(k));
@@ -223,8 +223,8 @@
         const [uR, fxR, tR, iR, cR, hR, sR, wR, oR, qR] = await Promise.allSettled([
             VDS.usdmxn(),
             VDS.banxico('SF43718'),              // Fix Banxico (oficial)
-            VDS.banxico('SF61745'),              // TIIE 28d
-            VDS.banxico('SP74660'),              // Inflación anual
+            VDS.banxico('SF43783'),              // TIIE 28d
+            VDS.banxico('SP30578'),              // Inflación anual
             VDS.commodityWithPct('CORN'),
             VDS.commodityWithPct('LEAN_HOGS'),
             VDS.commodityWithPct('SOYBEANS'),
@@ -594,7 +594,7 @@
             }
 
             const badge = $('backendBadge');
-            if (badge) { badge.textContent = 'VALL AI ✓'; badge.classList.add('badge-ok'); }
+            if (badge) { badge.textContent = 'ORION ✓'; badge.classList.add('badge-ok'); }
         } catch { /* backend no disponible, continuar sin él */ }
     }
 
@@ -871,7 +871,6 @@
         // el mercado cargue sin esperar a que terminen los fetches de noticias.
         const hasStaleNews = !!VDS.load('news_pools_v2', true);
 
-        window.VNLoader?.setText('Cargando mercados');
         await Promise.allSettled([ loadMarket(), loadGlobalRisk() ]);
 
         if (hasStaleNews) {
@@ -879,15 +878,10 @@
             // inmediato y ocultar el loader sin esperar la red.
             // loadNews() aplicará los datos stale sincrónicamente (localStorage)
             // antes de su primer await, y luego actualizará en segundo plano.
-            window.VNLoader?.setText('Actualizando noticias');
             loadNews();                // sin await — corre en segundo plano
-            window.VNLoader?.hide();
         } else {
             // Ruta completa: primera visita o caché limpia — esperar datos frescos
-            // (el fallback de 45 s en page-loader.js nos cubre si algo falla).
-            window.VNLoader?.setText('Cargando noticias');
             await Promise.allSettled([ loadNews() ]);
-            window.VNLoader?.hide();
         }
 
         loadBackend();

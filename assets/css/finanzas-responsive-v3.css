@@ -596,3 +596,132 @@ canvas {
         transition-duration: .01ms !important;
     }
 }
+
+/* Marco maestro de Finanzas: mismo lienzo útil que Mercados. Mercados abre su
+   caja al ancho disponible y deja un gutter interno de 2.7rem; replicamos ese
+   contrato aquí para que sus bordes reales coincidan en escritorio. */
+body.vn-dark-finanzas .container {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 1.15rem 0 3rem !important;
+    padding: 0 2.7rem 2rem !important;
+}
+
+/* El hub no debe volver a angostarse dentro del marco ya alineado. */
+body.vn-dark-finanzas .container .favro-finance-shell {
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+}
+
+/* Las cuatro vistas de detalle se montan como hermanos de la portada. Cada
+   módulo traía límites históricos distintos (1680px, auto o sus propios
+   márgenes), por lo que sus marcos nunca podían alinearse entre sí. El marco
+   exterior es el único que define el ancho; estas piezas solo lo ocupan. */
+body.vn-dark-finanzas .container > :is(
+    .ff-detail-navigation,
+    .ff-world-map,
+    .ff-exchange-board,
+    .ff-bolsa-chart-host,
+    .fin-section-status,
+    .ff-detail-supplement,
+    .ff-news-detail-host,
+    #pane-general,
+    #bonds-panel,
+    #fx-pro-panel,
+    #news-pro-panel,
+    #fin-layout-wrap,
+    #fin-bottom-grid,
+    .ff-spreads-board
+) {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+}
+
+/* Bolsa se arma por módulos dinámicos (mapa, tablero, gráfica y complemento).
+   Se le asigna el gutter a cada módulo, no solo al contenedor padre: así ningún
+   bloque puede pegarse al borde al ser trasladado por la vista de detalle. */
+html.vn-dark-pilot body.vn-dark-finanzas:is(.ff-detail-bolsa, .ff-detail-rentafija) {
+    --fin-detail-gutter: 2.7rem;
+    --fin-frame-padding: clamp(18px, 2.2vw, 36px);
+}
+
+body.vn-dark-finanzas.ff-detail-bolsa .container {
+    padding-inline: 0 !important;
+}
+
+/* La regla histórica de dark-pilot ensanchaba estos módulos con márgenes
+   negativos. Se usa la misma especificidad, con identificadores reales, para
+   cerrar esa vía de desborde sin afectar el resto de Finanzas. */
+html.vn-dark-pilot body.vn-dark-finanzas:is(.ff-detail-bolsa, .ff-detail-rentafija) .container > :is(
+    #ff-detail-navigation,
+    #ff-world-map,
+    #ff-exchange-board,
+    #ff-bolsa-chart-host,
+    #fin-section-status,
+    #ff-detail-supplement
+) {
+    width: calc(100% - (var(--fin-detail-gutter) * 2)) !important;
+    max-width: none !important;
+    margin-left: var(--fin-detail-gutter) !important;
+    margin-right: var(--fin-detail-gutter) !important;
+}
+
+/* "Análisis Sectorial" es un bloque hermano del contenedor de Bolsa, no un
+   hijo suyo. Por ello recibe el gutter en su propio nivel de la página. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel {
+    box-sizing: border-box;
+    width: calc(100% - ((var(--fin-frame-padding) + var(--fin-detail-gutter)) * 2)) !important;
+    max-width: none !important;
+    margin-left: calc(var(--fin-frame-padding) + var(--fin-detail-gutter)) !important;
+    margin-right: calc(var(--fin-frame-padding) + var(--fin-detail-gutter)) !important;
+}
+
+/* Bonos es hermano del marco principal. Suma su relleno al margen compartido
+   para que todos sus módulos coincidan con los bordes reales de Bolsa. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija .container {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel.debt-pro {
+    box-sizing: border-box !important;
+    width: calc(100% - ((var(--fin-frame-padding) + var(--fin-detail-gutter)) * 2)) !important;
+    max-width: none !important;
+    margin: 0 calc(var(--fin-frame-padding) + var(--fin-detail-gutter)) 24px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    gap: 0 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel #bond-world-map {
+    width: 100% !important;
+    margin-inline: 0 !important;
+}
+
+@media (max-width: 700px) {
+    html.vn-dark-pilot body.vn-dark-finanzas:is(.ff-detail-bolsa, .ff-detail-rentafija) {
+        --fin-frame-padding: 12px;
+    }
+}
+
+@media (max-width: 640px) {
+    body.vn-dark-finanzas .container {
+        margin: .7rem 0 1.5rem !important;
+        padding: 0 1rem 1.5rem !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas:is(.ff-detail-bolsa, .ff-detail-rentafija) {
+        --fin-detail-gutter: 1rem;
+    }
+
+    body.vn-dark-finanzas.ff-detail-bolsa .container {
+        padding-inline: 0 !important;
+    }
+}

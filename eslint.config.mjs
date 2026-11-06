@@ -105,6 +105,8 @@ export default [
            más abajo para el porqué de sus reglas. */
         ignores: [
             '**/node_modules/**',
+            '.npm-security-cache/**',
+            'tmp/**',             // herramientas y archivos temporales, no código de la app
             'dist/**',
             'frontend/dist/**',
             'assets/js/vendor/**',
@@ -112,6 +114,7 @@ export default [
             '.venv/**',          // paquetes de Python; traen .js vendorizados
             '_scratch/**',        // trabajo desechable, ya ignorado por git
             'scripts/_verify/**', // salida de los verificadores; git ya la ignora
+            'output/**',         // PDFs, capturas y bundles generados por las pruebas; el código fuente está fuera
             'boveda_obsidian/**',
             'linear-design/**',
             'tusitio-design/**',
@@ -263,5 +266,9 @@ export default [
                habría que revisar. */
             'react/no-danger': 'warn',
         },
+    },
+    {
+        files: ['frontend/src/lib/mexico-state-production.js', 'frontend/src/lib/reportSectorFormat.js', 'frontend/src/lib/reportLayout.js', 'frontend/src/lib/reportCreation.js', 'frontend/src/lib/reportDraftSession.js', 'frontend/src/lib/reportNumberFormat.js', 'frontend/src/lib/reportPresentation.js', 'frontend/src/lib/reportLibrary.js', 'frontend/src/lib/reportRefreshLabel.js'],
+        languageOptions: { ecmaVersion: 2025 },
     },
 ];

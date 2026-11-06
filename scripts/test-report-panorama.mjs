@@ -1,0 +1,36 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {weeklyReport} from '../shared/report-weekly.mjs';
+import {safePanoramaParts} from '../shared/report-panorama.mjs';
+import {availablePresentationModel} from '../shared/report-available-data.mjs';
+import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
+import {reportCsv} from '../frontend/src/lib/reportCsv.js';
+import {writeReportDraft,readReportDraft} from '../frontend/src/lib/reportDraftSession.js';
+const require=createRequire(import.meta.url);process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
+const {composePanorama}=require('../backend/lib/report-panorama'),{normalizeReport}=require('../backend/services/user-report-store'),{_test}=require('../backend/routes/export');
+const cutoff='2026-10-28T16:00:00Z';
+const fixture=(key,extra={})=>({key,title:key+' · SIMULACIÓN',generatedAt:cutoff,summary:'Datos sintéticos para validar la integración; no son precios de mercado.',sections:[],tables:[],visuals:[],metrics:[],sources:[],sourceLinks:[],watchlist:[],takeaways:[],...extra});
+const article={title:'Precios de energía · comunicado de prueba',description:'Contenido sintético',source:'Fuente de prueba',publishedAt:'2026-10-28T12:00:00Z',url:'https://example.invalid/noticia?utm_source=finance'};
+const finance={reports:[fixture('overview'),fixture('equities'),fixture('bonds'),fixture('fx'),fixture('daily_news',{headlines:[article]})],generatedAt:cutoff},markets={reports:[fixture('overview'),fixture('grains'),fixture('energy_metals'),fixture('proteins'),fixture('market_news',{headlines:[{...article,url:'https://example.invalid/noticia?utm_source=markets'}, {...article,title:'Cosecha de granos · comunicado de prueba',url:'https://example.invalid/otra'}, {...article,title:'Futuro excluido',publishedAt:'2030-01-01T00:00Z'}]})],generatedAt:cutoff},mexico={reports:['mx_overview','mx_bolsa','mx_proteins','mx_production'].map(key=>fixture(key)),generatedAt:cutoff};
+const before=JSON.stringify([finance,markets,mexico]),integrated=await composePanorama(finance,{marketsSnapshot:markets,mexicoSnapshot:mexico}),report=integrated.reports.find(item=>item.key==='overview'),model=weeklyReport(report);
+assert.equal(JSON.stringify([finance,markets,mexico]),before,'Source cuts are immutable');assert.equal(model.panorama.sourceCount,12);assert.equal(model.panorama.chapters.length,11);assert.equal(model.panorama.news.length,2,'Deduplicate titles and tracking links; reject future articles');assert.equal(model.panorama.structural.length,2);
+assert.equal(await composePanorama(integrated,{marketsSnapshot:markets,mexicoSnapshot:mexico}),integrated,'Unchanged composition does not write again');
+const partial=await composePanorama(finance);assert.deepEqual(partial.reports.find(item=>item.key==='overview').panoramaMissing,['markets','mexico']);
+const empty={reports:[{...fixture('overview'),generatedAt:'invalid'}]};assert.equal(await composePanorama(empty),empty,'No invalid integrated date when all components are absent');
+const draft=createReportDraft('finance',report),saved=normalizeReport(draft.report),exported=_test.executivePayload(report);
+for(const candidate of [saved,exported])assert.equal(weeklyReport(candidate).panorama.chapters.length,11,'Private save and PDF payload preserve all chapters');
+const values=new Map(),storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
+assert(writeReportDraft(storage,'fixture@example.invalid',{...draft,material:draft.report,instructions:'',tone:'professional',overrides:[]}));assert.equal(readReportDraft(storage,'fixture@example.invalid').status,'saved');assert.equal(readReportDraft(storage,'other@example.invalid').status,'empty');
+for(const input of [[...report.panoramaParts,report.panoramaParts[0]],[{...report.panoramaParts[0],key:'overview'}],[{...report.panoramaParts[0],panoramaParts:[]}],[{...report.panoramaParts[0],generatedAt:'2030-01-01T00:00Z'}]])assert.throws(()=>safePanoramaParts(input,cutoff));
+assert(!reportCsv(report).includes('Cierre en puntos'),'Mixed units never share a points header');
+const expanded={...report,panoramaParts:report.panoramaParts.map(part=>part.key==='mx_production' ? {...part,tables:[{title:'Respaldo sintético',columns:['Detalle'],rows:Array.from({length:600},()=>['Contenido sintético '.repeat(40)])}]} : part)},expandedDraft=createReportDraft('finance',expanded),folder=await fs.mkdtemp(path.join(os.tmpdir(),'vall-panorama-store-'));
+try{const store=require('../backend/services/user-report-store').createUserReportStore({directory:folder}),item=await store.save('panorama@example.invalid',{report:expandedDraft.report});assert(Buffer.byteLength(JSON.stringify(item))>420*1024);assert.equal(weeklyReport(await store.get('panorama@example.invalid',item.editionId)).panorama.sourceCount,12,'Large private Panorama reopens from disk');}finally{assert(path.resolve(folder).startsWith(path.resolve(os.tmpdir())+path.sep+'vall-panorama-store-'));await fs.rm(folder,{recursive:true,force:true});}
+const {reportExportContent}=require('../backend/lib/report-export-content');assert((await reportExportContent(report)).includes('Noticias y agenda integrada'));
+const pdf=await _test.makeExecutivePdf(report.title,report),{getDocument}=await import('../node_modules/pdfjs-dist/legacy/build/pdf.mjs'),task=getDocument({data:new Uint8Array(pdf),useSystemFonts:true,isEvalSupported:false}),document=await task.promise;
+const shown=availablePresentationModel(model).panorama.chapters;
+assert.equal(shown.length,1,'Synthetic empty market chapters are omitted; the news chapter remains');let links=0,text='';for(let number=1;number<=document.numPages;number++){const page=await document.getPage(number);links+=(await page.getAnnotations()).filter(item=>item.dest).length;text+=(await page.getTextContent()).items.map(item=>item.str).join(' ');}
+assert.equal(links,shown.length,'Index links point only to chapters with published data');assert(text.includes('Página 1 / '+document.numPages));await task.destroy();
+console.log('Panorama: immutable full evidence, scoped sources, news deduplication, structural dates, private save, payload, account-bound drafts, omitted empty chapters and matching PDF index pass.');

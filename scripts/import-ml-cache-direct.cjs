@@ -57,6 +57,8 @@ async function main() {
     const cacheDir = path.resolve(__dirname, '../backend/cache');
     const proposals = readJson(path.join(cacheDir, 'learning-proposals.json'), []);
     const review = readJson(path.join(cacheDir, 'market-review.json'), null);
+    const events = readJson(path.join(cacheDir, 'loopus-training-events.json'), []);
+    const summary = readJson(path.join(cacheDir, 'loopus-training-summary.json'), null);
     if (!Array.isArray(proposals)) throw new Error('learning-proposals.json no contiene una lista válida.');
 
     const client = await connectToSupabase();
@@ -67,13 +69,15 @@ async function main() {
         const dates = proposals.map(item => Date.parse(item.created_at)).filter(Number.isFinite);
         const startedAt = new Date(dates.length ? Math.min(...dates) : Date.now());
         const endedAt = new Date(dates.length ? Math.max(...dates) : startedAt);
-        const runKey = `legacy-local-cache-${fingerprint(proposals).slice(0, 16)}`;
+        const runKey = summary?.run_key || `legacy-local-cache-${fingerprint(proposals).slice(0, 16)}`;
         const run = await client.query(
             `INSERT INTO ml_training_runs (run_key, status, started_at, ended_at, duration_seconds, attempts, proposal_count, error_count, metadata)
              VALUES ($1, 'imported', $2, $3, $4, 0, $5, 0, $6)
              ON CONFLICT (run_key) DO UPDATE SET ended_at = EXCLUDED.ended_at, proposal_count = EXCLUDED.proposal_count, updated_at = NOW()
              RETURNING id`,
-            [runKey, startedAt, endedAt, Math.max(0, Math.round((endedAt - startedAt) / 1000)), proposals.length, JSON.stringify({ imported_from: 'backend/cache/learning-proposals.json' })],
+            [runKey, new Date(summary?.started_at || startedAt), new Date(summary?.ended_at || endedAt),
+                Math.max(0, Math.round((new Date(summary?.ended_at || endedAt) - new Date(summary?.started_at || startedAt)) / 1000)),
+                proposals.length, JSON.stringify({ project: 'Proyecto Loopus', imported_from: 'backend/cache' })],
         );
 
         let inserted = 0;
@@ -94,6 +98,20 @@ async function main() {
             inserted += result.rowCount;
         }
 
+        let eventsInserted = 0;
+        for (const event of Array.isArray(events) ? events : []) {
+            const result = await client.query(
+                `INSERT INTO ml_training_events (training_run_id, event_key, attempt_number, topic, status, model, sources, evidence, output, error_code, started_at, ended_at)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                 ON CONFLICT (event_key) DO UPDATE SET status=EXCLUDED.status, model=EXCLUDED.model, output=EXCLUDED.output, error_code=EXCLUDED.error_code, ended_at=EXCLUDED.ended_at`,
+                [run.rows[0].id, String(event.event_key), Number(event.attempt_number) || 1, String(event.topic || 'sin tema'),
+                    event.status === 'failed' ? 'failed' : 'completed', event.model || null, JSON.stringify(event.sources || []),
+                    JSON.stringify(event.evidence || {}), event.output ? JSON.stringify(event.output) : null, event.error_code || null,
+                    new Date(event.started_at || Date.now()), new Date(event.ended_at || Date.now())],
+            );
+            eventsInserted += result.rowCount;
+        }
+
         let reviewInserted = 0;
         if (review) {
             const result = await client.query(
@@ -106,10 +124,10 @@ async function main() {
         }
 
         const counts = {};
-        for (const table of ['ml_training_runs', 'ml_rule_proposals', 'ml_market_reviews']) {
+        for (const table of ['ml_training_runs', 'ml_training_events', 'ml_rule_proposals', 'ml_market_reviews']) {
             counts[table] = Number((await client.query(`SELECT COUNT(*)::int AS count FROM ${table}`)).rows[0].count);
         }
-        console.log(JSON.stringify({ inserted: { proposals: inserted, reviews: reviewInserted }, counts }));
+        console.log(JSON.stringify({ inserted: { events: eventsInserted, proposals: inserted, reviews: reviewInserted }, counts }));
     } finally {
         await client.end();
     }

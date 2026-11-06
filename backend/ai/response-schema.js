@@ -25,6 +25,10 @@ function safeUrl(value) {
     return '';
 }
 
+
+// se puede implemenatar esos datos  en base los usauarios y a los esquemas de parte de os infromes de cada validacion, revisa replantealo para quesse pueda haver
+// validCopn de esos datos en base alos seguimientos que se tiene en lso dsbloques
+
 function validateMermaid(value) {
     const content = cleanString(value, 12000);
     const first = content.split('\n').find(line => line.trim() && !line.trim().startsWith('%%'))?.trim() || '';
@@ -33,6 +37,23 @@ function validateMermaid(value) {
         return { valid: false, content: '', error: 'El diagrama contiene directivas no permitidas.' };
     }
     return { valid: true, content };
+}
+
+function parseChartNumber(value) {
+    if (value == null || value === '') return null;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    let text = String(value).trim().replace(/[\s%$€£]/g, '');
+    if (!text) return null;
+    const comma = text.lastIndexOf(',');
+    const dot = text.lastIndexOf('.');
+    if (comma >= 0 && dot >= 0) {
+        text = comma > dot ? text.replace(/\./g, '').replace(',', '.') : text.replace(/,/g, '');
+    } else if (comma >= 0) {
+        const decimals = text.length - comma - 1;
+        text = decimals > 0 && decimals <= 2 ? text.replace(',', '.') : text.replace(/,/g, '');
+    }
+    const number = Number(text);
+    return Number.isFinite(number) ? number : null;
 }
 
 function normalizeChartSpec(value) {
@@ -46,9 +67,9 @@ function normalizeChartSpec(value) {
         label: cleanString(set?.label || `Serie ${index + 1}`, 80),
         type: CHART_TYPES.has(set?.type) ? set.type : undefined,
         data: Array.isArray(set?.data)
-            ? set.data.slice(0, labels.length || 24).map(v => Number.isFinite(Number(v)) ? Number(v) : null)
+            ? set.data.slice(0, labels.length || 24).map(parseChartNumber)
             : [],
-    })).filter(set => set.data.length);
+    })).filter(set => set.data.filter(value => value != null).length >= 2);
     if (!labels.length || !datasets.length) return null;
     return {
         type,
@@ -79,14 +100,13 @@ function chartFromResponse(response, question = '') {
         const datasets = table.headers.slice(1).map((header, column) => ({
             label: header,
             data: table.rows.map(row => {
-                const value = Number(String(row[column + 1] ?? '').replace(/[%$€£\s,]/g, ''));
-                return Number.isFinite(value) ? value : null;
+                return parseChartNumber(row[column + 1]);
             }),
         })).filter(dataset => dataset.data.filter(value => value != null).length >= 2);
         if (datasets.length) return normalizeChartSpec({
             type: /mixta|combinad/i.test(question) ? 'bar' : 'line', title: 'Visualización de los datos analizados',
             subtitle: 'Generada automáticamente a partir de la tabla de la respuesta', unit: /%|porcentaje/i.test(question) ? '%' : '',
-            source: 'Tabla incluida en la respuesta de VALL AI', labels: table.rows.map(row => row[0]), datasets,
+            source: 'Tabla incluida en la respuesta de ORION', labels: table.rows.map(row => row[0]), datasets,
         });
     }
     const segments = String(question).split(';').map(value => value.trim()).filter(Boolean);
@@ -132,6 +152,10 @@ function ensureRequestedTable(response, question = '') {
     return response;
 }
 
+// si se puede delimitar el contexto en base a los dsatos en referencia
+
+
+
 function normalizeBlock(raw, index, errors) {
     if (!raw || typeof raw !== 'object') {
         errors.push(`Bloque ${index}: debe ser un objeto.`);
@@ -143,6 +167,8 @@ function normalizeBlock(raw, index, errors) {
         return null;
     }
     const base = { type };
+
+    //modules if select
 
     if (type === 'heading') {
         const content = cleanString(raw.content || raw.title, 300);
@@ -158,7 +184,8 @@ function normalizeBlock(raw, index, errors) {
     }
     if (type === 'table') {
         const headers = normalizeStringArray(raw.headers, 12, 180);
-        const rows = Array.isArray(raw.rows) ? raw.rows.slice(0, 50).map(row =>
+        // A 32-state/four-product comparison already needs 128 rows.
+        const rows = Array.isArray(raw.rows) ? raw.rows.slice(0, 600).map(row =>
             Array.isArray(row) ? row.slice(0, headers.length || 12).map(cell => cleanString(cell, 600)) : []
         ).filter(row => row.length) : [];
         return headers.length && rows.length ? { ...base, title: cleanString(raw.title, 180), headers, rows } : null;
@@ -228,7 +255,7 @@ function validateRichResponse(payload, defaults = {}) {
     const value = {
         type: 'rich_response',
         version: RESPONSE_VERSION,
-        title: cleanString(raw.title || defaults.title || 'Respuesta VALL-AI', 240),
+        title: cleanString(raw.title || defaults.title || 'Respuesta ORION', 240),
         summary: cleanString(raw.summary || defaults.summary, 1600),
         mode: MODES.has(raw.mode) ? raw.mode : (MODES.has(defaults.mode) ? defaults.mode : 'normal'),
         blocks,
@@ -261,6 +288,20 @@ function parseTable(lines, start) {
         rows.push(cells(lines[index])); index++;
     }
     return rows.length ? { block: { type: 'table', headers, rows }, next: index } : null;
+}
+
+function normalizeMarkdownArtifacts(value) {
+    return String(value || '')
+        .replace(/&#x20;|&nbsp;/gi, ' ')
+        // Algunos resultados de grounding llegan como un enlace dentro de otro
+        // y con el paréntesis exterior escapado. Dejamos una sola URL válida.
+        .replace(/\[([^\]]+)\]\\?\(\[https?:\/\/[^\]]+\]\((https?:\/\/[^)\s]+)\)\)/g, '[$1]($2)')
+        // Fuera de bloques de código, estas barras son artefactos del modelo y
+        // terminaban visibles como \*\*texto\*\* en la interfaz.
+        .replace(/\\([*_[\]()#>|`~-])/g, '$1')
+        .replace(/^\\\s*$/gm, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 function parseMarkdownSegment(segment) {
@@ -308,8 +349,26 @@ function parseMarkdownSegment(segment) {
     return blocks;
 }
 
+function promoteLeadSummary(blocks, source, explicitSummary = '') {
+    if (explicitSummary || String(source || '').length < 520) return { blocks, summary: explicitSummary };
+    const index = blocks.findIndex(block => block.type === 'markdown' && String(block.content || '').trim());
+    if (index < 0) return { blocks, summary: '' };
+    const content = String(blocks[index].content || '').trim();
+    const match = content.match(/^([^\n]+(?:\n(?!\s*(?:[-*•]|\d+\.|\||#|>))[^\n]+){0,2})(?:\n\s*\n|$)/);
+    const candidate = cleanString(match?.[1], 900);
+    if (!candidate || candidate.length < 70 || candidate.length > 760) return { blocks, summary: '' };
+    if (/^\s*(?:[-*•]|\d+\.|\||#|>)/.test(candidate)) return { blocks, summary: '' };
+    const remaining = content.slice(match[0].length).trim();
+    const nextBlocks = blocks.map(block => ({ ...block }));
+    if (remaining) nextBlocks[index].content = remaining;
+    else nextBlocks.splice(index, 1);
+    // La tarjeta de lectura clave no debe ser el único contenido visible.
+    if (!nextBlocks.length) return { blocks, summary: '' };
+    return { blocks: nextBlocks, summary: candidate };
+}
+
 function markdownToRichResponse(markdown, defaults = {}) {
-    const source = cleanString(markdown, 50000);
+    const source = cleanString(normalizeMarkdownArtifacts(markdown), 50000);
     const blocks = [];
     
     // Rescue raw JSON chart generated without rich_response wrapper
@@ -324,7 +383,6 @@ function markdownToRichResponse(markdown, defaults = {}) {
             // Not a valid JSON or failed to parse, continue as markdown
         }
     }
-
     if (blocks.length === 0) {
         let last = 0;
         const fence = /```([\w+-]*)\s*\n([\s\S]*?)```/g;
@@ -350,10 +408,11 @@ function markdownToRichResponse(markdown, defaults = {}) {
         blocks.push(...parseMarkdownSegment(source.slice(last)));
     }
 
-    const titleBlock = blocks.find(block => block.type === 'heading');
+    const promoted = promoteLeadSummary(blocks, source, defaults.summary || '');
+    const titleBlock = promoted.blocks.find(block => block.type === 'heading');
     return validateRichResponse({
-        title: defaults.title || titleBlock?.content || 'Respuesta VALL-AI',
-        summary: defaults.summary || '', mode: defaults.mode, blocks, markdown: source,
+        title: defaults.title || titleBlock?.content || 'Respuesta ORION',
+        summary: promoted.summary, mode: defaults.mode, blocks: promoted.blocks, markdown: source,
     }, defaults).value;
 }
 
@@ -377,6 +436,6 @@ function toLegacyMarkdown(response) {
 }
 
 module.exports = {
-    BLOCK_TYPES, MODES, RESPONSE_VERSION, cleanString, validateMermaid, normalizeChartSpec,
-    validateRichResponse, markdownToRichResponse, toLegacyMarkdown, chartFromResponse, ensureRequestedChart, ensureRequestedTable,
+    BLOCK_TYPES, MODES, RESPONSE_VERSION, cleanString, validateMermaid, parseChartNumber, normalizeChartSpec,
+    validateRichResponse, markdownToRichResponse, toLegacyMarkdown, normalizeMarkdownArtifacts, chartFromResponse, ensureRequestedChart, ensureRequestedTable,
 };

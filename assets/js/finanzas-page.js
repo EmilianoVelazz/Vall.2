@@ -99,6 +99,8 @@ function _vnFinObservar(observador) {
         };
 
         function syncChartTypeUI() {
+            const typeSelect = document.getElementById('vn-chart-type');
+            if (typeSelect) typeSelect.value = _currentChartType;
             document.querySelectorAll('#chart-type-switch .chart-type-btn').forEach(btn => {
                 const active = btn.dataset.chartType === _currentChartType;
                 btn.classList.toggle('active', active);
@@ -114,42 +116,14 @@ function _vnFinObservar(observador) {
         }
 
         function renderChartSeries(candles) {
-            if (!_chart || !candles?.length) return;
-            if (_series) _chart.removeSeries(_series);
-
-            if (_currentChartType === 'line') {
-                _series = _chart.addLineSeries({
-                    color: '#2563eb', lineWidth: 2,
-                    crosshairMarkerBackgroundColor: '#2563eb',
-                    crosshairMarkerBorderColor: '#fff',
-                    priceLineColor: 'rgba(37,99,235,.35)',
-                });
-                _series.setData(candles.map(c => ({ time: c.time, value: c.close })));
-            } else if (_currentChartType === 'area') {
-                _series = _chart.addAreaSeries({
-                    lineColor: '#0891b2', lineWidth: 2,
-                    topColor: 'rgba(8,145,178,.34)',
-                    bottomColor: 'rgba(8,145,178,.025)',
-                    crosshairMarkerBackgroundColor: '#0891b2',
-                    priceLineColor: 'rgba(8,145,178,.35)',
-                });
-                _series.setData(candles.map(c => ({ time: c.time, value: c.close })));
-            } else if (_currentChartType === 'ohlc') {
-                _series = _chart.addBarSeries({
-                    upColor:'#0e7a40',downColor:'#c0392b',thinBars:false,
-                });
-                _series.setData(candles);
-            } else {
-                _series = _chart.addCandlestickSeries({
-                    upColor: '#0e7a40', downColor: '#c0392b',
-                    borderUpColor: '#0e7a40', borderDownColor: '#c0392b',
-                    wickUpColor: '#0e7a40', wickDownColor: '#c0392b',
-                });
-                _series.setData(candles);
-            }
-            _chart.timeScale().fitContent();
+            const wrapper = document.getElementById('ch-wrapper');
+            if (!wrapper || !candles?.length) return;
+            window.VNBolsaChart?.render(wrapper, candles, {
+                type: _currentChartType,
+                instrument: document.getElementById('ch-name')?.textContent || _currentTicker,
+                period: _currentFinInt,
+            });
         }
-
         window.setFinChartType = function(type) {
             if (!CHART_TYPES[type] || type === _currentChartType) return;
             _currentChartType = type;
@@ -185,9 +159,9 @@ function _vnFinObservar(observador) {
         }
 
         function renderPeriodReading(candles) {
-            const closes = candles.map(candle => Number(candle.close)).filter(Number.isFinite);
-            const highs = candles.map(candle => Number(candle.high)).filter(Number.isFinite);
-            const lows = candles.map(candle => Number(candle.low)).filter(Number.isFinite);
+            const closes = candles.filter(c => c.close != null && c.close !== '').map(candle => Number(candle.close)).filter(Number.isFinite);
+            const highs = candles.filter(c => c.high != null && c.high !== '').map(candle => Number(candle.high)).filter(Number.isFinite);
+            const lows = candles.filter(c => c.low != null && c.low !== '').map(candle => Number(candle.low)).filter(Number.isFinite);
             const first = closes[0], last = closes[closes.length - 1];
             const change = Number.isFinite(first) && first !== 0 && Number.isFinite(last) ? ((last / first) - 1) * 100 : null;
             const high = highs.length ? Math.max(...highs) : null;
@@ -260,59 +234,31 @@ function _vnFinObservar(observador) {
                     'aria-label',
                     `${CHART_TYPES[_currentChartType].title} de ${meta.longName || ticker}, ${document.querySelector('#bmv-intervals .chart-int-btn.active')?.textContent || 'periodo seleccionado'}`
                 );
-                document.getElementById('ch-price').textContent = formatChartNumber(price, Number(price) < 1 ? 4 : 2);
+                document.getElementById('ch-price').textContent = formatChartNumber(price, Math.abs(Number(price)) < 10 ? 4 : 2);
                 const pctElement = document.getElementById('ch-pct');
                 pctElement.textContent = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '—';
-                pctElement.style.color = pct == null ? '#71838f' : pct >= 0 ? '#0e7a40' : '#c0392b';
-                document.getElementById('ch-high').textContent  = formatChartNumber(meta.regularMarketDayHigh ?? candles[candles.length - 1]?.high);
-                document.getElementById('ch-low').textContent   = formatChartNumber(meta.regularMarketDayLow ?? candles[candles.length - 1]?.low);
+                pctElement.className = pct == null ? '' : pct >= 0 ? 'is-positive' : 'is-negative';
+                const sessionHigh = meta.regularMarketDayHigh ?? candles[candles.length - 1]?.high;
+                const sessionLow = meta.regularMarketDayLow ?? candles[candles.length - 1]?.low;
+                document.getElementById('ch-high').textContent = sessionHigh == null ? '—' : formatChartNumber(sessionHigh, Math.abs(sessionHigh) < 10 ? 4 : 2);
+                document.getElementById('ch-low').textContent = sessionLow == null ? '—' : formatChartNumber(sessionLow, Math.abs(sessionLow) < 10 ? 4 : 2);
                 document.getElementById('ch-cur').textContent   = meta.currency || 'Moneda no indicada';
                 document.getElementById('ch-updated').textContent = `Consulta ${new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' })}`;
-                const wrapper = document.getElementById('ch-wrapper');
-                const showTime = !['1d','1wk','1mo'].includes(interval);
-                if (!_chart) {
-                    const darkFinance = document.body.classList.contains('vn-dark-finanzas');
-                    const bolsaSurface = getComputedStyle(document.body).getPropertyValue('--bolsa-base').trim();
-                    const chartSurface = darkFinance ? (bolsaSurface || '#35536b') : '#fbfdfe';
-                    const chartText = darkFinance ? '#acbbc7' : '#536675';
-                    const chartGrid = darkFinance ? 'rgba(172,187,199,.14)' : '#edf2f5';
-                    const chartBorder = darkFinance ? '#4c5f70' : '#dce5ea';
-                    _chart = LightweightCharts.createChart(wrapper, {
-                        width:  wrapper.clientWidth,
-                        height: wrapper.clientHeight || 440,
-                        layout: { background: { type: 'solid', color: chartSurface }, textColor: chartText, fontFamily: 'Inter, sans-serif', fontSize: 11 },
-                        grid:   { vertLines: { color: chartGrid }, horzLines: { color: chartGrid } },
-                        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-                        rightPriceScale: { borderColor: chartBorder, scaleMargins: { top:.1, bottom:.12 } },
-                        timeScale: { borderColor: chartBorder, timeVisible: showTime, rightOffset: 3, barSpacing: 8 },
-                    });
-                    let _lastChartWidth = wrapper.clientWidth;
-                    _vnFinObservar(new ResizeObserver(() => {
-                        const w = wrapper.clientWidth;
-                        _chart.applyOptions({ width: w, height: wrapper.clientHeight || 440 });
-                        /* Reajustar al nuevo ancho. El panel se construye oculto, así que
-                           clientWidth vale ~0 y el fitContent() inicial calcula el espaciado
-                           de barras para esa anchura. Al abrirse y ensancharse, la librería
-                           conserva ese espaciado y ancla la serie al borde derecho: las velas
-                           quedaban apelotonadas en un tercio y el resto en blanco. */
-                        if (w !== _lastChartWidth) {
-                            _lastChartWidth = w;
-                            _chart.timeScale().fitContent();
-                        }
-                    })).observe(wrapper);
-                } else {
-                    _chart.applyOptions({ timeScale: { timeVisible: showTime } });
-                }
-
                 _lastCandles = candles;
                 renderChartSeries(candles);
                 renderPeriodReading(candles);
                 setChartLoadingState('ready');
 
             } catch (e) {
-                if (e.name === 'AbortError') return;
+                if (e.name === 'AbortError' || requestId !== _loadSequence) return;
                 console.error('Chart error:', e);
+                _lastCandles = [];
+                document.getElementById('ch-native-chart')?.remove();
+                document.querySelector('#ch-wrapper .fin-chart-tooltip')?.remove();
+                renderPeriodReading([]);
                 document.getElementById('ch-price').textContent = '—';
+                ['ch-high', 'ch-low', 'ch-pct', 'ch-cur'].forEach(id => { document.getElementById(id).textContent = '—'; });
+                document.getElementById('ch-name').textContent = ticker;
                 document.getElementById('ch-updated').textContent = 'Consulta no disponible';
                 setChartLoadingState('error', 'No se pudieron cargar los datos de este instrumento.');
             }
@@ -320,6 +266,14 @@ function _vnFinObservar(observador) {
         function reload() {
             loadChart(_currentTicker, _currentFinInt);
         }
+        /* El laboratorio nace oculto dentro de la SPA. Lightweight Charts toma
+           el ancho al crearse; si ese ancho es 0, conserva un lienzo vacío aun
+           después de mostrarse. Este puente se llama cuando Bolsa ya es visible
+           y vuelve a medir y dibujar la serie sin perder el instrumento elegido. */
+        window.refreshMarketChart = function() {
+            if (_lastCandles.length) renderChartSeries(_lastCandles);
+            reload();
+        };
         document.getElementById('bmv-symbol').addEventListener('change', function(event) {
             _currentTicker = event.target.value;
             document.getElementById('bmv-custom').value = '';
@@ -334,6 +288,15 @@ function _vnFinObservar(observador) {
             if (e.key === 'Enter') document.getElementById('bmv-custom-btn').click();
         });
         document.getElementById('ch-retry').addEventListener('click', reload);
+        let measuredWidth = 0, measuredHeight = 0;
+        const chartResize = _vnFinObservar(new ResizeObserver(entries => {
+            const { width, height } = entries[0].contentRect;
+            if (width < 1 || height < 1 || (Math.abs(width - measuredWidth) < 1 && Math.abs(height - measuredHeight) < 1)) return;
+            measuredWidth = width; measuredHeight = height;
+            if (_lastCandles.length) renderChartSeries(_lastCandles);
+        }));
+        chartResize.observe(document.getElementById('ch-wrapper'));
+        _vnFinLimpieza.push(() => { _loadSequence++; _loadController?.abort(); });
         syncChartTypeUI();
         reload();
     })();
@@ -378,7 +341,7 @@ if (_financeTypographyHost) {
     scheduleFinanceTypography(_financeTypographyHost);
 }
 
-var IMGS = ['/assets/img/finanzas.webp', '/assets/img/mercadoP.webp', '/assets/img/mercados.webp'];
+var IMGS = ['/assets/img/fallback/finanzas.webp', '/assets/img/fallback/ganaderia.webp', '/assets/img/fallback/materias-primas.webp'];
 
 var _fhImgPool    = [];
 var _assetDataCache = new Map();
@@ -899,7 +862,7 @@ window._rds = _rds;
     // Tasas
     { key:'tiie',         lbl:'TIIE 28D',     icon:'🏦', cat:'tasas', fmt:'pct2', bar:[2,12],   tip:'Tasa Interbancaria de Equilibrio a 28 días. Base para el crédito en México, fijada por Banxico.',          interp: v => v>9?'🔴 Muy restrictiva · crédito caro':v>7?'🟠 Restrictiva':v>5?'🟡 Moderada':'🟢 Expansiva' },
     // 'fix' (Tasa Fix) e 'infl' (Inflación MX) se quitaron: sus series de Banxico
-    // (SF43718 / SP74660) no están respondiendo y la fila se mostraba siempre vacía.
+    // (SF43718 / SP30578) no están respondiendo y la fila se mostraba siempre vacía.
     { key:'fed',          lbl:'Fed Funds',     icon:'🇺🇸', cat:'tasas', fmt:'pct2', bar:[0,7],   tip:'Tasa de fondos federales de la Fed. Ancla global del costo de capital. Alta = USD fuerte, presión en EM.', interp: v => v>=5?'🔴 Restrictiva · dólar fuerte':'🟡 Normalización', staticVal: CENTRAL_BANKS.fed },
     { key:'bce',          lbl:'BCE',           icon:'🇪🇺', cat:'tasas', fmt:'pct2', bar:[0,5],   tip:'Tasa de depósito del Banco Central Europeo. Mueve al EUR/MXN y flujos en bonos europeos.',                 interp: v => v>3?'🔴 Restrictiva':'🟢 Relativamente laxa', staticVal: CENTRAL_BANKS.bce },
     { key:'boe',          lbl:'BOE',           icon:'🇬🇧', cat:'tasas', fmt:'pct2', bar:[0,7],   tip:'Banco de Inglaterra. Inflación post-Brexit mantiene tasas elevadas. Impacta GBP/MXN.',                     interp: v => v>4?'🔴 Restrictiva':'🟡 Moderada', staticVal: CENTRAL_BANKS.boe },
@@ -2005,9 +1968,9 @@ async function cargarFinanzas() {
         window.VNLoader?.hide();
     });
     const [tiieR, fixR, inflR, vixR, hygR, lqdR, fxR] = await Promise.allSettled([
-        VDS.banxico('SF61745'),
+        VDS.banxico('SF43783'),
         VDS.banxico('SF43718'),
-        VDS.banxico('SP74660'),
+        VDS.banxico('SP30578'),
         fetchAssetData('^VIX'),
         fetchAssetData('HYG'),
         fetchAssetData('LQD'),
@@ -2882,8 +2845,9 @@ async function loadBonds() {
 }
 
 /* ── Línea del tiempo de tasas y bonos ─────────────────────────────────────────
-   21 mercados con serie histórica real y cuatro fuentes:
+   22 mercados con serie histórica real y cinco fuentes:
      · EE.UU.      índices ^IRX/^FVX/^TNX/^TYX vía Yahoo (curva completa)
+     · México      TIIE 28 días publicada por Banxico SIE
      · 18 europeos BCE, tasa de convergencia de Maastricht: rendimiento del bono
                    soberano a 10 años, mensual y homogénea entre países
      · Japón       OCDE, bono soberano a 10 años mensual
@@ -2908,6 +2872,10 @@ async function loadBonds() {
                 { id: '^TNX', label: 'Treasury 10 años' },
                 { id: '^TYX', label: 'Treasury 30 años' },
             ],
+        },
+        mx: {
+            label: 'México', kind: 'banxico', maxYears: 20, source: 'Banxico SIE · TIIE 28 días',
+            series: [{ id: 'SF43783', label: 'TIIE 28 días' }],
         },
         cn: {
             label: 'China', kind: 'chinabond', source: 'ChinaBond · CCDC · China',
@@ -2939,7 +2907,7 @@ async function loadBonds() {
 
     /* Agrupación para los desplegables. */
     const REGIONES = [
-        { label: 'América', paises: ['us'] },
+        { label: 'América', paises: ['us', 'mx'] },
         { label: 'Asia', paises: ['cn', 'jp'] },
         { label: 'Europa',  paises: ['de', 'fr', 'it', 'es', 'nl', 'be', 'at', 'pt', 'ie', 'gr', 'fi', 'bg', 'hr', 'sk', 'si', 'lt', 'lv', 'ee'] },
     ];
@@ -3058,6 +3026,7 @@ async function loadBonds() {
     function sugerirComparacion(country) {
         const kind = CFG[country]?.kind;
         if (kind === 'yahoo') return 'cn:CGB10Y';
+        if (kind === 'banxico') return 'us:^TNX';
         if (kind === 'chinabond') return 'us:^TNX';
         if (kind === 'oecd') return 'cn:CGB10Y';
         return country === 'de' ? 'it:IT' : 'de:DE';
@@ -3192,9 +3161,24 @@ async function loadBonds() {
             .filter(p => !isNaN(p.date) && isFinite(p.value));
     }
 
+    async function loadBanxico(serie) {
+        const end = new Date();
+        const start = new Date(end);
+        start.setFullYear(start.getFullYear() - years);
+        const date = value => value.toISOString().slice(0, 10);
+        const j = await fetchTimelineJson(`/api/banxico/${encodeURIComponent(serie)}/history?start=${date(start)}&end=${date(end)}`);
+        return (j?.bmx?.series?.[0]?.datos || [])
+            .map(point => {
+                const [day, month, year] = String(point.fecha || '').split('/');
+                return { date: new Date(`${year}-${month}-${day}T00:00:00`), value: Number(String(point.dato ?? '').replace(',', '.')) };
+            })
+            .filter(point => !isNaN(point.date) && isFinite(point.value));
+    }
+
     function loadSeries(country, id) {
         const kind = CFG[country]?.kind;
         if (kind === 'yahoo') return loadUs(id);
+        if (kind === 'banxico') return loadBanxico(id);
         if (kind === 'oecd') return loadFred(id);
         if (kind === 'chinabond') return loadChinaBond();
         return loadEcb(CFG[country].area);
@@ -3601,8 +3585,8 @@ async function loadRiskPanel() {
     try {
         const [vixR, tiieR, inflR, moveR, tnxR, irxR] = await Promise.allSettled([
             fetchAssetData('^VIX'),
-            VDS.banxico('SF61745'),
-            VDS.banxico('SP74660'),
+            VDS.banxico('SF43783'),
+            VDS.banxico('SP30578'),
             fetchAssetData('^MOVE'),
             fetchAssetData('^TNX'),
             fetchAssetData('^IRX'),

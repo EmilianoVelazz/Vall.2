@@ -1,0 +1,430 @@
+{
+  "GRAIN_SOURCE": {
+    "label": "DGSIAP · Cierre de la Producción Agrícola 2025",
+    "url": "https://nube.agricultura.gob.mx/datosAbiertos/Agricola.php",
+    "period": "2025",
+    "updated": "12 ago 2026"
+  },
+  "STATE_GRAIN_PRODUCTION": [
+    {
+      "state": "Aguascalientes",
+      "corn": 45113.29,
+      "wheat": null,
+      "sorghum": null,
+      "soy": null
+    },
+    {
+      "state": "Baja California",
+      "corn": 11702.34,
+      "wheat": 195710.41,
+      "sorghum": 715.66,
+      "soy": null
+    },
+    {
+      "state": "Baja California Sur",
+      "corn": 29705.74,
+      "wheat": 29325,
+      "sorghum": 520,
+      "soy": null
+    },
+    {
+      "state": "Campeche",
+      "corn": 569173.06,
+      "wheat": null,
+      "sorghum": 66288.26,
+      "soy": 137253.32
+    },
+    {
+      "state": "Chiapas",
+      "corn": 1488497.07,
+      "wheat": 8.21,
+      "sorghum": 16036.49,
+      "soy": 17802.99
+    },
+    {
+      "state": "Chihuahua",
+      "corn": 1614178.61,
+      "wheat": 98353.2,
+      "sorghum": 55000.2,
+      "soy": null
+    },
+    {
+      "state": "Ciudad de México",
+      "corn": 4874.14,
+      "wheat": null,
+      "sorghum": null,
+      "soy": null
+    },
+    {
+      "state": "Coahuila",
+      "corn": 21562.07,
+      "wheat": 16807.94,
+      "sorghum": 2105.37,
+      "soy": null
+    },
+    {
+      "state": "Colima",
+      "corn": 57977.4,
+      "wheat": null,
+      "sorghum": 1598.77,
+      "soy": null
+    },
+    {
+      "state": "Durango",
+      "corn": 367893.15,
+      "wheat": 12099.19,
+      "sorghum": 3011.41,
+      "soy": null
+    },
+    {
+      "state": "Guanajuato",
+      "corn": 1798429.04,
+      "wheat": 413843.14,
+      "sorghum": 835927.95,
+      "soy": null
+    },
+    {
+      "state": "Guerrero",
+      "corn": 1564134.48,
+      "wheat": null,
+      "sorghum": 49718.54,
+      "soy": null
+    },
+    {
+      "state": "Hidalgo",
+      "corn": 647798.7,
+      "wheat": 2045.77,
+      "sorghum": 366.9,
+      "soy": null
+    },
+    {
+      "state": "Jalisco",
+      "corn": 3590754.78,
+      "wheat": 102780.21,
+      "sorghum": 160702.91,
+      "soy": null
+    },
+    {
+      "state": "Estado de México",
+      "corn": 1880806.95,
+      "wheat": 9058.67,
+      "sorghum": 535.44,
+      "soy": null
+    },
+    {
+      "state": "Michoacán",
+      "corn": 2142084.23,
+      "wheat": 153472.5,
+      "sorghum": 282691.79,
+      "soy": null
+    },
+    {
+      "state": "Morelos",
+      "corn": 159336.07,
+      "wheat": 158.42,
+      "sorghum": 123027.13,
+      "soy": null
+    },
+    {
+      "state": "Nayarit",
+      "corn": 151417.35,
+      "wheat": null,
+      "sorghum": 211988.16,
+      "soy": null
+    },
+    {
+      "state": "Nuevo León",
+      "corn": 36424.06,
+      "wheat": 19564.19,
+      "sorghum": 2333.59,
+      "soy": null
+    },
+    {
+      "state": "Oaxaca",
+      "corn": 819450.07,
+      "wheat": 15328.32,
+      "sorghum": 28082.14,
+      "soy": null
+    },
+    {
+      "state": "Puebla",
+      "corn": 1217635.78,
+      "wheat": 1842.37,
+      "sorghum": 97922.29,
+      "soy": null
+    },
+    {
+      "state": "Querétaro",
+      "corn": 300864.5,
+      "wheat": 2410.72,
+      "sorghum": 1885.79,
+      "soy": null
+    },
+    {
+      "state": "Quintana Roo",
+      "corn": 67813.42,
+      "wheat": null,
+      "sorghum": 10558,
+      "soy": 3727.88
+    },
+    {
+      "state": "San Luis Potosí",
+      "corn": 256193.52,
+      "wheat": 11,
+      "sorghum": 69538.59,
+      "soy": 19421.05
+    },
+    {
+      "state": "Sinaloa",
+      "corn": 2275224.24,
+      "wheat": 192383,
+      "sorghum": 82893.37,
+      "soy": null
+    },
+    {
+      "state": "Sonora",
+      "corn": 115245.44,
+      "wheat": 407016.62,
+      "sorghum": 4349.35,
+      "soy": 226
+    },
+    {
+      "state": "Tabasco",
+      "corn": 193067.63,
+      "wheat": null,
+      "sorghum": 142.56,
+      "soy": null
+    },
+    {
+      "state": "Tamaulipas",
+      "corn": 432557.41,
+      "wheat": 2621.23,
+      "sorghum": 1912874.75,
+      "soy": 71428.1
+    },
+    {
+      "state": "Tlaxcala",
+      "corn": 412174.09,
+      "wheat": 34246.21,
+      "sorghum": null,
+      "soy": null
+    },
+    {
+      "state": "Veracruz",
+      "corn": 1439317.88,
+      "wheat": 980.45,
+      "sorghum": 43308.91,
+      "soy": 13911.25
+    },
+    {
+      "state": "Yucatán",
+      "corn": 184886.01,
+      "wheat": null,
+      "sorghum": 2174,
+      "soy": 31411.33
+    },
+    {
+      "state": "Zacatecas",
+      "corn": 521091.36,
+      "wheat": 8664.88,
+      "sorghum": 736.96,
+      "soy": null
+    }
+  ],
+  "MINING_SOURCE": {
+    "label": "SGM · Anuario Estadístico de la Minería Mexicana 2024",
+    "url": "https://www.sgm.gob.mx/productos/pdf/Anuario_2024_Edicion_2025.pdf",
+    "period": "2024"
+  },
+  "STATE_MINING_PRODUCTION": [
+    {
+      "state": "Sonora",
+      "rank": 1,
+      "value": 240180207846.03,
+      "share": 35.25,
+      "minerals": "Arena de cuarzo, barita, carbón mineral, cobre, cuarzo, dolomita, grafito, fierro, molibdeno, oro, plata, plomo, sal, tungsteno, wollastonita, yeso y zinc"
+    },
+    {
+      "state": "Zacatecas",
+      "rank": 2,
+      "value": 189410047393.12,
+      "share": 27.8,
+      "minerals": "Arcillas, cobre, fierro, oro, plata, plomo, talco, zeolita y zinc"
+    },
+    {
+      "state": "Chihuahua",
+      "rank": 3,
+      "value": 49180045481.79,
+      "share": 7.22,
+      "minerals": "Arcillas, barita, caolín, cobre, cuarzo, dolomita, oro, plata, plomo, yeso y zinc"
+    },
+    {
+      "state": "Guerrero",
+      "rank": 4,
+      "value": 38917929208.45,
+      "share": 5.71,
+      "minerals": "Cobre, fierro, oro, plata, plomo, talco y zinc"
+    },
+    {
+      "state": "Durango",
+      "rank": 5,
+      "value": 35137000395.71,
+      "share": 5.16,
+      "minerals": "Caolín, cobre, dolomita, fluorita, oro, plata, plomo y zinc"
+    },
+    {
+      "state": "San Luis Potosí",
+      "rank": 6,
+      "value": 32181772122.64,
+      "share": 4.72,
+      "minerals": "Caolín, cobre, dolomita, feldespato, fluorita, oro, plata, plomo, yeso y zinc"
+    },
+    {
+      "state": "Baja California Sur",
+      "rank": 7,
+      "value": 18789764989.62,
+      "share": 2.76,
+      "minerals": "Cobre, fósforo, sal y yeso"
+    },
+    {
+      "state": "Coahuila",
+      "rank": 8,
+      "value": 17934848841.89,
+      "share": 2.63,
+      "minerals": "Anhidrita, arenas de cuarzo, barita, bloedita, carbón mineral, celestita, cobre, dolomita, fluorita, glauberita, hidróxido de magnesio, oro, óxido de magnesio, plata, yeso y zinc"
+    },
+    {
+      "state": "Colima",
+      "rank": 9,
+      "value": 17298321161.73,
+      "share": 2.54,
+      "minerals": "Fierro, sal y yeso"
+    },
+    {
+      "state": "Jalisco",
+      "rank": 10,
+      "value": 7209793032.96,
+      "share": 1.06,
+      "minerals": "Barita, caolín, cobre, cuarzo, diatomita, dolomita, feldespato, fierro, oro, plata, plomo, yeso y zinc"
+    },
+    {
+      "state": "Michoacán",
+      "rank": 11,
+      "value": 6984713840.67,
+      "share": 1.03,
+      "minerals": "Cobre, diatomita, fierro, oro y yeso"
+    },
+    {
+      "state": "Estado de México",
+      "rank": 12,
+      "value": 5757293963.65,
+      "share": 0.84,
+      "minerals": "Cobre, oro, plata, plomo y zinc"
+    },
+    {
+      "state": "Hidalgo",
+      "rank": 13,
+      "value": 4501196145.04,
+      "share": 0.66,
+      "minerals": "Caolín, cobre, dolomita, manganeso, fósforo, oro, plata, plomo, yeso y zinc"
+    },
+    {
+      "state": "Sinaloa",
+      "rank": 14,
+      "value": 3119740543.17,
+      "share": 0.46,
+      "minerals": "Cobre, fierro, oro, plata y sal"
+    },
+    {
+      "state": "Guanajuato",
+      "rank": 15,
+      "value": 3008300401.47,
+      "share": 0.44,
+      "minerals": "Oro, plata y zeolita"
+    },
+    {
+      "state": "Nuevo León",
+      "rank": 16,
+      "value": 2433197463.35,
+      "share": 0.36,
+      "minerals": "Barita, dolomita, fósforo, sal, talco y yeso"
+    },
+    {
+      "state": "Oaxaca",
+      "rank": 17,
+      "value": 2089330757.98,
+      "share": 0.31,
+      "minerals": "Barita, cobre, oro, plata, plomo, sal y zinc"
+    },
+    {
+      "state": "Veracruz",
+      "rank": 18,
+      "value": 1766742991.83,
+      "share": 0.26,
+      "minerals": "Barita y sal"
+    },
+    {
+      "state": "Puebla",
+      "rank": 19,
+      "value": 1638326042.36,
+      "share": 0.24,
+      "minerals": "Arenas de cuarzo, barita, dolomita, feldespato, olivino, yeso y zeolita"
+    },
+    {
+      "state": "Querétaro",
+      "rank": 20,
+      "value": 1331458372.79,
+      "share": 0.2,
+      "minerals": "Caolín, cobre, mercurio, ópalo, oro, plata, plomo y zinc"
+    },
+    {
+      "state": "Aguascalientes",
+      "rank": 21,
+      "value": 1091980580.75,
+      "share": 0.16,
+      "minerals": "Cobre, oro, plata, plomo y zinc"
+    },
+    {
+      "state": "Yucatán",
+      "rank": 22,
+      "value": 918548563.02,
+      "share": 0.13,
+      "minerals": "Sal"
+    },
+    {
+      "state": "Baja California",
+      "rank": 23,
+      "value": 245630606.03,
+      "share": 0.04,
+      "minerals": "Arena de cuarzo, fierro y sal"
+    },
+    {
+      "state": "Nayarit",
+      "rank": 24,
+      "value": 200281044.12,
+      "share": 0.03,
+      "minerals": "Caolín, oro, pirofilita y plata"
+    },
+    {
+      "state": "Tamaulipas",
+      "rank": 25,
+      "value": 37085415.18,
+      "share": 0.01,
+      "minerals": "Sal y talco"
+    },
+    {
+      "state": "Chiapas",
+      "rank": 26,
+      "value": 104720.04,
+      "share": 0,
+      "minerals": "Barita"
+    },
+    {
+      "state": "Campeche",
+      "rank": 27,
+      "value": 76160.03,
+      "share": 0,
+      "minerals": "Yeso"
+    }
+  ]
+}

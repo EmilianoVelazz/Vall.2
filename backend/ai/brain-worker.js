@@ -13,6 +13,7 @@ let pool = null;
 function getPool() {
     if (!pool) {
         pool = mysql.createPool({
+            ...require('../lib/database-connection').mysqlTlsOptions(),
             host: process.env.DB_HOST || process.env.MYSQL_HOST || '127.0.0.1',
             port: Number(process.env.DB_PORT || process.env.MYSQL_PORT || 3306),
             user: process.env.DB_USER || process.env.MYSQL_USER || 'root',
@@ -20,12 +21,14 @@ function getPool() {
             database: process.env.DB_NAME || process.env.DB_DATABASE || process.env.MYSQL_DATABASE || 'vall_',
             charset: 'utf8mb4',
             connectionLimit: 4,
+            queueLimit: 20,
+            connectTimeout: 5000,
         });
-    }                   Q
+    }
     return pool;
 }
 
-const SYSTEM_INSTRUCTION = `Eres el Cerebro Crítico de VALL-AI. Evalúa una interacción pasada y, si hay una mejora generalizable, propone una regla para revisión humana. No cambies configuraciones ni declares que la regla está aprobada.
+const SYSTEM_INSTRUCTION = `Eres Proyecto Loopus, el sistema de aprendizaje continuo de VALL AI. Evalúa una interacción pasada y, si hay una mejora generalizable, propone una regla para revisión humana. No cambies configuraciones ni declares que la regla está aprobada.
 Devuelve exclusivamente JSON válido: {"needsRule":false} o {"needsRule":true,"condition_trigger":"...","learned_rule":"..."}.`;
 
 function saveRuleProposal(rule) {
@@ -64,28 +67,28 @@ async function evaluateQueries() {
                         learned_rule: String(result.learned_rule).slice(0, 800),
                         source_query_id: query.id,
                     });
-                    console.log(`[Cerebro] Propuesta guardada para revisión humana: "${result.condition_trigger}"`);
+                    console.log(`[Loopus] Propuesta guardada para revisión humana: "${result.condition_trigger}"`);
                 }
                 evaluated = true;
             } catch (error) {
-                console.error(`[Cerebro] Error evaluando query ${query.id}:`, error.message);
+                console.error(`[Loopus] Error evaluando query ${query.id}:`, error.message);
             }
             // Los errores se reintentan después; no se descartan consultas sin revisar.
             if (evaluated) await db.execute(`UPDATE ai_queries SET evaluated_by_brain = TRUE WHERE id = ?`, [query.id]);
         }
     } catch (error) {
         if (!['ECONNREFUSED', 'PROTOCOL_CONNECTION_LOST'].includes(error.code)) {
-            console.error('[Cerebro] Error de DB:', error.message);
+            console.error('[Loopus] Error de DB:', error.message);
         }
     }
 }
 
 function startWorker(intervalMs = 600000) {
     if (process.env.VALL_BRAIN_ENABLED !== 'true') {
-        console.log('[Cerebro] Worker desactivado. Define VALL_BRAIN_ENABLED=true tras habilitar una revisión humana de reglas.');
+        console.log('[Loopus] Worker desactivado. Define VALL_BRAIN_ENABLED=true tras habilitar una revisión humana de reglas.');
         return false;
     }
-    console.log('[Cerebro] Worker consultivo iniciado.');
+    console.log('[Loopus] Worker consultivo iniciado.');
     setTimeout(() => {
         evaluateQueries();
         setInterval(evaluateQueries, intervalMs);

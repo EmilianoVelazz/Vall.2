@@ -1,0 +1,16 @@
+import {grainFamily} from './report-grain-chart.mjs';
+const number=value=>value.toLocaleString('es-MX',{maximumFractionDigits:3});
+const change=value=>(value>0 ? '↑ +' : value<0 ? '↓ ' : '→ ')+number(value)+' %';
+const compactProduct=label=>label.split(' · ')[0].replace('Maíz blanco de Sinaloa','Maíz blanco').replace(/^Harina\/pellets de soya FOB \d{4}-\d{2}$/,'Harina de soya FOB').replace(/^Arroz blanco 5 % quebrado FOB$/,'Arroz 5 % FOB').replace(/ SAFEX \d{4}-\d{2}$/,'').replace(/ FOB \d{4}-\d{2}$/,' FOB').replace('Semilla de girasol','Girasol');
+const shortReference=item=>[(item.country==='Estados Unidos' ? 'EE. UU.' : item.country?.startsWith('Mar Negro') ? 'mar Negro' : item.country),...(item.country==='México' && item.label.split(' · ').length>2 ? [item.label.split(' · ')[1].replace('Ciudad de México','CDMX')] : []),compactProduct(item.label)].filter(Boolean).join(' · ');
+export function grainHistoricalComparison(references,{weekly=false,t=value=>value}={}){
+ const entries=references.flatMap((item,index)=>{
+  const points=item.points.filter(point=>point.date>='2020-01-01' && Number.isFinite(point.value) && point.value>0),base=points[0],last=points.at(-1);
+  if(!base || !last || points.length<2)return [];
+  return [{item,points,base,last,code:String(index+1).padStart(2,'0'),partial:base.date.slice(0,4)!=='2020',change:(last.value/base.value-1)*100}];
+ });
+ if(!entries.length)return null;
+ const table={title:t('Tabla maestra · desde 2020 hasta el último precio publicado'),grainMaster:true,preserveNumericGrid:true,printGroup:'market-levels',columns:['País / referencia','Unidad original','Precio inicial','Fecha base','Último publicado','Fecha del dato','Desde inicio %',weekly ? 'Semana %' : 'Día %'].map(t),rows:entries.map(({item,base,last,code,change:delta})=>[code+'. '+item.label,item.unit,number(base.value),base.date,number(last.value),last.date,change(delta),item.periods[weekly ? 'week' : 'day'] ? change(item.periods[weekly ? 'week' : 'day'].value) : null]),note:t('La base es la primera observación publicada desde 2020 de cada referencia. Si la historia empieza después, se utiliza su fecha real, sin rellenar años. Son referencias de una plaza, producto y unidad; no promedios nacionales salvo indicación expresa. Las frecuencias semanales y mensuales conservan su periodicidad.')};
+ const visual={type:'line',grainHistoryOverview:true,unifiedHistory:true,globalComparison:true,commodityWindow:'world-history',executiveLead:true,requiredInPrint:true,financePalette:true,dataInTables:true,title:t('Granos del mundo · evolución desde 2020 hasta la fecha'),unit:t('Índice base 100'),series:entries.map(({item,points,base,last,code,partial})=>({label:code+'. '+item.label,shortLabel:code+'. '+shortReference(item),country:item.country,grainFamily:grainFamily(item.label),cadence:item.cadence,baseDate:base.date,lastDate:last.date,basePrice:base.value,lastPrice:last.value,partialHistory:partial,originalUnit:item.unit,points:points.map(point=>({date:point.date,value:point.value/base.value*100,originalValue:point.value}))})),note:t('Cada fila conserva un mercado y su historia; no se promedian países ni se convierten monedas. Base 100 propia: compara la trayectoria relativa, no el nivel de precios ni el costo entregado. Las historias parciales empiezan en su fecha real.')};
+ return {table,visual,entries};
+}

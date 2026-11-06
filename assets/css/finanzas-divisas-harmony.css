@@ -30,7 +30,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #ff-detail-navigation
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #ff-detail-navigation :is(.ff-detail-back,.ff-detail-tabs button) {
     border-color: var(--fx-blue-line) !important;
     background: var(--fx-blue-base) !important;
-    color: #dbe7ef !important;
+    color: #e5e5e5 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #ff-detail-navigation :is(.ff-detail-back,.ff-detail-tabs button):hover {
@@ -41,7 +41,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #ff-detail-navigation
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #ff-detail-navigation .ff-detail-tabs button:is(.is-active,[aria-current="page"]) {
     border-color: var(--fx-blue-accent-strong) !important;
     background: var(--fx-blue-accent) !important;
-    color: #071e30 !important;
+    color: #101010 !important;
     box-shadow: 0 6px 16px rgba(37,104,154,.24) !important;
 }
 
@@ -101,19 +101,19 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map :
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map .fcm-filters button:is(.is-active,[aria-pressed="true"]) {
     border-color: var(--fx-blue-accent-strong) !important;
     background: var(--fx-blue-accent) !important;
-    color: #071e30 !important;
+    color: #101010 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map :is(.fcm-map-tools,.fcm-pan-hint,.fcm-hover-tip,.fcm-map-empty) {
     border-color: var(--fx-blue-line) !important;
     background: rgba(25,58,83,.96) !important;
-    color: #e5eff5 !important;
+    color: #e5e5e5 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map .fcm-map-tools button {
     border-color: var(--fx-blue-line) !important;
     background: rgba(77,145,194,.12) !important;
-    color: #e5eff5 !important;
+    color: #e5e5e5 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #currency-world-map :is(.fcm-kicker,.fcm-country-picker > span,.fcm-base-control > span) {
@@ -228,7 +228,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-history-lab .fx-h
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-history-lab :is(.fx-history-periods,.fx-history-modes,.fx-history-chips) button:is(.is-active,[aria-pressed="true"]) {
     border-color: var(--fx-blue-accent-strong) !important;
     background: var(--fx-blue-accent) !important;
-    color: #071e30 !important;
+    color: #101010 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-history-lab .fx-history-stats > div {
@@ -318,7 +318,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-pro-panel :is(
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-pro-panel :is(.fx-market-filterbar,.visual-type-switch) button:is(.is-active,[aria-pressed="true"],[aria-selected="true"]) {
     border-color: var(--fx-blue-accent-strong) !important;
     background: var(--fx-blue-accent) !important;
-    color: #071e30 !important;
+    color: #101010 !important;
 }
 
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-pro-panel .fx-rate-matrix {
@@ -402,3 +402,26 @@ html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-pro-panel :is(.up
 html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas #fx-pro-panel :is(.down,.is-down) {
     color: #ff7f91 !important;
 }
+
+/* Cierre de color compartido con Mercados. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas {
+    --fx-blue-base: #243142 !important;
+    --fx-blue-raised: #334355 !important;
+    --fx-blue-deep: #1d2837 !important;
+    --fx-blue-line: #435466 !important;
+    --fx-blue-muted: #9dacb9 !important;
+    --fx-blue-accent: #334355 !important;
+    --fx-blue-accent-strong: #4c5f70 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas :is(
+    #ff-detail-navigation, #currency-world-map, #fx-pro-panel, #fx-history-lab, #fx-emerging-panel
+) { background: #243142 !important; border-color: #435466 !important; color: #eef4f8 !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas :is(
+    #currency-world-map .fcm-map-wrap, #currency-world-map .fcm-map-stage,
+    .fx-pro-block, .fx-history-chart, .fx-emerging-chart, button, input, select
+) { background-color: #1d2837 !important; border-color: #435466 !important; color: #cad4de !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas :is(button.active, button.is-active, button[aria-pressed="true"], thead, th) {
+    background-color: #334355 !important; border-color: #4c5f70 !important; color: #eef4f8 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas :is(.up,.is-up) { color: #59d2aa !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas :is(.down,.is-down) { color: #ff0000 !important; }

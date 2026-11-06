@@ -15,7 +15,7 @@
 /** Cabecera, pie, retícula y tipografía: lo que comparte todo el sitio. */
 export const ESQUELETO = [
   '/assets/css/base.css?v=2',
-  '/assets/css/header.css',
+  '/assets/css/header.css?v=9',
   '/assets/css/footer.css',
   '/assets/css/responsive.css',
 ];
@@ -31,3 +31,6 @@ export const DATOS = [
   '/assets/js/api-keys.js?v=5',
   '/assets/js/data-service.js?v=23',
 ];
+export const CHART_JS='/assets/js/vendor/chart.umd.js?v=2';
+export const LIGHTWEIGHT_CHARTS='/assets/js/vendor/lightweight-charts.standalone.production.js?v=1';
+export const MAPA_MUNDIAL='/assets/js/world-map-data.js?v=2';

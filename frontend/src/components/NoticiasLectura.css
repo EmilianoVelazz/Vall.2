@@ -1,0 +1,89 @@
+.nt-photo-reference {
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  max-width:calc(100% - 24px);
+  padding:6px 9px;
+  border-radius:7px;
+  background:rgba(12,25,42,.88);
+  color:#eff5ff;
+  font:500 10px/1.4 'Inter',sans-serif;
+}
+
+/* Lector compartido por Inicio y Noticias. */
+.nt-dialog {
+  --nt-line: rgba(156,163,175,.24);
+  --nt-muted: #aeb8c6;
+  position: fixed;
+  inset: 0;
+  width: min(900px, calc(100% - 48px));
+  max-width: 900px;
+  max-height: min(90dvh, 1100px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(156,163,175,.38);
+  border-radius: 22px;
+  background: #1f2937;
+  color: #ededed;
+  font-family: 'Inter', system-ui, sans-serif;
+  color-scheme: dark;
+  box-shadow: 0 28px 100px rgba(0,0,0,.55);
+}
+.nt-dialog::backdrop { background: rgba(8,14,25,.8); backdrop-filter: blur(6px); }
+.nt-dialog :is(button, a, h2):focus-visible { outline: 2px solid #9fdac8; outline-offset: 4px; }
+.nt-dialog :is(h2, h3, p) { margin: 0; color: inherit; }
+.nt-dialog button { font: inherit; cursor: pointer; }
+.nt-dialog .nt-reader-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 64px; padding: 12px 22px; border-bottom: 1px solid var(--nt-line); background: #172131; }
+.nt-dialog .nt-reader-bar > span { display: flex; gap: 10px; align-items: center; color: var(--nt-muted); font-size: .74rem; }
+.nt-dialog .nt-reader-bar b { color: #ededed; font-size: .72rem; margin-left: 10px; }
+.nt-dialog .nt-reader-bar button { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; padding: 0; border: 1px solid var(--nt-line); border-radius: 10px; color: #ededed; background: #293548; }
+.nt-dialog .nt-photo { position: relative; height: 265px; overflow: hidden; background: #253142; }
+.nt-dialog .nt-photo img { width: 100%; height: 100%; object-fit: cover; }
+.nt-dialog .nt-photo-placeholder { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 100%; color: #a8c7c1; background: radial-gradient(ellipse at 70% 50%, rgba(159,218,200,.07), transparent 75%), #253142; }
+.nt-dialog .nt-photo-placeholder i { font-size: 3rem; }
+.nt-dialog .nt-photo-placeholder > span { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
+.nt-dialog .nt-photo-region { position: absolute; top: 18px; left: 22px; display: inline-flex; align-items: center; gap: 9px; padding: 8px 11px; border: 1px solid var(--nt-line); border-radius: 8px; background: rgba(17,24,39,.85); color: #ededed; font-size: .7rem; }
+.nt-dialog .nt-reader-body { padding: 30px 36px 36px; }
+.nt-dialog .nt-reader-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.nt-dialog .nt-reader-tags > span { padding: 7px 10px; border: 1px solid var(--nt-line); border-radius: 8px; color: #b9e6d8; font-size: .65rem; }
+.nt-dialog h2 { margin-bottom: 18px; font: 650 clamp(1.6rem, 2.5vw, 2.3rem)/1.25 'Playfair Display', Georgia, serif; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.nt-dialog .nt-meta { display: flex; flex-wrap: wrap; gap: 7px; color: var(--nt-muted); font-size: .73rem; line-height: 1.7; }
+.nt-dialog .nt-meta strong { color: #cad2dd; font-weight: 600; }
+.nt-dialog .nt-reader-summary { margin: 30px 0; padding-top: 24px; border-top: 1px solid var(--nt-line); }
+.nt-dialog h3 { margin-bottom: 12px; font-size: .88rem; font-weight: 650; }
+.nt-dialog p { color: #cad2dd; font-size: .97rem; line-height: 1.85; overflow-wrap: anywhere; white-space: pre-line; }
+.nt-dialog .nt-reader-context { display: flex; gap: 16px; padding: 20px; margin-bottom: 25px; border: 1px solid var(--nt-line); border-radius: 14px; background: #172131; }
+.nt-dialog .nt-reader-context > i { margin-top: 3px; color: #b9e6d8; }
+.nt-dialog .nt-reader-context p { font-size: .87rem; }
+.nt-dialog .nt-reader-subtopics { margin: 25px 0; color: var(--nt-muted); font-size: .7rem; }
+.nt-dialog .nt-reader-subtopics > div { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.nt-dialog .nt-reader-subtopics > div > span { padding: 7px 10px; border-radius: 7px; background: #293548; color: #cad2dd; }
+.nt-dialog .nt-reader-source { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 22px 0; border-top: 1px solid var(--nt-line); border-bottom: 1px solid var(--nt-line); }
+.nt-dialog .nt-reader-source > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.nt-dialog .nt-reader-source small { color: var(--nt-muted); font-size: .66rem; }
+.nt-dialog .nt-reader-source strong { font-size: .86rem; overflow-wrap: anywhere; }
+.nt-dialog .nt-reader-source > div > span { color: var(--nt-muted); font-size: .7rem; overflow-wrap: anywhere; }
+.nt-dialog .nt-reader-source a { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 12px; min-height: 46px; padding: 11px 17px; border: 1px solid rgba(159,218,200,.4); border-radius: 10px; background: rgba(159,218,200,.07); color: #b9e6d8; text-decoration: none; font-size: .78rem; font-weight: 650; }
+.nt-dialog .nt-reader-source a:hover { background: rgba(159,218,200,.15); }
+.nt-dialog .nt-reader-related { margin-top: 30px; }
+.nt-dialog .nt-reader-related > button { position: relative; display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 12px; padding: 17px 45px 17px 17px; border: 1px solid var(--nt-line); border-radius: 12px; background: #172131; color: #ededed; text-align: left; }
+.nt-dialog .nt-reader-related > button > span { color: var(--nt-muted); font-size: .64rem; }
+.nt-dialog .nt-reader-related > button > strong { font-size: .82rem; font-weight: 600; line-height: 1.6; }
+.nt-dialog .nt-reader-related > button > i { position: absolute; top: 50%; right: 17px; font-size: .76rem; }
+.nt-dialog .nt-reader-related > button:hover { border-color: #9fdac8; }
+.nt-dialog .nt-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+@media (max-width: 650px) {
+  /* Preserve reader gutters against the shared mobile dialog width rule. */
+  .nt-dialog { width: calc(100% - 24px) !important; max-width: calc(100% - 24px) !important; max-height: 94dvh; border-radius: 17px; }
+  .nt-dialog .nt-reader-bar { padding: 10px 14px; gap: 10px; }
+  .nt-dialog .nt-reader-bar b { display: none; }
+  .nt-dialog .nt-photo { height: 205px; }
+  .nt-dialog .nt-reader-body { padding: 25px 20px; }
+  .nt-dialog h2 { font-size: 1.65rem; }
+  .nt-dialog p { font-size: .9rem; }
+  .nt-dialog .nt-reader-source { align-items: stretch; flex-direction: column; }
+  .nt-dialog .nt-reader-source a { width: 100%; }
+}

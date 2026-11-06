@@ -1,0 +1,638 @@
+{
+  "version": 4,
+  "maximumReferences": 80,
+  "historyLimit": 65,
+  "regions": [
+    "México",
+    "América",
+    "Europa",
+    "Asia",
+    "Oceanía",
+    "África",
+    "Medio Oriente",
+    "Otras plazas"
+  ],
+  "markets": [
+    {
+      "id": "XMEX",
+      "label": "S&P/BMV IPC",
+      "exchange": "BMV",
+      "exchangeName": "Bolsa Mexicana de Valores",
+      "symbol": "^MXX",
+      "region": "México",
+      "market": "México",
+      "kind": "equity"
+    },
+    {
+      "id": "BIVA",
+      "label": "FTSE BIVA",
+      "exchange": "BIVA",
+      "exchangeName": "Bolsa Institucional de Valores",
+      "symbol": "",
+      "region": "México",
+      "market": "México",
+      "kind": "equity"
+    },
+    {
+      "id": "XNYS",
+      "label": "S&P 500",
+      "exchange": "NYSE",
+      "exchangeName": "New York Stock Exchange",
+      "symbol": "^GSPC",
+      "region": "América",
+      "market": "Estados Unidos",
+      "kind": "equity"
+    },
+    {
+      "id": "XNAS",
+      "label": "Nasdaq 100",
+      "exchange": "Nasdaq",
+      "exchangeName": "Nasdaq Stock Market",
+      "symbol": "^NDX",
+      "region": "América",
+      "market": "Estados Unidos",
+      "kind": "equity"
+    },
+    {
+      "id": "XCBO",
+      "label": "VIX · volatilidad",
+      "exchange": "Cboe",
+      "exchangeName": "Cboe Global Markets",
+      "symbol": "^VIX",
+      "region": "América",
+      "market": "Estados Unidos",
+      "kind": "volatility"
+    },
+    {
+      "id": "XTSE",
+      "label": "S&P/TSX Composite",
+      "exchange": "TSX",
+      "exchangeName": "Toronto Stock Exchange",
+      "symbol": "^GSPTSE",
+      "region": "América",
+      "market": "Canadá",
+      "kind": "equity"
+    },
+    {
+      "id": "XTSX",
+      "label": "S&P/TSX Venture",
+      "exchange": "TSXV",
+      "exchangeName": "TSX Venture Exchange",
+      "symbol": "^SPCDNX",
+      "region": "América",
+      "market": "Canadá",
+      "kind": "equity"
+    },
+    {
+      "id": "BVMF",
+      "label": "Ibovespa",
+      "exchange": "B3",
+      "exchangeName": "B3 — Brasil, Bolsa, Balcão",
+      "symbol": "^BVSP",
+      "region": "América",
+      "market": "Brasil",
+      "kind": "equity"
+    },
+    {
+      "id": "XBUE",
+      "label": "S&P Merval",
+      "exchange": "BYMA",
+      "exchangeName": "Bolsas y Mercados Argentinos",
+      "symbol": "^MERV",
+      "region": "América",
+      "market": "Argentina",
+      "kind": "equity"
+    },
+    {
+      "id": "XSGO",
+      "label": "S&P IPSA",
+      "exchange": "BCS",
+      "exchangeName": "Bolsa de Santiago",
+      "symbol": "",
+      "region": "América",
+      "market": "Chile",
+      "kind": "equity"
+    },
+    {
+      "id": "XBOG",
+      "label": "MSCI COLCAP",
+      "exchange": "bvc",
+      "exchangeName": "Bolsa de Valores de Colombia",
+      "symbol": "",
+      "region": "América",
+      "market": "Colombia",
+      "kind": "equity"
+    },
+    {
+      "id": "XLIM",
+      "label": "S&P/BVL Perú General",
+      "exchange": "BVL",
+      "exchangeName": "Bolsa de Valores de Lima",
+      "symbol": "",
+      "region": "América",
+      "market": "Perú",
+      "kind": "equity"
+    },
+    {
+      "id": "XLON",
+      "label": "FTSE 100",
+      "exchange": "LSE",
+      "exchangeName": "London Stock Exchange",
+      "symbol": "^FTSE",
+      "region": "Europa",
+      "market": "Reino Unido",
+      "kind": "equity"
+    },
+    {
+      "id": "XETR",
+      "label": "DAX 40",
+      "exchange": "Xetra",
+      "exchangeName": "Deutsche Börse — Xetra",
+      "symbol": "^GDAXI",
+      "region": "Europa",
+      "market": "Alemania",
+      "kind": "equity"
+    },
+    {
+      "id": "XSTU",
+      "label": "Renta fija y certificados",
+      "exchange": "Stuttgart",
+      "exchangeName": "Börse Stuttgart",
+      "symbol": "",
+      "region": "Europa",
+      "market": "Alemania",
+      "kind": "informational"
+    },
+    {
+      "id": "XPAR",
+      "label": "CAC 40",
+      "exchange": "Euronext",
+      "exchangeName": "Euronext Paris",
+      "symbol": "^FCHI",
+      "region": "Europa",
+      "market": "Francia",
+      "kind": "equity"
+    },
+    {
+      "id": "XMAD",
+      "label": "IBEX 35",
+      "exchange": "BME",
+      "exchangeName": "Bolsas y Mercados Españoles",
+      "symbol": "^IBEX",
+      "region": "Europa",
+      "market": "España",
+      "kind": "equity"
+    },
+    {
+      "id": "XMIL",
+      "label": "FTSE MIB",
+      "exchange": "Borsa Italiana",
+      "exchangeName": "Euronext Milan (Borsa Italiana)",
+      "symbol": "FTSEMIB.MI",
+      "region": "Europa",
+      "market": "Italia",
+      "kind": "equity"
+    },
+    {
+      "id": "XAMS",
+      "label": "AEX",
+      "exchange": "Euronext",
+      "exchangeName": "Euronext Amsterdam",
+      "symbol": "^AEX",
+      "region": "Europa",
+      "market": "Países Bajos",
+      "kind": "equity"
+    },
+    {
+      "id": "XSWX",
+      "label": "SMI",
+      "exchange": "SIX",
+      "exchangeName": "SIX Swiss Exchange",
+      "symbol": "^SSMI",
+      "region": "Europa",
+      "market": "Suiza",
+      "kind": "equity"
+    },
+    {
+      "id": "XSTO",
+      "label": "OMX Stockholm 30",
+      "exchange": "Nasdaq Nordic",
+      "exchangeName": "Nasdaq Stockholm",
+      "symbol": "^OMX",
+      "region": "Europa",
+      "market": "Suecia",
+      "kind": "equity"
+    },
+    {
+      "id": "XOSL",
+      "label": "OSEBX",
+      "exchange": "Oslo Børs",
+      "exchangeName": "Euronext Oslo Børs",
+      "symbol": "OSEBX.OL",
+      "region": "Europa",
+      "market": "Noruega",
+      "kind": "equity"
+    },
+    {
+      "id": "XCSE",
+      "label": "OMX Copenhagen 25",
+      "exchange": "Nasdaq Nordic",
+      "exchangeName": "Nasdaq Copenhagen",
+      "symbol": "^OMXC25",
+      "region": "Europa",
+      "market": "Dinamarca",
+      "kind": "equity"
+    },
+    {
+      "id": "XHEL",
+      "label": "OMX Helsinki 25",
+      "exchange": "Nasdaq Nordic",
+      "exchangeName": "Nasdaq Helsinki",
+      "symbol": "^OMXH25",
+      "region": "Europa",
+      "market": "Finlandia",
+      "kind": "equity"
+    },
+    {
+      "id": "XBRU",
+      "label": "BEL 20",
+      "exchange": "Euronext",
+      "exchangeName": "Euronext Brussels",
+      "symbol": "^BFX",
+      "region": "Europa",
+      "market": "Bélgica",
+      "kind": "equity"
+    },
+    {
+      "id": "XLIS",
+      "label": "PSI",
+      "exchange": "Euronext",
+      "exchangeName": "Euronext Lisbon",
+      "symbol": "PSI20.LS",
+      "region": "Europa",
+      "market": "Portugal",
+      "kind": "equity"
+    },
+    {
+      "id": "XWBO",
+      "label": "ATX",
+      "exchange": "WBAG",
+      "exchangeName": "Wiener Börse",
+      "symbol": "^ATX",
+      "region": "Europa",
+      "market": "Austria",
+      "kind": "equity"
+    },
+    {
+      "id": "XDUB",
+      "label": "ISEQ Overall",
+      "exchange": "Euronext",
+      "exchangeName": "Euronext Dublin",
+      "symbol": "^ISEQ",
+      "region": "Europa",
+      "market": "Irlanda",
+      "kind": "equity"
+    },
+    {
+      "id": "XWAR",
+      "label": "WIG20",
+      "exchange": "GPW",
+      "exchangeName": "Giełda Papierów Wartościowych",
+      "symbol": "",
+      "region": "Europa",
+      "market": "Polonia",
+      "kind": "equity"
+    },
+    {
+      "id": "XATH",
+      "label": "ATHEX Composite",
+      "exchange": "ATHEX",
+      "exchangeName": "Athens Stock Exchange",
+      "symbol": "",
+      "region": "Europa",
+      "market": "Grecia",
+      "kind": "equity"
+    },
+    {
+      "id": "MISX",
+      "label": "Índice MOEX",
+      "exchange": "MOEX",
+      "exchangeName": "Moscow Exchange",
+      "symbol": "IMOEX",
+      "provider": "moex",
+      "region": "Europa",
+      "market": "Rusia",
+      "kind": "equity"
+    },
+    {
+      "id": "XIST",
+      "label": "BIST 100",
+      "exchange": "BIST",
+      "exchangeName": "Borsa İstanbul",
+      "symbol": "XU100.IS",
+      "region": "Medio Oriente",
+      "market": "Turquía",
+      "kind": "equity"
+    },
+    {
+      "id": "XTKS",
+      "label": "Nikkei 225",
+      "exchange": "TSE",
+      "exchangeName": "Tokyo Stock Exchange (JPX)",
+      "symbol": "^N225",
+      "region": "Asia",
+      "market": "Japón",
+      "kind": "equity"
+    },
+    {
+      "id": "XSHG",
+      "label": "SSE Composite",
+      "exchange": "SSE",
+      "exchangeName": "Shanghai Stock Exchange",
+      "symbol": "000001.SS",
+      "region": "Asia",
+      "market": "China",
+      "kind": "equity"
+    },
+    {
+      "id": "XSHE",
+      "label": "SZSE Component",
+      "exchange": "SZSE",
+      "exchangeName": "Shenzhen Stock Exchange",
+      "symbol": "399001.SZ",
+      "region": "Asia",
+      "market": "China",
+      "kind": "equity"
+    },
+    {
+      "id": "BJSE",
+      "label": "BSE 50",
+      "exchange": "BSE",
+      "exchangeName": "Beijing Stock Exchange",
+      "symbol": "",
+      "region": "Asia",
+      "market": "China",
+      "kind": "equity"
+    },
+    {
+      "id": "XHKG",
+      "label": "Hang Seng",
+      "exchange": "HKEX",
+      "exchangeName": "Hong Kong Exchanges and Clearing",
+      "symbol": "^HSI",
+      "region": "Asia",
+      "market": "Hong Kong",
+      "kind": "equity"
+    },
+    {
+      "id": "XSES",
+      "label": "Straits Times Index",
+      "exchange": "SGX",
+      "exchangeName": "Singapore Exchange",
+      "symbol": "^STI",
+      "region": "Asia",
+      "market": "Singapur",
+      "kind": "equity"
+    },
+    {
+      "id": "XKRX",
+      "label": "KOSPI",
+      "exchange": "KRX",
+      "exchangeName": "Korea Exchange",
+      "symbol": "^KS11",
+      "region": "Asia",
+      "market": "Corea del Sur",
+      "kind": "equity"
+    },
+    {
+      "id": "XTAI",
+      "label": "TAIEX",
+      "exchange": "TWSE",
+      "exchangeName": "Taiwan Stock Exchange",
+      "symbol": "^TWII",
+      "region": "Asia",
+      "market": "Taiwán",
+      "kind": "equity"
+    },
+    {
+      "id": "XNSE",
+      "label": "NIFTY 50",
+      "exchange": "NSE",
+      "exchangeName": "National Stock Exchange of India",
+      "symbol": "^NSEI",
+      "region": "Asia",
+      "market": "India",
+      "kind": "equity"
+    },
+    {
+      "id": "XBOM",
+      "label": "S&P BSE SENSEX",
+      "exchange": "BSE",
+      "exchangeName": "BSE Limited",
+      "symbol": "^BSESN",
+      "region": "Asia",
+      "market": "India",
+      "kind": "equity"
+    },
+    {
+      "id": "XIDX",
+      "label": "IDX Composite",
+      "exchange": "IDX",
+      "exchangeName": "Indonesia Stock Exchange",
+      "symbol": "^JKSE",
+      "region": "Asia",
+      "market": "Indonesia",
+      "kind": "equity"
+    },
+    {
+      "id": "XKLS",
+      "label": "FTSE Bursa Malaysia KLCI",
+      "exchange": "Bursa",
+      "exchangeName": "Bursa Malaysia",
+      "symbol": "^KLSE",
+      "region": "Asia",
+      "market": "Malasia",
+      "kind": "equity"
+    },
+    {
+      "id": "XBKK",
+      "label": "SET Index",
+      "exchange": "SET",
+      "exchangeName": "Stock Exchange of Thailand",
+      "symbol": "",
+      "region": "Asia",
+      "market": "Tailandia",
+      "kind": "equity"
+    },
+    {
+      "id": "XPHS",
+      "label": "PSEi",
+      "exchange": "PSE",
+      "exchangeName": "Philippine Stock Exchange",
+      "symbol": "",
+      "region": "Asia",
+      "market": "Filipinas",
+      "kind": "equity"
+    },
+    {
+      "id": "XSTC",
+      "label": "VN-Index",
+      "exchange": "HOSE",
+      "exchangeName": "Ho Chi Minh Stock Exchange",
+      "symbol": "",
+      "region": "Asia",
+      "market": "Vietnam",
+      "kind": "equity"
+    },
+    {
+      "id": "XASX",
+      "label": "S&P/ASX 200",
+      "exchange": "ASX",
+      "exchangeName": "Australian Securities Exchange",
+      "symbol": "^AXJO",
+      "region": "Oceanía",
+      "market": "Australia",
+      "kind": "equity"
+    },
+    {
+      "id": "XNZE",
+      "label": "S&P/NZX 50",
+      "exchange": "NZX",
+      "exchangeName": "New Zealand Exchange",
+      "symbol": "^NZ50",
+      "region": "Oceanía",
+      "market": "Nueva Zelanda",
+      "kind": "equity"
+    },
+    {
+      "id": "XJSE",
+      "label": "FTSE/JSE All Share",
+      "exchange": "JSE",
+      "exchangeName": "Johannesburg Stock Exchange",
+      "symbol": "^J203.JO",
+      "region": "África",
+      "market": "Sudáfrica",
+      "kind": "equity"
+    },
+    {
+      "id": "XCAI",
+      "label": "EGX 30",
+      "exchange": "EGX",
+      "exchangeName": "The Egyptian Exchange",
+      "symbol": "",
+      "region": "África",
+      "market": "Egipto",
+      "kind": "equity"
+    },
+    {
+      "id": "XNSA",
+      "label": "NGX All-Share",
+      "exchange": "NGX",
+      "exchangeName": "Nigerian Exchange Group",
+      "symbol": "",
+      "region": "África",
+      "market": "Nigeria",
+      "kind": "equity"
+    },
+    {
+      "id": "XCAS",
+      "label": "MASI",
+      "exchange": "CSE",
+      "exchangeName": "Bourse de Casablanca",
+      "symbol": "",
+      "region": "África",
+      "market": "Marruecos",
+      "kind": "equity"
+    },
+    {
+      "id": "XSAU",
+      "label": "TASI",
+      "exchange": "Tadawul",
+      "exchangeName": "Saudi Exchange (Tadawul)",
+      "symbol": "",
+      "region": "Medio Oriente",
+      "market": "Arabia Saudita",
+      "kind": "equity"
+    },
+    {
+      "id": "XDFM",
+      "label": "DFM General",
+      "exchange": "DFM",
+      "exchangeName": "Dubai Financial Market",
+      "symbol": "",
+      "region": "Medio Oriente",
+      "market": "Emiratos Árabes Unidos",
+      "kind": "equity"
+    },
+    {
+      "id": "XADS",
+      "label": "FTSE ADX General",
+      "exchange": "ADX",
+      "exchangeName": "Abu Dhabi Securities Exchange",
+      "symbol": "",
+      "region": "Medio Oriente",
+      "market": "Emiratos Árabes Unidos",
+      "kind": "equity"
+    },
+    {
+      "id": "XTAE",
+      "label": "TA-125",
+      "exchange": "TASE",
+      "exchangeName": "Tel Aviv Stock Exchange",
+      "symbol": "^TA125.TA",
+      "region": "Medio Oriente",
+      "market": "Israel",
+      "kind": "equity"
+    },
+    {
+      "id": "DSMD",
+      "label": "QE Index",
+      "exchange": "QSE",
+      "exchangeName": "Qatar Stock Exchange",
+      "symbol": "",
+      "region": "Medio Oriente",
+      "market": "Catar",
+      "kind": "equity"
+    },
+    {
+      "id": "XKUW",
+      "label": "Premier Market Index",
+      "exchange": "Boursa",
+      "exchangeName": "Boursa Kuwait",
+      "symbol": "",
+      "region": "Medio Oriente",
+      "market": "Kuwait",
+      "kind": "equity"
+    },
+    {
+      "symbol": "^IXIC",
+      "label": "Nasdaq Composite",
+      "region": "América",
+      "market": "Estados Unidos",
+      "id": "^IXIC",
+      "exchange": "Índice adicional",
+      "exchangeName": "Referencia complementaria",
+      "kind": "equity"
+    },
+    {
+      "symbol": "^DJI",
+      "label": "Dow Jones",
+      "region": "América",
+      "market": "Estados Unidos",
+      "id": "^DJI",
+      "exchange": "Índice adicional",
+      "exchangeName": "Referencia complementaria",
+      "kind": "equity"
+    },
+    {
+      "symbol": "^STOXX50E",
+      "label": "Euro Stoxx 50",
+      "region": "Europa",
+      "market": "Eurozona",
+      "id": "^STOXX50E",
+      "exchange": "Índice adicional",
+      "exchangeName": "Referencia complementaria",
+      "kind": "equity"
+    }
+  ]
+}

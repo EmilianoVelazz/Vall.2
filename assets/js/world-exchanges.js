@@ -67,11 +67,12 @@
                 { nombre: 'TSX Venture Exchange', sigla: 'TSXV', ciudad: 'Calgary', mic: 'XTSX', indice: 'S&P/TSX Venture', simbolo: '^SPCDNX' },
             ],
         },
-        /* México se retiró del mapa el 2026-08-07 por decisión de producto: no
-           se dibuja su polígono ni su marcador. La exclusión del polígono está
-           en EXCLUIDOS, dentro de scripts/build-world-map.mjs. Para devolverlo
-           hay que revertir las tres cosas: este bloque, su entrada en CENTROS y
-           su nombre en EXCLUIDOS. */
+        'Mexico': {
+            pais: 'México', bandera: '🇲🇽', tz: 'America/Mexico_City',
+            bolsas: [
+                { nombre: 'Bolsa Mexicana de Valores', sigla: 'BMV', ciudad: 'Ciudad de México', mic: 'XMEX', indice: 'S&P/BMV IPC', simbolo: '^MXX' },
+            ],
+        },
         'Brazil': {
             pais: 'Brasil', bandera: '🇧🇷', tz: 'America/Sao_Paulo',
             bolsas: [

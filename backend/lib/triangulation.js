@@ -8,7 +8,7 @@
  * FUENTES VERIFICADAS EN TIEMPO REAL:
  *   ✅ CME (Lean Hogs, Live Cattle, Corn, Soybeans) — vía Yahoo Finance
  *   ✅ Banxico FIX (SF43718) — Tipo de cambio oficial
- *   ✅ Banxico TIIE (SF61745) — Tasa de interés oficial
+ *   ✅ Banxico TIIE 28 días (SF43783) — Tasa interbancaria oficial
  *   ✅ GDELT / Finnhub — Noticias
  * 
  * FUENTES CON DATOS ESTÁTICOS DE REFERENCIA (NO son tiempo real):

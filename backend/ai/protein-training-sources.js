@@ -7,6 +7,7 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 const vm = require('vm');
+const JSZip = require('jszip');
 const { REJECT_UNAUTHORIZED } = require('../lib/http');
 
 // El ciclo puede ejecutarse fuera de server.js; en ese caso también necesita
@@ -37,6 +38,21 @@ function requestJson(url, { method = 'GET', body, headers = {}, timeout = 20_000
         if (body) request.write(body);
         request.end();
     });
+}
+
+function parseCsvRow(line) {
+    const fields = []; let value = ''; let quoted = false;
+    for (let index = 0; index < String(line || '').length; index++) {
+        const character = line[index];
+        if (character === '"') {
+            if (quoted && line[index + 1] === '"') { value += '"'; index++; }
+            else quoted = !quoted;
+        } else if (character === ',' && !quoted) {
+            fields.push(value); value = '';
+        } else value += character;
+    }
+    fields.push(value);
+    return fields.map(field => field.replace(/^\uFEFF/, '').trim());
 }
 
 function extractExportObject(source, name) {
@@ -84,27 +100,40 @@ async function worldBankLivestockSnapshot() {
     };
 }
 
-async function blsRetailSnapshot() {
-    // Series CPI de BLS: res molida, pechuga de pollo, huevo y chuleta de cerdo.
-    const seriesIds = ['APU0000FF1101', 'APU0000FD3101', 'APU0000FE1101', 'APU0000FF2101'];
-    const names = { APU0000FF1101: 'res', APU0000FD3101: 'pollo', APU0000FE1101: 'huevo', APU0000FF2101: 'cerdo' };
+async function blsRetailSnapshot(request = requestJson) {
+    // Average Price Data: precios minoristas mensuales, no índices CPI.
+    // Catálogo contrastado con BLS/FRED; FF1101 es pollo, FD3101 es cerdo.
+    const catalog = {
+        APU0000703112: { species: 'res', category: 'Ground beef, 100% beef', unit: 'USD/lb' },
+        APU0000FF1101: { species: 'pollo', category: 'Chicken breast, boneless', unit: 'USD/lb' },
+        APU0000708111: { species: 'huevo', category: 'Eggs, Grade A, large', unit: 'USD/dozen' },
+        APU0000FD3101: { species: 'cerdo', category: 'All pork chops', unit: 'USD/lb' },
+    };
+    const seriesIds = Object.keys(catalog);
     const year = new Date().getFullYear();
-    const response = await requestJson('https://api.bls.gov/publicAPI/v2/timeseries/data/', {
+    const response = await request('https://api.bls.gov/publicAPI/v2/timeseries/data/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ seriesid: seriesIds, startyear: String(year - 1), endyear: String(year) }),
     });
     const prices = {};
     for (const series of response?.Results?.series || []) {
-        const latest = (series.data || []).find(point => /^M\d{2}$/.test(point.period) && Number.isFinite(Number(point.value)));
-        if (latest && names[series.seriesID]) prices[names[series.seriesID]] = {
+        const item = catalog[series.seriesID];
+        if (!item) continue;
+        const latest = (series.data || []).filter(point => /^M(?:0[1-9]|1[0-2])$/.test(point.period)
+            && /^\d{4}$/.test(String(point.year)) && String(point.value).trim() !== '' && Number(point.value) > 0
+            && Number.isFinite(Number(point.value)) && `${point.year}-${point.period.slice(1)}` <= new Date().toISOString().slice(0,7))
+            .sort((a,b) => `${b.year}-${b.period}`.localeCompare(`${a.year}-${a.period}`))[0];
+        if (latest) prices[item.species] = {
             value: Number(latest.value), period: `${latest.year}-${latest.period.slice(1)}`,
-            unit: names[series.seriesID] === 'huevo' ? 'USD/dozen' : 'USD/lb',
+            unit: item.unit, category: item.category, basis: 'monthly retail average',
+            series_id: series.seriesID, source_url: `https://data.bls.gov/timeseries/${series.seriesID}`,
         };
     }
+    if (!Object.keys(prices).length) throw new Error('BLS no devolvió precios minoristas mensuales utilizables');
     return {
         source_id: 'bls_us_retail', source_name: 'U.S. Bureau of Labor Statistics — Average Price Data',
         source_url: 'https://www.bls.gov/data/', data_type: 'observed_monthly', is_forecast: false,
-        retrieved_at: new Date().toISOString(), data_vintage: Object.values(prices)[0]?.period || null, payload: { prices },
+        retrieved_at: new Date().toISOString(), data_vintage: Object.values(prices).map(item => item.period).sort().at(-1) || null, payload: { prices },
     };
 }
 
@@ -127,17 +156,72 @@ async function inegiRetailSnapshot() {
     };
 }
 
-async function woahHealthSnapshot() {
-    const url = 'https://wahis.woah.org/api/v1/pi/event/filtered?pageNumber=1&pageSize=20&eventStatuses=CONFIRMED&diseaseNames=African%20swine%20fever,Highly%20pathogenic%20avian%20influenza';
-    const response = await requestJson(url);
-    const alerts = Array.isArray(response?.content) ? response.content.slice(0, 20).map(event => ({
-        disease: event.diseaseName || null, country: event.countryName || null,
-        report_date: event.reportDate || event.startDate || null, status: event.eventStatus || null,
-    })) : [];
+
+
+function amsLatestRow(rows, requiredFields) {
+    return (Array.isArray(rows) ? rows : []).find(row =>
+        requiredFields.every(field => nassNumber(row?.[field]) !== null)
+    ) || null;
+}
+
+async function usdaAmsProteinSnapshot() {
+    // Market News expone informes con nombres de sección, no una serie
+    // homogénea. Consultamos los cortes nacionales explícitos y conservamos su
+    // unidad original (USD/cwt): no se convierte a kg ni se mezcla con precios
+    // de granja o de menudeo.
+    const [porkResponse, beefResponse, swineResponse] = await Promise.all([
+        requestJson('https://mpr.datamart.ams.usda.gov/services/v1.1/reports/2498/Cutout%20and%20Primal%20Values'),
+        requestJson('https://mpr.datamart.ams.usda.gov/services/v1.1/reports/2453/Current%20Cutout%20Values'),
+        requestJson('https://mpr.datamart.ams.usda.gov/services/v1.1/reports/2511'),
+    ]);
+    const pork = amsLatestRow(porkResponse?.results, ['pork_carcass']);
+    const beef = amsLatestRow(beefResponse?.results, ['choice_600_900_current']);
+    const swine = amsLatestRow(swineResponse?.results, ['barrows_head_count']);
+    if (!pork && !beef && !swine) throw new Error('USDA AMS no devolvió observaciones pecuarias utilizables');
+    const reportDate = pork?.report_date || beef?.report_date || swine?.report_date || null;
     return {
-        source_id: 'woah_wahis', source_name: 'WOAH — World Animal Health Information System',
-        source_url: 'https://wahis.woah.org/', data_type: 'official_health_notification', is_forecast: false,
-        retrieved_at: new Date().toISOString(), data_vintage: alerts[0]?.report_date || null, payload: { alerts },
+        source_id: 'usda_ams_lmpr', source_name: 'USDA AMS — Livestock Mandatory Price Reporting',
+        source_url: 'https://mpr.datamart.ams.usda.gov/', data_type: 'official_daily_market_report', is_forecast: false,
+        retrieved_at: new Date().toISOString(), data_vintage: reportDate,
+        payload: {
+            geography: 'United States', report_date: reportDate,
+            negotiated_sales_usd_per_cwt: {
+                pork_carcass: pork ? { value: nassNumber(pork.pork_carcass), report: pork.report_title } : null,
+                beef_choice_600_900: beef ? { value: nassNumber(beef.choice_600_900_current), report: beef.report_title } : null,
+            },
+            slaughter: swine ? { barrows_and_gilts_head: nassNumber(swine.barrows_head_count), report: swine.report_title } : null,
+            note: 'Valores de reportes nacionales de ventas negociadas; no equivalen a precio de productor, mayoreo mexicano ni precio al consumidor.',
+        },
+    };
+}
+
+async function faoFpmaMexicoFeedSnapshot() {
+    // FPMA declara mercado, tipo de precio, moneda y unidad de medida. Se toma
+    // una única serie mayorista identificada y se conserva ese contexto para no
+    // tratarla como un precio nacional de alimento balanceado.
+    const seriesResponse = await requestJson('https://fpma.fao.org/giews/v4/global/price_module/api/v1/FpmaSerieDomestic/?iso3_country_codes=MEX&limit=100');
+    const series = (seriesResponse?.results || []).find(item =>
+        item?.commodity_name === 'Maize (white, Sinaloa)'
+        && item?.market_name === 'Culiacán'
+        && item?.price_type === 'WHOLESALE'
+        && Array.isArray(item?.periodicity) && item.periodicity.some(period => period.period === 'monthly')
+    );
+    if (!series?.uuid) throw new Error('FAO FPMA no devolvió la serie mayorista de maíz seleccionada');
+    const priceResponse = await requestJson(`https://fpma.fao.org/giews/v4/global/price_module/api/v1/FpmaSeriePrice/?uuid__in=${encodeURIComponent(series.uuid)}&periodicity=monthly`);
+    const latest = priceResponse?.results?.[0]?.datapoints?.find(point => Number.isFinite(Number(point?.price_value)));
+    if (!latest) throw new Error('FAO FPMA no devolvió un precio mensual utilizable');
+    return {
+        source_id: 'fao_fpma_mexico_maize', source_name: 'FAO FPMA — Precio mayorista de maíz blanco',
+        source_url: 'https://www.fao.org/giews/food-prices/', data_type: 'official_monthly_wholesale_price', is_forecast: false,
+        retrieved_at: new Date().toISOString(), data_vintage: latest.date || null,
+        payload: {
+            geography: 'Culiacán, Sinaloa, México', commodity: series.commodity_name,
+            market: series.market_name, price_type: series.price_type,
+            value: Number(latest.price_value), currency: series.currency,
+            unit: series.measure_unit_label, period: latest.date,
+            price_value_dollar: Number.isFinite(Number(latest.price_value_dollar)) ? Number(latest.price_value_dollar) : null,
+            note: 'Serie de mercado mayorista específica; sirve como contexto del maíz, no como cotización nacional de alimento balanceado.',
+        },
     };
 }
 
@@ -255,10 +339,52 @@ async function ibgeSlaughterSnapshot() {
     };
 }
 
+async function statcanHogProductionSnapshot() {
+    // Statistics Canada expone la tabla completa mediante WDS; el manifiesto
+    // entrega el ZIP vigente y evita apuntar a un archivo fechado manualmente.
+    const table = '32100126';
+    const manifestResponse = await fetch(`https://www150.statcan.gc.ca/t1/wds/rest/getFullTableDownloadCSV/${table}/en`, {
+        headers: { Accept: 'application/json', 'User-Agent': 'VALLNews-Protein-Research/1.0' },
+        signal: AbortSignal.timeout(20_000),
+    });
+    if (!manifestResponse.ok) throw new Error(`Statistics Canada HTTP ${manifestResponse.status}`);
+    const manifest = await manifestResponse.json();
+    if (!manifest?.object) throw new Error('Statistics Canada no devolvió el archivo de producción porcina');
+    const archiveResponse = await fetch(manifest.object, { signal: AbortSignal.timeout(30_000) });
+    if (!archiveResponse.ok) throw new Error(`Archivo Statistics Canada HTTP ${archiveResponse.status}`);
+    const archive = await JSZip.loadAsync(Buffer.from(await archiveResponse.arrayBuffer()));
+    const filename = Object.keys(archive.files).find(name => new RegExp(`^${table}\\.csv$`, 'i').test(name));
+    if (!filename) throw new Error('No se encontró la tabla canadiense de producción pecuaria');
+    const lines = (await archive.file(filename).async('string')).split(/\r?\n/).filter(Boolean);
+    const header = parseCsvRow(lines.shift());
+    const position = Object.fromEntries(header.map((name, index) => [name, index]));
+    const rows = lines.map(parseCsvRow).filter(row =>
+        row[position.GEO] === 'Canada'
+        && row[position.Livestock] === 'Hogs'
+        && row[position['Livestock estimates']] === 'Estimated meat production'
+        && row[position.UOM] === 'Tonnes'
+    ).map(row => ({
+        period: row[position.REF_DATE], value: Number(row[position.VALUE]), unit: row[position.UOM],
+    })).filter(row => Number.isFinite(row.value)).sort((a, b) => String(a.period).localeCompare(String(b.period)));
+    const latest = rows.at(-1);
+    if (!latest) throw new Error('Statistics Canada no publicó una observación porcina utilizable');
+    return {
+        source_id: 'statcan_hog_production', source_name: 'Statistics Canada — Hogs, sheep and lambs, farm and meat production',
+        source_url: 'https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3210012601', data_type: 'official_annual_production', is_forecast: false,
+        retrieved_at: new Date().toISOString(), data_vintage: latest.period,
+        payload: { geography: 'Canada', annual_production: { hogs: latest }, table: '32-10-0126-01' },
+    };
+}
+
 const SOURCE_CATALOG = [
     { source_id: 'usda_nass_quick_stats', source_name: 'USDA NASS — Quick Stats', source_url: 'https://data.nass.usda.gov/developer/', cadence: 'quarterly_or_annual', access: 'API key configurada; inventarios nacionales de bovino y cerdo' },
     { source_id: 'eurostat_pigmeat_eu27', source_name: 'Eurostat — Pigmeat production', source_url: 'https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-getting-started', cadence: 'monthly', access: 'API pública; producción de cerdo UE-27' },
     { source_id: 'ibge_sidra_slaughter', source_name: 'IBGE SIDRA — Pesquisa Trimestral do Abate', source_url: 'https://sidra.ibge.gov.br/', cadence: 'quarterly', access: 'API pública; sacrificio brasileño por especie' },
+    { source_id: 'statcan_hog_production', source_name: 'Statistics Canada — Hogs, sheep and lambs, farm and meat production', source_url: 'https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3210012601', cadence: 'annual', access: 'API pública WDS; producción canadiense de carne de cerdo' },
+    { source_id: 'usda_ams_lmpr', source_name: 'USDA AMS — Livestock Mandatory Price Reporting', source_url: 'https://mpr.datamart.ams.usda.gov/', cadence: 'daily', access: 'API pública; corte nacional de ventas negociadas y sacrificio' },
+    { source_id: 'fao_fpma_mexico_maize', source_name: 'FAO FPMA — Precio mayorista de maíz blanco', source_url: 'https://www.fao.org/giews/food-prices/', cadence: 'monthly', access: 'API pública; Culiacán, Sinaloa, MXN/kg' },
+    { source_id: 'usda_ers_livestock_trade', source_name: 'USDA ERS — Livestock and Meat International Trade Data', source_url: 'https://www.ers.usda.gov/data-products/livestock-and-meat-international-trade-data/', cadence: 'monthly', access: 'CSV público; comercio de carne, ganado, aves y huevo por socio' },
+    { source_id: 'oecd_sdmx_agricultural_outlook', source_name: 'OECD — SDMX Agricultural Outlook', source_url: 'https://sdmx.oecd.org/public/rest', cadence: 'annual', access: 'API SDMX pública; histórico y proyecciones deben identificarse como tales' },
     { source_id: 'usda_fas_psd', source_name: 'USDA FAS — Production, Supply and Distribution', source_url: 'https://apps.fas.usda.gov/psdonline/', cadence: 'monthly_or_biannual', access: 'API key requerida para la API moderna' },
     { source_id: 'fao_faostat_trade', source_name: 'FAOSTAT — Detailed Trade Matrix', source_url: 'https://data.fao.org/catalog/dataset/955a7b61-ce56-4a04-adf5-61a3012eec84', cadence: 'annual', access: 'API y descarga pública' },
     { source_id: 'fao_fishstat', source_name: 'FAO FishStat', source_url: 'https://www.fao.org/statistics/data-collection/fishery-and-aquaculture/en', cadence: 'annual', access: 'descarga pública' },
@@ -269,7 +395,12 @@ const SOURCE_CATALOG = [
 async function gatherProteinEvidence() {
     // WAHIS no ofrece una API pública estable para esta consulta; sus alertas
     // se incorporan por extracción semanal validada, no por un endpoint roto.
-    const tasks = [faoGlobalSnapshot, worldBankLivestockSnapshot, blsRetailSnapshot, inegiRetailSnapshot, usdaNassLivestockSnapshot, eurostatPigmeatSnapshot, ibgeSlaughterSnapshot];
+    const tasks = [
+        faoGlobalSnapshot, worldBankLivestockSnapshot, blsRetailSnapshot,
+        inegiRetailSnapshot, usdaNassLivestockSnapshot, eurostatPigmeatSnapshot,
+        ibgeSlaughterSnapshot, statcanHogProductionSnapshot, usdaAmsProteinSnapshot,
+        faoFpmaMexicoFeedSnapshot,
+    ];
     const settled = await Promise.allSettled(tasks.map(task => Promise.resolve().then(task)));
     const snapshots = settled.filter(item => item.status === 'fulfilled').map(item => item.value);
     const failures = settled.filter(item => item.status === 'rejected').map(item => item.reason?.message || 'Fuente no disponible');
@@ -277,6 +408,8 @@ async function gatherProteinEvidence() {
 }
 
 module.exports = {
+    blsRetailSnapshot,
     gatherProteinEvidence, faoGlobalSnapshot, usdaNassLivestockSnapshot,
-    eurostatPigmeatSnapshot, ibgeSlaughterSnapshot, SOURCE_CATALOG,
+    eurostatPigmeatSnapshot, ibgeSlaughterSnapshot, statcanHogProductionSnapshot,
+    usdaAmsProteinSnapshot, faoFpmaMexicoFeedSnapshot, SOURCE_CATALOG,
 };

@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import {grainHistoricalComparison} from '../shared/report-grain-history.mjs';
+import {weeklyReport} from '../shared/report-weekly.mjs';
+import {marketPeriods,marketAnalysisTables} from '../shared/report-market-analysis.mjs';
+import {filteredReportModel,reportFilterOptions} from '../shared/report-view-filters.mjs';
+import {grainFamily,grainHistoryColor,grainHistoryGeometry} from '../shared/report-grain-chart.mjs';
+const input=[{label:'Maíz · plaza A · México',country:'México',unit:'MXN/kg',periods:{},points:[{date:'2020-01-03',value:6},{date:'2026-10-30',value:10}]},{label:'Maíz · plaza B · Brasil',country:'Brasil',unit:'BRL/saco',periods:{},points:[{date:'2026-10-01',value:100},{date:'2026-10-30',value:90}]}],before=JSON.stringify(input),history=grainHistoricalComparison(input);
+assert.equal(history.visual.series.length,2);assert.equal(history.visual.series[0].points[0].value,100);assert(Math.abs(history.visual.series[0].points.at(-1).value-1000/6)<1e-9);
+assert.equal(history.entries[1].partial,true);assert.equal(history.visual.series[1].points[0].date,'2026-10-01','Partial histories never inherit 2020 points');
+assert.equal(history.table.rows[1][3],'2026-10-01');assert.equal(JSON.stringify(input),before);assert.equal(grainHistoricalComparison([{...input[0],points:[input[0].points[0]]}]),null);
+assert.equal(history.visual.series[0].basePrice,6);assert.equal(history.visual.series[0].lastPrice,10);assert.deepEqual(history.visual.series[0].points.map(point=>point.originalValue),[6,10]);
+assert.equal(grainFamily('Harina/pellets de soya FOB'),'soymeal');assert.equal(grainFamily('Salvado de trigo'),'bran');assert.equal(grainFamily('Maíz forrajero'),'corn');
+assert.equal(grainFamily('Maíz blanco · San Salvador · El Salvador'),'corn','Country names cannot change the product classification');
+assert.equal(grainHistoryColor(history.visual.series[0]),grainHistoryColor({...history.visual.series[0],label:'Translated label'}),'Product colors use stable identities');
+const full=grainHistoryGeometry(history.visual.series[0].points),partial=grainHistoryGeometry(history.visual.series[1].points,{first:Date.parse('2020-01-01'),last:Date.parse('2026-10-30')});
+assert.equal(full.start.x,0);assert.equal(full.end.x,500);assert(partial.start.x>490*.95,'A partial history is not stretched backwards over missing years');
+assert(full.end.y>=0 && full.end.y<=58);assert.equal(grainHistoryGeometry([]),null);
+assert.equal(marketPeriods(input[1].points).since2020,null,'A history starting in 2026 is never described as a change since 2020');
+assert.equal(marketPeriods(input[1].points).history.baseDate,'2026-10-01');
+assert.equal(marketPeriods(input[0].points).since2020.baseDate,'2020-01-03');
+const report=JSON.parse(fs.readFileSync('backend/cache/market_executive_reports.json')).reports.find(item=>item.key==='grains'),model=weeklyReport(report),chart=model.grainGlobalHistory;
+assert(chart);assert.equal(chart.series.length,model.references.filter(item=>item.points.length>=2).length);
+const references=new Map(model.references.map(item=>[item.label,item]));
+for(const table of marketAnalysisTables(report))for(const row of table.rows)if(row[1]==='Desde 2020')assert(String(row[4]).startsWith('2020-'),'An export label must agree with its actual base year');
+for(const series of chart.series){const reference=references.get(series.label.replace(/^\d+\.\s*/,''));assert(reference);assert.equal(series.points.length,reference.points.filter(point=>point.date>='2020-01-01').length);assert.equal(series.points[0].value,100);assert.equal(series.points.at(-1).date,reference.last.date);assert.equal(series.lastPrice,reference.last.value);assert.equal(series.basePrice,reference.points[0].value);assert.deepEqual(series.points.map(point=>point.originalValue),reference.points.map(point=>point.value));}
+assert(reportFilterOptions(model,report).countries.includes('México'));
+const mexico=filteredReportModel(model,report,{country:'México'});
+assert.equal(mexico.visuals.find(item=>item.grainHistoryOverview).series.length,model.references.filter(item=>item.country==='México').length);
+assert.equal(mexico.results.filter(item=>item.grainMaster).flatMap(item=>item.rows).length,model.references.filter(item=>item.country==='México').length,'Reference codes do not break country filters');
+const require=createRequire(import.meta.url),{makeReportWorkbook}=require('../backend/lib/report-workbook'),{publicXlsxSheet}=require('../backend/lib/report-public-xlsx');
+const workbook=await makeReportWorkbook(report),master=await publicXlsxSheet(workbook,'Maestra 2020-actual',{maxRows:200,maxColumns:15});
+assert.equal(master.length,model.references.length+1);
+for(const row of master.slice(1)){const reference=references.get(row[1]);assert(reference);assert.equal(row[5],reference.points[0].value);assert.equal(row[7],reference.last.value);assert(Math.abs(row[9]-(reference.last.value/reference.points[0].value-1)*100)<1e-9);}
+const zip=await require('jszip').loadAsync(workbook);assert((await zip.file('xl/workbook.xml').async('string')).includes('Historia global'));
+await (await import('node:fs/promises')).writeFile('output/granos-cobertura-20261105/granos-maestra.xlsx',workbook);
+console.log('Grain history: all countries and original observations, exact base-100 math, explicit partial histories, no currency conversion, immutable source and working Mexico filter.');

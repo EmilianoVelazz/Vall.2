@@ -1,0 +1,109 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Fondo unificado VALLNews
+
+   Cada sección conserva sus colores semánticos dentro de tarjetas, gráficas y
+   módulos. El lienzo que las sostiene es único para que navegar no parezca un
+   salto entre productos distintos. Esta hoja se carga al final del <head>.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --vn-page-bg: #14263a;
+  --vn-page-bg-rgb: 20, 38, 58;
+  --vn-page-glow-rgb: 74, 148, 214;
+  --vn-page-background:
+    radial-gradient(circle at 84% -12%, rgba(var(--vn-page-glow-rgb), .14), transparent 38rem),
+    linear-gradient(180deg, var(--vn-page-bg), var(--vn-page-bg));
+}
+
+html,
+html[data-theme="dark"],
+html.vn-dark-pilot,
+html.vn-dark-mercados,
+html.vn-dark-geo,
+html.vn-dark-mexico,
+html:has(body.vn-dark-geo),
+body,
+body.vn-dark-pilot,
+body.vn-dark-inicio,
+body.vn-dark-finanzas,
+body.vn-dark-mercados,
+body.vn-dark-geo,
+body.vn-dark-mexico,
+body.vall-ai-body {
+  background-color: var(--vn-page-bg) !important;
+  background-image: var(--vn-page-background) !important;
+  background-size: auto !important;
+  background-attachment: fixed !important;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+#root {
+  background: transparent !important;
+}
+
+/* Las pantallas que antes dibujaban un segundo fondo de página ahora dejan ver
+   el lienzo compartido. Solo se tocan envolventes de página, no tarjetas. */
+.lg-wrap,
+.gp-page,
+.mxh-page,
+.vall-ai-body .vai-shell,
+.vall-ai-body .vai-workspace {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* El canvas del acceso sigue aportando profundidad, pero ya no sustituye el
+   color de toda la aplicación. */
+.lg-lienzo { opacity: .16 !important; }
+.lg-velo {
+  background:
+    linear-gradient(180deg, rgba(var(--vn-page-bg-rgb), .25), rgba(var(--vn-page-bg-rgb), .52)) !important;
+}
+
+/* Configuración y Proteínas conservan tarjetas claras. Sus encabezados viven
+   directamente sobre el fondo, así que se ajusta su tinta al lienzo azul. */
+.cfg-page-title,
+.mp-page-title {
+  color: #eef5fb !important;
+  border-bottom-color: rgba(158, 198, 229, .24) !important;
+}
+
+.cfg-page-title i,
+.mp-page-title i,
+.cfg-section-lbl,
+.mp-section-lbl {
+  color: #8fc5ef !important;
+}
+
+.cfg-section-lbl::after,
+.mp-section-lbl::after {
+  background: rgba(158, 198, 229, .20) !important;
+}
+
+/* El estado de carga usa exactamente el mismo lienzo que la ruta terminada. */
+.vn-route-fallback {
+  background: var(--vn-page-background) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body { background-attachment: scroll !important; }
+}
+
+/* VALL AI usa la escala ejecutiva aprobada. Esta hoja se carga al final del
+   documento, así que la excepción debe vivir aquí para que el fondo global
+   azul no vuelva a sustituir el #111827 definido por la página. */
+html:has(body.vall-ai-body),
+body.vall-ai-body {
+  --vn-page-bg: #111827;
+  --vn-page-bg-rgb: 17, 24, 39;
+  --vn-page-glow-rgb: 17, 24, 39;
+  --vn-page-background: linear-gradient(180deg, #111827, #111827);
+  background-color: #111827 !important;
+  background-image: none !important;
+}

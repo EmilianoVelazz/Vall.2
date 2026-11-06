@@ -2,7 +2,9 @@
 // la API: Vercel evalúa todos los módulos de las rutas aunque solo se consulte
 // /api/login, y un require() aquí impedía arrancar la función completa.
 async function launchLocalBrowser() {
-  const module = await import('puppeteer');
+  let module;
+  // Puppeteer es devDependency: en la imagen de producción no está instalado.
+  try { module = await import('puppeteer'); } catch { return null; }
   const puppeteer = module.default || module;
   return puppeteer.launch({
     headless: true,
@@ -50,13 +52,18 @@ async function scrapeSNIIM() {
     // El scraper todavía solo entrega referencias etiquetadas; lanzar Chrome
     // dentro de una función serverless no aporta datos nuevos y puede hacer
     // fallar todas las rutas de la API por el coste y la incompatibilidad ESM.
-    if (process.env.VERCEL) {
+    if (process.env.VERCEL || process.env.VALL_SNIIM_BROWSER === 'false') {
       useStaticReference(data);
       return data;
     }
 
     console.log('[SNIIM Scraper] Iniciando extracción de precios de México...');
     browser = await launchLocalBrowser();
+    if (!browser) {
+      console.log('[SNIIM Scraper] Puppeteer no está instalado; se usan referencias estáticas etiquetadas.');
+      useStaticReference(data);
+      return data;
+    }
     
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(30000);

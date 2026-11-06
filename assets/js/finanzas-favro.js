@@ -217,12 +217,22 @@
         }
     };
 
-    const colors = { blue: '#246bfe', cyan: '#40a6c7', navy: '#0c2d44', gold: '#c99745', green: '#16825d', red: '#c94a56', grid: 'rgba(16,32,46,.08)' };
+    /* Azul marino para la interfaz; verde y rojo quedan reservados para la
+       lectura financiera (alza/baja). No se usan grises como sustituto de
+       dirección, porque vuelven ambiguas las gráficas. */
+    const colors = {
+        blue: '#4D91C2',
+        cyan: '#65A8D7',
+        navy: '#1D2837',
+        gold: '#C9A76B',
+        green: '#59D2AA',
+        red: '#FF7F91',
+        grid: 'rgba(117,165,202,.18)'
+    };
 
-    /* En Bolsa, verde y rojo tienen un único significado: recorrido positivo o
-       negativo. Se evita el azul eléctrico para que las minigráficas compartan
-       el mismo lenguaje semántico que el mapa mundial. */
-    const EXCHANGE_CHART_COLORS = { up: '#5ec9b1', down: '#ef7d8a' };
+    /* En Bolsa, verde y rojo se reservan para la dirección del recorrido:
+       coinciden con el mapa y no se usan como color decorativo de la interfaz. */
+    const EXCHANGE_CHART_COLORS = { up: '#59D2AA', down: '#FF7F91' };
 
     function hexToRgba(hex, alpha) {
         const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -499,12 +509,12 @@
             animation: { duration: 380 },
             interaction: { intersect: false, mode: 'index' },
             plugins: {
-                legend: { labels: { color: '#687887', usePointStyle: true, pointStyle: 'circle', boxWidth: 7, font: { family: 'Inter', size: 10 } } },
-                tooltip: { backgroundColor: '#071c2c', titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 10 }, padding: 10, cornerRadius: 9 }
+                legend: { labels: { color: '#a9b8c9', usePointStyle: true, pointStyle: 'circle', boxWidth: 7, font: { family: 'Inter', size: 10 } } },
+                tooltip: { backgroundColor: '#17263D', titleFont: { family: 'Inter', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 10 }, padding: 10, cornerRadius: 9 }
             },
             scales: {
-                x: { grid: { display: false }, ticks: { color: '#7b8995', maxTicksLimit: 8, font: { family: 'Inter', size: 9 } } },
-                y: { position: 'right', grid: { color: colors.grid }, ticks: { color: '#7b8995', font: { family: 'JetBrains Mono', size: 9 } } }
+                x: { grid: { display: false }, ticks: { color: '#a9b8c9', maxTicksLimit: 8, font: { family: 'Inter', size: 9 } } },
+                y: { position: 'right', grid: { color: colors.grid }, ticks: { color: '#a9b8c9', font: { family: 'JetBrains Mono', size: 9 } } }
             }
         };
     }
@@ -667,9 +677,184 @@
         });
     }
 
-    function renderExchangeSpark(id, candles, color) {
+    function releaseExchangeChart(id) {
+        const previous = state.miniCharts?.[id];
+        if (previous) {
+            try {
+                if (typeof previous.remove === 'function') previous.remove();
+                else if (typeof previous.destroy === 'function') previous.destroy();
+            } catch (e) { /* La instancia ya pudo haberse desmontado. */ }
+        }
+        delete state.miniCharts?.[id];
+        if (state.miniChartsObservers?.[id]) {
+            try { state.miniChartsObservers[id].disconnect(); } catch (e) { /* ya desconectado */ }
+            delete state.miniChartsObservers[id];
+        }
+    }
+
+    /* Si Lightweight Charts no carga o rechaza una serie, la tarjeta no debe
+       quedarse vacía. Chart.js ya forma parte de Finanzas y permite conservar
+       una lectura clara del recorrido hasta el siguiente refresco. */
+    function renderExchangeFallback(id, container, candles, color) {
+        if (!container || typeof Chart === 'undefined') return;
+        releaseExchangeChart(id);
+
+        let canvas = container;
+        if (canvas.tagName.toLowerCase() !== 'canvas') {
+            canvas = document.createElement('canvas');
+            canvas.className = 'ff-exchange-fallback-canvas';
+            canvas.setAttribute('aria-label', 'Evolución reciente del mercado');
+            container.replaceChildren(canvas);
+        }
+        canvas.style.position = 'relative';
+        canvas.style.zIndex = '1';
+        canvas.style.display = 'block';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+
+        const values = candles.map(c => Number(c.close)).filter(Number.isFinite);
+        if (!values.length) return;
+        const darkFinance = document.body.classList.contains('vn-dark-finanzas');
+        const gridLine = darkFinance ? 'rgba(156,163,175,.14)' : 'rgba(15,42,64,.07)';
+
+        state.miniCharts[id] = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: values.map((_, index) => index + 1),
+                datasets: [{
+                    data: values,
+                    borderColor: color,
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    tension: .28,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: {
+                    x: { display: false, grid: { display: false } },
+                    y: { display: false, grid: { color: gridLine } },
+                },
+            },
+        });
+    }
+
+    /* Mini gráfica propia: evita que una jerarquía interna de canvas o un cambio
+       de la librería externa deje tarjetas sin serie. El SVG se escala con la
+       tarjeta, no depende de medirla antes de que el panel salga de hidden y
+       conserva los cuatro modos que el usuario puede elegir. */
+    function renderExchangeNativeSpark(id, candles, color) {
         let container = $(id);
-        if (!container || typeof LightweightCharts === 'undefined' || !candles?.length) return;
+        if (!container || !Array.isArray(candles) || !candles.length) return false;
+
+        if (container.tagName.toLowerCase() === 'canvas') {
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'ff-exchange-chart-host';
+            container.parentNode.replaceChild(div, container);
+            container = div;
+        }
+
+        const rows = candles.map((c, index) => {
+            const close = Number(c.close);
+            const open = Number.isFinite(Number(c.open)) ? Number(c.open) : close;
+            const high = Number.isFinite(Number(c.high)) ? Number(c.high) : Math.max(open, close);
+            const low = Number.isFinite(Number(c.low)) ? Number(c.low) : Math.min(open, close);
+            return { index, open, high, low, close };
+        }).filter(c => Number.isFinite(c.close) && Number.isFinite(c.open) && Number.isFinite(c.high) && Number.isFinite(c.low));
+        if (!rows.length) return false;
+
+        releaseExchangeChart(id);
+        container.replaceChildren();
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.margin = '0';
+
+        const wrapper = container.parentElement;
+        const glow = wrapper?.querySelector('.ff-chart-glow');
+        if (glow) glow.style.setProperty('background', hexToRgba(color, .1), 'important');
+
+        const width = 640, height = 184, pad = { top: 14, right: 15, bottom: 20, left: 15 };
+        const plotWidth = width - pad.left - pad.right;
+        const plotHeight = height - pad.top - pad.bottom;
+        const low = Math.min(...rows.map(c => c.low));
+        const high = Math.max(...rows.map(c => c.high));
+        const range = Math.max(high - low, Math.abs(high) * .01, 1);
+        const floor = low - range * .08;
+        const ceiling = high + range * .08;
+        const y = value => pad.top + ((ceiling - value) / (ceiling - floor)) * plotHeight;
+        const x = index => rows.length === 1 ? width / 2 : pad.left + (index / (rows.length - 1)) * plotWidth;
+        const element = (name, attrs) => {
+            const node = document.createElementNS('http://www.w3.org/2000/svg', name);
+            Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
+            return node;
+        };
+        const svg = element('svg', {
+            class: 'ff-exchange-native-chart', viewBox: `0 0 ${width} ${height}`,
+            preserveAspectRatio: 'none', role: 'img', 'aria-label': 'Evolución reciente del mercado',
+        });
+        const title = element('title', {});
+        title.textContent = 'Evolución reciente del mercado';
+        svg.append(title);
+
+        for (let row = 1; row < 4; row += 1) {
+            const gy = pad.top + (plotHeight / 4) * row;
+            svg.append(element('line', { x1: pad.left, y1: gy, x2: width - pad.right, y2: gy, stroke: 'rgba(156,163,175,.18)', 'stroke-width': 1 }));
+        }
+
+        const chartType = window.finMiniChartType || 'line';
+        const green = '#59D2AA', red = '#FF7F91';
+        if (chartType === 'candles' || chartType === 'ohlc') {
+            const slot = plotWidth / Math.max(rows.length, 2);
+            const bodyWidth = Math.max(2, Math.min(10, slot * .58));
+            rows.forEach((c, index) => {
+                const cx = x(index);
+                const rising = c.close >= c.open;
+                const tone = rising ? green : red;
+                svg.append(element('line', { x1: cx, y1: y(c.high), x2: cx, y2: y(c.low), stroke: tone, 'stroke-width': 1.4, 'stroke-linecap': 'round' }));
+                if (chartType === 'candles') {
+                    const top = Math.min(y(c.open), y(c.close));
+                    const bodyHeight = Math.max(1.8, Math.abs(y(c.open) - y(c.close)));
+                    svg.append(element('rect', { x: cx - bodyWidth / 2, y: top, width: bodyWidth, height: bodyHeight, rx: 1, fill: tone }));
+                } else {
+                    svg.append(element('line', { x1: cx - bodyWidth / 2, y1: y(c.open), x2: cx, y2: y(c.open), stroke: tone, 'stroke-width': 1.4 }));
+                    svg.append(element('line', { x1: cx, y1: y(c.close), x2: cx + bodyWidth / 2, y2: y(c.close), stroke: tone, 'stroke-width': 1.4 }));
+                }
+            });
+        } else {
+            const points = rows.map((c, index) => `${x(index).toFixed(2)},${y(c.close).toFixed(2)}`);
+            if (chartType === 'area') {
+                const area = [`M ${points[0]}`, ...points.slice(1).map(point => `L ${point}`), `L ${x(rows.length - 1).toFixed(2)},${(height - pad.bottom).toFixed(2)}`, `L ${x(0).toFixed(2)},${(height - pad.bottom).toFixed(2)} Z`].join(' ');
+                svg.append(element('path', { d: area, fill: hexToRgba(color, .22) }));
+            }
+            svg.append(element('polyline', { points: points.join(' '), fill: 'none', stroke: color, 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }));
+            const last = rows.at(-1);
+            svg.append(element('circle', { cx: x(rows.length - 1), cy: y(last.close), r: 3.2, fill: color, stroke: '#1D2837', 'stroke-width': 1.5 }));
+        }
+
+        container.append(svg);
+        container.dispatchEvent(new CustomEvent('vn:bolsa-chart', { bubbles: true }));
+        return true;
+    }
+
+    function renderExchangeSpark(id, candles, color) {
+        if (!renderExchangeNativeSpark(id, candles, color)) {
+            renderExchangeLightweightSpark(id, candles, color);
+        }
+    }
+
+    function renderExchangeLightweightSpark(id, candles, color) {
+        let container = $(id);
+        if (!container || !candles?.length) return;
+        if (typeof LightweightCharts === 'undefined') {
+            renderExchangeFallback(id, container, candles, color);
+            return;
+        }
         
         if (container.tagName.toLowerCase() === 'canvas') {
             const div = document.createElement('div');
@@ -684,17 +869,10 @@
         
         /* Wait for DOM paint */
         requestAnimationFrame(() => {
-            if (state.miniCharts[id]) {
-                try { 
-                    state.miniCharts[id].remove(); 
-                } catch(e) {}
-            }
-            if (state.miniChartsObservers && state.miniChartsObservers[id]) {
-                try {
-                    state.miniChartsObservers[id].disconnect();
-                } catch(e) {}
-            }
+            releaseExchangeChart(id);
             container.innerHTML = ''; /* Safe fallback to prevent duplicate DOM nodes */
+
+            try {
 
             const chartWrapper = container.parentElement;
             /* El tamaño lo define el CSS (.ff-exchange-card-chart): medimos su caja de
@@ -729,10 +907,10 @@
                 .filter((c, i, arr) => i === 0 || c.t !== arr[i - 1].t);
 
             const darkFinance = document.body.classList.contains('vn-dark-finanzas');
-            const axisInk  = darkFinance ? '#a6b5c1' : '#64748b';
-            const gridLine = darkFinance ? 'rgba(166,181,193,.14)' : 'rgba(15,42,64,.07)';
-            const crosshairLine = darkFinance ? 'rgba(204,217,227,.34)' : 'rgba(15,42,64,.32)';
-            const crosshairLabel = darkFinance ? '#843f59' : '#0c2d44';
+            const axisInk  = darkFinance ? '#9ca3af' : '#64748b';
+            const gridLine = darkFinance ? 'rgba(156,163,175,.14)' : 'rgba(15,42,64,.07)';
+            const crosshairLine = darkFinance ? 'rgba(156,163,175,.34)' : 'rgba(15,42,64,.32)';
+            const crosshairLabel = darkFinance ? '#4b5563' : '#111827';
 
             const chart = LightweightCharts.createChart(container, {
                 width: w,
@@ -891,6 +1069,10 @@
                 }));
                 ro.observe(chartWrapper);
                 state.miniChartsObservers[id] = ro;
+            }
+            } catch (error) {
+                console.warn('Finanzas: se usó la gráfica de respaldo para ' + id, error);
+                renderExchangeFallback(id, container, candles, color);
             }
         });
     }
@@ -1064,6 +1246,8 @@
 
     function renderExchangeBoard() {
         ensureExchangeCards();
+        const typeSelect = $('vn-chart-type-global');
+        if (typeSelect) typeSelect.value = window.finMiniChartType || 'line';
         let available = 0;
         exchangeConfig.forEach(exchange => {
             const card = document.querySelector(`[data-exchange-symbol="${exchange.symbol}"]`);
@@ -1424,12 +1608,6 @@
             description: 'Tipos de cambio en tiempo real, series históricas y comparación relativa entre monedas internacionales.',
             legacySection: 'mexico',
         },
-        noticias: {
-            eyebrow: 'Noticiero financiero',
-            title: 'Daily News',
-            description: 'Noticia principal, titulares de última hora, impacto y mercados relacionados.',
-            legacySection: 'noticias',
-        },
     };
 
     const detailClasses = Object.keys(detailConfig).map(name => `ff-detail-${name}`);
@@ -1535,7 +1713,14 @@
         if (mapa) mapa.hidden = false;
         renderExchangeBoard();
         markExchangeSelection($('bmv-symbol')?.value || '');
-        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+        requestAnimationFrame(() => {
+            window.dispatchEvent(new Event('resize'));
+            /* En este punto el panel ya dejó de estar oculto; se vuelve a medir
+               el lienzo principal para que Lightweight Charts no conserve el
+               ancho cero con el que Finanzas se montó inicialmente. */
+            window.refreshMarketChart?.();
+            renderExchangeBoard();
+        });
     }
 
     function restoreBolsaTopLayout() {
@@ -1741,8 +1926,8 @@
         
         const options = chartDefaults();
         const darkFinance = document.body.classList.contains('vn-dark-finanzas');
-        const supplementAxis = darkFinance ? '#a6b5c1' : '#687887';
-        const supplementGrid = darkFinance ? 'rgba(166,181,193,.15)' : colors.grid;
+        const supplementAxis = darkFinance ? '#A9B8C9' : '#687887';
+        const supplementGrid = darkFinance ? 'rgba(143,170,194,.18)' : colors.grid;
         options.animation.duration = 260;
         options.plugins.legend.display = isPie ? true : datasets.length > 1;
         options.plugins.legend.position = isPie ? 'right' : 'bottom';
@@ -1755,10 +1940,10 @@
             datasets.forEach(d => {
                 if (Array.isArray(d.data)) {
                     if (!Array.isArray(d.backgroundColor)) {
-                        const tonos = ['#d16283', '#7893a8', '#607d93', '#4d6a80', '#91a8b9', '#3f5b70'];
+                        const tonos = ['#8FAAC2', '#6CBAD8', '#C9A76B', '#46617D'];
                         d.backgroundColor = d.data.map((_, i) => tonos[i % tonos.length]);
                     }
-                    d.borderColor = darkFinance ? '#243546' : '#ffffff';
+                    d.borderColor = darkFinance ? '#4A6079' : '#ffffff';
                     d.borderWidth = 2;
                 }
             });
@@ -1776,8 +1961,8 @@
             datasets.forEach(d => {
                 d.fill = true;
                 d.tension = 0.35;
-                d.backgroundColor = 'rgba(209, 98, 131, 0.14)';
-                d.borderColor = '#d16283';
+                d.backgroundColor = 'rgba(143, 170, 194, 0.18)';
+                d.borderColor = colors.blue;
             });
         }
         
@@ -3235,7 +3420,7 @@
                     description: item.descripcion,
                     insight:     item.ia_insight || '',
                     related:     item.ia_insight || '',
-                    source:      item.fuente || 'VALL-AI',
+                    source:      item.fuente || 'ORION',
                     publishedAt: item.fecha,
                     fecha:       item.fecha || '',
                     impact:      item.impacto || '',
@@ -3313,7 +3498,7 @@
             await renderMainChart();
             $('ff-last-update').textContent = new Date().toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
             if (typeof VDS !== 'undefined' && VDS.banxico) {
-                VDS.banxico('SP74660').then(value => {
+                VDS.banxico('SP30578').then(value => {
                     if (!isNumeric(value)) return;
                     state.inflation = +value;
                     updateBondCards();
@@ -3821,8 +4006,8 @@
         const download = execElement('button', '', 'Descargar DOCX');
         download.type = 'button'; download.innerHTML = '<i class="fas fa-file-word" aria-hidden="true"></i> Descargar DOCX';
         download.addEventListener('click', () => downloadExecutiveReport(download));
-        const listen = execElement('button', '', 'Escuchar con VALL AI');
-        listen.type = 'button'; listen.innerHTML = '<i class="fas fa-headphones" aria-hidden="true"></i> Escuchar con VALL AI';
+        const listen = execElement('button', '', 'Escuchar con ORION');
+        listen.type = 'button'; listen.innerHTML = '<i class="fas fa-headphones" aria-hidden="true"></i> Escuchar con ORION';
         listen.addEventListener('click', () => toggleExecutiveReading(listen));
         actions.append(download, listen);
         host.append(actions, execElement('p', 'fin-exec-live-status', 'El contenido completo sólo se entrega al descargarlo o escucharlo.'));
@@ -3850,7 +4035,7 @@
         try {
             const response = await fetch('/api/report-export', {
                 method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: `VALLNEWS · ${activeExecutiveReport.title}`, content: executiveText(activeExecutiveReport), format: 'docx' }),
+                body: JSON.stringify({ title: `VALLNEWS · ${activeExecutiveReport.title}`, content: executiveText(activeExecutiveReport),language:window.VNReportArtifacts?.selectedLanguage?.() || document.documentElement.lang || 'es',format: 'docx' }),
             });
             const data = await response.json();
             if (!response.ok || !data.downloadUrl) throw new Error(data.error || 'No se pudo generar el documento.');
@@ -3868,30 +4053,30 @@
         executiveLiveReader = null;
         await reader?.stop?.().catch(() => {});
         executiveStatus('Lectura detenida.');
-        document.querySelector('#fin-exec-report [data-fin-exec-listen]')?.replaceChildren(Object.assign(document.createElement('i'), { className: 'fas fa-headphones', ariaHidden: 'true' }), document.createTextNode(' Escuchar con VALL AI'));
+        document.querySelector('#fin-exec-report [data-fin-exec-listen]')?.replaceChildren(Object.assign(document.createElement('i'), { className: 'fas fa-headphones', ariaHidden: 'true' }), document.createTextNode(' Escuchar con ORION'));
     }
 
     async function toggleExecutiveReading(button) {
         if (executiveLiveReader) return stopExecutiveReading();
         const bridge = window.VNFinanceGeminiLive;
         if (!activeExecutiveReport || !bridge?.isSupported?.()) {
-            executiveStatus('La lectura con VALL AI requiere una conexión segura (HTTPS) y un navegador compatible.');
+            executiveStatus('La lectura con ORION requiere una conexión segura (HTTPS) y un navegador compatible.');
             return;
         }
         button.disabled = true;
         button.dataset.finExecListen = 'true';
-        executiveStatus('Conectando con VALL AI…');
+        executiveStatus('Conectando con ORION…');
         try {
             const reader = await bridge.start({
                 captureMicrophone: false,
-                onState: state => executiveStatus({ connecting: 'Conectando con VALL AI…', listening: 'VALL AI está listo para leer el informe.', speaking: 'VALL AI está leyendo el informe…' }[state] || 'Lectura finalizada.'),
+                onState: state => executiveStatus({ connecting: 'Conectando con ORION…', listening: 'ORION está listo para leer el informe.', speaking: 'ORION está leyendo el informe…' }[state] || 'Lectura finalizada.'),
                 onError: message => { executiveLiveReader = null; executiveStatus(`Lectura no disponible: ${message}`); },
             });
             executiveLiveReader = reader;
             button.innerHTML = '<i class="fas fa-stop" aria-hidden="true"></i> Detener lectura';
             reader.speak(`Lee en voz alta este informe financiero de forma clara, natural y profesional. No agregues cifras, fuentes ni consejos que no estén en el texto. ${executiveText(activeExecutiveReport)}`);
         } catch (error) {
-            executiveStatus(error.message || 'No se pudo iniciar VALL AI.');
+            executiveStatus(error.message || 'No se pudo iniciar ORION.');
         } finally { button.disabled = false; }
     }
 
@@ -3975,7 +4160,12 @@
         stopExecutiveReading();
         _limpieza.splice(0).forEach((soltar) => { try { soltar(); } catch { /* ya suelto */ } });
 
-        Object.values(state.miniCharts || {}).forEach((c) => { try { c.destroy(); } catch { /* ya destruida */ } });
+        Object.values(state.miniCharts || {}).forEach((c) => {
+            try {
+                if (typeof c.remove === 'function') c.remove();
+                else if (typeof c.destroy === 'function') c.destroy();
+            } catch { /* ya destruida */ }
+        });
         state.miniCharts = {};
         ['mainChart', 'breakdownChart', 'contextChart', 'supplementChart',
             'returnsChart', 'returnsHistoryChart', 'returnsGlobalChart'].forEach((clave) => {

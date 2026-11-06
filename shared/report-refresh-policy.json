@@ -1,0 +1,5 @@
+{
+  "timeZone": "America/Mexico_City",
+  "dailyHours": [6, 14],
+  "markets": {"frequency": "weekly", "weekday": 5, "hour": 14}
+}

@@ -1,0 +1,167 @@
+/* ========================================================================== 
+   FINANZAS · DAILY NEWS · MARCO EDITORIAL
+   La edición no debe escapar del sistema de márgenes de Finanzas. El propio
+   noticiero ya contiene sus capítulos y superficies, por lo que este archivo
+   sólo compone el lienzo, la portada y su primera lectura.
+   ========================================================================== */
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias {
+    --fin-daily-gutter: 2.7rem;
+}
+
+/* dark-pilot extendía este host hacia ambos bordes. Se restituye el mismo
+   ancho de lectura utilizado por Mercados, Bolsa y Bonos. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host {
+    box-sizing: border-box !important;
+    width: calc(100% - (var(--fin-daily-gutter) * 2)) !important;
+    max-width: none !important;
+    margin: 1.15rem var(--fin-daily-gutter) 3rem !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fin-layout,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .main-col {
+    display: block !important;
+    margin: 0 !important;
+}
+
+/* Una sola superficie editorial, sin franjas añadidas entre la cabecera y la
+   portada. La curvatura y el borde devuelven la sensación de módulo completo. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-newsroom {
+    width: 100% !important;
+    max-width: none !important;
+    border-color: rgba(130, 164, 184, .52) !important;
+    border-radius: 26px !important;
+    box-shadow: 0 28px 66px -48px rgba(4, 19, 30, .82) !important;
+}
+
+/* La portada conserva su carácter editorial, pero da prioridad al radar de
+   sesión. Al reducir el gran título y la altura mínima, el primer dato queda
+   visible sin desplazar la historia seleccionada fuera de pantalla. */
+@media (min-width: 860px) {
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-masthead {
+        grid-template-columns: minmax(250px, .7fr) minmax(490px, 1.5fr) !important;
+        gap: clamp(1rem, 2vw, 1.8rem) !important;
+        min-height: 548px !important;
+        padding: clamp(1.2rem, 2.45vw, 2.35rem) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-title {
+        font-size: clamp(3.45rem, 5.3vw, 5.85rem) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-cover-statement {
+        margin-top: .95rem !important;
+        font-size: clamp(1.3rem, 1.9vw, 1.72rem) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-masthead .fnb-pulse {
+        padding: clamp(.95rem, 1.65vw, 1.25rem) !important;
+    }
+}
+
+@media (max-width: 640px) {
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias {
+        --fin-daily-gutter: 1rem;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host {
+        margin: .7rem var(--fin-daily-gutter) 1.5rem !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-newsroom {
+        border-radius: 18px !important;
+    }
+}
+
+/* Acabado de portada: la edición, el radar y la historia elegida se leen como
+   una sola mesa editorial. Se limita al escritorio para preservar el apilado
+   compacto de teléfonos. */
+@media (min-width: 860px) {
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-cover-copy {
+        align-self: stretch !important;
+        justify-content: center !important;
+        padding: 1.2rem clamp(.9rem, 1.7vw, 1.65rem) 1.35rem 0 !important;
+        border-right: 1px solid rgba(176, 204, 218, .2) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-brand {
+        position: relative !important;
+        padding-bottom: 1.05rem !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-brand::after {
+        content: "EDICIÓN GLOBAL · MERCADOS EN VIVO" !important;
+        position: absolute !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        color: rgba(221, 147, 171, .62) !important;
+        font: 800 .58rem/1 "JetBrains Mono", monospace !important;
+        letter-spacing: .14em !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-edition {
+        margin-top: 1rem !important;
+        padding: .75rem .85rem !important;
+        border: 1px solid rgba(177, 204, 218, .2) !important;
+        border-left: 3px solid #ec8da9 !important;
+        border-radius: 0 12px 12px 0 !important;
+        background: linear-gradient(90deg, rgba(209, 98, 131, .13), rgba(79, 127, 151, .05)) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-cover-actions {
+        gap: .55rem !important;
+        margin-top: 1rem !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-masthead .fnb-pulse {
+        border-color: rgba(167, 198, 213, .32) !important;
+        border-top-color: rgba(239, 139, 169, .72) !important;
+        border-radius: 18px 18px 4px 18px !important;
+        box-shadow: 0 34px 74px -46px rgba(4, 19, 30, .92), inset 0 1px rgba(255, 255, 255, .075) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse-head {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: start !important;
+        gap: 1rem !important;
+        margin-bottom: .7rem !important;
+        padding-bottom: .7rem !important;
+        border-bottom: 1px solid rgba(170, 198, 211, .16) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse-stats {
+        gap: 0 !important;
+        overflow: hidden !important;
+        border: 1px solid rgba(171, 198, 212, .18) !important;
+        border-radius: 10px !important;
+        background: rgba(11, 35, 50, .17) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse-stats div {
+        padding: .42rem .55rem !important;
+        border-left: 1px solid rgba(177, 202, 215, .12) !important;
+        background: transparent !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse-stats div:nth-child(odd) {
+        border-left: 0 !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse-detail {
+        padding: .85rem 1rem !important;
+        border-color: rgba(171, 199, 213, .22) !important;
+        border-left: 4px solid var(--fnb-pulse-flat) !important;
+        border-radius: 12px !important;
+        background: linear-gradient(100deg, rgba(15, 47, 65, .88), rgba(25, 59, 77, .72)) !important;
+        box-shadow: inset 0 1px rgba(255, 255, 255, .035) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias #ff-news-detail-host .fnb-pulse-detail h4 {
+        max-width: 46rem !important;
+        font-size: clamp(1rem, 1.18vw, 1.22rem) !important;
+        line-height: 1.22 !important;
+    }
+}

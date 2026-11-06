@@ -20,11 +20,25 @@ function cargarUno(src) {
     if (previo) return resolve();
 
     const el = document.createElement('script');
+    const fail = () => {
+      clearTimeout(timer);
+      el.remove();
+      cache.delete(src);
+      reject(new Error(`No se pudo cargar ${src}`));
+    };
+    // Un script retirado puede terminar ejecutándose después. Al vencer el
+    // plazo se informa del fallo, pero se conserva la carga pendiente para no
+    // ejecutar dos veces bibliotecas que declaran const globales.
+    const timer = setTimeout(() => reject(new Error(`La carga tardó demasiado: ${src}`)), 20_000);
     el.src = src;
     el.async = false;
     el.dataset.vnLib = src;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
+    el.onload = () => {
+      clearTimeout(timer);
+      cache.set(src, Promise.resolve());
+      resolve();
+    };
+    el.onerror = fail;
     document.head.appendChild(el);
   });
 
@@ -52,13 +66,15 @@ export default async function loadScripts(fuentes) {
  * implica volver a descargarlo. El script debe ser reentrante: limpiar lo que
  * dejó la ejecución anterior (ver el desmontar() de vall-ai-page-v4.js).
  */
-export function cargarCadaVez(src, marca) {
+export function cargarCadaVez(src, marca, {onLoad,onError}={}) {
   document.querySelector(`script[data-vn-page-js="${marca}"]`)?.remove();
 
   const el = document.createElement('script');
   el.src = src;
   el.async = false;
   el.dataset.vnPageJs = marca;
+  el.onload=onLoad || null;
+  el.onerror=onError || null;
   document.body.appendChild(el);
 
   return () => el.remove();

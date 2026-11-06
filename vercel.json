@@ -1,17 +1,64 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "fluid": true,
+  "functions": {
+    "api/auth.js": {
+      "maxDuration": 60,
+      "excludeFiles": "{output/**,frontend/artifacts/**}"
+    },
+    "api/index.js": {
+      "maxDuration": 300,
+      "includeFiles": "{assets/templates/**,assets/fonts/noto-jp/**,backend/data/**,shared/**,frontend/src/lib/produccion-proteinas.js,frontend/src/lib/reportCsv.js,frontend/src/lib/reportSources.js,frontend/src/lib/reportVisualData.js}",
+      "excludeFiles": "{output/**,frontend/artifacts/**}"
+    }
+  },
   "crons": [
     {
-      "path": "/api/executive-reports/refresh",
+      "path": "/api/executive-reports/refresh/morning",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/executive-reports/refresh/afternoon",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/livestock-prices/refresh",
+      "schedule": "0 17 * * 0"
+    },
+    {
+      "path": "/api/report-email-schedules/run",
       "schedule": "0 15 * * *"
     }
   ],
   "rewrites": [
+    { "source": "/api/login", "destination": "/api/auth.js" },
+    { "source": "/api/logout", "destination": "/api/auth.js" },
+    { "source": "/api/verify-token", "destination": "/api/auth.js" },
+    { "source": "/api/profile", "destination": "/api/auth.js" },
+    { "source": "/api/change-password", "destination": "/api/auth.js" },
+    { "source": "/api/admin/profiles", "destination": "/api/auth.js" },
+    { "source": "/api/admin/profiles/:id/password", "destination": "/api/auth.js" },
     { "source": "/api/:path*", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000" }
+      ]
+    },
+    {
+      "source": "/((?!api/report-download/).*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" }
+      ]
+    },
     {
       "source": "/api/(.*)",
       "headers": [

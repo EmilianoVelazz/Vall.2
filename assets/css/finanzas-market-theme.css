@@ -1,0 +1,1089 @@
+/* ===========================================================================
+   FINANZAS · TEMA UNIFICADO DE MERCADOS
+
+   Esta es la última capa que carga Finanzas. Normaliza sus laboratorios a la
+   escala compartida del producto: #111827, #1F2937, #4B5563, #9CA3AF y
+   #EDEDED. Así no quedan restos de los temas azul, grafito o rojo heredados.
+   =========================================================================== */
+html.vn-dark-pilot body.vn-dark-finanzas {
+    --fin-bg: #111827 !important;
+    --fin-panel: #1F2937 !important;
+    --fin-panel-raised: #4B5563 !important;
+    --fin-control: #111827 !important;
+    --fin-line: #4B5563 !important;
+    --fin-text-main: #EDEDED !important;
+    --fin-text-muted: #9CA3AF !important;
+    --fin-accent-blue: #9CA3AF !important;
+    --fin-accent-green: #EDEDED !important;
+    --fin-accent-red: #9CA3AF !important;
+    --dp-bg: var(--fin-bg) !important;
+    --dp-bg-raised: var(--fin-control) !important;
+    --dp-surface: var(--fin-panel) !important;
+    --dp-surface-2: var(--fin-panel) !important;
+    --dp-surface-3: var(--fin-panel-raised) !important;
+    --dp-line: var(--fin-line) !important;
+    --dp-text: var(--fin-text-main) !important;
+    --dp-text-2: #EDEDED !important;
+    --dp-muted: var(--fin-text-muted) !important;
+    --dp-positive: var(--fin-accent-green) !important;
+    --dp-negative: var(--fin-accent-red) !important;
+    --dp-gold: #9CA3AF !important;
+    --dp-teal: #9CA3AF !important;
+    --dp-wine: #9CA3AF !important;
+    --dp-line-strong: #9CA3AF !important;
+    --dp-line-soft: rgba(156, 163, 175, .28) !important;
+    --ff-navy: var(--fin-panel) !important;
+    --ff-navy-2: var(--fin-bg) !important;
+    --ff-blue: var(--fin-accent-blue) !important;
+    --ff-cyan: var(--fin-accent-blue) !important;
+    --ff-gold: #9CA3AF !important;
+    --ff-ink: var(--fin-text-main) !important;
+    --ff-muted: var(--fin-text-muted) !important;
+    --ff-line: var(--fin-line) !important;
+    --ff-surface: var(--fin-panel) !important;
+    --ff-surface-soft: var(--fin-control) !important;
+    --ff-positive: #EDEDED !important;
+    --ff-negative: #9CA3AF !important;
+    --bond-base: var(--fin-panel) !important;
+    --bond-raised: var(--fin-panel-raised) !important;
+    --bond-deep: var(--fin-control) !important;
+    --bond-line: var(--fin-line) !important;
+    --bond-muted: var(--fin-text-muted) !important;
+    --bond-accent: var(--fin-panel-raised) !important;
+    --bond-accent-strong: var(--fin-accent-blue) !important;
+    --bolsa-base: var(--fin-panel) !important;
+    --bolsa-raised: var(--fin-panel-raised) !important;
+    --bolsa-deep: var(--fin-control) !important;
+    --bolsa-line: var(--fin-line) !important;
+    --bolsa-muted: var(--fin-text-muted) !important;
+    --bolsa-accent: var(--fin-panel-raised) !important;
+    --bolsa-accent-strong: var(--fin-accent-blue) !important;
+    --fx-ui-bg: var(--fin-bg) !important;
+    --fx-ui-surface: var(--fin-panel) !important;
+    --fx-ui-soft: var(--fin-control) !important;
+    --fx-ui-line: var(--fin-line) !important;
+    --fx-ui-ink: var(--fin-text-main) !important;
+    --fx-ui-muted: var(--fin-text-muted) !important;
+    --fx-ui-accent: var(--fin-accent-blue) !important;
+    --fx-ui-accent-strong: var(--fin-text-main) !important;
+    --fx-blue-base: var(--fin-panel) !important;
+    --fx-blue-raised: var(--fin-panel-raised) !important;
+    --fx-blue-deep: var(--fin-control) !important;
+    --fx-blue-line: var(--fin-line) !important;
+    --fx-blue-muted: var(--fin-text-muted) !important;
+    --fx-blue-accent: var(--fin-panel-raised) !important;
+    --fx-blue-accent-strong: var(--fin-text-main) !important;
+    --fnb-ink: #EDEDED !important;
+    --fnb-ink-soft: #1F2937 !important;
+    --fnb-paper: #1F2937 !important;
+    --fnb-mute: #9CA3AF !important;
+    --fnb-line: #4B5563 !important;
+    --fnb-accent: #9CA3AF !important;
+    --fnb-gold: #9CA3AF !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) {
+    background: var(--fin-bg) !important;
+    color: var(--fin-text-main) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    .panel, .ff-workspace, .ff-detail-navigation, .ff-detail-supplement,
+    .ff-exchange-board, .debt-pro, .returns-pro, .fx-pro-panel,
+    .fx-history-lab, .fx-emerging-panel, .news-pro-panel, .fnb-front-page,
+    #ff-detail-navigation, #ff-world-map, #bond-world-map, #currency-world-map,
+    #ff-exchange-board, #ff-detail-supplement, #bvmx-panel, #sectors-panel,
+    #bonds-panel, #credit-panel, #country-factsheet, #rate-timeline,
+    #ff-spreads-board, #reservas-panel, #petroleo-panel, #risk-panel,
+    #movers-panel, #mkt-cap-panel, #equity-lab-host
+) {
+    background: var(--fin-panel) !important;
+    border-color: var(--fin-line) !important;
+    box-shadow: none !important;
+    color: var(--fin-text-main) !important;
+}
+
+/* Campos, comandos y gráficos usan el nivel más profundo. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    button, input, select, textarea,
+    .ffwm-map, .fbm-map-wrap, .fbm-map-stage, .fcm-map-wrap, .fcm-map-stage,
+    .market-chart-canvas, .ff-exchange-card-chart, .ff-exchange-data-box,
+    .ff-supplement-chart, .credit-chart-wrap, .rtl-chart-wrap,
+    .fx-history-visual, .fx-history-chart, .fx-emerging-chart,
+    .sb-dashboard, .sb-visual, .ff-table-wrap, .ff-spreads-table-wrap,
+    .cf-table-wrap
+) {
+    background-color: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--dp-text-2) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    button.is-active, button.active, button[aria-current="page"],
+    button[aria-pressed="true"], .active > button,
+    thead, thead tr, th, .ffwm-head, .fbm-header, .fcm-header,
+    .ff-exchange-header, .ff-supplement-chart-card > header,
+    .ff-supplement-table-card > header, .sb-head, .sb-overview,
+    .fx-history-header
+) {
+    background: var(--fin-panel-raised) !important;
+    border-color: var(--fin-accent-blue) !important;
+    color: var(--fin-text-main) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    p, small, .muted, .ff-detail-eyebrow, .ff-kicker, .ffwm-market-feed,
+    .ffwm-filter-status, .fbm-filter-status, .fcm-filter-status,
+    .ff-detail-description, .ff-supplement-description, .sb-foot
+) {
+    color: var(--fin-text-muted) !important;
+}
+
+/* Semántica financiera consistente en Bolsa, Bonos, Divisas y Daily. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    .is-up, .up, .positive, .gain, .is-positive, .ff-positive-text,
+    .ff-sp-pos, .ffwm-pais.is-alza, .fbm-country.is-up, .fcm-country.is-up
+) { color: var(--fin-accent-green) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    .is-down, .down, .negative, .loss, .is-negative, .ff-negative-text,
+    .ff-sp-neg, .ffwm-pais.is-baja, .fbm-country.is-down, .fcm-country.is-down
+) { color: var(--fin-accent-red) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    .ffwm-pais.is-alza, .fbm-country.has-data.is-up, .fcm-country.has-data.is-up
+) { fill: var(--fin-accent-green) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    .ffwm-pais.is-baja, .fbm-country.has-data.is-down, .fcm-country.has-data.is-down
+) { fill: var(--fin-accent-red) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    .ffwm-pais.is-plano, .fbm-country.has-data.is-flat, .fcm-country.has-data.is-flat
+) { fill: #7e96aa !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(
+    #ff-world-map svg, #bond-world-map svg, #currency-world-map svg,
+    canvas
+) { filter: none !important; }
+
+/* Bolsa tenía un selector histórico con más especificidad que sus variables.
+   Se replica la forma del selector para sustituir definitivamente el slate. */
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-map, #ff-world-map .ffwm-workspace,
+    #ff-exchange-board .ff-exchange-card-chart, #ff-exchange-board .ff-exchange-data-box,
+    #ff-detail-supplement .ff-supplement-chart, #bvmx-panel .market-chart-canvas,
+    #sectors-panel .sb-dashboard, #sectors-panel .sb-visual
+) { background: var(--fin-control) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation button.is-active, #ff-detail-navigation button[aria-current="page"],
+    #ff-world-map button.is-active, #ff-world-map button[aria-pressed="true"],
+    #ff-exchange-board button.is-active, #ff-exchange-board button[aria-pressed="true"],
+    #bvmx-panel button.active, #bvmx-panel button[aria-pressed="true"],
+    #ff-detail-supplement button.is-active, #sectors-panel button.is-active
+) { background: var(--fin-panel-raised) !important; border-color: var(--fin-accent-blue) !important; }
+
+/* Tablas: primera columna y encabezados ya no recuperan el azul anterior. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(table, tbody, tr, td) {
+    border-color: var(--fin-line) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(tbody tr, tbody td) {
+    background-color: var(--fin-panel) !important;
+    color: var(--dp-text-2) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(td.ff-sp-pos, td.ff-sp-pos *) { color: var(--fin-accent-green) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(#favro-finance, #fin-layout-wrap) :is(td.ff-sp-neg, td.ff-sp-neg *) { color: var(--fin-accent-red) !important; }
+
+/* Cierre de los componentes que se inyectan al cargar cada laboratorio. */
+
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-divisas:not(.finanzas-theme-exception) :is(
+    #ff-detail-navigation, #currency-world-map, #fx-pro-panel, #fx-history-lab, #fx-emerging-panel
+) { background: var(--fin-panel) !important; background-color: var(--fin-panel) !important; border-color: var(--fin-line) !important; color: var(--fin-text-main) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-noticias:not(.finanzas-theme-exception) #ff-news-detail-host :not(svg):not(path):not(circle):not(line):not(polyline):not(polygon) {
+    background-color: var(--fin-panel) !important; background-image: none !important; border-color: var(--fin-line) !important; color: var(--dp-text-2) !important;
+}
+
+
+
+
+/* Selectores de prioridad máxima para controles creados después del montaje. */
+
+
+/* ── Cierre real de paleta ────────────────────────────────────────────────
+   Este archivo se inserta al final del <head> tras los estilos de los
+   laboratorios. Los IDs son intencionales: los módulos se generan con JS y
+   algunas de sus hojas usan la misma especificidad. */
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance,
+html.vn-dark-pilot body.vn-dark-finanzas .favro-finance-shell,
+html.vn-dark-pilot body.vn-dark-finanzas #pane-general,
+html.vn-dark-pilot body.vn-dark-finanzas #fin-layout-wrap {
+    background: var(--fin-bg) !important;
+    background-image: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation, #ff-world-map, #bond-world-map, #currency-world-map,
+    #ff-exchange-board, #ff-detail-supplement, #ff-workspace, #bvmx-panel,
+    #ff-bolsa-chart-host, #sectors-panel, #bonds-panel, #credit-panel,
+    #country-factsheet, #rate-timeline, #ff-spreads-board, #fx-pro-panel,
+    #fx-history-lab, #fx-emerging-panel, #news-pro-panel, #equity-lab-host,
+    #ff-news-detail-host, #fnb-front-page
+) {
+    background: var(--fin-panel) !important;
+    background-image: none !important;
+    border-color: var(--fin-line) !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-world-map .ffwm-map, #ff-world-map .ffwm-workspace,
+    #bond-world-map .fbm-map-wrap, #bond-world-map .fbm-map-stage,
+    #currency-world-map .fcm-map-wrap, #currency-world-map .fcm-map-stage,
+    #ff-exchange-board .ff-exchange-card-chart,
+    #ff-exchange-board .ff-exchange-data-box,
+    #ff-detail-supplement .ff-supplement-chart,
+    #bvmx-panel .market-chart-canvas, #sectors-panel .sb-dashboard,
+    #sectors-panel .sb-visual, #fx-history-lab .fx-history-chart,
+    #fx-pro-panel .fx-pro-block, #fx-emerging-panel .fx-emerging-chart
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation button, #ff-world-map button, #bond-world-map button,
+    #currency-world-map button, #currency-world-map select, #fx-pro-panel button,
+    #fx-pro-panel select, #fx-history-lab button, #fx-history-lab select,
+    #ff-news-detail-host button, #ff-news-detail-host input, #ff-news-detail-host select
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--dp-text-2) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    button.is-active, button.active, button[aria-current="page"],
+    button[aria-pressed="true"], thead, thead tr, th, .ffwm-head,
+    .fbm-header, .fcm-header, .ff-exchange-header, .sb-head, .sb-overview,
+    .fx-history-header
+) {
+    background: var(--fin-panel-raised) !important;
+    border-color: var(--fin-accent-blue) !important;
+    color: var(--fin-text-main) !important;
+}
+
+/* Los módulos heredados pintan sus propios `div` y `section` con grafito.
+   Esta normalización se limita al árbol de Finanzas y da a cada superficie
+   clasificada el plano base de Mercados. Las excepciones de datos se definen
+   justo después. */
+
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(#favro-finance, #fin-layout-wrap)
+    :is(.ffwm-map, .ffwm-workspace, .fbm-map-wrap, .fbm-map-stage,
+        .fcm-map-wrap, .fcm-map-stage, .market-chart-canvas,
+        .ff-exchange-card-chart, .ff-exchange-data-box,
+        .ff-supplement-chart, .credit-chart-wrap, .rtl-chart-wrap,
+        .fx-history-chart, .fx-emerging-chart, .fx-pro-block,
+        .sb-dashboard, .sb-visual, .ff-table-wrap, .ff-spreads-table-wrap,
+        .cf-table-wrap)[class] {
+    background-color: var(--fin-control) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(#favro-finance, #fin-layout-wrap)
+    :is(button, input, select, textarea)[class],
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(#favro-finance, #fin-layout-wrap)
+    :is(button, input, select, textarea) {
+    background-color: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--dp-text-2) !important;
+}
+
+/* ===========================================================================
+   CIERRE DE PALETA · PORTADA Y CUATRO LABORATORIOS
+
+   Las hojas heredadas se cargan con estilos muy específicos e incluso con
+   valores escritos directamente. Estas reglas son deliberadamente las últimas
+   para que Bolsa, Bonos, Divisas y Daily News compartan una sola jerarquía de
+   superficies. Las fotos permanecen como contenido editorial, bajo un velo
+   neutral, igual que en Mercados y México.
+   =========================================================================== */
+html.vn-dark-pilot body.vn-dark-finanzas {
+    color: #EDEDED !important;
+    background: #111827 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas :is(.container, .favro-finance-shell, #favro-finance, #pane-general, #fin-layout-wrap) {
+    background-color: #111827 !important;
+    background-image: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero {
+    border-color: #4B5563 !important;
+    background: linear-gradient(135deg, #1F2937 0%, #111827 100%) !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .24) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero :is(h1, strong) { color: #EDEDED !important; }
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero :is(.ff-eyebrow, p, .ff-update span) { color: #9CA3AF !important; }
+
+/* Los tres apartados se recorren en una sola fila, también en pantallas pequeñas. */
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-modules {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-inline: contain;
+    padding-block: 6px 14px;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-modules > .ff-module {
+    flex: 1 1 0;
+    min-width: 0;
+    scroll-snap-align: start;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #ff-detail-navigation .ff-detail-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #ff-detail-navigation .ff-detail-tabs button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+}
+@media (max-width: 900px) {
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-modules > .ff-module {
+        flex: 0 0 clamp(260px, 82vw, 360px);
+    }
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: clamp(320px, 22vw, 380px) !important;
+    position: relative !important;
+    isolation: isolate;
+    overflow: hidden !important;
+    border: 1px solid #4B5563 !important;
+    border-radius: 14px !important;
+    background: #1F2937 !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .24) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card:hover,
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card:focus-visible {
+    border-color: #9CA3AF !important;
+    background: #1F2937 !important;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .34) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-photo {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    background: #1F2937 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-photo img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    opacity: 1 !important;
+    filter: saturate(.58) contrast(1.05) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card::before {
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    z-index: 1 !important;
+    opacity: 1 !important;
+    background: linear-gradient(180deg, rgba(17, 24, 39, .78) 0%, rgba(17, 24, 39, .32) 42%, rgba(17, 24, 39, .46) 60%, rgba(17, 24, 39, .94) 100%) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card::after {
+    z-index: 3 !important;
+    background: #EDEDED !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body {
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: clamp(24px, 2vw, 34px) !important;
+    gap: 18px !important;
+    position: relative !important;
+    z-index: 2 !important;
+    background: transparent !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body h2 {
+    font-size: clamp(2rem, 2.4vw, 2.5rem) !important;
+    line-height: 1.15 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module .ffm-body p.ffm-description {
+    font: 500 .94rem/1.65 "Inter", sans-serif !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module .ffm-stat strong {
+    font-size: 1.45rem !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module-link {
+    min-height: 44px !important;
+    padding: 12px 16px !important;
+    font-size: .85rem !important;
+}
+@media (max-width: 700px) {
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-module.ffm-card {
+        min-height: 310px !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-body {
+        padding: 22px !important;
+    }
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-spark {
+    z-index: 2 !important;
+    opacity: .32 !important;
+    filter: grayscale(1) contrast(1.04) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(.ff-module-icon, .ff-module-link) {
+    border-color: rgba(237, 237, 237, .28) !important;
+    background: rgba(17, 24, 39, .74) !important;
+    color: #EDEDED !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(.ff-module-link:hover, .ff-module-link:focus-visible) {
+    border-color: #9CA3AF !important;
+    background: #4B5563 !important;
+    color: #EDEDED !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(.ffm-body header small, .ffm-description, .ffm-stat em) { color: #9CA3AF !important; }
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance :is(.ffm-body h2, .ffm-stat strong) { color: #EDEDED !important; }
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ffm-foot {
+    position: relative !important;
+    z-index: 2 !important;
+    border-top-color: rgba(156, 163, 175, .34) !important;
+    background: transparent !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation, #ff-world-map, #bond-world-map, #currency-world-map,
+    #ff-exchange-board, #ff-detail-supplement, #ff-workspace, #bvmx-panel,
+    #sectors-panel, #bonds-panel, #credit-panel, #country-factsheet,
+    #rate-timeline, #ff-spreads-board, #fx-pro-panel, #fx-history-lab,
+    #fx-emerging-panel, #news-pro-panel, #equity-lab-host, #ff-news-detail-host,
+    #fnb-front-page
+) {
+    border-color: #4B5563 !important;
+    background: #1F2937 !important;
+    background-image: none !important;
+    color: #EDEDED !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] #ff-detail-navigation {
+    background: linear-gradient(135deg, #111827, #1F2937) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    #ff-detail-navigation button, #ff-world-map button, #bond-world-map button,
+    #currency-world-map button, #currency-world-map select, #fx-pro-panel button,
+    #fx-pro-panel select, #fx-history-lab button, #fx-history-lab select,
+    #ff-news-detail-host button, #ff-news-detail-host input, #ff-news-detail-host select
+) {
+    border-color: #4B5563 !important;
+    background: #111827 !important;
+    color: #EDEDED !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    button.is-active, button.active, button[aria-current="page"], button[aria-pressed="true"],
+    thead, thead tr, th, .ffwm-head, .fbm-header, .fcm-header,
+    .ff-exchange-header, .sb-head, .sb-overview, .fx-history-header
+) {
+    border-color: #9CA3AF !important;
+    background: #4B5563 !important;
+    color: #EDEDED !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    .ff-exchange-card, .ff-exchange-row, .ff-supplement-kpi,
+    .ff-supplement-chart-card, .ff-supplement-table-card,
+    .ff-supplement-table-wrap, .ff-supplement-note, .market-chart-lab-head,
+    .market-chart-controls, .market-chart-quote, .ff-chart-reading,
+    .ff-chart-reading article, .ff-market-field, .ff-market-search-field,
+    .chart-intervals, .chart-type-switch, .sov-mx-grid, .sov-mx-row,
+    .fx-history-visual, .fx-emerging-card, .fnb-story-card, .fnb-story-item,
+    .fnb-reading-card, .fnb-coverage, .fnb-radar, .fnb-archive-section,
+    .fnb-pulse-head, .fnb-pulse-stats, .fnb-pulse-detail, .fnb-pulse-plot
+) {
+    border-color: #4B5563 !important;
+    background: #1F2937 !important;
+    color: #EDEDED !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
+    .ffwm-map, .ffwm-workspace, .fbm-map-wrap, .fbm-map-stage,
+    .fcm-map-wrap, .fcm-map-stage, .market-chart-canvas,
+    .ff-exchange-card-chart, .ff-exchange-data-box, .ff-supplement-chart,
+    .credit-chart-wrap, .rtl-chart-wrap, .fx-history-chart, .fx-emerging-chart,
+    .fx-pro-block, .sb-dashboard, .sb-visual, .ff-table-wrap,
+    .ff-spreads-table-wrap, .cf-table-wrap
+) {
+    border-color: #4B5563 !important;
+    background: #111827 !important;
+    color: #EDEDED !important;
+}
+
+/* El estado se distingue por texto, flechas y contraste; no reintroduce los
+   verdes y rojos de los temas anteriores. */
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .is-up, .up, .positive, .gain, .is-positive, .ff-positive-text,
+    .ff-sp-pos, .fnb-impact.bajo, .fnb-impact.positive, .fnb-signal.up
+) { color: #EDEDED !important; }
+html.vn-dark-pilot body.vn-dark-finanzas :is(
+    .is-down, .down, .negative, .loss, .is-negative, .ff-negative-text,
+    .ff-sp-neg, .fnb-impact.alto, .fnb-impact.negative, .fnb-signal.down
+) { color: #9CA3AF !important; }
+/* No aplicar filtros genéricos a canvas: Lightweight Charts crea sus propios
+   lienzos y depende de sus dimensiones y composición de píxeles para dibujar
+   la serie. La paleta se resuelve al crear cada gráfica, no alterando su DOM. */
+
+/* ── Cabecera global ─────────────────────────────────────────────────────
+   Finanzas comparte la misma navegación que Inicio e Informes. Las reglas
+   históricas del laboratorio trataban cada enlace como un control propio y
+   acababan dibujando una hilera de botones. Esta capa sólo devuelve a la
+   cabecera su jerarquía global: una barra limpia, búsqueda discreta y el
+   subrayado como única señal de la sección activa. */
+@media (min-width: 901px) {
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar {
+        border: 0 !important;
+        border-bottom: 1px solid #4B5563 !important;
+        background: #1F2937 !important;
+        box-shadow: inset 0 1px rgba(237, 237, 237, .05), 0 8px 28px rgba(0, 0, 0, .18) !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar :is(
+        .vn-topbar-identidad, .vn-nav, .vn-nav-lista, .vn-topbar-acciones
+    ) {
+        border-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-brand-txt {
+        color: #EDEDED !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-rail-cap img {
+        filter: brightness(0) invert(1) grayscale(1) !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-cmd,
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-cmd:hover,
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-cmd:focus-visible {
+        border: 0 !important;
+        background: #111827 !important;
+        color: #EDEDED !important;
+        box-shadow: none !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-cmd:focus-visible {
+        outline: 2px solid #9CA3AF !important;
+        outline-offset: 3px !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar :is(
+        .vn-cmd-icono, .vn-cmd-copy .vn-cmd-txt
+    ) {
+        background: transparent !important;
+        color: #EDEDED !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-cmd-kbd {
+        border-left-color: #4B5563 !important;
+        background: transparent !important;
+        color: #9CA3AF !important;
+    }
+
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-lista .vn-nav-item,
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-pie .vn-nav-item {
+        border: 0 !important;
+        border-radius: 9px !important;
+        background: transparent !important;
+        color: #EDEDED !important;
+        box-shadow: none !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-lista .vn-nav-item:hover,
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-pie .vn-nav-item:hover {
+        border: 0 !important;
+        border-radius: 9px !important;
+        background: #4B5563 !important;
+        color: #EDEDED !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-lista .vn-nav-item.activo {
+        border: 0 !important;
+        border-radius: 9px !important;
+        background: #111827 !important;
+        color: #EDEDED !important;
+        font-weight: 800 !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-lista .vn-nav-item.activo::after {
+        background: #EDEDED !important;
+        opacity: 1 !important;
+        transform: scaleX(1) !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-nav-pie {
+        border-left-color: #4B5563 !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-cuenta {
+        border-color: #4B5563 !important;
+        border-radius: 50% !important;
+        background: #111827 !important;
+        color: #EDEDED !important;
+        box-shadow: none !important;
+    }
+    html.vn-dark-pilot body.vn-dark-finanzas .vn-topbar .vn-cuenta:hover {
+        border-color: #9CA3AF !important;
+        background: #4B5563 !important;
+        color: #EDEDED !important;
+    }
+}
+
+/* Bolsa y Bonos comparten la paleta; cada superficie se define explícitamente. */
+html.vn-dark-pilot body.vn-dark-finanzas:is(.ff-detail-bolsa, .ff-detail-rentafija) {
+    --fin-bg: #111827 !important;
+    --fin-panel: #1f2937 !important;
+    --fin-panel-raised: #293548 !important;
+    --fin-control: #172131 !important;
+    --fin-line: rgba(156, 163, 175, .22) !important;
+    --fin-text-main: #ededed !important;
+    --fin-text-muted: #aeb8c6 !important;
+    --fin-accent-blue: #9ca3af !important;
+    --fin-accent-green: #59d2aa !important;
+    --fin-accent-red: #ff7f91 !important;
+    --ff-positive: #59d2aa !important;
+    --ff-negative: #ff7f91 !important;
+    --bolsa-base: var(--fin-panel) !important;
+    --bolsa-raised: var(--fin-panel-raised) !important;
+    --bolsa-deep: var(--fin-control) !important;
+    --bolsa-line: var(--fin-line) !important;
+    --bolsa-muted: var(--fin-text-muted) !important;
+    --bolsa-accent: var(--fin-panel-raised) !important;
+    --bolsa-accent-strong: #9ca3af !important;
+    background: var(--fin-bg) !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation, #ff-world-map, #ff-exchange-board,
+    #bvmx-panel, #ff-detail-supplement, #sectors-panel
+)[id] {
+    background: var(--fin-panel) !important;
+    border: 1px solid var(--fin-line) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .10) !important;
+    color: var(--fin-text-main) !important;
+    margin-bottom: 24px !important;
+}
+
+/* Cabeceras y organización: ninguna capa decorativa debajo del texto. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation .ff-detail-heading,
+    #ff-detail-navigation .ff-detail-tabs,
+    #ff-world-map :is(.ffwm-head, .ffwm-toolbar, .ffwm-filters, .ffwm-leyenda, .ffwm-footer),
+    #ff-exchange-board :is(.ff-exchange-header, .ff-exchange-help),
+    #bvmx-panel :is(.market-chart-lab-head, .market-chart-controls, .market-chart-quote, .ff-chart-reading article),
+    #ff-detail-supplement :is(.ff-supplement-header, .ff-supplement-kpis, .ff-supplement-grid, .ff-supplement-chart-card > header, .ff-supplement-table-card > header),
+    #sectors-panel :is(.sb-head, .sb-overview, .sb-dashboard, .sb-visual, .sb-legend, .sb-matrix-scroll, .sb-matrix-label, .sb-cell-empty, .sb-foot)
+) {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: var(--fin-line) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel :is(.sb-summary.up, .sb-summary.down) {
+    background: transparent !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-sector-track {
+    background: linear-gradient(90deg, transparent calc(50% - .5px), #9ca3af calc(50% - .5px), #9ca3af calc(50% + .5px), transparent calc(50% + .5px)) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-sector-track i.up {
+    background: var(--fin-accent-green) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-sector-track i.down {
+    background: var(--fin-accent-red) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-head > *, #ff-exchange-board .ff-exchange-header > *
+) { background: transparent !important; }
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map :is(.ff-kicker, .ffwm-filter-status),
+    #ff-exchange-board :is(.ff-kicker, .ff-exchange-chart-tools label),
+    #bvmx-panel .market-chart-heading small,
+    #ff-detail-supplement :is(.ff-kicker, header small),
+    #sectors-panel .sb-head small
+) { background: transparent !important; }
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-market-feed[class],
+    #ff-exchange-board .ff-exchange-update,
+    #ff-detail-supplement .ff-supplement-source,
+    #sectors-panel .sb-status[class]
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--fin-text-muted) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation :is(.ff-detail-back, .ff-detail-tabs button),
+    #ff-exchange-board :is(.ff-exchange-card, .ff-exchange-data-box),
+    #bvmx-panel :is(.ff-market-field, .ff-market-search-field, .chart-intervals, .chart-type-switch, .ff-chart-reading),
+    #ff-detail-supplement :is(.ff-supplement-kpi, .ff-supplement-chart-card, .ff-supplement-table-card, .ff-supplement-note),
+    #ff-world-map :is(.ffwm-map-tools, .ffwm-command, .ffwm-pan-hint, .ffwm-tip, .ffwm-bolsa)
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map :is(.ffwm-map, .ffwm-workspace),
+    #ff-exchange-board .ff-exchange-card-chart,
+    #bvmx-panel .market-chart-canvas,
+    #ff-detail-supplement :is(.ff-supplement-chart, .ff-supplement-table-wrap)
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    border-radius: 14px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel {
+    --analyzer-accent: var(--fin-panel-raised) !important;
+    --analyzer-accent-strong: #9ca3af !important;
+    --analyzer-page-blue: var(--fin-panel) !important;
+    --analyzer-deep: var(--fin-control) !important;
+    --analyzer-surface: var(--fin-panel) !important;
+    --analyzer-field: var(--fin-control) !important;
+    --analyzer-line: var(--fin-line) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation button,
+    #ff-world-map :is(button, select),
+    #ff-exchange-board :is(button.ff-range-select, select),
+    #bvmx-panel :is(button, input, select),
+    #ff-detail-supplement :is(button, select)
+) {
+    color: var(--fin-text-main) !important;
+    border-color: var(--fin-line) !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-detail-navigation .ff-detail-tabs button:is(.is-active, [aria-current="page"]),
+    #ff-world-map .ffwm-filters button:is(.is-active, [aria-pressed="true"]),
+    #ff-exchange-board .ff-exchange-card.is-selected,
+    #bvmx-panel :is(.chart-int-btn.active, .chart-type-btn.active, #bmv-custom-btn)
+) {
+    background: var(--fin-panel-raised) !important;
+    border-color: #9ca3af !important;
+    color: var(--fin-text-main) !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel :is(
+    .chart-type-btn.active strong, .chart-type-btn.active i, #bmv-custom-btn i
+) { color: inherit !important; }
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation .ff-detail-tabs button {
+    min-height: 52px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 9px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel .market-chart-controls {
+    border: 0 !important;
+    padding: 16px 0 0 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #bvmx-panel .market-chart-quote {
+    border-radius: 0 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-world-map .ffwm-head p, #ff-exchange-board .ff-exchange-header p,
+    #bvmx-panel :is(small, .ff-chart-reading p),
+    #ff-detail-supplement :is(p, small, em, .ff-supplement-kpi span),
+    #sectors-panel :is(p, small, .sb-summary span, .sb-sector-name, .sb-matrix-label)
+) { color: var(--fin-text-muted) !important; }
+
+/* La matriz conserva intensidad por magnitud; la dona conserva su gradiente. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel {
+    --sb-bg: var(--fin-panel) !important;
+    --sb-raised: var(--fin-panel-raised) !important;
+    --sb-deep: var(--fin-control) !important;
+    --sb-line: var(--fin-line) !important;
+    --sb-text: var(--fin-text-main) !important;
+    --sb-muted: var(--fin-text-muted) !important;
+    --sb-up: #59d2aa !important;
+    --sb-down: #ff7f91 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel :is(.sb-donut, .sb-legend) {
+    filter: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-legend button {
+    background: transparent !important;
+    border-radius: 6px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-cell {
+    border-radius: 7px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-cell.up {
+    background: rgba(89, 210, 170, var(--sb-strength, .22)) !important;
+    color: #d9f8ec !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #sectors-panel .sb-cell.down {
+    background: rgba(255, 127, 145, var(--sb-strength, .22)) !important;
+    color: #ffe2e7 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap :is(table, thead, tbody, tr, td) {
+    background: transparent !important;
+    border-color: var(--fin-line) !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-table-wrap :is(thead, th) {
+    background: var(--fin-panel-raised) !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement tbody tr:hover td {
+    background: var(--fin-panel-raised) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement::before,
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-kpi:last-child::before {
+    display: none !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-supplement .ff-supplement-kpi:last-child {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(.up, .is-up, .is-positive, .positive) {
+    color: var(--fin-accent-green) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(.down, .is-down, .is-negative, .negative) {
+    color: var(--fin-accent-red) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa :is(
+    #ff-exchange-board .ff-exchange-chart-host, #ff-exchange-board .ff-exchange-native-chart,
+    #bvmx-panel .fin-native-market-chart
+) {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    overflow: visible !important;
+    background: transparent !important;
+}
+
+@media (max-width: 720px) {
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-bolsa #ff-detail-navigation .ff-detail-tabs button {
+        flex-direction: column !important;
+        min-height: 60px !important;
+    }
+}
+
+
+/* Bonos comparte las superficies de Bolsa; los textos permanecen transparentes. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija {
+    --bond-base: var(--fin-panel) !important;
+    --bond-raised: var(--fin-panel-raised) !important;
+    --bond-deep: var(--fin-control) !important;
+    --bond-line: var(--fin-line) !important;
+    --bond-muted: var(--fin-text-muted) !important;
+    --bond-accent: var(--fin-panel-raised) !important;
+    --bond-accent-strong: #9ca3af !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #ff-detail-navigation, #bond-world-map, #rate-timeline, #ff-spreads-board,
+    #country-factsheet, #credit-panel, #bonds-panel .debt-pro-hero,
+    #bonds-panel .debt-global-block
+) {
+    background: var(--fin-panel) !important;
+    color: var(--fin-text-main) !important;
+    border: 1px solid var(--fin-line) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .10) !important;
+    margin-block: 0 24px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigation {
+    margin-top: 12px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel > :is(
+    .debt-kpi-grid, .debt-main-grid
+) {
+    margin: 0 0 24px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-main-grid > .debt-global-block {
+    margin-block: 0 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas: "global" !important;
+    gap: 0 !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #ff-detail-navigation :is(.ff-detail-heading, .ff-detail-tabs),
+    #bond-world-map :is(.fbm-header, .fbm-header > *, .fbm-country-picker, .fbm-toolbar, .fbm-filters, .fbm-legend, .fbm-footer, .fbm-kicker, .fbm-filter-status),
+    #rate-timeline :is(.rtl-head, .rtl-copy, .rtl-field, .rtl-stats > div, .rtl-legend, .rtl-footer),
+    #ff-spreads-board :is(.ff-spreads-header, .ff-spreads-tools label),
+    #country-factsheet :is(.cf-head, .cf-picker, .cf-table, .cf-table-head, .cf-row),
+    #bonds-panel :is(.sovereign-board-hero, .sovereign-board-title small, .sovereign-board-controls, .sov-matrix-head, .sov-matrix-row)
+) {
+    background: transparent !important;
+    border-color: var(--fin-line) !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #ff-detail-navigation :is(.ff-detail-back, .ff-detail-tabs button),
+    #bond-world-map :is(.fbm-command, .fbm-map-tools, .fbm-pan-hint, .fbm-hover-tip, .fbm-status),
+    #rate-timeline :is(.rtl-stats, .rtl-spread-item, .rtl-comparison-chip, .rtl-compare-count, .rtl-period-group),
+    #ff-spreads-board :is(.ff-spreads-summary article, .ff-spreads-note),
+    #country-factsheet :is(.cf-hero, .cf-hero-foot em, .cf-position, .cf-neighbors, .cf-context > div, .cf-note),
+    #bonds-panel :is(.debt-kpi, .sovereign-board-summary > div, .sov-insight, .sov-region)
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    border-radius: 14px !important;
+    color: var(--fin-text-main) !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #bond-world-map :is(.fbm-map-wrap, .fbm-map-stage),
+    #rate-timeline :is(.rtl-chart, .rtl-chart canvas),
+    #ff-spreads-board .ff-spreads-table-wrap,
+    #credit-panel .credit-chart-wrap
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    border-radius: 14px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #ff-detail-navigation button,
+    #bond-world-map :is(button, select, .fbm-fixed-maturity),
+    #rate-timeline :is(button, select, input),
+    #ff-spreads-board :is(button, select),
+    #country-factsheet :is(button, select),
+    #bonds-panel .sov-filter-group button
+) {
+    background: var(--fin-control) !important;
+    border-color: var(--fin-line) !important;
+    color: var(--fin-text-main) !important;
+    box-shadow: none !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #ff-detail-navigation .ff-detail-tabs button:is(.is-active, [aria-current="page"]),
+    #bond-world-map .fbm-filters button:is(.is-active, [aria-pressed="true"]),
+    #rate-timeline .rtl-period-group button:is(.is-active, [aria-pressed="true"]),
+    #rate-timeline .rtl-add-compare:not(:disabled),
+    #bonds-panel .sov-filter-group button:is(.active, [aria-pressed="true"])
+) {
+    background: var(--fin-panel-raised) !important;
+    border-color: #9ca3af !important;
+    color: var(--fin-text-main) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigation .ff-detail-tabs button {
+    min-height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 9px !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #bond-world-map :is(h3, strong), #rate-timeline :is(h3, strong),
+    #ff-spreads-board :is(h3, strong), #country-factsheet :is(h3, strong),
+    #bonds-panel :is(h2, h3, strong)
+) { color: var(--fin-text-main) !important; }
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #bond-world-map :is(p, small, label), #rate-timeline :is(p, small, label, .rtl-stats span, .rtl-stats em),
+    #ff-spreads-board :is(p, small, label), #country-factsheet :is(p, small, label),
+    #bonds-panel :is(.debt-kpi small, .debt-kpi div > span, .sov-insight span, .sov-region span)
+) { color: var(--fin-text-muted) !important; }
+
+/* Tablas: un encabezado y separadores, sin un marco por cada dato. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board .ff-spreads-table :is(table, thead, tbody, tr, td, td.ff-sp-country) {
+    background: transparent !important;
+    color: var(--fin-text-main) !important;
+    border-color: var(--fin-line) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board .ff-spreads-table :is(th, th.ff-sp-country) {
+    background: var(--fin-panel-raised) !important;
+    color: var(--fin-text-muted) !important;
+    border-color: var(--fin-line) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board .ff-spreads-table tbody tr:is(:hover, .is-ref) > td {
+    background: var(--fin-control) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board .ff-spreads-table tbody td.ff-sp-pos {
+    color: var(--fin-accent-green) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-spreads-board .ff-spreads-table tbody td.ff-sp-neg {
+    color: var(--fin-accent-red) !important;
+}
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel :is(.sov-mx-country, .sov-mx-rank) {
+    background: var(--fin-control) !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .sov-mx-cell {
+    background: color-mix(in srgb, var(--sov-cell, transparent) 45%, var(--fin-control)) !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel :is(.sov-mx-country, .sov-mx-cell, .sov-mx-rank) strong {
+    color: var(--fin-text-main) !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel :is(.sov-mx-country, .sov-mx-cell, .sov-mx-rank) small {
+    color: var(--fin-text-muted) !important;
+}
+
+/* En renta fija, rojo significa que el rendimiento sube; verde, que baja. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #rate-timeline .is-up, #country-factsheet .cf-chg.up,
+    #country-factsheet .cf-hero-delta.up, #bonds-panel .sov-mx-cell.is-up strong
+) { color: var(--fin-accent-red) !important; }
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #rate-timeline .is-down, #country-factsheet .cf-chg.down,
+    #country-factsheet .cf-hero-delta.down, #bonds-panel .sov-mx-cell.is-down strong
+) { color: var(--fin-accent-green) !important; }
+
+/* Se retiran los acentos decorativos; los gráficos conservan sus señales. */
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija :is(
+    #bonds-panel .debt-pro-hero, #bonds-panel .debt-kpi,
+    #bonds-panel .sovereign-board-summary > div,
+    #bonds-panel .sov-insight, #bonds-panel .sov-region,
+    #country-factsheet .cf-hero
+)::before { display: none !important; }
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel :is(
+    .sovereign-board-summary > div, .sov-insight, .sov-region
+)::after { display: none !important; }
+
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-country-card:is(:hover, .is-active) {
+    background: var(--fin-panel-raised) !important;
+    border-color: #9ca3af !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #bonds-panel .debt-country-card.is-active::after {
+    background: var(--fin-control) !important;
+    color: var(--fin-text-main) !important;
+}
+
+@media (max-width: 720px) {
+    html.vn-dark-pilot body.vn-dark-finanzas.ff-detail-rentafija #ff-detail-navigation .ff-detail-tabs button {
+        flex-direction: column !important;
+        min-height: 60px !important;
+    }
+}

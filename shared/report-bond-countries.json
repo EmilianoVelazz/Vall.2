@@ -1,0 +1,338 @@
+[
+  {
+    "iso3": "USA",
+    "code": "US",
+    "currency": "USD",
+    "region": "América",
+    "market": "Estados Unidos"
+  },
+  {
+    "iso3": "CHE",
+    "code": "CH",
+    "currency": "CHF",
+    "region": "Europa",
+    "market": "Suiza"
+  },
+  {
+    "iso3": "BEL",
+    "code": "BE",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Bélgica"
+  },
+  {
+    "iso3": "CAN",
+    "code": "CA",
+    "currency": "CAD",
+    "region": "América",
+    "market": "Canadá"
+  },
+  {
+    "iso3": "DEU",
+    "code": "DE",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Alemania"
+  },
+  {
+    "iso3": "ZAF",
+    "code": "ZA",
+    "currency": "ZAR",
+    "region": "África",
+    "market": "Sudáfrica"
+  },
+  {
+    "iso3": "NLD",
+    "code": "NL",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Países Bajos"
+  },
+  {
+    "iso3": "GBR",
+    "code": "GB",
+    "currency": "GBP",
+    "region": "Europa",
+    "market": "Reino Unido"
+  },
+  {
+    "iso3": "AUS",
+    "code": "AU",
+    "currency": "AUD",
+    "region": "Oceanía",
+    "market": "Australia"
+  },
+  {
+    "iso3": "IRL",
+    "code": "IE",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Irlanda"
+  },
+  {
+    "iso3": "NZL",
+    "code": "NZ",
+    "currency": "NZD",
+    "region": "Oceanía",
+    "market": "Nueva Zelanda"
+  },
+  {
+    "iso3": "ESP",
+    "code": "ES",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "España"
+  },
+  {
+    "iso3": "NOR",
+    "code": "NO",
+    "currency": "NOK",
+    "region": "Europa",
+    "market": "Noruega"
+  },
+  {
+    "iso3": "DNK",
+    "code": "DK",
+    "currency": "DKK",
+    "region": "Europa",
+    "market": "Dinamarca"
+  },
+  {
+    "iso3": "SWE",
+    "code": "SE",
+    "currency": "SEK",
+    "region": "Europa",
+    "market": "Suecia"
+  },
+  {
+    "iso3": "FIN",
+    "code": "FI",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Finlandia"
+  },
+  {
+    "iso3": "JPN",
+    "code": "JP",
+    "currency": "JPY",
+    "region": "Asia",
+    "market": "Japón"
+  },
+  {
+    "iso3": "PRT",
+    "code": "PT",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Portugal"
+  },
+  {
+    "iso3": "LUX",
+    "code": "LU",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Luxemburgo"
+  },
+  {
+    "iso3": "BRA",
+    "code": "BR",
+    "currency": "BRL",
+    "region": "América",
+    "market": "Brasil"
+  },
+  {
+    "iso3": "ISR",
+    "code": "IL",
+    "currency": "ILS",
+    "region": "Medio Oriente",
+    "market": "Israel"
+  },
+  {
+    "iso3": "GRC",
+    "code": "GR",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Grecia"
+  },
+  {
+    "iso3": "ISL",
+    "code": "IS",
+    "currency": "ISK",
+    "region": "Europa",
+    "market": "Islandia"
+  },
+  {
+    "iso3": "FRA",
+    "code": "FR",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Francia"
+  },
+  {
+    "iso3": "HUN",
+    "code": "HU",
+    "currency": "HUF",
+    "region": "Europa",
+    "market": "Hungría"
+  },
+  {
+    "iso3": "SVK",
+    "code": "SK",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Eslovaquia"
+  },
+  {
+    "iso3": "KOR",
+    "code": "KR",
+    "currency": "KRW",
+    "region": "Asia",
+    "market": "Corea del Sur"
+  },
+  {
+    "iso3": "LVA",
+    "code": "LV",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Letonia"
+  },
+  {
+    "iso3": "LTU",
+    "code": "LT",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Lituania"
+  },
+  {
+    "iso3": "POL",
+    "code": "PL",
+    "currency": "PLN",
+    "region": "Europa",
+    "market": "Polonia"
+  },
+  {
+    "iso3": "SVN",
+    "code": "SI",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Eslovenia"
+  },
+  {
+    "iso3": "COL",
+    "code": "CO",
+    "currency": "COP",
+    "region": "América",
+    "market": "Colombia"
+  },
+  {
+    "iso3": "BGR",
+    "code": "BG",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Bulgaria"
+  },
+  {
+    "iso3": "CHL",
+    "code": "CL",
+    "currency": "CLP",
+    "region": "América",
+    "market": "Chile"
+  },
+  {
+    "iso3": "ROU",
+    "code": "RO",
+    "currency": "RON",
+    "region": "Europa",
+    "market": "Rumania"
+  },
+  {
+    "iso3": "HRV",
+    "code": "HR",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Croacia"
+  },
+  {
+    "iso3": "MEX",
+    "code": "MX",
+    "currency": "MXN",
+    "region": "América",
+    "market": "México"
+  },
+  {
+    "iso3": "RUS",
+    "code": "RU",
+    "currency": "RUB",
+    "region": "Europa",
+    "market": "Rusia"
+  },
+  {
+    "iso3": "IND",
+    "code": "IN",
+    "currency": "INR",
+    "region": "Asia",
+    "market": "India"
+  },
+  {
+    "iso3": "CRI",
+    "code": "CR",
+    "currency": "CRC",
+    "region": "América",
+    "market": "Costa Rica"
+  },
+  {
+    "iso3": "IDN",
+    "code": "ID",
+    "currency": "IDR",
+    "region": "Asia",
+    "market": "Indonesia"
+  },
+  {
+    "iso3": "CHN",
+    "code": "CN",
+    "currency": "CNY",
+    "region": "Asia",
+    "market": "China"
+  },
+  {
+    "iso3": "AUT",
+    "code": "AT",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Austria"
+  },
+  {
+    "iso3": "EST",
+    "code": "EE",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Estonia"
+  },
+  {
+    "iso3": "CZE",
+    "code": "CZ",
+    "currency": "CZK",
+    "region": "Europa",
+    "market": "Chequia"
+  },
+  {
+    "iso3": "ITA",
+    "code": "IT",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Italia"
+  },
+  {
+    "iso3": "CYP",
+    "code": "CY",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Chipre"
+  },
+  {
+    "iso3": "MLT",
+    "code": "MT",
+    "currency": "EUR",
+    "region": "Europa",
+    "market": "Malta"
+  }
+]

@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {weeklyReport} from '../shared/report-weekly.mjs';
+import {marketEvidence} from '../shared/report-market-analysis.mjs';
+import {mercolleidaMarkets} from '../shared/report-mercolleida.mjs';
+import {proteinHistoricalComparison} from '../shared/report-protein-history.mjs';
+import {comparableProteinPoints} from '../shared/report-protein-observation-basis.mjs';
+import {availablePresentationModel,missingReportValue} from '../shared/report-available-data.mjs';
+import {filteredReportModel} from '../shared/report-view-filters.mjs';
+import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
+import {reportCsv} from '../frontend/src/lib/reportCsv.js';
+import {getDocument} from '../node_modules/pdfjs-dist/legacy/build/pdf.mjs';
+import {PROTEIN_PDF_MAX_PAGES} from '../shared/report-print-edition.mjs';
+const require=createRequire(import.meta.url);process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
+const {_test}=require('../backend/routes/export'),{makeReportWorkbook}=require('../backend/lib/report-workbook'),JSZip=require('jszip');
+const dates=['2020-10-30','2021-10-29','2022-10-28','2023-10-30','2024-10-30','2025-10-30','2025-12-31','2026-05-01','2026-08-03','2026-10-01','2026-10-27','2026-11-02','2026-11-03'];
+const series=dates.map((date,index)=>({date,value:50+index*10}));
+const quote=(symbol,label,points=series)=>({symbol,label,market:'Estados Unidos',unit:'US¢/lb',source:'Fixture · datos sintéticos',url:'https://example.invalid/'+symbol,basis:'serie continua de futuros; cierre sin ajustar',cadence:'daily',series:points});
+const report={key:'proteins',collection:'markets',title:'Proteínas · SIMULACIÓN',proteinScope:'US_ONLY',generatedAt:'2026-11-04T16:00:00Z',tables:[],sections:[],metrics:[],visuals:[],sources:[],sourceLinks:[],sourceSnapshot:{proteins:[quote('HE=F','Cerdo magro CME · EE. UU.'),quote('LE=F','Ganado vivo CME · EE. UU.',series.map(point=>({...point,value:point.value*2}))),quote('GF=F','Ganado de engorda CME · EE. UU.',series.map(point=>({...point,value:point.value*3}))),quote('AMS-PORK','Canal porcina · Estados Unidos',series.slice(-3))]}};
+Object.assign(report.sourceSnapshot.proteins.at(-1),{basis:'Valor cutout de canal; no ganado vivo',source:'USDA AMS · precios físicos · Fixture',unit:'USD/100 lb'});
+const before=JSON.stringify(report),model=weeklyReport(report),history=model.visuals.find(visual=>visual.executiveLead);
+assert.equal(JSON.stringify(report),before);assert.equal(history.commodityWindow,'history');assert.equal(history.indexBaseDate,'2020-10-30');assert.equal(history.indexEndDate,'2026-11-03');assert.equal(history.series.length,3);
+for(const item of history.series){assert.equal(item.points[0].value,100);assert.equal(item.points.at(-1).value,340);}
+const price=model.visuals.find(visual=>visual.commodityWindow==='years');assert.equal(price.bars[0].value,50);assert.equal(price.bars[0].date,'2020-10-30');assert.equal(price.bars.at(-1).value,170);
+const change=model.visuals.find(visual=>visual.commodityWindow==='yearChange');assert.equal(change.bars[0].value,240);assert.equal(change.bars.at(-1).date,'2025-10-30');
+assert(!model.visuals.some(visual=>visual.proteinHistorical && (visual.proteinHistoryReference || '').includes('Canal')),'Physical prices do not borrow futures history');
+for(const candidate of [createReportDraft('markets',report).report,_test.executivePayload(report)])assert.deepEqual(weeklyReport(candidate).visuals.toSorted((a,b)=>a.title.localeCompare(b.title)),model.visuals.toSorted((a,b)=>a.title.localeCompare(b.title)),'Saved and exported editions preserve every comparison and its exact values');
+const changed=structuredClone(model);changed.references=changed.references.map(item=>({...item,points:item.points.map((point,index)=>index===item.points.length-1 ? {...point,value:point.value*2} : point)}));
+assert.notEqual(proteinHistoricalComparison(changed).summary.body,proteinHistoricalComparison(model).summary.body,'Summary follows current observations');
+const mixed={basis:'2020–2025: nivel promedio anual de referencia; 2026: observaciones semanales.',cadence:'weekly'};
+assert.deepEqual(comparableProteinPoints(mixed,series),series.filter(point=>point.date>='2026-01-01'),'Annual-average placeholders never enter dated comparisons');
+assert.deepEqual(comparableProteinPoints({basis:'cotización semanal publicada'},series),series);
+const annotated={...quote('MERCO-FIXTURE','Cerdo · España'),...mixed,market:'España'},legacy={...report,proteinScope:'GLOBAL',sourceSnapshot:{proteins:[annotated]},marketHistory:[{label:annotated.label,unit:annotated.unit,points:series}]};
+assert(marketEvidence(legacy).every(item=>item.points.every(point=>point.date>='2026-01-01')),'A longer legacy copy cannot restore annual placeholders after metadata is merged');
+assert.deepEqual(mercolleidaMarkets('2019-12-31T23:59:59Z'),[],'Historical cutoffs never borrow future catalog prices');
+const sparse=structuredClone(model);sparse.yearComparisons[0].values=sparse.yearComparisons[0].values.filter(point=>point.year!==2022);
+const clean=availablePresentationModel({...model,results:proteinHistoricalComparison(sparse).tables});assert(!clean.results.flatMap(table=>table.rows.flat()).some(value=>missingReportValue(value)),'Unavailable years are omitted, without zero-filling');
+const selected=filteredReportModel(model,report,{query:'Ganado vivo'});assert(selected.visuals.some(visual=>visual.commodityWindow==='years'));assert(selected.visuals.filter(visual=>visual.proteinHistoryReference).every(visual=>visual.proteinHistoryReference.includes('Ganado vivo')),'Year bars filter by product, not by year label');
+assert(reportCsv(report).includes('detalle numérico de la comparación histórica'));
+const zip=await JSZip.loadAsync(await makeReportWorkbook(report));assert((await zip.file('xl/workbook.xml').async('string')).includes('Datos de gráficas'),'Workbook contains full numeric chart observations');
+const current=JSON.parse(await fs.readFile('backend/cache/market_executive_reports.json','utf8')).reports.find(item=>item.key==='proteins'),liveModel=weeklyReport(current),liveHistory=liveModel.visuals.find(visual=>visual.executiveLead);
+assert(liveHistory.indexBaseDate.startsWith('2020-'));assert(liveHistory.series.length<=4);assert(liveModel.results.some(table=>table.proteinHistoryTable && table.columns.includes('2020') && table.columns.includes(liveHistory.indexEndDate.slice(0,4))));
+for(const reference of liveModel.references.filter(item=>/promedio anual/.test(item.basis)))assert(reference.points.every(point=>point.date>='2026-01-01'));
+const directory='output/proteinas-historia-20261104';await fs.mkdir(directory,{recursive:true});
+for(const [name,input]of [['diario',current],['semanal',{...current,analysisPeriod:'weekly'}]]){
+ const bytes=await _test.makeExecutivePdf(input.title,input),task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,isEvalSupported:false}),pdf=await task.promise;assert(pdf.numPages<=PROTEIN_PDF_MAX_PAGES);let text='';
+ for(let index=1;index<=pdf.numPages;index++){const page=await pdf.getPage(index),items=(await page.getTextContent()).items.filter(item=>item.str.trim());text+=items.map(item=>item.str).join(' ');for(const item of items){assert(item.transform[4]>=24 && item.transform[4]+item.width<=page.view[2]-22,'No horizontal clipping');assert(item.transform[5]>=42,'No vertical clipping');assert(item.str.trim()!=='—','No missing-value cell');}}
+ for(const term of ['2020','Cerdo magro','Ganado vivo','Ganado de engorda','precios comparables por año'])assert(text.includes(term),term+' survives PDF selection');
+ await fs.writeFile(directory+'/'+name+'.pdf',bytes);await task.destroy();console.log(name+': '+pdf.numPages+' pages; history and all three CME references retained.');
+}
+console.log('Protein history: exact bases and percentages, real calendar dates, sparse years, physical/futures separation, source immutability, filter identity, numeric Excel/CSV and daily/weekly PDFs pass.');

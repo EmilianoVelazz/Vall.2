@@ -109,8 +109,8 @@ const shortcutBase = await pagina.evaluate(() => ({
   countries: [...document.querySelectorAll('#rtl-country option')].map(option => option.value),
   shortcuts: document.querySelectorAll('.debt-country-card[data-bond-country]').length,
 }));
-linea(!shortcutBase.countries.includes('mx'), 'México no aparece en la gráfica histórica');
-linea(shortcutBase.shortcuts === 10, 'los diez recuadros superiores son accesos por país');
+linea(shortcutBase.countries.includes('mx'), 'México aparece en la gráfica histórica');
+linea(shortcutBase.shortcuts === 11, 'los once recuadros superiores son accesos por país');
 await pagina.click('.debt-country-card[data-bond-country="cn"]');
 const chinaActive = await pagina.evaluate(() => ({
   country: document.getElementById('rtl-country')?.value,
@@ -141,8 +141,8 @@ const bondMapBase = await pagina.evaluate(() => ({
 linea(bondMapBase.svg, 'la cartografía soberana se renderiza');
 linea(bondMapBase.markets >= 18 && bondMapBase.markers >= 18,
   `cobertura 10A: ${bondMapBase.markets} territorios y ${bondMapBase.markers} marcadores`);
-linea(!bondMapBase.mexico && !bondMapBase.mexicoOption && bondMapBase.selected !== 'mx',
-  'México está excluido del mapa soberano y de su selector');
+linea(bondMapBase.mexico && bondMapBase.mexicoOption,
+  'México está disponible en el mapa soberano y en su selector');
 linea(!bondMapBase.sidePanel && bondMapBase.mapWidth / bondMapBase.workspaceWidth > .98,
   'el mapa ocupa todo el ancho, sin panel lateral permanente');
 

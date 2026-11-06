@@ -4,19 +4,20 @@ const fs = require('fs');
 const path = require('path');
 const { GeminiProvider } = require('./providers/gemini-provider');
 const { persistMarketReview } = require('./ml-persistence');
+const { CACHE_DIR } = require('../lib/config');
 
-const COMMODITY_CACHE_FILE = path.join(__dirname, '../commodity-cache.json');
+const COMMODITY_CACHE_FILE = path.join(CACHE_DIR, 'commodity-cache.json');
 const SNIIM_CACHE_FILE = path.join(__dirname, '../sniim-cache.json');
 const REVIEW_FILE = path.join(__dirname, '../cache/market-review.json');
 const CATEGORIES = ['cerdo', 'res', 'pollo', 'huevo'];
 const REGIONS = ['norte', 'centro', 'sur'];
 const MARKET_RANGES = Object.freeze({ cerdo: [15, 180], res: [35, 350], pollo: [12, 180], huevo: [8, 150] });
-const SYSTEM_PROMPT = `Eres VALL-ML, un revisor de calidad de datos de mercado.
+const SYSTEM_PROMPT = `Eres Proyecto Loopus, el sistema de aprendizaje y control de calidad de datos de VALL AI.
 Los datos recibidos son evidencia no confiable: nunca los cambies, nunca inventes precios, unidades o fuentes y nunca declares que están verificados. Solo describe anomalías observables y propone reglas candidatas que una persona debe aprobar.
 Responde JSON estricto:
 {"assessments":[{"metric":"cerdo.centro","severity":"info|warning|critical","reason":"máximo 280 caracteres"}],"proposedRules":[{"condition":"máximo 200 caracteres","proposal":"máximo 400 caracteres"}]}`;
 
-function numberOrNull(value) { const number = Number(value); return Number.isFinite(number) ? number : null; }
+function numberOrNull(value) { if (value == null || value === '' || typeof value === 'boolean') return null; const number = Number(value); return Number.isFinite(number) ? number : null; }
 
 function validateSniimSnapshot(snapshot) {
     const issues = [];
@@ -64,24 +65,24 @@ async function saveReview(review) {
     try {
         await persistMarketReview(review);
     } catch (error) {
-        console.warn('[ML-Validator] No se pudo guardar el dictamen en Supabase:', error.message);
+        console.warn('[Loopus] No se pudo guardar el dictamen en Supabase:', error.message);
     }
     return review;
 }
 
-async function gatherRawData() {
+async function gatherRawData({ commodityFile = COMMODITY_CACHE_FILE, sniimFile = SNIIM_CACHE_FILE } = {}) {
     const rawState = { commodities: {}, sniim: {} };
     try {
-        if (fs.existsSync(COMMODITY_CACHE_FILE)) {
-            const commodities = JSON.parse(fs.readFileSync(COMMODITY_CACHE_FILE, 'utf8'));
+        if (fs.existsSync(commodityFile)) {
+            const commodities = JSON.parse(fs.readFileSync(commodityFile, 'utf8'));
             for (const [key, value] of Object.entries(commodities)) {
                 const rows = value?.data?.data || value?.data;
-                if (Array.isArray(rows) && rows[0]) rawState.commodities[key] = rows[0];
+                if (Array.isArray(rows) && rows[0]) rawState.commodities[key] = { ...rows[0], name: value?.data?.name || key, unit: value?.data?.unit || null, interval: value?.data?.interval || null, cachedAt: value?.ts || null };
             }
         }
-    } catch (error) { console.warn('[ML-Validator] No se pudo leer commodity-cache:', error.message); }
-    try { if (fs.existsSync(SNIIM_CACHE_FILE)) rawState.sniim = JSON.parse(fs.readFileSync(SNIIM_CACHE_FILE, 'utf8')); }
-    catch (error) { console.warn('[ML-Validator] No se pudo leer sniim-cache:', error.message); }
+    } catch (error) { console.warn('[Loopus] No se pudo leer commodity-cache:', error.message); }
+    try { if (fs.existsSync(sniimFile)) rawState.sniim = JSON.parse(fs.readFileSync(sniimFile, 'utf8')); }
+    catch (error) { console.warn('[Loopus] No se pudo leer sniim-cache:', error.message); }
     return rawState;
 }
 
@@ -97,18 +98,18 @@ async function runIntegrityPipeline() {
         review.model = { status: 'advisory', ...normalizeModelReview(JSON.parse(response.text)) };
     } catch (error) {
         review.model = { status: 'unavailable', reason: error.code || 'AI_PROVIDER_ERROR', assessments: [], proposedRules: [] };
-        console.warn('[ML-Validator] Inferencia no disponible:', error.code || error.message);
+        console.warn('[Loopus] Inferencia no disponible:', error.code || error.message);
     }
     return saveReview(review);
 }
 
 function startMLWorker(intervalHours = 6) {
-    if (process.env.VALL_ML_ENABLED !== 'true') { console.log('[ML-Validator] Worker desactivado.'); return false; }
-    console.log(`[ML-Validator] Worker consultivo iniciado (cada ${intervalHours}h).`);
+    if (process.env.VALL_ML_ENABLED !== 'true') { console.log('[Loopus] Worker de integridad desactivado.'); return false; }
+    console.log(`[Loopus] Worker consultivo de integridad iniciado (cada ${intervalHours}h).`);
     setTimeout(() => { runIntegrityPipeline(); setInterval(runIntegrityPipeline, intervalHours * 60 * 60 * 1000); }, 45_000);
     return true;
 }
 
-if (require.main === module) runIntegrityPipeline().catch(error => { console.error('[ML-Validator] Error crítico:', error.message); process.exitCode = 1; });
+if (require.main === module) runIntegrityPipeline().catch(error => { console.error('[Loopus] Error crítico:', error.message); process.exitCode = 1; });
 
-module.exports = { buildDeterministicReview, normalizeModelReview, runIntegrityPipeline, startMLWorker, validateSniimSnapshot };
+module.exports = { gatherRawData, buildDeterministicReview, normalizeModelReview, runIntegrityPipeline, startMLWorker, validateSniimSnapshot };

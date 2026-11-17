@@ -16,6 +16,7 @@ const {
     usdaAmsProteinSnapshot, faoFpmaMexicoFeedSnapshot,
 } = require('../ai/protein-training-sources');
 const { verifyToken } = require('./auth');
+const { hasBearerSecret } = require('../lib/request-security');
 const executiveReportStore = require('../services/market-report-store');
 const { executiveReportAgent } = require('../ai/executive-report-agent');
 const { enrichSectorReport } = require('../lib/report-sector-format');
@@ -456,6 +457,7 @@ const { BoundedCache, createSingleFlight } = require('../lib/bounded-cache');
 const _stockCache    = new BoundedCache();
 const stockFlight = createSingleFlight();
 const STOCK_TTL      = 15 * 60 * 1000;
+const STOCK_MAX_STALE = 3 * 24 * 60 * 60 * 1000;
 const YAHOO_INTERVALS = new Set(['1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo']);
 const YAHOO_RANGES    = new Set(['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '3y', '4y', '5y', '10y', '20y', 'ytd', 'max']);
 
@@ -529,6 +531,10 @@ router.get('/stock-history', async (req, res) => {
             const meta    = result.meta || {};
             const payload = {
                 candles,
+                stale:false,
+                source:'Yahoo Finance',
+                retrievedAt:new Date(Date.now()).toISOString(),
+                asOf:Number.isFinite(meta.regularMarketTime) && meta.regularMarketTime>0 ? new Date(meta.regularMarketTime*1000).toISOString() : typeof candles.at(-1)?.time==='number' ? new Date(candles.at(-1).time*1000).toISOString() : candles.at(-1)?.time || null,
                 meta: {
                     symbol:                     meta.symbol,
                     currency:                   meta.currency,
@@ -558,7 +564,11 @@ router.get('/stock-history', async (req, res) => {
         res.json(payload);
     } catch (err) {
         console.error('/api/stock-history error:', err.message);
-        if (hit) return res.json(hit.data);
+        if (hit && Date.now()-hit.ts<=STOCK_MAX_STALE) {
+            res.set('Cache-Control','no-store');
+            res.set('X-VALL-Data-Status','preserved');
+            return res.json({...hit.data,stale:true});
+        }
         if (err.code === 'UPSTREAM_BUSY') res.set('Retry-After', '5');
         res.status(err.code === 'UPSTREAM_BUSY' ? 503 : 502).json({ error: 'Cotización temporalmente no disponible.' });
     }
@@ -673,7 +683,7 @@ function reportChange(value) {
 function sourceList(items) { return [...new Set(items.filter(Boolean))]; }
 
 function performanceLabel(value) {
-    return Number.isFinite(value) ? reportChange(value) : 'Sin serie comparable';
+    return Number.isFinite(value) ? reportChange(value) : '—';
 }
 
 function reportTable(title, columns, rows, note = '') {
@@ -704,13 +714,7 @@ function marketNewsVisual(headlines) {
     return bars.length ? { type: 'bar', title: 'Agenda de noticias por frente', unit: 'historias verificadas', note: 'Clasificación por el texto de los cinco titulares; organiza seguimiento y no mide por sí sola la magnitud del impacto.', bars } : null;
 }
 
-function marketNewsIso(value) {
-    const text = String(value || '').trim();
-    const compact = text.match(/^(\d{4})(\d{2})(\d{2})T?(\d{2})(\d{2})(\d{2})Z?$/);
-    if (compact) return new Date(`${compact[1]}-${compact[2]}-${compact[3]}T${compact[4]}:${compact[5]}:${compact[6]}Z`).toISOString();
-    const date = new Date(text);
-    return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
+const {newsIsoDate:marketNewsIso}=require('../lib/news-date');
 
 async function marketRawNewsSnapshot() {
     const keywords=/commodit|agricultur|grain|crop|energy|oil|gas|metal|copper|livestock|pork|beef|protein|feed|shipping|freight|tariff|trade war|trade policy|export|import/i;
@@ -757,11 +761,7 @@ function marketExecutiveDocument(report) {
     const metrics = (report.metrics || []).map(metric => `- **${metric.label}:** ${metric.value}${metric.change ? ` (${metric.change})` : ''}`).join('\n');
     const takeaways = (report.takeaways || []).map((item, index) => `${index + 1}. ${item}`).join('\n');
     const watchlist = (report.watchlist || []).map((item, index) => `${index + 1}. ${item}`).join('\n');
-    const tables = (report.tables || []).map(table => {
-        const header = `| ${table.columns.join(' | ')} |\n| ${table.columns.map(() => '---').join(' | ')} |`;
-        const rows = table.rows.map(row => `| ${row.map(value => String(value).replace(/\|/g, '/')).join(' | ')} |`).join('\n');
-        return `## ${table.title}\n${header}\n${rows}${table.note ? `\n\nNota: ${table.note}` : ''}`;
-    }).join('\n\n');
+    const tables = require("../lib/report-markdown").reportTablesMarkdown(report.tables);
     const sections = (report.sections || []).map(section => `## ${section.heading}\n${section.text}`).join('\n\n');
     const context = {
         grains: 'Los futuros agrícolas son referencias de mercado y no equivalen automáticamente al precio físico entregado en México. Bases regionales, flete, tipo de cambio, calidad, humedad, calendario de cosecha y condiciones de entrega pueden cambiar de forma material el costo real. Para alimento animal, la relación entre maíz, harina de soya y energía suele importar más que el movimiento aislado de un contrato.',
@@ -1019,11 +1019,12 @@ async function refreshMarketExecutiveReports(previousSnapshot,{force=false}={}) 
         const {withPreviousDailyEvidence}=require('../lib/report-daily-evidence');
         for(let index=0;index<reports.length;index++) if(reports[index].key!=='market_news') reports[index]=withPreviousDailyEvidence(reports[index],previous?.reports?.find(item=>item.key===reports[index].key));
         const {loadReportDerivatives,attachReportDerivatives}=require('../lib/report-commodity-derivatives');
-        const derivatives=await loadReportDerivatives({cutoff:generatedAt,refresh:true});
-        const integrated=require('../lib/report-market-overview').composeMarketOverview(attachReportDerivatives({reports,generatedAt},derivatives,{generatedAt}));
-        _marketReportMemory = await executiveReportStore.save(integrated.reports, generatedAt).catch(error => {
+        const derivatives=await loadReportDerivatives({refresh:true});
+        const completedAt=new Date(Math.max(Date.parse(generatedAt),Date.parse(derivatives.checkedAt) || 0)).toISOString();
+        const integrated=require('../lib/report-market-overview').composeMarketOverview(attachReportDerivatives({reports,generatedAt:completedAt},derivatives,{generatedAt:completedAt}));
+        _marketReportMemory = await executiveReportStore.save(integrated.reports, integrated.generatedAt).catch(error => {
             console.warn('[market-reports] No se pudo persistir en Supabase:', error.message);
-            return { reports:integrated.reports, generatedAt, persistence: 'memory' };
+            return { reports:integrated.reports, generatedAt:integrated.generatedAt, persistence: 'memory' };
         });
         return _marketReportMemory;
     })().finally(() => { _marketReportRefresh = null; });
@@ -1031,9 +1032,8 @@ async function refreshMarketExecutiveReports(previousSnapshot,{force=false}={}) 
 }
 
 function allowsReportRefresh(req) {
-    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const expected = process.env.CRON_SECRET || process.env.REFRESH_SECRET;
-    return Boolean(expected && token && token === expected);
+    return hasBearerSecret(req, expected);
 }
 let _globalCoverageRefresh=null;
 async function ensureGlobalMarketCoverage(snapshot) {

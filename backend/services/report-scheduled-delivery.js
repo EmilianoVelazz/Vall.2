@@ -3,6 +3,7 @@ const {enrichSectorReport}=require('../lib/report-sector-format');
 const {normalizeRecipient}=require('../lib/report-email-recipient');
 const {normalizePreferenceOverrides}=require('../lib/report-preference-overrides');
 const {latestReportCutAt,latestMarketReportCutAt}=require('../lib/report-schedule');
+const {createScheduledBundleDelivery}=require('./report-scheduled-bundles');
 
 function normalizeAiCustomization(input) {
     if (!input || input.enabled !== true) return { enabled: false };
@@ -15,13 +16,15 @@ function normalizeAiCustomization(input) {
     return { enabled: true, instructions: instructions.trim(), tone: ['professional', 'simple', 'technical'].includes(input.tone) ? input.tone : 'professional',...(input.mode==='instructions' ? {mode:'instructions'} : {}),...(preferenceOverrides.length ? {preferenceOverrides} : {}) };
 }
 
-function createScheduledReportDelivery({ store, collections, loadSnapshot, generate, personalize, prepare, deliver, enabled = () => true, now = Date.now, maxDurationMs = 180000, concurrency=2 }) {
+function createScheduledReportDelivery({ store, collections, loadSnapshot, generate, personalize, prepare, deliver, deliverBundle, enabled = () => true, now = Date.now, maxDurationMs = 180000, concurrency=2 }) {
     let running;
+    const bundled=deliverBundle&&createScheduledBundleDelivery({store,collections,loadSnapshot,generate,personalize,prepare,deliverBundle,normalizeAiCustomization,now,maxDurationMs,concurrency});
     function run() {
         if (!enabled()) return Promise.resolve({ due: 0, sent: 0, errors: 0, deferred: 0, paused: true });
         if (running) return running;
         running = (async () => {
             const due = await store.due(), snapshots = {};
+            if(bundled)return bundled(due);
             let sent = 0, errors = 0, deferred = 0;
             const started = now();
             let cursor=0;

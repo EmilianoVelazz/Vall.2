@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {getDocument,OPS} from '../frontend/node_modules/pdfjs-dist/legacy/build/pdf.mjs';
 const require=createRequire(import.meta.url);
-process.env.JWT_SECRET='isolated-user-report-pdf-secret';
+process.env.JWT_SECRET='isolated-user-report-pdf-secret-fixture-only-testing-32bytes';
 process.env.NODE_ENV='test';
 delete process.env.USER_PASSWORD;
 const {_test}=require('../backend/routes/export');

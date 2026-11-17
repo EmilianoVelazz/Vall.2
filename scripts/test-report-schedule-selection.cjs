@@ -44,7 +44,7 @@ async function main() {
         now=new Date('2026-10-15T23:23:00Z');
         const sent=[];
         const runner=createScheduledReportDelivery({store:restarted,collections,now:()=>now.getTime(),
-            loadSnapshot:async area=>({generatedAt:'2026-10-15T20:00:10Z',reports:input.filter(row=>row.area===area).map(row=>({key:row.reportKey,title:row.area,sections:[]}))}),
+            loadSnapshot:async area=>({generatedAt:'2026-10-15T20:00:10Z',reports:input.filter(row=>row.area===area).map(row=>({key:row.reportKey,title:row.area,generatedAt:'2026-10-15T20:00:10Z',sections:[]}))}),
             generate:async()=>{throw Error('Un informe estándar no debe llamar a la IA');},personalize:report=>report,prepare:report=>report,
             deliver:async request=>{sent.push(request);return {messageId:'test-only'};}});
         const result=await runner();assert.equal(result.sent,3);assert.equal(result.errors,0);assert.equal(sent.length,3);

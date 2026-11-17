@@ -17,8 +17,7 @@ const { resolveCurrencyConversion } = require('../ai/currency-converter');
 const { wantsStatisticalAnalysis, buildStatisticalModel, statisticalResponse } = require('../ai/statistical-analysis');
 const profileStore = require('../services/user-profile-store');
 const { accountKey, createWorkGate, boundedJson } = require('../lib/resource-limits');
-const {chatCredits,exempt}=require('../services/chat-credits');
-const {chatMeter}=require('../lib/chat-credit-context');
+const {chatCredits}=require('../services/chat-credits');
 
 const router = express.Router();
 // El historial, contexto y referencias de adjuntos pueden superar el parser
@@ -228,7 +227,7 @@ async function persistOrionTurn(user, input, result, scope = null) {
     }).catch(error => console.warn('[orion-audit] No se guardó la consulta:', error.message));
 }
 
-router.get('/chat-conversations', verifyToken, async (req, res) => {
+router.get('/chat-conversations', verifyToken, requireConversationOwner, async (req, res) => {
     try {
         if (!req.user.sub) return res.json({ success: true, data: [] });
         const rows = await profileStore.listConversations(req.user.sub);
@@ -240,7 +239,11 @@ router.get('/chat-conversations', verifyToken, async (req, res) => {
     }
 });
 
-router.post('/chat-conversations', verifyToken, chatJson, async (req, res) => {
+function requireConversationOwner(req,res,next) {
+    if(!req.headers['x-vall-account'])return res.status(409).json({success:false,code:'ACCOUNT_REQUIRED',error:'Recarga ORION para comprobar la cuenta antes de guardar el historial.'});
+    next();
+}
+router.post('/chat-conversations', verifyToken, requireConversationOwner, chatJson, async (req, res) => {
     try {
         if (!req.user.sub) return res.status(409).json({ success: false, error: 'Vuelve a iniciar sesión para activar tu historial personal.' });
         const conversation = req.body?.conversation;
@@ -253,7 +256,7 @@ router.post('/chat-conversations', verifyToken, chatJson, async (req, res) => {
     }
 });
 
-router.post('/chat-conversations/delete', verifyToken, chatJson, async (req, res) => {
+router.post('/chat-conversations/delete', verifyToken, requireConversationOwner, chatJson, async (req, res) => {
     try {
         if (req.user.sub) await profileStore.deleteConversation(req.user.sub, String(req.body?.conversationId || '').slice(0, 100));
         res.json({ success: true });
@@ -270,7 +273,6 @@ router.get('/chat-usage',verifyToken,async(req,res)=>{
     catch(error){const safe=publicAiError(error);res.status(safe.status).json({success:false,error:safe.message,...safe.details});}
 });
 router.post('/ai-live-token', verifyToken, liveTokenLimiter, chatJson, aiWork(async (_req, res) => {
-    if(!exempt(_req.user))return res.status(403).json({success:false,code:'CHAT_REALTIME_UNAVAILABLE',error:'La voz en tiempo real aún no permite validar el consumo. Puedes usar el chat escrito o el dictado.'});
     if (!liveAi) return res.status(503).json({ success: false, error: 'Voz con IA no configurada en el servidor.' });
 
     const now = Date.now();
@@ -314,7 +316,7 @@ router.post('/orion-live-turn', verifyToken, liveTurnLimiter, chatJson, async (r
     res.json({ success: true });
 });
 
-router.post('/chat', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
+router.post('/chat', verifyToken, aiLimiter, chatJson, aiWork(async (req, res) => {
     const message = (req.body?.message || '').toString().trim().slice(0, 12000);
     if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
     if (!orchestrator.isConfigured()) return res.status(503).json({ error: 'IA no configurada.' });
@@ -336,7 +338,7 @@ router.post('/chat', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiW
 }));
 
 // Respuesta rica no transmitida: útil para integraciones, documentos y pruebas.
-router.post('/ai-rich', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
+router.post('/ai-rich', verifyToken, aiLimiter, chatJson, aiWork(async (req, res) => {
     const input = await hydratedInput(req.body, req.user);
     if (!input.message) return res.status(400).json({ success: false, error: 'Mensaje vacío.' });
     if (!orchestrator.isConfigured()) return res.status(503).json({ success: false, error: 'IA no configurada.' });
@@ -417,7 +419,7 @@ router.post('/ai-feedback', verifyToken, aiLimiter, chatJson, async (req, res) =
 });
 
 // ── Análisis genérico bajo demanda (migrado al orquestador con RAG) ──────────
-router.post('/ai-insight', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
+router.post('/ai-insight', verifyToken, aiLimiter, chatJson, aiWork(async (req, res) => {
     const input = await hydratedInput(req.body, req.user);
     // Soporte retrocompatible: el campo legacy era 'prompt', el orquestador usa 'message'
     if (!input.message && req.body?.prompt) input.message = String(req.body.prompt).trim().slice(0, 12000);
@@ -438,12 +440,15 @@ router.post('/ai-insight', verifyToken, aiLimiter,chatCredits.admission, chatJso
 
 // ── Igual que /ai-insight, pero transmite la respuesta por fragmentos (SSE) para
 //    que el chat pueda mostrar el texto llegando en vivo en lugar de esperar el total. ──
-router.post('/ai-insight-stream', verifyToken, aiLimiter,chatCredits.admission, chatJson, aiWork(async (req, res) => {
+router.post('/ai-insight-stream', verifyToken, aiLimiter, chatJson, aiWork(async (req, res) => {
     const prompt       = (req.body?.prompt || req.body?.message || req.body?.query || '').toString().trim().slice(0, 12000);
     const systemPrompt = (req.body?.systemPrompt || '').toString().trim().slice(0, 6000);
     const requestedMode = MODES.has(req.body?.mode) ? req.body.mode : 'auto';
     const tier          = selectModelTier({ message: prompt, mode: requestedMode });
-    const wantsStructured = Boolean(chatMeter()) || req.body?.structured === true || Boolean(req.body?.message && !req.body?.systemPrompt);
+    // Quitar los créditos no debe enviar cuentas normales al SDK heredado:
+    // conservar el orquestador y sus presupuestos de salida y cancelación.
+    const legacyAdmin = req.user?.role === 'admin' && String(req.user.email || '').toLowerCase() === 'admin@vall.com';
+    const wantsStructured = !legacyAdmin || req.body?.structured === true || Boolean(req.body?.message && !req.body?.systemPrompt);
     const richInput = await hydratedInput(req.body, req.user);
     if (!(wantsStructured ? richInput.message : prompt)) return res.status(400).json({ error: 'Prompt vacío' });
     if (wantsStructured ? !orchestrator.isConfigured() : !genAI) return res.status(503).json({ error: 'IA no configurada.' });

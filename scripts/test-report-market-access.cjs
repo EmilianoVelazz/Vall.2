@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict'),express=require('express'),jwt=require('jsonwebtoken');
-process.env.NODE_ENV='test';process.env.VERCEL='1';process.env.JWT_SECRET='fixture-market-access-only';process.env.GEMINI_API_KEY='';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
+process.env.NODE_ENV='test';process.env.VERCEL='1';process.env.JWT_SECRET='fixture-market-access-only-fixture-only-testing-32bytes';process.env.GEMINI_API_KEY='';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
 for(const key of ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_PASSWORD','SUPABASE_DATABASE_URL'])process.env[key]='';
 const profiles=require('../backend/services/user-profile-store');profiles.findById=async id=>({id,email:'access@example.invalid',active:true,credentialVersion:0});
 const generatedAt=new Date().toISOString(),report={key:'proteins',title:'Proteínas de América',summary:'Corte guardado',generatedAt,sections:[],tables:[],metrics:[],visuals:[],sourceSnapshot:{proteins:[{label:'Pollo · Estados Unidos',market:'Estados Unidos',unit:'USD/kg',source:'Fuente de prueba',series:[{date:generatedAt.slice(0,10),value:10}]}]}};

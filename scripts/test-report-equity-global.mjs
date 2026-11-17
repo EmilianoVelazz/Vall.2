@@ -6,7 +6,7 @@ import {globalEquityComparison,EQUITY_COMPARISON_NOTE,EQUITY_CHART_COLORS} from 
 import {weeklyReport} from '../shared/report-weekly.mjs';
 import {executivePrintEdition} from '../shared/report-print-edition.mjs';
 import {chartSeriesDash,chartLogScale} from '../shared/report-chart-geometry.mjs';
-const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-equity-global-fixture';
+const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-equity-global-fixture-fixture-only-testing-32bytes';
 const refs=[{label:'A',points:[{date:'2019-12-31',value:50},{date:'2020-01-02',value:100},{date:'2026-10-23',value:120},{date:'2027-01-01',value:999}]},{label:'B',points:[{date:'2020-01-03',value:200},{date:'2026-10-26',value:240}]},{label:'Partial',points:[{date:'2026-07-24',value:10},{date:'2026-10-22',value:11}]},{label:'One point',points:[{date:'2020-01-02',value:10}]}];
 const chart=globalEquityComparison(refs,{cutoff:'2026-10-26T14:00:00Z',benchmark:'B'});
 assert.deepEqual(chart.series.map(series=>series.label),['B','A','Partial']);

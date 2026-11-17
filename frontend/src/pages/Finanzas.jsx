@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import FinanceModuleCards from '../components/FinanceModuleCards.jsx';
 import useBolsaExperience from '../lib/useBolsaExperience.js';
 import usePageStyles from '../lib/usePageStyles.js';
-import loadScripts, { cargarCadaVez } from '../lib/loadScripts.js';
+import loadScripts, { mountPageScripts } from '../lib/loadScripts.js';
 import './Finanzas.css';
 import './BolsaExperience.css';
 import { DATOS,CHART_JS,LIGHTWEIGHT_CHARTS,MAPA_MUNDIAL } from '../lib/hojasComunes.js';
@@ -32,15 +32,16 @@ const LIBS = [
    orden importa — finanzas-favro.js necesita ocho globales de finanzas-page.js
    (finTab, ensureFinanceSection, refreshAll…), y el mapa va al final. */
 const POR_MONTAJE = [
-  ['/assets/js/finanzas-page.js?v=20', 'finanzas-page'],
+  ['/assets/js/finanzas-page.js?v=21', 'finanzas-page'],
   ['/assets/js/finanzas-favro.js?v=140', 'finanzas-favro'],
   ['/assets/js/finanzas-world-map.js?v=12', 'finanzas-world-map'],
   ['/assets/js/finanzas-bond-map.js?v=3', 'finanzas-bond-map'],
-  ['/assets/js/finanzas-currency-map.js?v=11', 'finanzas-currency-map'],
+  ['/assets/js/finanzas-currency-map.js?v=12', 'finanzas-currency-map'],
   ['/assets/js/dark-pilot.js?v=5', 'dark-pilot'],
 ];
 
 export default function Finanzas() {
+  const [loadError,setLoadError]=useState(false);
   usePageStyles(HOJAS);
   useBolsaExperience();
 
@@ -72,7 +73,9 @@ export default function Finanzas() {
 
   useEffect(() => {
     let vivo = true;
-    const retirar = [];
+    const controller=new AbortController();
+    let retirar;
+    const dispose=()=>{window.VNFavro?.desmontar?.();window.VNFinanzas?.desmontar?.();window.VNWorldMap?.desmontar?.();window.VNBondMap?.desmontar?.();window.VNCurrencyMap?.desmontar?.();};
 
     /* loadPetroleo lo lee nada más arrancar; en el HTML lo sembraba un <script>
        de una línea en la primera línea del <head>. */
@@ -81,27 +84,22 @@ export default function Finanzas() {
     (async () => {
       try {
         await loadScripts(LIBS);
+        if (!vivo) return;
+        retirar=await mountPageScripts(POR_MONTAJE,{signal:controller.signal});
       } catch (err) {
+        if(!vivo)return;
+        controller.abort();dispose();
         console.error('Finanzas: no se pudieron cargar las librerías', err);
+        setLoadError(true);
         return;
-      }
-      if (!vivo) return;
-      for (const [src, marca] of POR_MONTAJE) {
-        retirar.push(cargarCadaVez(src, marca));
-        /* En serie: cada uno depende de las globales del anterior. */
-         
-        await new Promise((r) => setTimeout(r, 0));
       }
     })();
 
     return () => {
       vivo = false;
-      window.VNFavro?.desmontar?.();
-      window.VNFinanzas?.desmontar?.();
-      window.VNWorldMap?.desmontar?.();
-      window.VNBondMap?.desmontar?.();
-      window.VNCurrencyMap?.desmontar?.();
-      retirar.forEach((quitar) => quitar());
+      controller.abort();
+      dispose();
+      retirar?.();
     };
   }, []);
 
@@ -118,6 +116,7 @@ export default function Finanzas() {
 
 
       <div className="container">
+          {loadError && <p role="alert">No se pudo cargar Finanzas. <button type="button" onClick={()=>window.location.reload()}>Recargar página</button></p>}
 
           {/* ── Tab Navigation ──────────────────────────────────────────── */}
           <div className="fin-tabs-nav" style={{ display: 'none' }}>

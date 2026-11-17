@@ -28,7 +28,7 @@ export function normalizarCotizacion(payload) {
   const price = numeroValido(payload?.meta?.regularMarketPrice) ? Number(payload.meta.regularMarketPrice) : candles.at(-1)?.close ?? null;
   const change = numeroValido(payload?.meta?.regularMarketChangePercent) ? Number(payload.meta.regularMarketChangePercent) : null;
   if (!candles.length && price === null) throw new Error('Sin cotización');
-  return { candles, price, change, date: candles.at(-1)?.time || null };
+  return { candles, price, change, date: candles.at(-1)?.time || null, stale:Boolean(payload?.stale), asOf:payload?.asOf || null, retrievedAt:payload?.retrievedAt || null };
 }
 
 export async function cargarCotizacion(ticker, range, signal) {

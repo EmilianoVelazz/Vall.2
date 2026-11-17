@@ -41,7 +41,7 @@ function usePortadaDatos(refresh) {
         const asset = ACTIVOS_INICIO[next++];
         try {
           const data = await request(signal => cargarCotizacion(asset.ticker, '1mo', signal));
-          if (active) setQuotes(previous => ({ ...previous, [asset.ticker]: { ...data, status: 'ready' } }));
+          if (active) setQuotes(previous => ({ ...previous, [asset.ticker]: { ...data, status: data.stale ? 'stale' : 'ready' } }));
         } catch {
           if (active) setQuotes(previous => ({ ...previous, [asset.ticker]: previous[asset.ticker]?.price != null
             ? { ...previous[asset.ticker], status: 'stale' } : { status: 'error' } }));
@@ -119,7 +119,7 @@ function HistoryChart({ ticker, onTicker, quotes, refresh }) {
     const key = `${ticker}:${range}`;
     setHistory({ key, status: 'loading' });
     cargarCotizacion(ticker, range, controller.signal)
-      .then(data => { if (active) setHistory({ ...data, key, status: 'ready' }); })
+      .then(data => { if (active) setHistory({ ...data, key, status: data.stale ? 'stale' : 'ready' }); })
       .catch(() => { if (active) setHistory({ key, status: 'error' }); })
       .finally(() => clearTimeout(timer));
     return () => { active = false; clearTimeout(timer); controller.abort(); };

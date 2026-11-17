@@ -72,6 +72,7 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
   scene.add(planet);
   const textures = [];
   let disposed = false;
+  let contextAvailable = true;
   let frameId = 0;
   let visible = true;
   let lastFrame = 0;
@@ -109,7 +110,7 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
       .add(state, { approach: [0, 1], duration: 3000, ease: 'inOut(2)' }, 0);
   });
   const requestRender = () => {
-    if (!disposed && visible && !document.hidden && !frameId) frameId = requestAnimationFrame(renderFrame);
+    if (!disposed && contextAvailable && visible && !document.hidden && !frameId) frameId = requestAnimationFrame(renderFrame);
   };
   const loader = new THREE.TextureLoader();
   let loadedTextures = 0;
@@ -181,8 +182,8 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
 
   function renderFrame(time = performance.now()) {
     frameId = 0;
-    if (disposed || !visible || document.hidden) return;
-    const delta = Math.min((time - lastFrame) / 1000 || 1 / 60, .05);
+    if (disposed || !contextAvailable || !visible || document.hidden) return;
+    const delta = Math.min(Math.max((time - lastFrame) / 1000, 0), .05);
     lastFrame = time;
     if (motion.current) motionTime += delta;
     progress = motion.current ? THREE.MathUtils.damp(progress, targetProgress, 9, delta) : targetProgress;
@@ -251,7 +252,9 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
       label.dataset.selected = String(selected === location.id);
     });
     renderer.render(scene, camera);
-    if (motion.current) frameId = requestAnimationFrame(renderFrame);
+    // Progress callbacks and Anime.js may already have requested the next frame.
+    // Use the same guard so they cannot start parallel render loops.
+    if (motion.current) requestRender();
   }
   function publishProgress() {
     viewport.style.setProperty('--vp-arrival', String(THREE.MathUtils.smoothstep(progress, .83, 1)));
@@ -341,8 +344,24 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
   window.addEventListener('pointerup', up);
   window.addEventListener('scroll', updateScroll, { passive: true });
   document.addEventListener('visibilitychange', visibility);
-  const contextLost = event => { event.preventDefault(); onFailure(); };
+  const contextLost = event => {
+    event.preventDefault();
+    contextAvailable = false;
+    cancelAnimationFrame(frameId);
+    frameId = 0;
+    rotationAnimation?.pause();
+    onFailure();
+  };
+  const contextRestored = () => {
+    if (disposed) return;
+    contextAvailable = true;
+    lastFrame = performance.now();
+    onReady();
+    if (motion.current) rotationAnimation?.resume();
+    resize();
+  };
   renderer.domElement.addEventListener('webglcontextlost', contextLost);
+  renderer.domElement.addEventListener('webglcontextrestored', contextRestored);
   resize();
 
   return {
@@ -369,11 +388,13 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
       requestRender();
     },
     refresh() {
+      lastFrame = performance.now();
       if (motion.current) rotationAnimation?.resume();
       else rotationAnimation?.pause();
       requestRender();
     },
     dispose() {
+      if (disposed) return;
       disposed = true;
       cancelAnimationFrame(frameId);
       rotationAnimation?.cancel();
@@ -389,6 +410,7 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
       renderer.domElement.removeEventListener('lostpointercapture', up);
       renderer.domElement.removeEventListener('keydown', keydown);
       renderer.domElement.removeEventListener('webglcontextlost', contextLost);
+      renderer.domElement.removeEventListener('webglcontextrestored', contextRestored);
       scope.revert();
       scene.traverse(object => {
         object.geometry?.dispose();
@@ -396,6 +418,7 @@ export default function createEarthJourney({ host, section, viewport, labels, fi
       });
       textures.forEach(texture => texture.dispose());
       renderer.dispose();
+      renderer.forceContextLoss();
       renderer.domElement.remove();
     },
   };

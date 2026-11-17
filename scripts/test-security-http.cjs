@@ -36,9 +36,34 @@ async function main() {
             assert.match(r.headers.get('content-security-policy'), /frame-ancestors 'none'/);
             assert.equal(r.headers.get('x-powered-by'), null);
         });
-        for (const route of ['/api/profile', '/api/chat-conversations', '/api/report-download/invalid']) {
+        for (const route of ['/api/profile', '/api/chat-conversations', '/api/report-download/invalid',
+            '/api/user-reports', '/api/finance-executive-reports', '/api/market-executive-reports']) {
             await check(`Acceso sin sesión rechazado: ${route}`, async () => assert.equal((await request(route)).status, 401));
         }
+        await check('Tareas automáticas no admiten sesiones de usuario ni secretos incorrectos', async () => {
+            const names = ['CRON_SECRET', 'REFRESH_SECRET'];
+            const previous = names.map(name => process.env[name]);
+            // Valores exclusivamente ficticios. Nunca se envía una clave válida:
+            // ninguna solicitud debe ejecutar generación ni envío de correo.
+            process.env.CRON_SECRET = 'fixture-only-scheduler-secret-never-send';
+            process.env.REFRESH_SECRET = 'fixture-only-refresh-secret-never-send';
+            try {
+                for (const route of ['/api/finance-executive-reports/refresh',
+                    '/api/market-executive-reports/refresh', '/api/report-email-schedules/run']) {
+                    for (const headers of [{}, auth, { Authorization: 'Bearer wrong-fixture-secret' }]) {
+                        assert.equal((await request(route, { headers })).status, 401, route);
+                    }
+                }
+                for (const headers of [{}, auth, { 'x-refresh-secret': 'wrong-fixture-secret' }]) {
+                    assert.equal((await request('/api/finanzas/refresh', { method: 'POST', headers })).status, 401);
+                }
+            } finally {
+                names.forEach((name, index) => {
+                    if (previous[index] === undefined) delete process.env[name];
+                    else process.env[name] = previous[index];
+                });
+            }
+        });
         for (const token of [
             jwt.sign({ sub: 'u' }, 'another-secret'),
             jwt.sign({ sub: 'u' }, process.env.JWT_SECRET, { algorithm: 'HS384' }),
@@ -64,8 +89,10 @@ async function main() {
             assert.equal(allowed('https://app.example.test.attacker.invalid'), false);
         });
         await check('DELETE autorizado funciona con preflight CORS', async () => {
-            const r = await request('/api/chat-conversations', { method: 'OPTIONS', headers: { Origin: 'https://app.example.test', 'Access-Control-Request-Method': 'DELETE' } });
+            const r = await request('/api/chat-conversations', { method: 'OPTIONS', headers: { Origin: 'https://app.example.test', 'Access-Control-Request-Method': 'DELETE', 'Access-Control-Request-Headers':'Content-Type,X-VALL-Account' } });
             assert.equal(r.status, 204); assert.match(r.headers.get('access-control-allow-methods'), /DELETE/);
+            assert.match(r.headers.get('access-control-allow-headers'),/X-VALL-Account/i);
+            assert.match(r.headers.get('access-control-expose-headers'),/X-VALL-Account/i);
         });
         for (const route of ['/api/chat-attachments', '/api/report-export', '/api/report-email', '/api/report-email-schedules/batch', '/api/ai-rich']) {
             await check(`Autenticar antes de leer JSON en ${route}`, async () => {
@@ -156,9 +183,10 @@ async function main() {
         await check('Marcadores antiguos redirigen a la SPA sin perder parámetros', async () => {
             for (const [route, target] of Object.entries(require('../shared/legacy-routes.json'))) {
                 const r = await request(route + '?vista=prueba', { redirect: 'manual' });
-                assert.equal(r.status, 302, route);
-                assert.equal(r.headers.get('location'), (process.env.SPA_ORIGIN || '') + target + '?vista=prueba');
-                assert.match(r.headers.get('cache-control'), /no-store/);
+                // El fixture usa VERCEL=1: SEO canoniza los alias públicos con
+                // 308 y una ruta relativa, conservando los parámetros.
+                assert.equal(r.status, 308, route);
+                assert.equal(r.headers.get('location'), target + '?vista=prueba');
             }
         });
         await check('Los motores retirados no se sirven como archivos públicos', async () => {

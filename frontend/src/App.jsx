@@ -1,14 +1,17 @@
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import PublicPage,{NotFound} from './components/PublicSite.jsx';
+import SiteMetadata from './components/SiteMetadata.jsx';
+import publicSite from '../../shared/public-site.json';
 import RouteErrorBoundary from './components/RouteErrorBoundary.jsx';
 import { iniciarTema } from './lib/tema.js';
 import { iniciarIdioma } from './lib/idioma.js';
-import { precargarDesdeEnlace, precargarModulos, precargarRuta } from './lib/routePrefetch.js';
+import { precargarDesdeEnlace, precargarRuta } from './lib/routePrefetch.js';
 import legacyRoutes from '../../shared/legacy-routes.json';
 
 // Las pantallas siguen separadas para conservar una entrada ligera, pero sus
-// módulos se precargan silenciosamente al quedar libre el navegador. Suspense
+// módulos se precargan al señalar o enfocar un enlace. Suspense
 // ya no dibuja una portada con logo: durante un acceso frío no introduce una
 // pantalla artificial entre la acción del usuario y la página solicitada.
 const Presentacion      = lazy(() => precargarRuta('/'));
@@ -129,25 +132,16 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    const preparar = () => { void precargarModulos(PROTEGIDAS.map(([ruta]) => ruta)); };
-    if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(preparar, { timeout: 1200 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const id = window.setTimeout(preparar, 250);
-    return () => window.clearTimeout(id);
-  }, []);
-
   return (
 
     <>
-      <RestablecerScrollDeRuta />
+      <SiteMetadata /><RestablecerScrollDeRuta />
       <RouteErrorBoundary><Suspense fallback={null}>
         <Routes>
           {/* La presentación y el login son públicos; la plataforma exige sesión. */}
           <Route path="/" element={<Presentacion />} />
           <Route path="/login" element={<Login />} />
+          {Object.keys(publicSite.pages).filter(route=>route!=="/").map(route=><Route key={route} path={route} element={<PublicPage route={route}/>} />)}
           {Object.entries(legacyRoutes).map(([desde, destino]) => (
             <Route key={desde} path={desde} element={<RedirigirRuta destino={destino} />} />
           ))}
@@ -156,12 +150,11 @@ export default function App() {
             <Route
               key={ruta}
               path={ruta}
-              element={<ProtectedRoute><Pagina /></ProtectedRoute>}
-            />
+              element={<ProtectedRoute><Pagina /></ProtectedRoute>}/>
           ))}
 
-          {/* Las direcciones desconocidas vuelven a la presentación. */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Las direcciones desconocidas muestran un error explícito. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense></RouteErrorBoundary>
     </>

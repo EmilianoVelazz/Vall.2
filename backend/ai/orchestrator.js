@@ -22,6 +22,10 @@ const { attachAnswerStrategy } = require('./answer-strategy');
 const { buildForecastAnalysis, attachForecastAnalysis, guardForecastAnswer } = require('./forecast-analysis');
 const { prepareBusinessConversation } = require('./business-memory');
 const { calculateMargin, wantsCommercialCalculation, commercialReply } = require('./commercial-calculator');
+const {responseLength}=require('./answer-format');
+const {scenarioRequest,calculateScenarios,scenarioReply,selectScenario}=require('./commercial-scenarios');
+const {fxScenarioRequest,fxScenarioReply,sanitizeFxScenarios}=require('./fx-scenarios');
+const { ReportReaderAgent } = require('./report-reader-agent');
 
 function finalizeAnalysis(response, { message, history, plan, forecastAnalysis }) {
     const check = guardForecastAnswer(plan, toLegacyMarkdown(response));
@@ -60,7 +64,7 @@ function countVisibleWords(value) {
 function socialReply(message, history = []) {
     const text = String(message || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
     const hasPreviousAnalysis = conversationFocus('continua', history).anchor
-        && history.some(turn => /\b(?:finanzas?|mercados?|bolsa|divisas?|moneda|dolar|peso|usd|mxn|tasas?|inflacion|noticias?)\b/i.test(String(turn?.content || turn?.text || '')));
+        && history.some(turn => /\b(?:finanzas?|mercados?|bolsa|divisas?|moneda|dolar|peso|usd|mxn|tasas?|inflacion|noticias?|cerdo|pollo|huevo|res|maiz|trigo|margen)\b/i.test(String(turn?.content || turn?.text || '')));
     const continuation = hasPreviousAnalysis ? ' Puedes retomar el análisis que llevábamos cuando quieras.' : '';
     if (/^(?:gracias|muchas gracias|te agradezco)/.test(text)) {
         return `Con gusto.${continuation || ' Estoy aquí para ayudarte a entender los mercados con claridad.'}`;
@@ -173,11 +177,11 @@ function mergeGroundingEvidence(evidence = {}, grounding = null) {
 
 function groundingSourcesMarkdown(citations = [], period = null) {
     const seen = new Set();
-    const lines = citations.filter(item => item?.type === 'google_search_grounding' || item?.type === 'verified_issuer_document' || item?.type === 'live_market_quote' || item?.type === 'live_fx_quote' || item?.type === 'verified_trade_document' || item?.type === 'verified_protein_price' || item?.type === 'live_news' || item?.type === 'rabobank_public_research' || item?.type?.startsWith('mercolleida_public_')).map(item => {
+    const lines = citations.filter(item => item?.type === 'google_search_grounding' || item?.type === 'verified_issuer_document' || item?.type === 'live_market_quote' || item?.type === 'live_fx_quote' || item?.type === 'verified_trade_document' || item?.type === 'verified_protein_price' || item?.type === 'live_news' || item?.type === 'rabobank_public_research' || item?.type === 'executive_report_source' || item?.type?.startsWith('mercolleida_public_')).map(item => {
         const url = String(item.url || '').trim();
         const date = sourceDate(item.date);
         const periodLabel = period && date ? date < period.start ? ' · Antecedente' : date > period.end ? ' · Fuera del periodo' : '' : '';
-        const label = String((item?.type === 'verified_trade_document' ? `${item.source} · ${item.date}` : ['verified_issuer_document', 'live_market_quote', 'live_fx_quote', 'verified_protein_price', 'live_news', 'rabobank_public_research'].includes(item?.type) || item?.type?.startsWith('mercolleida_public_') ? `${item.source} · ${item.title}${item.date ? ` · ${item.date}` : ''}` : item.source || item.title || 'Fuente web') + periodLabel)
+        const label = String((item?.type === 'verified_trade_document' ? `${item.source} · ${item.date}` : ['verified_issuer_document', 'live_market_quote', 'live_fx_quote', 'verified_protein_price', 'live_news', 'rabobank_public_research', 'executive_report_source'].includes(item?.type) || item?.type?.startsWith('mercolleida_public_') ? `${item.source} · ${item.title}${item.date ? ` · ${item.date}` : ''}` : item.source || item.title || 'Fuente web') + periodLabel)
             .replaceAll('[', ' ').replaceAll(']', ' ').replace(/[\r\n]+/g, ' ').trim();
         if (!/^https?:\/\//i.test(url) || !label || seen.has(url)) return null;
         seen.add(url);
@@ -267,12 +271,16 @@ function attachEvidence(response, evidence, plan = {}) {
 }
 
 class AIOrchestrator {
-    constructor({ provider = new GeminiProvider(), tools = new ToolRegistry(), retriever = ragRetriever, statisticsBuilder = buildStatisticalModel, liveDataGrounder = groundLiveData, forecastBuilder = buildForecastAnalysis, priceArchive = liveDataGrounder === groundLiveData ? physicalPriceArchive : null } = {}) {
+    constructor({ provider = new GeminiProvider(), tools = new ToolRegistry(), retriever = ragRetriever, statisticsBuilder = buildStatisticalModel, liveDataGrounder = groundLiveData, forecastBuilder = buildForecastAnalysis, priceArchive = liveDataGrounder === groundLiveData ? physicalPriceArchive : null, reportReader = new ReportReaderAgent({ provider }) } = {}) {
         this.provider = provider;
         this.tools = tools;
+        this.reportReader = reportReader;
         this.tools.register({ name:'commercial_margin', description:'Calcula el margen de un lote con condiciones explícitas en una sola moneda.',
             inputSchema:{ type:'object', properties:{ purchasedKg:{type:'number'}, buyPricePerKg:{type:'number'}, sellPricePerKg:{type:'number'}, shrinkFraction:{type:'number'}, currency:{type:'string'} },
                 required:['purchasedKg','buyPricePerKg','sellPricePerKg','shrinkFraction','currency'] }, execute:calculateMargin });
+        this.tools.register({ name: 'report_reader', description: 'Lee un informe ejecutivo publicado (finanzas, mercados o méxico) y extrae su corte verificado.',
+            inputSchema: { type: 'object', properties: { collection: { type: 'string' }, key: { type: 'string' }, question: { type: 'string' } } },
+            execute: input => this.reportReader.read(input) });
         this.retriever = retriever;
         this.statisticsBuilder = statisticsBuilder;
         this.liveDataGrounder = liveDataGrounder;
@@ -302,9 +310,13 @@ class AIOrchestrator {
             if (plan.proteinProfile?.products?.length && !plan.proteinProfile.futures) await handlers.market_research?.({signal}).catch(()=>null);
             return this.forecastBuilder(plan, { signal });
         };
+        if (plan.needsExecutiveReport && this.reportReader) {
+            handlers.report_reader = ({ signal }) => this.reportReader.forQuery({ message: retrievalQuery, signal });
+        }
         const fallbackForecast = plan.asksForecast ? { requested: true, available: false, records: [], reason: 'No se completó la validación numérica durante esta consulta.' } : null;
-        const fallbacks = [emptyEvidence(), directConversion, emptyLiveData(), null, fallbackForecast];
-        const names = ['knowledge_search', null, 'market_research', 'statistical_analysis', 'forecast_analysis'];
+        const fallbackReportDigest = { available: false, context: '', citations: [], sourceCodes: [], strategy: 'report_reader_skipped_v1', reports: [] };
+        const fallbacks = [emptyEvidence(), directConversion, emptyLiveData(), null, fallbackForecast, fallbackReportDigest];
+        const names = ['knowledge_search', null, 'market_research', 'statistical_analysis', 'forecast_analysis', 'report_reader'];
         if (!Object.keys(handlers).length) return { values: fallbacks, execution: { protocol: 'mcp', status: 'not_needed', tools: [] } };
         let session;
         try {
@@ -327,22 +339,55 @@ class AIOrchestrator {
         const request = { ...input, message:prepared.message, history:prepared.history, context:prepared.context };
         const plan = planQuery(request);
         const allowed = domainDecision(request).allowed;
-        let result;
-        if (allowed && plan.locationClarification) {
+        const previous=prepared.previousCommercialInputs;
+        const changed=previous && Object.keys(prepared.commercialInputs).some(key=>!['currencySource'].includes(key) && prepared.commercialInputs[key]!==previous[key]);
+        const variableUpdate=changed && /\d/.test(input.message) && calculateMargin(previous).available;
+        let result,verifiedCalculation;
+        const scenarios=scenarioRequest(input.message),selection=selectScenario(input.message,prepared.conversationMemory?.scenarios);
+        const market=prepared.conversationMemory?.market,fx=fxScenarioRequest(input.message,market);
+        if(allowed && selection && market?.fxScenarios){
+            const chosen=sanitizeFxScenarios({...market.fxScenarios,selected:selection.number});
+            if(selection.number>market.fxScenarios.rates.length)result=localReplyResult('Ese escenario no está en la tabla. ¿Qué número quieres usar?',started,'scenario_clarification');
+            else{market.fxScenarios=chosen;result=localReplyResult(fxScenarioReply(chosen),started,'fx_scenarios');result.response.meta.fxScenarios=chosen;}
+        }else if(allowed && fx){
+            result=localReplyResult(fx.error || fxScenarioReply(fx.scenario),started,'fx_scenarios');
+            if(fx.scenario){result.response.meta.fxScenarios=fx.scenario;if(market)market.fxScenarios=fx.scenario;}
+        }else if(allowed && selection && prepared.conversationMemory?.scenarios?.length){
+            if(!selection.option)result=localReplyResult('Ese escenario no está en la tabla. ¿Qué número de escenario quieres usar?',started,'scenario_clarification');
+            else{
+                const chosen={...prepared.commercialInputs,...selection.option.patch};
+                if(Object.hasOwn(selection.option.patch,'freightPerKg'))delete chosen.freight;if(Object.hasOwn(selection.option.patch,'freight'))delete chosen.freightPerKg;
+                const calculation=calculateMargin(chosen);result=localReplyResult(commercialReply(calculation,responseLength(input.message)),started,'commercial_calculation');
+                result.response.meta.calculation=calculation;if(calculation.available){prepared.conversationMemory.inputs=chosen;prepared.conversationMemory.scenarios=[];}
+            }
+        }else if(allowed && scenarios.requested && (!prepared.conversationMemory?.market || prepared.conversationMemory.profile.products.length || Object.hasOwn(prepared.commercialInputs,'buyPricePerKg'))){
+            const comparison=calculateScenarios(scenarios,prepared.commercialInputs);
+            result=localReplyResult(scenarioReply(comparison),started,'commercial_scenarios');result.response.meta.scenarioComparison=comparison;
+            if(comparison.available && prepared.conversationMemory){
+                const restored={...prepared.commercialInputs};for(const dimension of scenarios.dimensions){const fields=dimension.field.startsWith('freight')?['freight','freightPerKg']:[dimension.field];for(const field of fields){if(previous && Object.hasOwn(previous,field))restored[field]=previous[field];else delete restored[field];}}
+                prepared.conversationMemory.inputs=restored;prepared.conversationMemory.scenarios=comparison.options;
+            }
+        }else if (allowed && plan.locationClarification) {
             const city = plan.locationClarification;
             const text = `¿Te refieres a ${city.name} en ${city.alternatives.join(', o en ')}? Necesito confirmar el país para consultar el mercado correcto.`;
             result = localReplyResult(text, started);
             result.response.meta.taskType = 'location_clarification';
             if (prepared.conversationMemory) prepared.conversationMemory.pendingLocation = city.name;
-        } else if (allowed && wantsCommercialCalculation(input.message) && !plan.asksForecast && !plan.asksNews && !plan.needsTradeResearch && !plan.explicitRabobank
-            && (Object.keys(prepared.commercialInputs).some(key=>['purchasedKg','buyPricePerKg','sellPricePerKg','shrinkFraction','freight','freightPerKg','insurance','duties','otherCosts'].includes(key)) || /\b(?:mi margen|calcula|recalcula)\b/i.test(input.message))) {
+        } else if (allowed && (wantsCommercialCalculation(input.message) || variableUpdate) && !plan.asksForecast && !plan.asksNews && !plan.needsTradeResearch && !plan.explicitRabobank
+            && (Object.keys(prepared.commercialInputs).some(key=>['purchasedKg','buyPricePerKg','sellPricePerKg','shrinkFraction','freight','freightPerKg','insurance','duties','otherCosts'].includes(key)) || !prepared.conversationMemory?.market && /\b(?:mi margen|calcula|recalcula)\b/i.test(input.message))) {
             const session = await createOrionMcpSession({ commercial_margin: () => this.tools.execute('commercial_margin', prepared.commercialInputs) }, { signal: input.signal, timeoutMs: 1500 });
             let calculation;
             try { calculation = await session.call('commercial_margin'); } finally { await session.close(); }
-            result = localReplyResult(commercialReply(calculation),started);
-            result.response.meta.taskType = 'commercial_calculation';
-            result.response.meta.calculation = calculation;
-            result.response.meta.toolExecution = { protocol: 'mcp', status: 'completed', tools: session.trace };
+            verifiedCalculation=calculation;
+            const asksExplanation=/\b(?:por que|explica|riesgos?|recomienda\w*|compara|alternativas?|escenarios?)\b/i.test(input.message.normalize('NFD').replace(/\p{Diacritic}/gu,''));
+            if(calculation.available && asksExplanation){
+                request.context += '\n\n[CÁLCULO COMERCIAL VERIFICADO POR EL SERVIDOR]\n'+JSON.stringify(calculation)+'\nConserva estos resultados y sus unidades. '+(calculation.perKgBasis?'Los importes están normalizados por unidad: no hay un volumen ni utilidad total del lote. ':'')+'Responde también las explicaciones o preguntas adicionales del turno. Son supuestos del ejercicio, no datos de mercado; los gastos excluidos siguen pendientes.';
+            }else{
+                result = localReplyResult(commercialReply(calculation,{...responseLength(input.message),previous:previous ? calculateMargin(previous) : null}),started);
+                result.response.meta.taskType = 'commercial_calculation';
+                result.response.meta.calculation = calculation;
+                result.response.meta.toolExecution = { protocol: 'mcp', status: 'completed', tools: session.trace };
+            }
         }
         if (result) {
             input.onText?.(result.text,result.text);
@@ -350,6 +395,7 @@ class AIOrchestrator {
                 domainAllowed:true,retrievalStrategy:result.retrievalStrategy,evidenceCount:0,sourceCodes:[],model:result.model,responseText:result.text,latencyMs:Date.now()-started},[],result.text);
         }
         else result = await this[method](request);
+        if(verifiedCalculation)result.response.meta.calculation=verifiedCalculation;
         result.response.meta.conversationMemory = prepared.conversationMemory;
         return result;
     }
@@ -442,7 +488,7 @@ class AIOrchestrator {
     }
 
     async enforceReportMinimum(built, result, tier) {
-        if (built.taskType !== 'document') return { result, tier, warnings: [] };
+        if (built.taskType !== 'document' || built.responseLength?.explicit) return { result, tier, warnings: [] };
         let best = { result, tier };
         let bestWords = countVisibleWords(result.text);
         if (bestWords >= REPORT_MIN_WORDS) return { ...best, warnings: [] };
@@ -512,8 +558,8 @@ class AIOrchestrator {
         // turno y el primer fragmento esperaba varias llamadas de red ajenas a
         // una pregunta sencilla. El límite permite iniciar la respuesta con la
         // evidencia disponible sin inventar datos ni bloquear la conversación.
-        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
-        let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(baseEvidence, liveData), statisticalModel));
+        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
+        let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(mergeEvidence(baseEvidence, liveData), reportEvidence), statisticalModel));
         evidence.toolExecution = execution;
         const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));
@@ -530,7 +576,7 @@ class AIOrchestrator {
         // una sola palabra y prácticamente duplicaba la latencia en modo Pro.
         // Los anuncios comerciales se comprueban antes de mostrar texto. Un
         // aviso al final no retira una afirmación falsa ya transmitida.
-        const buffered = plan.needsTradeResearch || plan.asksNews || plan.asksForecast || plan.needsProteinPrices || plan.explicitRabobank;
+        const buffered = plan.needsTradeResearch || plan.asksNews || plan.asksForecast || plan.needsProteinPrices || plan.needsLiveQuote || plan.asksDecision || plan.explicitRabobank || plan.topics?.some(topic=>['fx','bonds','equities'].includes(topic)) || /garanti\w*|sin riesgo|certeza/i.test(message);
         const deliver = buffered ? () => {} : onText;
         let { result, tier: usedTier } = await this.streamWithFallback({ ...built, attachments, tools: searchTools,
             maxOutputTokens: plan.asksAnalysis || plan.asksNews || plan.needsTradeResearch ? 8192 : 4096 }, resolvedTier, deliver);
@@ -620,8 +666,8 @@ class AIOrchestrator {
             return { response, text, tier: 'flash', mode: 'quick', model: 'vall-fx-reference', evidenceCount: 1, citations: [], retrievalStrategy: 'live_fx_reference' };
         }
         const retrievalQuery = retrievalQuestion(message, history, scope.reason);
-        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
-        let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(baseEvidence, liveData), statisticalModel));
+        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
+        let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(mergeEvidence(baseEvidence, liveData), reportEvidence), statisticalModel));
         evidence.toolExecution = execution;
         const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));

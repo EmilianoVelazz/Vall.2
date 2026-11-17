@@ -7,8 +7,9 @@ const {connectDatabase} = require('../lib/database-connection');
 const {CACHE_DIR} = require('../lib/config');
 const {nextReportRefreshAt,nextMarketReportRefreshAt} = require('../lib/report-schedule');
 const {reportDeadline} = require('../lib/report-deadline');
+const {configureSystemTrust} = require('../lib/tls-trust');
 
-function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table+'.json'), clientFactory=createClient, connect=connectDatabase, timeoutMs=4000, writeTimeoutMs=timeoutMs}={}) {
+function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table+'.json'), clientFactory=createClient, connect=connectDatabase, timeoutMs=4000, writeTimeoutMs=Math.max(timeoutMs, 20000)}={}) {
     if(!['finance_executive_reports','market_executive_reports'].includes(table)) throw Error('Colección de informes inválida.');
     let memory=null, client=null, loading=null, writing=Promise.resolve();
     const valid=value=>value && Number.isFinite(Date.parse(value.generatedAt)) && Array.isArray(value.reports) && value.reports.length>0
@@ -19,6 +20,7 @@ function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table
     function serviceClient() {
         const url=process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, key=process.env.SUPABASE_SERVICE_ROLE_KEY;
         if(!url || !key) return null;
+        configureSystemTrust();
         if(!client) client=clientFactory(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
         return client;
     }

@@ -3,7 +3,8 @@
 /* Referencia europea de porcino almacenada en Supabase. Este endpoint sólo
  * expone cotizaciones y series ya ingresadas: no ejecuta el modelo ni mezcla
  * propuestas de ML con datos de mercado. */
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env'), quiet: true });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local'), quiet: true });
 const express = require('express');
 const { externalGet } = require('../lib/http');
 

@@ -4,7 +4,7 @@ import { EARTH_LOCATIONS, JOURNEY_CHAPTERS } from '../lib/earthJourneyData.js';
 import { useAnimatedContent } from '../lib/useShowcaseInteraction.js';
 import './SpaceJourney.css';
 
-export default function SpaceJourney({ moving, reducedMotion, paused, onToggleMotion }) {
+export default function SpaceJourney({ moving, reducedMotion, onToggleMotion }) {
   const section = useRef(null);
   const viewport = useRef(null);
   const host = useRef(null);
@@ -44,6 +44,7 @@ export default function SpaceJourney({ moving, reducedMotion, paused, onToggleMo
   useEffect(() => {
     let stopped = false;
     let sceneController;
+    setStatus('loading');
     import('../lib/createEarthJourney.js').then(({ default: createEarthJourney }) => {
       if (stopped) return;
       sceneController = createEarthJourney({
@@ -97,7 +98,7 @@ export default function SpaceJourney({ moving, reducedMotion, paused, onToggleMo
 
   return <section ref={section} className={`vp-space-journey${reducedMotion ? ' vp-space-reduced' : ''}`} aria-label="Viaje interactivo del espacio a la Tierra" data-stage={stage}>
     {JOURNEY_CHAPTERS.map((item, i) => <span key={item.id} className={`vp-space-anchor vp-space-anchor-${i}`} id={item.id} aria-hidden="true" />)}
-    <div ref={viewport} className="vp-space-viewport" data-status={status}>
+    <div ref={viewport} className="vp-space-viewport" data-status={status} data-moving={moving ? 'true' : 'false'}>
       <div className="vp-space-nebula" aria-hidden="true" />
       <div className="vp-space-fallback" aria-hidden="true"><div /></div>
       <div ref={host} className="vp-space-render" />
@@ -123,7 +124,7 @@ export default function SpaceJourney({ moving, reducedMotion, paused, onToggleMo
       <div className="vp-space-tools" aria-label="Controles de la Tierra">
         <span>ARRASTRA PARA GIRAR <span aria-hidden="true">↔</span></span>
         <button type="button" onClick={reset}>Restablecer vista <span aria-hidden="true">↺</span></button>
-        <button type="button" onClick={onToggleMotion} disabled={reducedMotion} aria-pressed={paused || reducedMotion}>{moving ? 'Ⅱ Pausar movimiento' : reducedMotion ? 'Movimiento reducido' : '▷ Activar movimiento'}</button>
+        <button type="button" onClick={onToggleMotion} aria-pressed={!moving}>{moving ? 'Ⅱ Pausar movimiento' : '▷ Activar movimiento'}</button>
       </div>
 
       <aside className="vp-location-card" aria-label="Explora una perspectiva del mundo" aria-hidden={stage === 0} inert={stage === 0 ? '' : undefined}>

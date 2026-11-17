@@ -58,6 +58,10 @@ html:has(.vp-space-journey), body:has(.vp-space-journey) { overflow-x: clip !imp
 .vp-space-fallback { position: absolute; inset: 0; z-index: -2; display: none; overflow: hidden; }
 .vp-space-fallback > div { position: absolute; width: 47vw; height: 47vw; top: 20%; right: 6%; border-radius: 50%; background: url('/assets/img/space/earth-day.jpg') center/auto 100%; box-shadow: inset -80px -25px 100px #000e, 0 0 45px #6bbaff26; transform: scale(var(--vp-fallback-scale, 1)); }
 .vp-space-viewport[data-status="fallback"] .vp-space-fallback { display: block; }.vp-space-viewport[data-status="fallback"] .vp-space-render { visibility: hidden; }
+.vp-space-fallback > div { animation: vp-earth-turn 110s linear infinite; animation-play-state: paused; }
+.vp-space-viewport[data-status="fallback"][data-moving="true"] .vp-space-fallback > div { animation-play-state: running; }
+@keyframes vp-earth-turn { from { background-position: 0% center; } to { background-position: 200% center; } }
+@media (prefers-reduced-motion: reduce) { .vp-space-viewport[data-status="fallback"][data-moving="true"] .vp-space-fallback > div { animation-duration: 110s !important; animation-iteration-count: infinite !important; } }
 .vn-presentacion .vp-space-reduced { height: 100svh; }.vp-space-reduced .vp-space-anchor { top: 0; }
 .vn-presentacion .vp-space-journey :is(a,button,canvas):focus-visible { outline-color: #bce7da; }
 @media (max-height: 760px) and (min-width: 701px) {

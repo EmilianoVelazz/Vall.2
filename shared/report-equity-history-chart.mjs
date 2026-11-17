@@ -1,5 +1,8 @@
 import COLORS from './report-chart-colors.json' with {type:'json'};
 import {chartLogScale,chartSeriesDash} from './report-chart-geometry.mjs';
+export function equityFocusLabels(series=[]){
+ return new Set(series.map(item=>item.label));
+}
 
 // One plane, retaining every observation, base date and index methodology.
 export function equityHistoryChart(visual){
@@ -7,5 +10,6 @@ export function equityHistoryChart(visual){
   if(!series.length)return null;
   const times=series.flatMap(item=>item.points.map(point=>Date.parse(point.date))),first=Math.min(...times),last=Math.max(...times),scale=chartLogScale(series.flatMap(item=>item.points.map(point=>point.value))),years=[];
   for(let year=new Date(first).getUTCFullYear();year<=new Date(last).getUTCFullYear();year++)years.push({label:String(year),time:Math.max(first,Date.UTC(year,0,1))});
-  return {series,first,last,scale,years,x:date=>(Date.parse(date)-first)/(last-first || 1),y:value=>1-scale.position(value)};
+  const focus=equityFocusLabels(series);
+  return {series:series.map(item=>({...item,highlighted:focus.has(item.label)})),first,last,scale,years,x:date=>(Date.parse(date)-first)/(last-first || 1),y:value=>1-scale.position(value)};
 }

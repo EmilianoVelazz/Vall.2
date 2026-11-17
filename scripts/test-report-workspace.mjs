@@ -11,7 +11,7 @@ const report = { title: 'Informe', metrics: Array.from({ length: 7 }, (_, i) => 
 };
 assert.equal(reportBlockCount(report, 'sources'), 3, 'Las fuentes con enlace se cuentan una sola vez');
 assert.equal(reportBlockCount(report, 'risks'), 2, 'Incluye los riesgos del análisis ejecutivo');
-assert.deepEqual(reportOutline(report, report.sections).map(block => block.key), ['summary', 'analysis', 'risks', 'closing', 'indicators', 'charts', 'tables']);
+assert.deepEqual(reportOutline(report, report.sections).map(block => block.key), ['summary', 'analysis', 'risks', 'closing', 'indicators', 'tables', 'charts']);
 assert.equal(reportOutline(report, report.sections).find(block => block.key === 'indicators').count, 7);
 const excluded = personalizeExecutiveReport(report, { ...DEFAULT_REPORT_PREFERENCES, sections: { ...DEFAULT_REPORT_PREFERENCES.sections, charts: false, risks: false, sources: false } });
 assert.deepEqual(reportOutline(excluded, excluded.sections).map(block => block.key), ['summary', 'analysis', 'closing', 'indicators', 'tables']);

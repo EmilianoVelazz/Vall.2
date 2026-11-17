@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {createReportPdfCache} from '../frontend/src/lib/reportPdfCache.js';
+let now=0;const cache=createReportPdfCache({now:()=>now,ttlMs:100,maxEntries:2,maxBytes:1000}),pdf=new Blob(['%PDF-test']);
+cache.set('a@example.invalid','complete-edition-A','es',pdf);
+assert.equal(cache.get('A@example.invalid','complete-edition-A','es').blob,pdf);
+assert.equal(cache.get('b@example.invalid','complete-edition-A','es'),null);
+assert.equal(cache.get('a@example.invalid','complete-edition-A','en'),null);
+assert.equal(cache.get('a@example.invalid','corrected-edition-A','es'),null);
+cache.set('a@example.invalid','complete-edition-B','es',pdf);cache.get('a@example.invalid','complete-edition-A','es');cache.set('a@example.invalid','complete-edition-C','es',pdf);
+assert.equal(cache.get('a@example.invalid','complete-edition-B','es'),null);
+now+=101;assert.equal(cache.get('a@example.invalid','complete-edition-A','es'),null);
+cache.set('a@example.invalid','too-big','es',new Blob(['x'.repeat(1001)]));assert(cache.snapshot().bytes<=1000);
+cache.clear();assert.deepEqual(cache.snapshot(),{entries:0,bytes:0});
+console.log('Preview cache: account and language isolation, exact editions, expiry, bounded private memory, LRU and clearing passed.');

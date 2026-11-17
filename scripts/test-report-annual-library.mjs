@@ -8,7 +8,7 @@ import {isAnnualReport} from '../shared/report-annual.mjs';
 import {reportCsv} from '../frontend/src/lib/reportCsv.js';
 import {reportAnnex} from '../frontend/src/lib/reportLibrary.js';
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
-const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='annual-library-fixture';
+const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='annual-library-fixture-fixture-only-testing-32bytes';
 const {annualStats,buildAnnualReports,createAnnualLibrary}=require('../backend/services/annual-report-library'),{parseAnnualYahoo,parseBls,parseCropProduction,parseSniimAnnual}=require('../backend/lib/report-annual-data'),{normalizeReport}=require('../backend/services/user-report-store'),{_test}=require('../backend/routes/export');
 const points=[{date:'2021-12-31',value:100},...Array.from({length:12},(_,index)=>({date:'2022-'+String(index+1).padStart(2,'0')+'-15',value:100+index})),{date:'2023-01-02',value:9999}];
 const reference={id:'fixture',label:'Referencia de prueba',unit:'USD/t',bucket:'grains',kind:'price',cadence:'monthly',market:'Mercado de prueba',region:'Europa',source:'SIMULACIÓN',url:'https://example.invalid/serie',series:points};

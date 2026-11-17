@@ -11,9 +11,10 @@ async function makeReportWorkbook(report,{t=value=>value}={}) {
     const {weeklyReport}=await import('../../shared/report-weekly.mjs');
     const {displayReferenceLabel}=await import('../../shared/report-display-format.mjs');
     const {mexicoProductionObservations}=await import('../../shared/report-mexico-export-data.mjs');
-    const model=weeklyReport(report),annual=report.periodType==='annual',tables=report.personalization?.sections?.tables!==false;
+    const model=weeklyReport(report),annual=report.periodType==='annual',tables=report.personalization?.sections?.tables!==false,authored=report.userEdition===true;
     const cadence=value=>({daily:'Diaria',weekly:'Semanal',monthly:'Mensual',annual:'Anual',auction:'Subasta'})[value] || 'No declarada';
-    const summary=[['Campo','Detalle'],['Informe',report.title],['Periodo',annual ? report.reportYear : report.generatedAt],['Preparado el',date(report.generatedAt?.slice(0,10))],['Alcance','Informe completo; los filtros de lectura no se aplican a esta descarga.'],['Resumen',model.focusedMarket ? model.summary : report.summary],['Método','Las observaciones numéricas conservan la precisión almacenada. Las tablas documentales conservan el texto publicado; no se convierten sus cifras redondeadas en datos originales.'],...(model.sessionReport ? (model.focusedMarket ? model.summaryPanels : model.commentary).filter(item=>String(item.body).replace(/\s+/g,' ').trim()!==String(model.summary).replace(/\s+/g,' ').trim()).map(item=>({heading:item.heading,text:item.body})) : report.sections || []).flatMap(section=>[[section.heading,section.text]])];
+    const summary=[['Campo','Detalle'],['Informe',report.title],['Periodo',annual ? report.reportYear : report.generatedAt],['Preparado el',date(report.generatedAt?.slice(0,10))],['Alcance','Informe completo; los filtros de lectura no se aplican a esta descarga.'],['Resumen',!authored && model.focusedMarket ? model.summary : report.summary],['Método','Las observaciones numéricas conservan la precisión almacenada. Las tablas documentales conservan el texto publicado; no se convierten sus cifras redondeadas en datos originales.'],...(!authored && model.sessionReport ? (model.focusedMarket ? model.summaryPanels : model.commentary).filter(item=>String(item.body).replace(/\s+/g,' ').trim()!==String(model.summary).replace(/\s+/g,' ').trim()).map(item=>({heading:item.heading,text:item.body})) : report.sections || []).flatMap(section=>[[section.heading,section.text]])];
+    if(authored)for(const [label,key] of [['Objetivo','objective'],['Decisión y seguimiento','closing']])if(report[key])summary.push([label,report[key]]);
     const observations=[['Referencia','Mercado','Unidad','Fecha observada','Periodo anual','Valor','Naturaleza','Frecuencia original','Fuente','Enlace']];
     const comparisons=[['Referencia','Mercado','Unidad','Base','Fecha base','Último','Fecha último','Cambio','Unidad del cambio','Promedio disponible','Mínimo','Máximo','Meses disponibles','Observaciones originales','Valor del indicador anual']];
     const coverage=[['Referencia','Mercado','Unidad','Periodo','Meses disponibles','Meses sin dato','Estado','Fuente','Enlace']];
@@ -40,13 +41,22 @@ async function makeReportWorkbook(report,{t=value=>value}={}) {
         coverage.push([item.label,item.market,item.unit,item.year,null,'No aplica','Registro anual disponible',item.source,item.url]);
     }
     if(tables && model.equityExecutive)for(const reference of model.equityExecutive.signals)for(const point of reference.points)observations.push([reference.label,'Contexto de Bolsa',reference.unit,date(point.date),null,point.value,'Observación de contexto; no es un índice bursátil','Diaria',reference.source,reference.url]);
-    if(model.equityExecutive)for(const panel of model.equityExecutive.business)summary.push([panel.heading,panel.body]);
-    if(model.bondExecutive)for(const panel of model.bondExecutive.business)summary.push([panel.heading,panel.body]);
+    if(!authored && model.equityExecutive)for(const panel of model.equityExecutive.business)summary.push([panel.heading,panel.body]);
+    if(!authored && model.bondExecutive)for(const panel of model.bondExecutive.business)summary.push([panel.heading,panel.body]);
     if(model.panorama){
         for(const panel of model.panorama.implications)summary.push([panel.heading,panel.body]);
         for(const chapter of model.panorama.chapters)summary.push([chapter.label,chapter.generatedAt+' · '+(chapter.kind==='structural' ? 'Contexto estructural mensual o anual' : 'Consultar fecha de cada observación')]);
     }
     const sheets=[{name:'Resumen',rows:summary,widths:[36,115]},{name:'Observaciones',rows:observations},{name:'Comparaciones',rows:comparisons},{name:'Cobertura',rows:coverage}].filter(sheet=>!model.mexicoExecutive || sheet.rows.length>1);
+    if(authored && report.personalization?.sections?.indicators!==false && report.metrics?.length)sheets.push({name:'Indicadores',rows:[['Indicador','Valor','Cambio'],...report.metrics.map(item=>[item.label,item.value,item.change])]});
+    if(authored && report.personalization?.sections?.charts!==false){
+        const rows=[['Gráfica','Referencia / categoría','Unidad','Fecha o periodo','Valor']];
+        for(const visual of report.visuals || []){
+            if(visual.type==='bar')for(const item of visual.bars || [])rows.push([visual.title,item.label,visual.unit,item.date || visual.periodLabel || '',item.value]);
+            else for(const series of visual.series || [])for(const point of series.points || [])rows.push([visual.title,series.label,visual.unit,date(point.date),point.value]);
+        }
+        if(rows.length>1)sheets.push({name:'Gráficas de la edición',rows});
+    }
     if(model.panorama?.signals?.length && tables)sheets.push({name:'Señales del panorama',rows:[['Referencia','Valor','Unidad','Fecha / periodo observado','Variación','Unidad del cambio','Base comparada','Frecuencia','Fuente','Enlace'],...model.panorama.signals.map(item=>[item.label,item.numericValue,item.unit,item.kind==='structural' ? item.date : date(item.date),item.numericChange,item.changeUnit,item.baseDate,item.cadence,item.source,item.url])]});
     if(tables && !annual && report.marketDerivatives){
         const {safeCommodityDerivatives}=require('../../shared/report-commodity-derivatives.mjs'),{marketEvidence}=require('../../shared/report-market-analysis.mjs'),data=safeCommodityDerivatives(report.marketDerivatives,report.generatedAt),symbols=new Set(marketEvidence(report).map(reference=>reference.symbol));
@@ -77,7 +87,9 @@ async function makeReportWorkbook(report,{t=value=>value}={}) {
         sheets.push({name:'Maestra energía',rows});
         if(model.energyExecutive.history && report.personalization?.sections?.charts!==false)sheets.push({name:'Historia energía',rows:[['Referencia','Tipo de precio','Unidad original','Fecha base','Fecha observada','Índice base 100'],...model.energyExecutive.history.series.flatMap(item=>item.points.map(point=>[item.label,item.priceType,item.originalUnit,date(item.baseDate),date(point.date),point.value]))]});
     }
-    if(tables)for(const [index,table] of (model.sessionReport ? [...model.results,...(model.annexTables || [])].filter(table=>!model.grainGlobalHistory || !table.grainMaster) : report.tables || []).entries())sheets.push({name:'Tabla '+(index+1),rows:[table.columns,...table.rows,[],['Título',table.title],['Método',table.note || ''],['Precisión','Texto publicado; las cifras numéricas estructuradas están en Observaciones, Comparaciones y Horizontes.']]});
+    const derivedTables=model.sessionReport ? [...model.results,...(model.annexTables || [])].filter(table=>!model.grainGlobalHistory || !table.grainMaster) : [];
+    const selectedTables=authored ? [...(report.tables || []),...derivedTables.filter(table=>!(report.tables || []).some(own=>JSON.stringify(own)===JSON.stringify(table)))] : model.sessionReport ? derivedTables : report.tables || [];
+    if(tables)for(const [index,table] of selectedTables.entries())sheets.push({name:'Tabla '+(index+1),rows:[table.columns,...table.rows,[],['Título',table.title],['Método',table.note || ''],['Precisión','Texto publicado; las cifras numéricas estructuradas están en Observaciones, Comparaciones y Horizontes.']]});
     const zip=new JSZip(),ns='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
     zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>');
     zip.file('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');

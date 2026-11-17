@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
+const { configureSystemTrust } = require('../lib/tls-trust');
 
 let client;
 let unavailableLogged = false;
@@ -17,7 +18,12 @@ function getSupabase() {
         }
         return null;
     }
-    client = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    configureSystemTrust();
+    // Sin límite, una red caída deja colgado el ciclo de entrenamiento entero.
+    client = createClient(url, serviceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { fetch: (resource, options = {}) => fetch(resource, { ...options, signal: options.signal || AbortSignal.timeout(15000) }) },
+    });
     return client;
 }
 
@@ -113,4 +119,41 @@ async function persistMarketReview(review) {
     return true;
 }
 
-module.exports = { createTrainingRun, finishTrainingRun, persistRuleProposals, persistTrainingEvent, persistMarketReview, normalizeProposal, fingerprint };
+async function listRuleProposals({ status = null, limit = 50 } = {}) {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50));
+    let query = supabase.from('ml_rule_proposals')
+        .select('id,fingerprint,condition_trigger,learned_rule,confidence_score,topic,source_provider,status,review_notes,reviewed_at,created_at')
+        .order('created_at', { ascending: false })
+        .limit(safeLimit);
+    if (status && ['pending_human_review', 'approved', 'rejected'].includes(status)) {
+        query = query.eq('status', status);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+}
+
+async function reviewRuleProposal(id, { status, reviewNotes = '' } = {}) {
+    if (!['approved', 'rejected', 'pending_human_review'].includes(status)) {
+        throw Object.assign(new Error('Estado de revisión no válido.'), { status: 400 });
+    }
+    const supabase = getSupabase();
+    if (!supabase) throw Object.assign(new Error('Supabase no configurado.'), { status: 503 });
+    const patch = {
+        status,
+        review_notes: cleanText(reviewNotes, 500) || null,
+        reviewed_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase.from('ml_rule_proposals')
+        .update(patch)
+        .eq('id', Number(id))
+        .select('id,fingerprint,condition_trigger,learned_rule,confidence_score,topic,status,review_notes,reviewed_at,created_at')
+        .maybeSingle();
+    if (error) throw error;
+    if (!data) throw Object.assign(new Error('Propuesta no encontrada.'), { status: 404 });
+    return data;
+}
+
+module.exports = { createTrainingRun, finishTrainingRun, persistRuleProposals, persistTrainingEvent, persistMarketReview, listRuleProposals, reviewRuleProposal, normalizeProposal, fingerprint };

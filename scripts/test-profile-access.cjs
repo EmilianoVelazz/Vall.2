@@ -1,11 +1,12 @@
 'use strict';
+process.env.NODE_ENV='test';
 // Cuatro cuentas ficticias: no usa datos, credenciales ni conexiones reales.
 const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const bcrypt=require('bcryptjs');
 const express=require('express');
 const cookieParser=require('cookie-parser');
-process.env.JWT_SECRET='test-profile-access-only';process.env.VERCEL='1';
+process.env.JWT_SECRET='test-profile-access-only-fixture-only-testing-32bytes';process.env.VERCEL='1';
 process.env.VALL_AUTH_EMAIL='admin@example.invalid';process.env.VALL_AUTH_PASSWORD=bcrypt.hashSync('Admin-fixture-92',4);
 const store=require('../backend/services/user-profile-store');
 const users=Array.from({length:4},(_,i)=>({id:crypto.randomUUID(),email:`profile${i}@example.invalid`,role:'user',active:true,
@@ -45,6 +46,7 @@ const server=app.listen(0,'127.0.0.1');
     assert.equal((await call('/login',{email:users[0].email,password:'Fixture-0-2026'})).status,401);
     const fresh=await login(users[0].email,'Replacement-2026');assert.equal((await call('/verify-token',null,fresh)).status,200);
     for(let i=1;i<4;i++){assert.equal(users[i].passwordHash,originalHashes[i]);assert.equal((await call('/verify-token',null,cookies[i])).status,200);}
+    require('../backend/routes/auth').invalidateProfileCache();
     down=true;assert.equal((await call('/verify-token',null,fresh)).status,503);down=false;
     const changed=await call('/change-password',{currentPassword:'Replacement-2026',newPassword:'Self-change-2026'},fresh);assert.equal(changed.status,200);
     const renewed=changed.headers.get('set-cookie').split(';')[0];assert.equal((await call('/verify-token',null,renewed)).status,200);assert.equal((await call('/verify-token',null,fresh)).status,401);

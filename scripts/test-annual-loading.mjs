@@ -69,7 +69,7 @@ try {
   const stopped=createAnnualReportLoader({request:()=>new Promise(resolve=>deferred.set('stopped',resolve)),notify:()=>calls++});
   const work=stopped.load(2024);const before=calls;stopped.cancel();deferred.get('stopped')(recovered);await work;assert.equal(calls,before);
   // Isolated HTTP router: fake identity, no real accounts, workers or providers.
-  process.env.JWT_SECRET='annual-loading-isolated-fixture';process.env.NODE_ENV='test';
+  process.env.JWT_SECRET='annual-loading-isolated-fixture-fixture-only-testing-32bytes';process.env.NODE_ENV='test';
   const express=require('express'),jwt=require('jsonwebtoken');
   require('../backend/services/user-profile-store').findById=async()=>({active:true,email:owner,credentialVersion:0});
   const {annualLibrary}=require('../backend/services/annual-report-library'),originalGet=annualLibrary.get;

@@ -2,6 +2,7 @@
 
 const { guardProteinPrices } = require('./protein-price-quality');
 const { matchingProteinRecords } = require('./protein-price-table');
+const {guardMarketClaims}=require('./claim-review');
 
 function sourceNames(citations = []) {
     return [...new Set(citations.map(item => String(item?.source || '').trim()).filter(Boolean))];
@@ -86,6 +87,8 @@ function guardTradeResearch(plan = {}, evidence = {}, text = '') {
 // que una falla de proveedor se presente como un dato de mercado actual.
 function auditResponse({ text = '', plan = {}, liveData = null, evidence = {} } = {}) {
     const warnings = [];
+    const claimCheck=guardMarketClaims(plan,evidence,text);
+    if(claimCheck.changed){text=claimCheck.text;warnings.push('Se excluyeron afirmaciones explícitas sin respaldo de cotización o garantías de resultado.');}
     const priceCheck = guardProteinPrices(plan, evidence, text);
     if (priceCheck.changed) {
         const records = matchingProteinRecords(plan.proteinProfile,evidence);
@@ -126,7 +129,7 @@ function auditResponse({ text = '', plan = {}, liveData = null, evidence = {} } 
         disclosure = [disclosure, note].filter(Boolean).join('\n\n');
         warnings.push('Se usaron resúmenes públicos revisados y fechados como respaldo de portales no disponibles.');
     }
-    return { warnings, disclosure };
+    return { warnings, disclosure, ...(claimCheck.changed?{replacement:claimCheck.text}:{}),claimReview:claimCheck.review };
 }
 
 function guardNewsCoverage(plan, text) {

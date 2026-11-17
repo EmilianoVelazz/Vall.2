@@ -161,7 +161,7 @@ function mergeSourceInput(current,previous,key) {
     }
     return {...current,prices};
 }
-function createMexicoReports({reportStore=store,loaders={macro:()=>require('./mexico-macro').getMexicoMacro(),bmv:()=>require('../routes/market').getBmvMarket(),proteins:()=>require('../lib/sniim-first-sale-service').getFirstSalePrices()},now=()=>new Date(),sourceTimeoutMs=14000}={}) {
+function createMexicoReports({reportStore=store,loaders={macro:()=>require('./mexico-macro').getMexicoMacro(),bmv:()=>require('../routes/market').getBmvMarket(),proteins:()=>require('../lib/sniim-first-sale-service').getFirstSalePrices()},editorial=require('../ai/executive-report-agent').executiveReportAgent,now=()=>new Date(),sourceTimeoutMs=30000}={}) {
     let work;const pending=new Map();
     async function collect(key,load) {
         if(!pending.has(key)) {const promise=Promise.resolve().then(load).finally(()=>pending.delete(key));pending.set(key,promise);}
@@ -184,8 +184,9 @@ function createMexicoReports({reportStore=store,loaders={macro:()=>require('./me
                 const partial=key && (input[key]?.indicators || input[key]?.bmv || Object.values(input[key]?.prices || {}).flatMap(item=>item.states || [])).some(item=>item.quoteStatus==='preserved');
                 return {...withPreviousDailyEvidence(base,prior),dataStatus:{state:preserved?'preserved':failed||partial?'partial':'updated',lastSuccessfulAt:preserved ? prior?.dataStatus?.lastSuccessfulAt || prior?.generatedAt || '' : time.toISOString(),attemptedAt:time.toISOString()}};
             });
-            const expiresAt=input.sourceErrors.length ? new Date(time.getTime()+60000).toISOString() : nextReportRefreshAt(time).toISOString();
-            return reportStore.save({reports,generatedAt:time.toISOString(),expiresAt,sourceErrors:input.sourceErrors,sourceInputs:Object.fromEntries(['macro','bmv','proteins'].filter(key=>input[key]).map(key=>[key,input[key]]))});
+            const expiresAt=input.sourceErrors.length && !previous ? new Date(time.getTime()+60000).toISOString() : input.sourceErrors.length && previous ? new Date(time.getTime()+15*60000).toISOString() : nextReportRefreshAt(time).toISOString();
+            const enriched=await editorial.enrich(reports,{area:'México'});
+            return reportStore.save({reports:enriched,generatedAt:time.toISOString(),expiresAt,sourceErrors:input.sourceErrors,sourceInputs:Object.fromEntries(['macro','bmv','proteins'].filter(key=>input[key]).map(key=>[key,input[key]]))});
         })().finally(()=>{work=null;});
         return work;
     }
@@ -196,7 +197,13 @@ function createMexicoReports({reportStore=store,loaders={macro:()=>require('./me
         // Opening the library must not depend on slow or unavailable providers.
         // Scheduled generation still awaits refresh() and checks original dates.
         if(expired)void refresh().catch(()=>console.warn('[mexico-reports] Actualización pendiente; se mantiene el último corte disponible.'));
-        return {...snapshot,refreshing:expired,reports:snapshot.reports.map(report=>enrichSectorReport(expired ? {...report,dataStatus:{...report.dataStatus,state:'preserved',lastSuccessfulAt:report.dataStatus?.lastSuccessfulAt || report.generatedAt}} : report,'mexico'))};
+        return {...snapshot,refreshing:expired,reports:snapshot.reports.map(report=>{
+            const lastAt = report.dataStatus?.lastSuccessfulAt || report.generatedAt;
+            const ageMs = now().getTime() - (Date.parse(lastAt) || now().getTime());
+            const daysOld = Math.floor(ageMs / (24 * 3600000));
+            const enriched = expired ? {...report,dataStatus:{...report.dataStatus,state:'preserved',lastSuccessfulAt:lastAt,isStale:daysOld>=1,daysOld}} : report;
+            return enrichSectorReport(enriched,'mexico');
+        })};
     }
     return {get,refresh};
 }

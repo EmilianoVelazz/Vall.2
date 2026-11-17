@@ -1,4 +1,7 @@
 'use strict';
+process.env.NODE_ENV='test';
+process.env.VERCEL='1';
+process.env.JWT_SECRET='fixture-only-report-input-abuse-secret-32bytes';
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),express=require('express');
 const {createUserReportStore}=require('../backend/services/user-report-store');
 const {createUserReportsRouter}=require('../backend/routes/user-reports');
@@ -17,6 +20,6 @@ async function main() {
   for(const value of [0,-2,42.5,'42.5']) {assert.equal((await request({report:{...report,visuals:[{type:'bar',bars:[{label:'Referencia',value}]}]}})).status,200);cases++;}
   assert.equal((await store.list(owner)).length,4,'Conserva ceros reales, negativos y decimales');
   console.log(`Report input abuse: OK · ${cases} límites y estructuras inválidas mediante HTTP real`);
- } finally {if(server) {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}await fs.rm(directory,{recursive:true,force:true});}
+ } finally {if(server) {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}const target=path.resolve(directory),relative=path.relative(path.resolve(os.tmpdir()),target);assert(relative && !relative.startsWith('..') && !path.isAbsolute(relative) && path.basename(target).startsWith('vall-report-inputs-'));await fs.rm(target,{recursive:true,force:true});}
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

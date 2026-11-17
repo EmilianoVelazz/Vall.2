@@ -1,21 +1,26 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),express=require('express');
 const {chromium}=require('playwright');
-process.env.NODE_ENV='test';process.env.JWT_SECRET='download-button-fixture';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='download-button-fixture-fixture-only-testing-32bytes';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
 for(const name of ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_ANON_KEY','GEMINI_API_KEY','GMAIL_USER','GMAIL_PASS'])process.env[name]='';
 const owner='download-button@example.invalid',auth=require.resolve('../backend/routes/auth');
 require.cache[auth]={id:auth,filename:auth,loaded:true,exports:{verifyToken:(req,res,next)=>{req.user={email:owner,id:'download-button',role:'user'};next();}}};
+// Exercise file generation independently of paid/network translation services.
+const {reportLabels}=require('../backend/lib/report-language');
+require('../backend/services/report-translation').reportTranslator.localize=async input=>({...input,...reportLabels('es'),source:value=>value,translateText:value=>value});
 const router=require('../backend/routes/export');
 (async()=>{
- const root=path.resolve(__dirname,'..'),output=path.join(root,process.argv.includes('--panoramas-only') ? 'output/panoramas-diseno-20261106' : 'output/download-button-20261030');await fs.mkdir(output,{recursive:true});
+ const root=path.resolve(__dirname,'..'),output=path.resolve(process.env.REPORT_BUTTON_OUTPUT || path.join(root,process.argv.includes('--panoramas-only') ? 'output/panoramas-diseno-20261106' : 'output/download-button-20261030'));await fs.mkdir(output,{recursive:true});
  const reports={},snapshots={};for(const [area,file] of [['finance','finance_executive_reports'],['markets','market_executive_reports'],['mexico','mexico-executive-reports']])snapshots[area]=JSON.parse(await fs.readFile(path.join(root,'backend/cache',file+'.json'),'utf8'));
  snapshots.markets=require('../backend/lib/report-market-overview').composeMarketOverview(snapshots.markets);snapshots.mexico=require('../backend/lib/report-panorama').composeMexicoPanorama(snapshots.mexico);snapshots.finance=await require('../backend/lib/report-panorama').composePanorama(snapshots.finance,{marketsSnapshot:snapshots.markets,mexicoSnapshot:snapshots.mexico});for(const area of Object.keys(snapshots))reports[area]=snapshots[area].reports;
  const {reportDownloadName}=await import('../shared/report-download-name.mjs');
+ const {getDocument}=await import('../node_modules/pdfjs-dist/legacy/build/pdf.mjs');
+ const branding=process.argv.includes('--branding') ? {organization:'Empresa de prueba',recipientName:'Comité de prueba'} : {};
  const app=express(),responses=[],errors=[],results=[];let server,browser,page;
  app.use('/api',router);app.use(express.json());
  app.use('/api',(req,res)=>{
   if(req.path==='/verify-token')return res.json({success:true,email:owner});
-  if(req.path==='/profile')return res.json({success:true,profile:{email:owner,preferences:{}}});
+  if(req.path==='/profile')return res.json({success:true,profile:{email:owner,preferences:{executiveReports:branding}}});
   for(const [area,endpoint] of [['finance','/finance-executive-reports'],['markets','/market-executive-reports'],['mexico','/mexico-executive-reports']])if(req.path===endpoint){const clock=require('../backend/lib/report-schedule');return res.json({success:true,data:reports[area],nextRefreshAt:(area==='markets' ? clock.nextMarketReportRefreshAt() : clock.nextReportRefreshAt()).toISOString()});}
   return res.json({success:true,data:[],articles:[]});
  });
@@ -30,7 +35,7 @@ const router=require('../backend/routes/export');
    await page.getByRole('tab',{name:/^Finanzas/}).click();await page.waitForFunction(()=>/Próximo corte/.test(globalThis.document.querySelector('.erh-next-cut')?.textContent || ''));assert(!/Corte semanal/.test(await clock.innerText()));assert.deepEqual(errors,[]);console.log('Navegador: Mercados muestra viernes 14:00 CDMX; Finanzas conserva el próximo corte diario.');return;
   }
   const cases=[['finance','equities','Finanzas'],['finance','bonds','Finanzas'],['finance','fx','Finanzas'],['finance','overview','Finanzas'],['markets','grains','Mercados'],['markets','energy_metals','Mercados'],['markets','proteins','Mercados'],['markets','overview','Mercados'],['mexico','mx_proteins','México'],['mexico','mx_overview','México']];
-  const selectedCases=process.argv.includes('--grains-only') ? cases.filter(([,key])=>key==='grains') : process.argv.includes('--energy-only') ? cases.filter(([,key])=>key==='energy_metals') : process.argv.includes('--panoramas-only') ? cases.filter(([,key])=>['overview','mx_overview'].includes(key)) : cases;
+  const selectedCases=process.argv.includes('--viewer-only') ? cases.filter(([,key])=>key==='equities') : process.argv.includes('--grains-only') ? cases.filter(([,key])=>key==='grains') : process.argv.includes('--energy-only') ? cases.filter(([,key])=>key==='energy_metals') : process.argv.includes('--panoramas-only') ? cases.filter(([,key])=>['overview','mx_overview'].includes(key)) : cases;
   for(const [area,key,label] of selectedCases){
    await page.getByRole('tab',{name:new RegExp('^'+label)}).click();
    const report=reports[area].find(item=>item.key===key);assert(report);
@@ -38,12 +43,59 @@ const router=require('../backend/routes/export');
    const button=page.getByRole('button',{name:'Descargar PDF',exact:true});await button.waitFor();
    const viewer=page.getByRole('region',{name:'Vista previa PDF de '+report.title,exact:true});await viewer.locator('canvas').waitFor({state:'visible',timeout:120000});
    assert.equal(await page.getByRole('button',{name:'Ver PDF',exact:true}).getAttribute('aria-pressed'),'true','The PDF is the default view');
+   assert.equal(await viewer.getByRole('searchbox',{name:'Buscar referencia en el PDF',exact:true}).inputValue(),'','A different PDF resets its search');
+   if(key==='equities'){
+    const pageInput=viewer.getByRole('spinbutton',{name:'Número de página del PDF',exact:true});
+    await pageInput.fill('4');await viewer.getByRole('button',{name:'Ir',exact:true}).click();
+    await viewer.locator('.erh-pdf-page-text').filter({hasText:'Comparativas regionales'}).waitFor();
+    const search=viewer.getByRole('searchbox',{name:'Buscar referencia en el PDF',exact:true});await search.fill('logaritmica propia');await viewer.getByRole('button',{name:'Buscar',exact:true}).click();
+    const results=viewer.getByRole('navigation',{name:'Resultados de búsqueda en el PDF',exact:true});await results.getByRole('button',{name:'Página 4',exact:true}).waitFor();
+    await results.getByRole('button',{name:'Página 4',exact:true}).click();assert.equal(await results.getByRole('button',{name:'Página 4',exact:true}).getAttribute('aria-current'),'page');
+    await viewer.screenshot({path:path.join(output,'busqueda-con-resultados.png')});
+    await search.fill('ZZZREFERENCIANOEXISTE');await search.press('Enter');await viewer.getByRole('status').filter({hasText:'0 páginas encontradas'}).waitFor();assert.equal(await results.count(),0);
+    await pageInput.fill('0');assert.equal(await pageInput.evaluate(input=>input.checkValidity()),false);await pageInput.fill('1');await viewer.getByRole('button',{name:'Ir',exact:true}).click();
+    await viewer.locator('.erh-pdf-page-text').filter({hasText:'Tabla maestra'}).waitFor();
+    await viewer.screenshot({path:path.join(output,'busqueda-y-navegacion-pdf.png')});
+   }
    const expected=reportDownloadName(report);assert.equal(await page.getByRole('link',{name:'Guardar PDF',exact:true}).getAttribute('download'),expected);
    const before=responses.length;
    const started=Date.now(),[download]=await Promise.all([page.waitForEvent('download',{timeout:130000}),button.click()]);
    const file=await download.path();assert.equal(await download.failure(),null);const bytes=await fs.readFile(file);assert.equal(bytes.subarray(0,5).toString(),'%PDF-');
    assert.equal(download.suggestedFilename(),expected);assert.equal(responses.length,before,'Saving reuses the displayed PDF without exporting again');
-   const result={area,key,filename:download.suggestedFilename(),bytes:bytes.length,ms:Date.now()-started};results.push(result);console.log(JSON.stringify(result));
+   const pdfTask=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,isEvalSupported:false}),pdf=await pdfTask.promise;let pdfText='',pages;
+   try{pages=pdf.numPages;for(let number=1;number<=pages;number++)pdfText+=(await(await pdf.getPage(number)).getTextContent()).items.map(item=>item.str).join(' ')+' ';}finally{await pdfTask.destroy();}
+   if(key==='bonds'){assert(/comparativas regionales/i.test(pdfText),'The real download retains international comparison charts');assert(/países en el panorama de bonos/i.test(pdfText),'The real download retains the European chapter');}
+   if(key==='equities'){assert(/BOLSA\s*·\s*INFORME EJECUTIVO/.test(pdfText),'The real download uses the original equities template');assert(/Comparativas regionales/.test(pdfText),'Regional charts accompany the complete global history');}
+   if(key==='fx')assert(/TESORERÍA CAMBIARIA/.test(pdfText),'The real download uses the original FX template');
+   if(branding.organization && ['equities','bonds','fx','grains','energy_metals','proteins'].includes(key))assert(pdfText.includes(branding.organization),'Identity preferences remain in the original template');
+   await fs.writeFile(path.join(output,download.suggestedFilename()),bytes);
+   const result={area,key,filename:download.suggestedFilename(),bytes:bytes.length,pages,originalTemplate:['equities','bonds','fx','grains','energy_metals','proteins'].includes(key),branding:Boolean(branding.organization),ms:Date.now()-started};results.push(result);console.log(JSON.stringify(result));
+   if(['equities','bonds','fx'].includes(key)){
+    await viewer.screenshot({path:path.join(output,key+'-plantilla-pantalla.png')});
+    if(key==='bonds'){
+     for(let number=2;number<=pages;number++){await viewer.getByRole('button',{name:'Página siguiente del PDF',exact:true}).click();await viewer.locator('canvas').waitFor({state:'visible',timeout:30000});}
+     await viewer.locator('.erh-pdf-page-text').filter({hasText:'países en el panorama de bonos'}).waitFor();
+     await viewer.screenshot({path:path.join(output,'bonos-europa-pantalla.png')});
+    }
+   }
+   if(key==='equities'){
+    await page.getByRole('button',{name:'Lectura',exact:true}).click();
+    const selector=page.getByRole('combobox',{name:'Región de las bolsas',exact:true}),chart=page.locator('.erh-equity-history-explorer .erh-unified-history-chart');
+    const originalColors=await chart.locator('.erh-series-path').evaluateAll(paths=>paths.map(node=>node.getAttribute('stroke')));
+    await selector.selectOption('Europa');
+    const {weeklyReport}=await import('../shared/report-weekly.mjs'),series=weeklyReport(report).visuals.find(visual=>visual.equityHistoryOverview).series,europe=series.filter(item=>item.region==='Europa');
+    assert.equal(await chart.locator('.erh-chart-canvas svg > path').count(),europe.length);
+    assert.deepEqual(await chart.locator('.erh-series-path').evaluateAll(paths=>paths.map(node=>node.getAttribute('stroke'))),europe.map(item=>originalColors[series.indexOf(item)]),'Filtering keeps the color of each market');
+    await chart.screenshot({path:path.join(output,'bolsa-region-europa.png')});
+    await selector.selectOption('');assert.equal(await chart.locator('.erh-chart-canvas svg > path').count(),series.length);
+    if(process.argv.includes('--viewer-only')){
+     await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Ver PDF',exact:true}).click();await viewer.locator('canvas').waitFor({state:'visible'});
+     await page.waitForFunction(()=>globalThis.document.documentElement.scrollWidth<=globalThis.innerWidth+1);
+     await viewer.getByRole('searchbox',{name:'Buscar referencia en el PDF',exact:true}).scrollIntoViewIfNeeded();
+     await viewer.screenshot({path:path.join(output,'visor-movil.png')});
+     await page.setViewportSize({width:1440,height:1000});
+    }
+   }
    if(key==='grains'){
     const {weeklyReport}=await import('../shared/report-weekly.mjs'),reading=weeklyReport(report),chart=reading.grainGlobalHistory;
     await page.getByRole('button',{name:'Lectura',exact:true}).click();

@@ -5,6 +5,8 @@ const COLORS=require('../../shared/report-chart-colors.json');
 const {proteinPrintTables}=require('../../shared/report-protein-print-layout.mjs');
 const {proteinLegendLabels,proteinChartTicks,proteinBarColor}=require('../../shared/report-protein-chart-style.mjs');
 const {GRAIN_FAMILIES,grainHistoryColor}=require('../../shared/report-grain-chart.mjs');
+const {reportReferenceStatus}=require('../../shared/report-reference-status.mjs');
+const {BRAND}=require('./report-branding');
 const INK='#163d4b',MUTED='#586b78',LINE='#bccdd4';
 const barNumber=formatNumber;
 const unique=items=>[...new Map(items.filter(Boolean).map(item=>[String(item).replace(/\s+/g,' ').trim().toLocaleLowerCase('es'),item])).values()];
@@ -21,7 +23,7 @@ function makeCompanyDashboardPdf(title,report,helpers) {
     return new Promise((resolve,reject)=>{
         const margin=36,pageSize=weekly ? 'A4' : 'LEGAL',pageMargins={top:margin,left:margin,right:margin,bottom:48},document=new PDFDocument({size:pageSize,margins:pageMargins,bufferPages:true,info:{Title:report.title || title,Author:'VALLNEWS',Subject:helpers.localization ? report.title : layout.label}}),chunks=[];
         document.on('data',chunk=>chunks.push(chunk));document.on('error',reject);document.on('end',()=>{const pdf=Buffer.concat(chunks);Object.defineProperty(pdf,'reportPageCount',{value:document._vallPdfPageNumber});resolve(pdf);});
-        const width=document.page.width-margin*2,gap=weekly?.sessionReport ? 6 : 8,baseLabel=t(layout.collectionLabel).toUpperCase(),bottom=()=>document.page.height-78,proteinAccent=weekly?.proteinBulletin ? '#813c56' : '#193758';
+        const width=document.page.width-margin*2,gap=weekly?.sessionReport ? 6 : 8,baseLabel=t(layout.collectionLabel).toUpperCase(),bottom=()=>document.page.height-78;
         if(weekly?.focusedMarket){const path=require('node:path');document.registerFont('VallBody',path.join(__dirname,'../../assets/fonts/noto-jp/NotoSansJP-Regular.otf'));document.registerFont('VallBold',path.join(__dirname,'../../assets/fonts/noto-jp/NotoSansJP-Bold.otf'));}
         const bodyFont=(font,text)=>weekly?.focusedMarket && /^Helvetica/.test(font) && /[↑↓→]/u.test(String(text)) ? /Bold/.test(font) ? 'VallBold' : 'VallBody' : font;
         document._vallPdfPageSize=pageSize;document._vallPdfPageMargin=margin;document._vallPdfPageLabel=t('Informe').toUpperCase()+' / '+baseLabel;document._vallPdfPageNumber=1;document._vallPdfPersonalization=pdfPersonalization(report);
@@ -38,7 +40,7 @@ function makeCompanyDashboardPdf(title,report,helpers) {
             // long card. Its remaining text can continue on the next sheet.
             const reserve=Math.min(minBody,tableStart ? 140 : 70);
             document._vallPdfPageLabel=baseLabel+' / '+heading.toUpperCase();ensure(26+reserve);const y=document.y;
-            document.rect(margin,y,width,20).fillAndStroke(weekly ? proteinAccent : '#f0f3f4','#6f8791');write(heading.toUpperCase(),margin+8,y+6,width-16,8.6,'Helvetica-Bold',weekly ? '#ffffff' : INK,{align:weekly ? 'left' : 'center'});reset(y+26);
+            document.rect(margin,y,width,20).fill(BRAND.navy);document.rect(margin,y,3,20).fill(BRAND.teal);write(heading.toUpperCase(),margin+8,y+6,width-16,8.6,'Helvetica-Bold','#ffffff',{align:'left'});reset(y+26);
         };
         // Long text is split at word boundaries. No fixed-height text boxes or ellipses.
         const flow=(heading,body,options={})=>{
@@ -122,7 +124,8 @@ function makeCompanyDashboardPdf(title,report,helpers) {
         const bodyMeasure=(text,w,size)=>{const parts=bodyParts(text);return parts.reduce((sum,part)=>sum+measure(part,w,size),0)+Math.max(0,parts.length-1)*3;};
         const textSize=(item,w)=>({heading:measure(t(item.heading),w-12,item.compact ? 7.4 : 8.5,'Helvetica-Bold'),body:bodyMeasure(item.body,w-12,item.compact ? 6.8 : 8.2),get height(){return this.heading+this.body+(item.compact ? 7 : 13);}});
         const textDraw=(item,x,y,w,size)=>{
-            document.rect(x,y,w,size.height).fillAndStroke('#ffffff',LINE);write(t(item.heading),x+6,y+(item.compact ? 2 : 4),w-12,item.compact ? 7.4 : 8.5,'Helvetica-Bold');
+            const lead=weekly?.summaryPanels?.[0]?.heading===item.heading;
+            document.rect(x,y,w,size.height).fillAndStroke(lead ? '#f1f5fa' : '#ffffff',LINE);if(lead)document.rect(x,y,2,size.height).fill('#193758');write(t(item.heading),x+6,y+(item.compact ? 2 : 4),w-12,item.compact ? 7.4 : 8.5,'Helvetica-Bold');
             let cursor=y+size.heading+(item.compact ? 5 : 8);const fontSize=item.compact ? 6.8 : 8.2;
             for(const paragraph of bodyParts(item.body)) {write(paragraph,x+6,cursor,w-12,fontSize,'Helvetica',INK,item.link ? {link:item.link} : {});cursor+=measure(paragraph,w-12,fontSize)+3;}
         };
@@ -235,9 +238,9 @@ function makeCompanyDashboardPdf(title,report,helpers) {
         };
         pdfPageHeader(document,t('Informe').toUpperCase()+' / '+baseLabel);pdfExecutiveFooter(document,1);
         const heading=String(report.title || title || layout.label).replace(/\s+/g,' '),y=document.y,titleHeight=measure(heading,width-20,14,'Helvetica-Bold');
-        document.rect(margin,y,width,titleHeight+19).fillAndStroke(weekly ? proteinAccent : '#f0f3f4','#6f8791');write(heading,margin+10,y+4,width-20,14,'Helvetica-Bold',weekly ? '#ffffff' : INK,{align:weekly ? 'left' : 'center'});
+        document.rect(margin,y,width,titleHeight+19).fill(BRAND.navy);document.rect(margin,y,3,titleHeight+19).fill(BRAND.teal);write(heading,margin+10,y+4,width-20,14,'Helvetica-Bold','#ffffff',{align:'left'});
         const cut=Number.isFinite(Date.parse(report.generatedAt)) ? new Date(report.generatedAt).toLocaleString(locale,{timeZone:'America/Mexico_City',dateStyle:'medium',timeStyle:'short'}) : t('Fecha no disponible');
-        write(t('Corte')+': '+cut,margin+10,y+titleHeight+9,width-20,6.7,'Helvetica',weekly ? '#dce6f2' : MUTED,{align:'right'});reset(y+titleHeight+24);
+        write(t('Corte')+': '+cut,margin+10,y+titleHeight+9,width-20,6.7,'Helvetica','#dce6f2',{align:'right'});reset(y+titleHeight+24);
         const identity=document._vallPdfPersonalization;
         const meta=(weekly ? [identity.recipientName,identity.organization] : [identity.audience,identity.recipientName,identity.organization,identity.horizon,t(({brief:'Breve y accionable',detailed:'Detallado con evidencia',standard:'Estándar'})[identity.depth] || ''),report.baseReport?.title ? t('Base')+': '+report.baseReport.title : '']).filter(Boolean).join(' / ');
         if(meta) {const y=document.y,h=measure(meta,width,7);write(meta,margin,y,width,7,'Helvetica',MUTED);reset(y+h+7);}
@@ -310,8 +313,10 @@ function makeCompanyDashboardPdf(title,report,helpers) {
             }
             if(item.historyStrips){
                 const labelWidth=Math.min(160,(w-16)*.32),rangeWidth=item.grainHistoryOverview ? 0 : 82,valueWidth=item.grainHistoryOverview ? 67 : 43,plotWidth=w-16-labelWidth-rangeWidth-valueWidth-16;
-                const rows=item.series.map(series=>{const label=item.grainHistoryOverview || item.energyHistoryOverview ? series.shortLabel+(item.grainHistoryOverview && series.partialHistory ? ' *' : '') : series.label+(series.baseDate ? ' · '+series.baseDate : '');return {label,height:Math.max(item.energyHistoryOverview ? 33 : 13,measure(label,labelWidth-5,item.grainHistoryOverview ? 7 : 6.6)+3)};});
-                return {heading,unit,note,rows,labelWidth,rangeWidth,valueWidth,plotWidth,height:heading+unit+note+rows.reduce((sum,row)=>sum+row.height,0)+57};
+                // Grain labels keep their 7-point type. Tighter row padding
+                // lets the complete atlas share a sheet with recent charts.
+                const rows=item.series.map(series=>{const label=item.grainHistoryOverview || item.energyHistoryOverview ? series.shortLabel+(item.grainHistoryOverview && series.partialHistory ? ' *' : '') : series.label+(series.baseDate ? ' · '+series.baseDate : '');return {label,height:Math.max(item.energyHistoryOverview ? 33 : item.grainHistoryOverview ? 11 : 13,measure(label,labelWidth-5,item.grainHistoryOverview ? 7 : 6.6)+(item.grainHistoryOverview ? 2 : 3))};});
+                return {heading,unit,note,rows,labelWidth,rangeWidth,valueWidth,plotWidth,height:heading+unit+note+rows.reduce((sum,row)=>sum+row.height,0)+(item.grainHistoryOverview ? 45 : 57)};
             }
             if(item.type==='bar') {
                 // Reservar el ancho real de la cifra antes de distribuir la
@@ -327,7 +332,7 @@ function makeCompanyDashboardPdf(title,report,helpers) {
             }
             if(weekly?.sessionReport) {
                 const twoDates=item.series.every(series=>series.points.length<=2),ticks=chartScale(item.series.flatMap(series=>series.points.map(point=>point.value))).ticks.length;
-                const plotHeight=item.proteinChart ? 110 : item.globalComparison && !item.densityPanel ? 140 : twoDates ? Math.max(76,(ticks-1)*14) : 108;
+                const plotHeight=item.proteinChart ? 110 : item.grainRecentFeatured ? 90 : item.globalComparison && !item.densityPanel ? 140 : twoDates ? Math.max(76,(ticks-1)*14) : 108;
                 const aliases=item.proteinChart ? proteinLegendLabels(item.series) : chartLegendLabels(item.series),legendLabels=item.series.map((series,index)=>aliases[index]+(item.globalComparison && series.baseDate ? ' · '+series.baseDate : ''));
                 const legendColumns=item.proteinChart ? 1 : 2,legendRows=[];
                 for(let i=0;i<legendLabels.length;i+=legendColumns)legendRows.push(Math.max(12,...legendLabels.slice(i,i+legendColumns).map(label=>measure(label,(w-16)/legendColumns-(item.proteinChart ? 72 : 26),6.6)+3)));
@@ -544,22 +549,28 @@ function makeCompanyDashboardPdf(title,report,helpers) {
             return hidden.size ? {...item,title,note,columns:item.columns.filter((_,index)=>!hidden.has(index)),rows:item.rows.map(row=>row.filter((_,index)=>!hidden.has(index)))} : item;
         };
         const grainTable=weekly?.commodityExecutive?.key==='grains',energyTable=Boolean(weekly?.energyExecutive),dataFirst=grainTable || energyTable;
-        const cellLabel=cell=>dataFirst ? String(cell ?? '').replace(/^[↑↓→]\s*/u,'') : String(cell ?? '');
+        const cellLabel=cell=>{
+            const label=String(cell ?? '').replace(/\b([A-Z]{3}\/100) (kg|lb)\b/g,'$1\u00a0$2');
+            return dataFirst ? label.replace(/^[↑↓→]\s*/u,'') : label;
+        };
         const cellArrow=cell=>dataFirst ? String(cell ?? '').match(/^[↑↓→]/u)?.[0] : null;
-        const rowSize=(cells,widths,header=false)=>Math.max(header ? 18 : weekly?.sessionReport ? 13 : 15,...widths.map((w,i)=>measure(cellLabel(cells[i]),w-8-(cellArrow(cells[i]) ? 7 : 0),header ? 7 : 7.2,header ? 'Helvetica-Bold' : 'Helvetica')+(!header && grainTable ? 3 : weekly?.sessionReport && !header ? 5 : 7)));
+        const tableBodySize=grainTable ? 7.2 : 7.6;
+        const rowSize=(cells,widths,header=false)=>Math.max(header ? 19 : weekly?.sessionReport ? 14 : 16,...widths.map((w,i)=>measure(cellLabel(cells[i]),w-8-(cellArrow(cells[i]) ? 7 : 0),header ? 7.2 : tableBodySize,header ? 'Helvetica-Bold' : 'Helvetica')+(!header && grainTable ? 3 : weekly?.sessionReport && !header ? 5 : 7)));
         const tableSize=(item,w)=>{
             // Allocate by content: dates and percentages need less room than
             // names and explanations. Preserve a readable minimum per column.
-            const desired=item.columns.map((label,i)=>Math.min(item.columns.length<=3 ? w*.6 : 155,Math.max(36,...[label,...item.rows.map(row=>row[i] || '')].map(cell=>Math.max(...String(cell).split('\n').map(line=>document.font(bodyFont('Helvetica',cell)).fontSize(7.2).widthOfString(line)))+9))));
+            const desired=item.columns.map((label,i)=>Math.min(item.columns.length<=3 ? w*.6 : 155,Math.max(36,...[label,...item.rows.map(row=>row[i] || '')].map(cell=>Math.max(...String(cell).split('\n').map(line=>document.font(bodyFont('Helvetica',cell)).fontSize(tableBodySize).widthOfString(line)))+9))));
             const floor=Math.min(36,w/item.columns.length),flex=desired.map(size=>Math.max(0,size-floor)),total=flex.reduce((a,b)=>a+b,0);
             const widths=item.printColumnFractions?.length===item.columns.length ? item.printColumnFractions.map(value=>value*w) : desired.map((_,i)=>floor+(w-floor*desired.length)*(total ? flex[i]/total : 1/desired.length));
             return {widths,heading:measure(item.title,w,9,'Helvetica-Bold'),note:item.note ? measure(item.note,w,6.8) : 0,header:rowSize(item.columns,widths,true),rows:item.rows.map(row=>rowSize(row,widths)),get height(){return this.heading+this.note+this.header+this.rows.reduce((a,b)=>a+b,0)+15;}};
         };
         const tableRow=(cells,x,y,widths,header=false,index=0)=>{const h=rowSize(cells,widths,header);let left=x;for(let i=0;i<widths.length;i++) {
-            document.rect(left,y,widths[i],h).fillAndStroke(header ? weekly?.proteinBulletin ? '#ead3df' : INK : index%2 ? weekly?.proteinBulletin ? '#fbf3f7' : '#eef4f6' : '#ffffff','#d2dde2');
+            const status=header ? '' : reportReferenceStatus(source(String(cells[i]))),preserved=['pending','preserved'].includes(status);
+            document.rect(left,y,widths[i],h).fillAndStroke(header ? weekly?.proteinBulletin ? '#ead3df' : INK : preserved ? '#faf3e6' : status ? '#edf3f8' : index%2 ? weekly?.proteinBulletin ? '#fbf3f7' : '#eef4f6' : '#ffffff','#d2dde2');
             const arrow=header ? null : cellArrow(cells[i]),color=header ? weekly?.proteinBulletin ? '#633047' : '#ffffff' : arrow==='↑' ? '#657455' : arrow==='↓' ? '#946c64' : INK;
             if(arrow){const ax=left+6,ay=y+6;document.save().lineWidth(.6).strokeColor(color).fillColor(color);if(arrow==='→')document.moveTo(ax-2,ay).lineTo(ax+2,ay).stroke();else{const direction=arrow==='↑' ? -1 : 1;document.moveTo(ax,ay-2*direction).lineTo(ax,ay+direction).stroke();document.moveTo(ax,ay+3*direction).lineTo(ax-2,ay).lineTo(ax+2,ay).closePath().fill();}document.restore();}
-            write(cellLabel(cells[i]),left+4+(arrow ? 7 : 0),y+3,widths[i]-8-(arrow ? 7 : 0),header ? 7 : 7.2,header ? 'Helvetica-Bold' : 'Helvetica',color);left+=widths[i];
+            const numeric=!header && /^[↑↓→+−-]?\s*[\d,.]+\s*(?:%|pb|p\. p\.)?$/.test(String(cells[i]).trim());
+            write(cellLabel(cells[i]),left+4+(arrow ? 7 : 0),y+3,widths[i]-8-(arrow ? 7 : 0),header ? 7.2 : tableBodySize,header ? 'Helvetica-Bold' : 'Helvetica',color,{align:numeric ? 'right' : 'left'});left+=widths[i];
         }return h;};
         const tableDraw=(item,x,y,w,size)=>{write(item.title,x,y,w,9,'Helvetica-Bold');let cursor=y+size.heading+5;if(item.note && !item.proteinQuote) {write(item.note,x,cursor,w,6.8,'Helvetica',MUTED);cursor+=size.note+5;}cursor+=tableRow(item.columns,x,cursor,size.widths,true);item.rows.forEach((row,i)=>{cursor+=tableRow(row,x,cursor,size.widths,false,i);});if(item.proteinQuote && item.note)write(item.note,x,cursor+5,w,6.8,'Helvetica',MUTED);};
         const fullTable=(item,footerReserve=0)=>{
@@ -637,7 +648,9 @@ function makeCompanyDashboardPdf(title,report,helpers) {
                 if(weekly.commodityExecutive || weekly.mexicoExecutive)columnPack(weekly.summaryPanels,2,textSize,textDraw,item=>flow(item.heading,item.body),{spanLast:true});else textPanels(weekly.summaryPanels,2);
                 const lead=(weekly.commodityExecutive || weekly.mexicoExecutive) ? panels.filter(item=>!item.mexicoSupplementary) : panels.filter(item=>item.executiveLead),details=(weekly.commodityExecutive || weekly.mexicoExecutive) ? [] : panels.filter(item=>!item.executiveLead);
                 if(!weekly.proteinPurchasing && !dataFirst)drawCharts(lead,true,(weekly.chartNotes || []).join(' '));
-                const resultTables=weekly.commodityExecutive?.key==='proteins' ? proteinPrintTables(weekly.results,{t,source}) : weekly.results;
+                const baseTables=weekly.commodityExecutive?.key==='proteins' ? proteinPrintTables(weekly.results,{t,source}) : (weekly.results?.length ? weekly.results : tables);
+                const userTables=report.userEdition && !report.baseReport ? tables.filter(t=>!baseTables.some(r=>r.title===t.title)) : [];
+                const resultTables=[...baseTables,...userTables];
                 const prices=resultTables.filter(table=>!table.derivatives).map(compactMexicoTable),derivatives=resultTables.filter(table=>table.derivatives);
                 const primary=dataFirst ? prices.filter(table=>table.printGroup==='market-levels') : prices,comparisons=dataFirst ? prices.filter(table=>table.printGroup!=='market-levels') : [];
                 if(primary.length){const first=tableSize(primary[0],width),rows=first.rows.slice(0,2),opening=first.heading+first.note+first.header+(rows.reduce((sum,height)=>sum+height,0)<=70 ? rows.reduce((sum,height)=>sum+height,0) : rows[0] || 0)+12;ensure(26+opening);band((weekly.blocks.find(block=>block.key==='comparisons')?.number || '3')+' · '+t('Tablas y comparaciones'),opening,true);fullTable(primary[0]);renderTables(primary.slice(1));}
@@ -645,7 +658,7 @@ function makeCompanyDashboardPdf(title,report,helpers) {
                 if(energyTable)renderTables(comparisons);
                 if(weekly.proteinPurchasing)drawCharts(lead,true,(weekly.chartNotes || []).join(' '));
                 if(derivatives.length){const first=tableSize(derivatives[0],width);band((weekly.blocks.find(block=>block.key==='derivatives')?.number || '4')+' · '+t(weekly.blocks.find(block=>block.key==='derivatives')?.label || 'Call, put e interés abierto'),first.heading+first.note+first.header+first.rows.slice(0,2).reduce((sum,height)=>sum+height,0),true);derivatives.forEach(table=>fullTable(table));}
-                if(grainTable && weekly.grainGlobalHistory){drawCharts(lead.filter(item=>!item.grainHistoryOverview),true);drawCharts(lead.filter(item=>item.grainHistoryOverview),true,(weekly.chartNotes || []).join(' '));}
+                if(grainTable && weekly.grainGlobalHistory){const featured=lead.filter(item=>!item.grainHistoryOverview);drawCharts(featured,true);drawCharts(lead.filter(item=>item.grainHistoryOverview),!featured.length,(weekly.chartNotes || []).join(' '));}
                 if(energyTable){const features=lead.filter(item=>!item.energyHistoryOverview);drawCharts(features,true);drawCharts(lead.filter(item=>item.energyHistoryOverview),!features.length,(weekly.chartNotes || []).join(' '));}
                 const miniatures=details.filter(item=>!item.globalComparison),global=details.filter(item=>item.globalComparison);
                 drawCharts(miniatures,true,lead.length ? '' : (weekly.chartNotes || []).join(' '));drawCharts(global,!miniatures.length,lead.length ? '' : (weekly.chartNotes || []).join(' '));
@@ -657,6 +670,8 @@ function makeCompanyDashboardPdf(title,report,helpers) {
                 drawMetrics();
                 if(weekly.proteinBulletin)flow(t('Cobertura de América'),weekly.proteinCountries.map(item=>item.label+': '+(item.count ? item.count+' '+t('referencias físicas con precio') : t('Sin precio reciente disponible'))).join(' · '));
                 if(weekly.results.length) {band('1.2 · '+t(weekly.blocks.find(block=>block.key==='comparisons')?.label || 'Cierres y variaciones'));if(weekly.proteinBulletin)renderProteinSheets();else renderTables(weekly.results);}
+                const sessionExtraTables=report.userEdition && !report.baseReport ? tables.filter(t=>!weekly.results.some(r=>r.title===t.title)) : [];
+                if(sessionExtraTables.length) renderTables(sessionExtraTables);
                 if(!weekly.proteinBulletin || !weekly.results.length)drawCharts();
                 if(weekly.commentary[2]) {
                     document._vallPdfPageLabel=baseLabel+' / '+t('Causas y consecuencias').toUpperCase();
@@ -680,6 +695,9 @@ function makeCompanyDashboardPdf(title,report,helpers) {
             if(block('history')) {
                 drawBlock('history',withUnits(weekly.history)[0] || evidence[0]);renderTables(withUnits(weekly.history));
                 renderTables(evidence);
+            } else {
+                const remainingEvidence=report.userEdition && !report.baseReport ? evidence.filter(t=>!weekly.results.some(r=>r.title===t.title)) : [];
+                if(remainingEvidence.length) renderTables(remainingEvidence);
             }
             if(block('statistics')) {drawBlock('statistics',withUnits(weekly.statistics)[0]);renderTables(withUnits(weekly.statistics));}
             drawCauses();pdfWatermark(document);document.end();return;
@@ -719,6 +737,12 @@ function makeCompanyDashboardPdf(title,report,helpers) {
             }
         }
         if(methods.length) {band('Metodología de las gráficas');textPanels(methods);}
+        const validLinks=(report.sourceLinks || []).filter(link=>link && link.url && !/^javascript:/i.test(link.url));
+        if(!weekly && report.personalization?.sections?.sources!==false && validLinks.length) {
+            band('Fuentes consultadas');
+            const sourcePanels=validLinks.map(link=>({heading:link.label || t('Fuente de información'),body:link.url,link:link.url,compact:true}));
+            textPanels(sourcePanels,2);
+        }
         drawCauses();pdfWatermark(document);document.end();
     });
 }

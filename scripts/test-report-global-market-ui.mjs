@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {weeklyReport} from '../shared/report-weekly.mjs';
-const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-global-ui';
+const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-global-ui-fixture-only-testing-32bytes';
 const reports=[];for(const [collection,file]of [['finance','finance_executive_reports.json'],['markets','market_executive_reports.json'],['mexico','mexico-executive-reports.json']])reports.push(...JSON.parse(await fs.readFile('backend/cache/'+file,'utf8')).reports.map(report=>({...report,collection})));
 assert.equal(reports.length,14);const express=require('express'),{chromium}=require('playwright'),app=express(),errors=[];let server,browser;
 app.use('/api',(req,res)=>{if(req.path==='/verify-token')return res.json({success:true,email:'fixture@example.invalid'});if(req.path==='/profile')return res.json({success:true,profile:{email:'fixture@example.invalid',preferences:{}}});for(const [area,endpoint]of [['finance','finance-executive-reports'],['markets','market-executive-reports'],['mexico','mexico-executive-reports']])if(req.path.includes(endpoint))return res.json({success:true,data:reports.filter(item=>item.collection===area)});return res.json({success:true,data:[],articles:[]});});app.use('/assets',express.static(path.resolve('assets')));app.use(express.static(path.resolve('frontend/dist')));app.use((req,res)=>res.sendFile(path.resolve('frontend/dist/index.html')));

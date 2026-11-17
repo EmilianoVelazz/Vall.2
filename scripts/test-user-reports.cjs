@@ -6,6 +6,7 @@ const path = require('node:path');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = 'isolated-user-report-test-secret';
+process.env.NODE_ENV = 'test';
 delete process.env.USER_PASSWORD;
 const {createUserReportStore,normalizeReport} = require('../backend/services/user-report-store');
 const {createUserReportsRouter} = require('../backend/routes/user-reports');

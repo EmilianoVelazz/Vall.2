@@ -50,11 +50,3 @@ export function createAuthSession({ verify = apiGet, storage = browserStorage() 
     },
   };
 }
-
-
-
-
-
-
-
-//continua con loq estabas haciendo de favor para que podanis gacer un mejor informe de favor y gracias

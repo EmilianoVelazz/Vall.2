@@ -7,7 +7,7 @@ import {reportHealth} from '../shared/report-health.mjs';
 import {displayNumber} from '../shared/report-display-format.mjs';
 import {displayReportDates} from '../shared/report-date-display.mjs';
 import {needsSpanishReport} from '../shared/report-editorial-language.mjs';
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-reliability';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-reliability-fixture-only-testing-32bytes';
 const require=createRequire(import.meta.url),express=require('express');
 const {createReportHistoryRouter}=require('../backend/routes/report-history');
 const {createReportHistoryStore}=require('../backend/services/report-history-store');

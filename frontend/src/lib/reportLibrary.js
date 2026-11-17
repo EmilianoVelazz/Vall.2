@@ -27,7 +27,7 @@ export function reportAnnex(report,{t=value=>value}={}) {
     const last=(item.series || item.recentSeries || []).at(-1);
     provenance.push([item.label || item.name || item.symbol || 'Referencia',item.source || 'Sin proveedor identificado',item.market || '',item.unit || (bucket==='equities' ? 'puntos' : bucket==='fxHistories' ? item.quoteCurrency+' por 1 USD' : ''),({daily:'Diaria',weekly:'Semanal',monthly:'Mensual',annual:'Anual',auction:'Subasta'})[item.cadence || (bucket==='equities' || bucket==='fxHistories' ? 'daily' : '')] || 'No declarada',last?.date || item.observedAt || 'Sin dato',item.basis || '',item.quoteStatus==='preserved' ? 'Último dato conservado' : last ? 'Con observaciones' : 'Sin observaciones recuperadas']);
   }
-  const tables=[...model.results,...(model.annexTables || []),...marketAnalysisTables(report)];
+  const tables=[...(report.userEdition ? report.tables || [] : model.results),...(model.annexTables || []),...marketAnalysisTables(report)];
   if(provenance.length)tables.push({kind:'provenance',title:'Procedencia y alcance de cada referencia',columns:['Referencia','Proveedor','Mercado','Unidad','Frecuencia original','Última observación','Naturaleza del dato','Disponibilidad'],rows:provenance.map(row=>row.map(t)),note:'El enlace identifica la fuente; la fecha y la disponibilidad acreditan qué dato se recuperó. Las referencias de distintos proveedores no se encadenan para calcular un cambio diario.'});
   return {methods,sources:sourceEntries(report),tables:tables.map(table=>({...table,title:t(table.title),note:t(table.note || ''),columns:table.columns.map(t)})),coverage:model.coverage,title:report.title,period:annual ? String(report.reportYear) : report.generatedAt};
 }

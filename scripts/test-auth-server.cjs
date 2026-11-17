@@ -1,4 +1,5 @@
 'use strict';
+process.env.NODE_ENV='test';
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = 'test-only-independent-account-server';

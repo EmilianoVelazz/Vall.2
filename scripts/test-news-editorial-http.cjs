@@ -1,14 +1,24 @@
 'use strict';
+process.env.NODE_ENV='test';
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 const jwt = require('jsonwebtoken');
 const express = require('express');
-process.env.JWT_SECRET = 'fixture-only-news-http-secret'; process.env.VERCEL = '1';
+process.env.JWT_SECRET = 'fixture-only-news-http-secret-fixture-only-testing-32bytes'; process.env.VERCEL = '1';
 process.env.GEMINI_API_KEY = 'fixture-only-news-key';
 for (const name of ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','DATABASE_URL','GMAIL_USER','GMAIL_PASS','FINNHUB_TOKEN','NEWSAPI_KEY']) process.env[name] = '';
+require('../backend/services/user-profile-store').findById = async id => id === 'news-test'
+    ? { id, email: 'news@example.invalid', role: 'user', active: true, credentialVersion: 0 } : null;
 let generated = 0, calls = 0;
 const date = new Date(Date.now() - 3600000).toUTCString();
-const rss = `<rss><channel><item><title>Banxico conserva la tasa de 7.5% en México</title><link>https://medio.example/banxico</link><pubDate>${date}</pubDate><description>El banco central conserva la tasa en México.</description><News:Source>Medio económico</News:Source></item><item><title>Exportaciones de maíz en México</title><link>https://medio.example/maiz</link><pubDate>${date}</pubDate><description>Los productores preparan la cosecha y el comercio internacional.</description><News:Source>Diario agrícola</News:Source></item></channel></rss>`;
+// Mercados filtra la noticia monetaria: necesita dos artículos agropecuarios
+// para probar tanto la edición válida como el rechazo de cifras inventadas.
+const articles = [
+    ['Banxico conserva la tasa de 7.5% en México', 'banxico', 'El banco central conserva la tasa en México.', 'Medio económico'],
+    ['Exportaciones de maíz en México', 'maiz', 'Los productores preparan la cosecha y el comercio internacional.', 'Diario agrícola'],
+    ['Producción de carne de cerdo en México', 'cerdo', 'Los ganaderos revisan la producción de carne y sus exportaciones.', 'Diario ganadero'],
+];
+const rss = `<rss><channel>${articles.map(([title, id, summary, source]) => `<item><title>${title}</title><link>https://medio.example/${id}</link><pubDate>${date}</pubDate><description>${summary}</description><News:Source>${source}</News:Source></item>`).join('')}</channel></rss>`;
 const http = require('../backend/lib/http');
 http.externalGet = async () => { calls++; return { ok: true, text: async () => rss, json: async () => ({ articles: [] }) }; };
 http.gdeltFetch = async () => { calls++; return { ok: true, json: async () => ({ articles: [] }) }; };
@@ -45,6 +55,7 @@ const server = app.listen(0, '127.0.0.1');
     for (const endpoint of ['daily-news', 'daily-news-markets', 'mexico-daily-news']) {
         const response = await fetch(base + '/' + endpoint, { headers });
         assert.equal(response.status, 200);
+        assert.match(response.headers.get('cache-control'), /private.*no-store/);
         const payload = await response.json();
         assert(payload.success && payload.data.noticias.length > 0);
         assert(payload.data.noticias.every(article => article.originalTitle && article.originalCategory && article.publishedAt));
@@ -57,11 +68,14 @@ const server = app.listen(0, '127.0.0.1');
             assert(payload.data.briefing.every(text => !text.includes('999%')));
         } else assert(payload.data.noticias.every(article => !article.insight && article.impact === null), 'La mesa mexicana conserva la fuente sin duplicarla como opinión');
         const before = generated;
-        assert.equal((await fetch(base + '/' + endpoint, { headers })).status, 200);
+        const cached = await fetch(base + '/' + endpoint, { headers });
+        assert.equal(cached.status, 200);
+        assert.match(cached.headers.get('cache-control'), /private.*no-store/);
+        await cached.text();
         assert.equal(generated, before, 'La caché evita pagar de nuevo por actualizar enseguida');
     }
     assert.equal(router._test._formatFecha(null), '');
     assert.equal(router._test._formatFecha('invalid'), '');
-    assert.match(router._test._formatFecha('2026-10-01T03:00:00Z'), /^30 /, 'La fecha se presenta en CDMX');
+    assert.match(router._test._formatFecha('2026-10-01T03:00:00Z'), /^30-SEP/, 'La fecha se presenta en CDMX');
     console.log(`Noticias HTTP: OK · tres coberturas, sesión, índices/cifras, texto original, impacto sin inventar, caché y CDMX; ${generated} inferencias y ${calls} fuentes simuladas`);
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => { server.closeAllConnections(); server.close(); });

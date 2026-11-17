@@ -9,7 +9,7 @@ import {leerIdioma,IDIOMAS} from '../frontend/src/lib/idioma.js';
 import {weeklyReport} from '../shared/report-weekly.mjs';
 import {reportDocumentTitle} from '../shared/report-download-name.mjs';
 const require=createRequire(import.meta.url),express=require('express'),jwt=require('jsonwebtoken'),JSZip=require('jszip');
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-language-secret';delete process.env.USER_PASSWORD;
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-language-secret-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
 process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
 for(const key of ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_ANON_KEY','SUPABASE_DATABASE_URL','DATABASE_URL','SUPABASE_PASSWORD','GEMINI_API_KEY'])process.env[key]='';
 require('../backend/services/user-profile-store').findById=async id=>({id,email:id==='fixture' ? 'ana@example.invalid' : id+'@example.invalid',active:true,credentialVersion:0});

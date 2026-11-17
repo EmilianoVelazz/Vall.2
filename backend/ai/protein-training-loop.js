@@ -5,7 +5,9 @@
 // producto pueda revisarlas antes de mostrarlas como análisis editorial en la parte editorila se puede analizar
 // los datos aydsentes importantes de cada piunto
 // .
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env'), quiet: true });
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local'), quiet: true });
+require('../lib/tls-trust').configureSystemTrust();
 
 const crypto = require('crypto');
 const fs = require('fs');

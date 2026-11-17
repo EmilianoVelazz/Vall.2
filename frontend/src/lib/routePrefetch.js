@@ -123,19 +123,9 @@ export function precargarRuta(ruta) {
 /** Prepara cualquier enlace interno al pasar el puntero o recibir foco. */
 export function precargarDesdeEnlace(enlace) {
   if (!enlace?.href) return;
+  const connection=globalThis.navigator?.connection;
+  if(connection?.saveData || ['slow-2g','2g'].includes(connection?.effectiveType))return;
   const url = new URL(enlace.href, window.location.origin);
   if (url.origin !== window.location.origin) return;
   precargarRuta(url.pathname).catch(() => { /* La precarga es opcional; se reintenta al navegar. */ });
-}
-
-/**
- * Descarga los módulos de navegación cuando el navegador queda libre, sin
- * activar sus hojas de estilo. Mantiene pequeño el primer render y evita que
- * un clic posterior tenga que esperar la descarga del chunk de la página.
- */
-export function precargarModulos(rutas = Object.keys(CARGADORES)) {
-  return Promise.allSettled(rutas.map((ruta) => {
-    const cargador = CARGADORES[rutaNormalizada(ruta)];
-    return cargador ? cargador() : Promise.resolve(null);
-  }));
 }

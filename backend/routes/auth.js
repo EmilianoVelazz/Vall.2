@@ -7,6 +7,7 @@ const jwt       = require('jsonwebtoken');
 const bcrypt    = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const profileStore = require('../services/user-profile-store');
+const {sessionIdentity,sessionRevocations}=require('../services/session-revocations');
 const { accountKey, anonymousKey } = require('../lib/resource-limits');
 
 const router = express.Router();
@@ -26,9 +27,9 @@ const loginLimiter = rateLimit({
 // defecto permitiría a cualquiera que lo conozca forjar una sesión válida. Se
 // aborta la carga del módulo en lugar de continuar con un secreto público.
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
+if (!JWT_SECRET || Buffer.byteLength(JWT_SECRET)<32) {
     throw new Error(
-        'JWT_SECRET no está configurado. Defínelo en backend/.env (local) o en las ' +
+        'JWT_SECRET requiere al menos 32 bytes. Defínelo en backend/.env (local) o en las ' +
         'variables de entorno del despliegue antes de arrancar.'
     );
 }
@@ -69,10 +70,9 @@ function configuredCredentials() {
     };
 }
 
-// El acceso administrativo se valida contra las credenciales seguras del
-// despliegue, no contra Supabase. Su perfil persistente mejora la experiencia,
-// pero una interrupción de la base no debe bloquear por completo el panel. El
-// identificador determinista mantiene estable el JWT sin revelar el correo.
+// Recuperación exclusivamente local durante una interrupción del almacén de
+// perfiles: exige las credenciales configuradas y expira en cinco minutos.
+// Producción consulta siempre el perfil activo y su versión de credenciales.
 function fallbackAdminProfile(email) {
     const digest = crypto.createHash('sha256').update(`vall-admin:${email}`).digest('hex');
     const id = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-a${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
@@ -85,6 +85,7 @@ function fallbackAdminProfile(email) {
         trainingOptIn: true,
         active: true,
         persistenceDegraded: true,
+        localRecovery:true,
     };
 }
 
@@ -120,11 +121,11 @@ function updateEnvPassword(newValue) {
 /**
  * Migra la contraseña de texto plano a hash bcrypt.
  * Se llama al arrancar el servidor y después de un login exitoso con contraseña en plano.
- * En Vercel, .env no es un archivo editable → se omite silenciosamente.
+ * Sólo para desarrollo local: producción administra la credencial en el hosting.
  */
 async function migratePasswordIfNeeded(storedPassword) {
     if (!storedPassword || isBcryptHash(storedPassword)) return;
-    if (process.env.VERCEL) return; // Vercel usa env vars del dashboard, no archivo .env
+    if (process.env.VERCEL || process.env.NODE_ENV === 'production') return;
     // El adaptador antiguo solo puede migrar USER_PASSWORD. El login también
     // admite VALL_AUTH_PASSWORD, administrada por el despliegue: escribir su
     // hash en USER_PASSWORD dejaría dos credenciales diferentes en circulación.
@@ -163,15 +164,44 @@ function sessionClaims(req) {
     req.verifiedSession = claims;
     return claims;
 }
+function localRecoveryAllowed(){return !process.env.VERCEL && process.env.NODE_ENV!=='production';}
+function recoveryVersion(){const credentials=configuredCredentials();return crypto.createHmac('sha256',JWT_SECRET).update(credentials.email.toLowerCase()+'\0'+credentials.password).digest('hex');}
+
+// Caché breve de perfiles: una carga de página dispara decenas de peticiones
+// autenticadas y cada una consultaba la base. El TTL corto limita cuánto tarda
+// en notarse una cuenta desactivada o un cambio de credenciales.
+const PROFILE_CACHE_TTL = 15 * 1000;
+const PROFILE_CACHE_MAX = 2000;
+const profileCache = new Map();
+const profileInflight = new Map();
+function invalidateProfileCache(id) { if (id) profileCache.delete(id); else profileCache.clear(); }
+async function cachedProfile(id) {
+    const hit = profileCache.get(id);
+    if (hit && hit.expires > Date.now()) return hit.profile;
+    if (profileInflight.has(id)) return profileInflight.get(id);
+    const request = profileStore.findById(id).then(found => {
+        if (profileCache.size >= PROFILE_CACHE_MAX) profileCache.delete(profileCache.keys().next().value);
+        profileCache.set(id, { profile: found, expires: Date.now() + PROFILE_CACHE_TTL });
+        return found;
+    }).finally(() => profileInflight.delete(id));
+    profileInflight.set(id, request);
+    return request;
+}
 
 async function verifyToken(req, res, next) {
     try {
         req.user = sessionClaims(req);
-        const bootstrapAdmin=req.user.role==='admin' && String(req.user.email || '').toLowerCase()===configuredCredentials().email.toLowerCase();
-        if (!bootstrapAdmin) {
+        try{if(await sessionRevocations.isRevoked(sessionIdentity(req.user)))throw Object.assign(Error('Sesión revocada'),{revoked:true});}catch(error){if(error.revoked)throw error;return res.status(503).json({success:false,error:'No se pudo comprobar la vigencia de la sesión. Reintenta.'});}
+        {
             let current;
-            try { current=await profileStore.findById(req.user.sub); }
-            catch { return res.status(503).json({success:false,error:'El servicio de perfiles no está disponible temporalmente.'}); }
+            try { current=await cachedProfile(req.user.sub);if(!current && req.user.localRecovery)current=await profileStore.findByEmail(req.user.email); }
+            catch (profileErr) {
+                if(localRecoveryAllowed() && req.user.localRecovery===true && req.user.role==='admin' && req.user.sub===fallbackAdminProfile(configuredCredentials().email.toLowerCase()).id && safeCompare(req.user.recoveryVersion || '',recoveryVersion()) && Date.now()/1000-req.user.iat<=300) {
+                    current=fallbackAdminProfile(configuredCredentials().email.toLowerCase());
+                } else {
+                    return res.status(503).json({success:false,error:'El servicio de perfiles no está disponible temporalmente.'});
+                }
+            }
             const version=Object.hasOwn(req.user,'credentialVersion') ? req.user.credentialVersion : 0;
             if(!Number.isInteger(version) || version<0 || !current?.active || (current.credentialVersion||0)!==version
                 || current.email.toLowerCase()!==String(req.user.email||'').toLowerCase()) throw Error('Sesión de cuenta inválida');
@@ -179,6 +209,9 @@ async function verifyToken(req, res, next) {
             req.user={...req.user,role:current.role || 'user',trainingOptIn:current.trainingOptIn===true};
         }
         res.set('Cache-Control', 'private, no-store');
+        res.set('X-VALL-Account',req.user.email);
+        const expectedAccount=req.headers['x-vall-account'];
+        if(expectedAccount && (typeof expectedAccount!=='string' || expectedAccount.trim().toLowerCase()!==String(req.user.email).toLowerCase()))return res.status(409).json({success:false,code:'ACCOUNT_CHANGED',error:'La sesión cambió de cuenta. Recarga la cuenta para continuar.'});
         next();
     } catch {
         res.status(401).json({ success: false, error: 'Token inválido o expirado' });
@@ -195,9 +228,11 @@ setImmediate(() => {
 function issueSession(req,res,currentProfile) {
     const claims={sub:currentProfile.id,email:currentProfile.email,role:currentProfile.role,trainingOptIn:currentProfile.trainingOptIn};
     claims.credentialVersion=Number.isInteger(currentProfile.credentialVersion) ? currentProfile.credentialVersion : 0;
-    const token=jwt.sign(claims,JWT_SECRET,{expiresIn:JWT_EXPIRES});
+    const recovery=currentProfile.localRecovery===true;
+    if(recovery){claims.localRecovery=true;claims.recoveryVersion=recoveryVersion();}
+    const token=jwt.sign(claims,JWT_SECRET,{expiresIn:recovery?'5m':JWT_EXPIRES,jwtid:crypto.randomUUID()});
     res.cookie('vn_token',token,{httpOnly:true,secure:process.env.NODE_ENV==='production'||!!process.env.VERCEL||req.secure,
-        sameSite:'lax',path:'/',maxAge:8*60*60*1000});
+        sameSite:'lax',path:'/',maxAge:recovery?5*60*1000:8*60*60*1000});
 }
 const passwordLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 8,
     keyGenerator: accountKey, standardHeaders: true, legacyHeaders: false,
@@ -222,8 +257,9 @@ router.post('/login', loginLimiter, async (req, res) => {
             passOk = await verifyPassword(password, credentials.password);
             if (passOk) {
                 try {
-                    currentProfile = await profileStore.upsertAdmin(normalizedEmail, 'Administrador');
+                    currentProfile = await profileStore.upsertAdmin(normalizedEmail, 'Administrador', isBcryptHash(credentials.password) ? credentials.password : null);
                 } catch (profileError) {
+                    if(!localRecoveryAllowed())return res.status(503).json({success:false,error:'El servicio de perfiles no está disponible temporalmente.'});
                     console.warn('[auth] Supabase no disponible para el perfil administrador; se mantiene el acceso seguro sin persistencia remota:', profileError.message);
                     currentProfile = fallbackAdminProfile(normalizedEmail);
                 }
@@ -240,7 +276,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 ? await bcrypt.compare(password, currentProfile.passwordHash)
                 : await bcrypt.compare(password, await DUMMY_PASSWORD_HASH).then(() => false);
         }
-        if (!passOk || !currentProfile) return res.status(401).json({ success: false, error: 'Correo o contraseña incorrectos.' });
+        if (!passOk || !currentProfile?.active) return res.status(401).json({ success: false, error: 'Correo o contraseña incorrectos.' });
         await profileStore.markLogin(currentProfile.id).catch(error => console.warn('[auth] No se actualizó last_login_at:', error.message));
 
         issueSession(req,res,currentProfile);
@@ -260,7 +296,10 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+    res.set('Cache-Control','private, no-store');
+    let claims;try{claims=sessionClaims(req);}catch{ /* Invalid or expired tokens cannot be replayed. */ }
+    if(claims)try{await sessionRevocations.revoke(sessionIdentity(claims));}catch{return res.status(503).json({success:false,error:'No se pudo confirmar el cierre de sesión. Reintenta.'});}
     res.clearCookie('vn_token');
     res.json({ success: true });
 });
@@ -289,6 +328,36 @@ async function requireProfileAdmin(req,res,next) {
     } catch {res.status(503).json({success:false,error:'No se pudo conectar con los perfiles. Reintenta.'});}
 }
 
+router.get('/admin/loopus-proposals', verifyToken, requireProfileAdmin, async (req, res) => {
+    try {
+        const { listRuleProposals } = require('../ai/ml-persistence');
+        const status = typeof req.query?.status === 'string' ? req.query.status : null;
+        const proposals = await listRuleProposals({ status, limit: req.query?.limit });
+        res.set('Cache-Control', 'private, no-store');
+        res.json({ success: true, proposals });
+    } catch {
+        res.status(503).json({ success: false, error: 'No se pudieron cargar las propuestas de Proyecto Loopus.' });
+    }
+});
+
+router.post('/admin/loopus-proposals/:id/review', verifyToken, requireProfileAdmin, express.json({ limit: '8kb' }), async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ success: false, error: 'Identificador de propuesta inválido.' });
+        const status = req.body?.status;
+        if (!['approved', 'rejected', 'pending_human_review'].includes(status)) {
+            return res.status(400).json({ success: false, error: 'Estado inválido. Usa approved, rejected o pending_human_review.' });
+        }
+        const { reviewRuleProposal } = require('../ai/ml-persistence');
+        const updated = await reviewRuleProposal(id, { status, reviewNotes: req.body?.reviewNotes });
+        res.set('Cache-Control', 'private, no-store');
+        res.json({ success: true, proposal: updated });
+    } catch (error) {
+        const code = Number.isInteger(error?.status) ? error.status : 503;
+        res.status(code).json({ success: false, error: error?.message || 'No se pudo actualizar la propuesta.' });
+    }
+});
+
 router.get('/admin/profiles',verifyToken,requireProfileAdmin,async(req,res)=>{
     try {res.json({success:true,profiles:await profileStore.listProfiles()});}
     catch {res.status(503).json({success:false,error:'No se pudieron cargar los perfiles.'});}
@@ -302,7 +371,7 @@ router.post('/admin/profiles/:id/password',verifyToken,requireProfileAdmin,passw
         const target=await profileStore.findById(req.params.id);
         if(!target) return res.status(404).json({success:false,error:'Perfil no encontrado.'});
         if(target.role==='admin') return res.status(409).json({success:false,error:'La contraseña del administrador se gestiona desde la configuración segura del despliegue.'});
-        await profileStore.updatePassword(target.id,await bcrypt.hash(password,12));
+        await profileStore.updatePassword(target.id,await bcrypt.hash(password,12));invalidateProfileCache(target.id);
         res.json({success:true});
     } catch {res.status(503).json({success:false,error:'No se pudo confirmar el cambio de contraseña. Revisa la conexión antes de volver a intentarlo.'});}
 });
@@ -335,6 +404,7 @@ router.post('/profile', verifyToken, express.json({ limit: '16kb' }), async (req
             preferencePatch:Object.fromEntries(Object.keys(incoming).map(key=>[key,preferences[key]])),
             trainingOptIn: typeof req.body?.trainingOptIn === 'boolean' ? req.body.trainingOptIn : current.trainingOptIn,
         });
+        invalidateProfileCache(current.id);
         res.json({ success: true, profile: { email: updated.email, role: updated.role, displayName: updated.displayName, preferences: updated.preferences, trainingOptIn: updated.trainingOptIn } });
     } catch (error) {
         console.error('/api/profile POST:', error.message);
@@ -359,17 +429,17 @@ router.post('/change-password', verifyToken, passwordLimiter, async (req, res) =
             const current = await profileStore.findById(req.user.sub);
             if (!current?.passwordHash || !await bcrypt.compare(currentPassword, current.passwordHash))
                 return res.status(401).json({ success: false, error: 'La contraseña actual es incorrecta.' });
-            const version=await profileStore.updatePassword(current.id, await bcrypt.hash(newPassword, 12));
+            const version=await profileStore.updatePassword(current.id, await bcrypt.hash(newPassword, 12));invalidateProfileCache(current.id);
             issueSession(req,res,{...current,...(Number.isInteger(version)?{credentialVersion:version}:{})});
             return res.json({ success: true });
         }
-        // Las variables de Vercel son inmutables durante una ejecución. Intentar
-        // escribir backend/.env ahí terminaba en un 500 y dejaba al usuario sin
-        // saber que el cambio no se aplicó realmente.
-        if (process.env.VERCEL || credentials.source !== 'USER_PASSWORD') {
+        // Los contenedores reciben las credenciales del despliegue: escribir
+        // su .env sólo cambiaría la instancia actual y se perdería al recrearla.
+        if (process.env.VERCEL || process.env.NODE_ENV === 'production' || credentials.source !== 'USER_PASSWORD') {
             return res.status(409).json({
                 success: false,
-                error: 'La contraseña se administra desde la configuración segura del despliegue.',
+                code: 'PASSWORD_MANAGED_BY_DEPLOYMENT',
+                error: 'La contraseña del administrador se administra desde la configuración segura del despliegue. Actualízala allí y vuelve a desplegar para guardar el cambio de forma permanente.',
             });
         }
 
@@ -387,8 +457,11 @@ router.post('/change-password', verifyToken, passwordLimiter, async (req, res) =
         console.error('/api/change-password error:', err.message);
         if (err.code === 'ENV_WRITE_BUSY')
             return res.status(409).json({ success: false, error: err.message });
+        // Contenedores de solo lectura o réplicas: .env no es un almacén válido.
+        if (['EROFS', 'EACCES', 'EPERM'].includes(err.code))
+            return res.status(409).json({ success: false, error: 'La contraseña se administra desde la configuración segura del despliegue (VALL_AUTH_PASSWORD).' });
         res.status(500).json({ success: false, error: 'Error interno al cambiar la contraseña.' });
     }
 });
 
-module.exports = { router, verifyToken, sessionClaims };
+module.exports = { router, verifyToken, sessionClaims, invalidateProfileCache };

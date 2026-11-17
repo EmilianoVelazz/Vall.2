@@ -1,9 +1,10 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {reportJsonRequest} from './reportRequest.js';
 import {isReportDocument} from './reportDataValidation.js';
 
 export function useLocalizedReport(report,title,language,owner) {
-  const source=report ? JSON.stringify(report) : '',key=JSON.stringify([owner,language,title,source]);
+  const source=useMemo(()=>language==='es' || !report ? '' : JSON.stringify(report),[report,language]);
+  const key=useMemo(()=>JSON.stringify([owner,language,title,source]),[owner,language,title,source]);
   const cache=useRef(new Map()),[retry,setRetry]=useState(0),[result,setResult]=useState(null);
   useEffect(()=>{
     cache.current.clear();setResult(null);

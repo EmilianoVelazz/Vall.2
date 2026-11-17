@@ -35,7 +35,8 @@ function productionTable(table,{source,t}){
  return rows.length ? {...table,availabilityProduction:true,columns:[table.columns[0],t('Cultivo'),t('Producción · t')],rows,rowStates:states} : false;
 }
 function availableOne(input,options){
- const {source,t}=options,missing=value=>missingReportValue(value,source);
+ const {source=value=>value,t=value=>value}=options,missing=value=>missingReportValue(value,source);
+ if(/comparaci[oó]n diaria/i.test(source(input.title)))return [input];
  if(!list(input.columns).length || !list(input.rows).length)return [];
  const production=productionTable(input,options);if(production!==null)return production ? [production] : [];
  let table=inlineOptionalContext(input,options),names=table.columns.map(column=>fold(source(column)));
@@ -78,7 +79,10 @@ export function hasPublishedReportData(model){
  if(!model)return false;
  if(model.newsExecutive)return model.newsExecutive.stories.length>0;
  if(model.panorama)return model.panorama.chapters.some(chapter=>chapter.kind==='news' ? chapter.news.length : hasPublishedReportData(chapter.model));
- return availableReportTables(model.results).length>0 || availableReportVisuals(model.visuals).length>0 || list(model.references).some(item=>finite(item.last?.value) && !item.stale) || list(model.metrics).some(item=>!missingReportValue(item.value) && !/^(?:referencias|comparaciones|fuentes|publicaciones|ano|periodo)/.test(fold(item.label)));
+ const evidence=availableReportTables(model.results).length>0 || availableReportVisuals(model.visuals).length>0 || list(model.references).some(item=>finite(item.last?.value) && !item.stale) || list(model.metrics).some(item=>!missingReportValue(item.value) && !/^(?:referencias|comparaciones|fuentes|publicaciones|ano|periodo)/.test(fold(item.label)));
+ // Executive headings and suggested actions are not published observations.
+ if(model.decisionSummary || model.equityExecutive || model.bondExecutive || model.fxExecutive || model.commodityExecutive || model.mexicoExecutive)return evidence;
+ return evidence || Boolean(model.summaryPanels?.length || model.commentary?.length);
 }
 export function availablePresentationModel(model,options={}){
  const results=availableReportTables(model.results,options),visuals=availableReportVisuals(model.visuals),metrics=list(model.metrics).filter(item=>!missingReportValue(item.value,options.source)),summaryPanels=list(model.summaryPanels).filter(item=>!missingReportValue(item.body,options.source));

@@ -29,6 +29,15 @@ const EXPLICIT_NEW_SUBJECT_RE = /\b(?:sobre|acerca de|entre|respecto (?:de|a)|de
 const EXPLICIT_TOPIC_SWITCH_RE = /\b(?:(?:cambiando|cambia|cambiar|cambiemos) de tema|otro tema|otra pregunta|dejando (?:eso|lo anterior) de lado|por separado|ahora (?:quiero|quisiera|hablemos|hablame) (?:sobre|de|el|la|los|las)|ahora (?:analiza|revisa) (?!eso\b|esto\b|lo anterior\b|el mismo\b|la misma\b)\S+)\b/i;
 const DOMAIN_SUBJECT_RE = /\b(?:inflacion|pib|empleo|cetes|tiie|banxico|fed|dolar|peso|usd|mxn|euro|divisas?|forex|bolsa|acciones?|bonos?|nasdaq|ipc|bitcoin|ethereum|maiz|trigo|soya|petroleo|wti|brent|gas|oro|plata|cobre|cerdo|ganado|pollo|mexico|estados unidos|china|europa|empresa|mercado)\b/i;
 const PRIOR_OBJECT_RE = /\b(?:eso|esa|ese|esto|aquello|anterior(?:es)?|lo mismo|los mismos|las mismas|dicho activo|ese mercado|esa cifra|esos datos|hazlo|hazla|comparalo|comparala|muestralo|muestrala)\b/i;
+const SUBJECTS = [/\b(?:maiz|trigo|soya|soja|granos?|forrajes?)\b/,/\b(?:cerdo|porcino|pork)\b/,/\b(?:pollo|aves?|poultry)\b/,/\b(?:huevos?|eggs?)\b/,/\b(?:res|bovino|ganado|beef)\b/,/\b(?:petroleo|wti|brent|gas|energia)\b/,/\b(?:oro|plata|cobre|metales?)\b/,/\b(?:dolar|peso|usd|mxn|euro|libra|divisas?|forex)\b/,/\b(?:cetes|bonos?|tiie|tasas?|banxico|fed)\b/,/\b(?:acciones?|bolsa|nasdaq|ipc|etf|bitcoin|ethereum)\b/];
+
+function namesNewSubject(text,history){
+    if(!/^[¿¡\s]*(?:ahora\s+)?(?:por favor\s+)?(?:compara|analiza|revisa|explica|investiga)\b/.test(text) || PRIOR_OBJECT_RE.test(text))return false;
+    const named=SUBJECTS.map((pattern,index)=>pattern.test(text)?index:-1).filter(index=>index>=0);
+    if(!named.length)return false;
+    const previous=[...visibleTurns(history,24)].reverse().find(turn=>turn.role==='user' && SUBJECTS.some(pattern=>pattern.test(normalizeForIntent(turn.text))));
+    return Boolean(previous && !named.some(index=>SUBJECTS[index].test(normalizeForIntent(previous.text))));
+}
 
 function fold(value) {
     return String(value || '')
@@ -77,6 +86,7 @@ function isLikelyFollowUp(message, history = []) {
     const text = normalizeForIntent(message);
     if (!text) return false;
     if (EXPLICIT_TOPIC_SWITCH_RE.test(text)) return false;
+    if (namesNewSubject(text,history)) return false;
     const place = text.replace(/[¿?¡!.,]/g,'').trim();
     const { STATES, CITY_STATES } = require('../services/mexico-price-scope');
     if (STATES.some(state=>state.normalized===place) || CITY_STATES.some(([city])=>city===place)) return true;

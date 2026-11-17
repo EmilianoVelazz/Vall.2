@@ -19,7 +19,7 @@ for(const [collection,name] of [['finance','finance_executive_reports'],['market
    stats.push({key:collection+'/'+report.key,status:'unavailable',exportStatus:422});continue;
   }
   const bytes=await _test.makeExecutivePdf(report.title,report),task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,isEvalSupported:false}),pdf=await task.promise;
-  const pageLimit=model.panorama ? Infinity : model.bondExecutive ? 5 : collection==='markets' && report.key==='proteins' ? 6 : 3;
+  const pageLimit=model.panorama ? Infinity : model.bondExecutive ? 5 : model.equityExecutive ? 4 : collection==='markets' && report.key==='proteins' ? 6 : 3;
   assert(pdf.numPages<=pageLimit,report.key+' fits its page limit');let cells=0;
   for(let number=1;number<=pdf.numPages;number++){
    const page=await pdf.getPage(number),items=(await page.getTextContent()).items;

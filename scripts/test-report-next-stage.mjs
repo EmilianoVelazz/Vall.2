@@ -46,7 +46,7 @@ const book=await makeReportWorkbook(mx);
 const response=await requestReportFile(mx,mx.title,mx.summary,'xlsx',async()=>new Response(book,{headers:{'content-type':REPORT_WORKBOOK_MIME}}),{language:'es'});assert.equal(response.size,book.length);
 await assert.rejects(requestReportFile(mx,mx.title,mx.summary,'xlsx',async()=>new Response('wrong',{headers:{'content-type':REPORT_WORKBOOK_MIME}}),{language:'es'}),/incompleto/);
 // Exercise the actual export route with simulated identity and localization only.
-process.env.NODE_ENV='test';process.env.JWT_SECRET='next-stage-report-fixture';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='next-stage-report-fixture-fixture-only-testing-32bytes';
 const owner='reports@example.invalid',jwt=require('jsonwebtoken'),express=require('express');
 require('../backend/services/user-profile-store').findById=async()=>({active:true,email:owner,credentialVersion:0});
 const {reportTranslator}=require('../backend/services/report-translation'),original=reportTranslator.localize;

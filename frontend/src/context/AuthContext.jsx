@@ -8,9 +8,14 @@ export function AuthProvider({ children }) {
   const { token, user, sessionChecked } = useSyncExternalStore(session.subscribe, session.getSnapshot);
 
   useEffect(() => {
-    const controller = new AbortController();
-    session.check(controller.signal);
-    return () => controller.abort();
+    let controller;
+    const check=()=>{controller?.abort();controller=new AbortController();void session.check(controller.signal);};
+    const visible=()=>{if(document.visibilityState==='visible')check();};
+    check();
+    window.addEventListener('focus',check);
+    window.addEventListener('vn:session-refresh',check);
+    document.addEventListener('visibilitychange',visible);
+    return () => {controller?.abort();window.removeEventListener('focus',check);window.removeEventListener('vn:session-refresh',check);document.removeEventListener('visibilitychange',visible);};
   }, [session]);
 
   return (
@@ -21,6 +26,3 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthCtx);
-
-//if constnat()=0;
-//select the folder

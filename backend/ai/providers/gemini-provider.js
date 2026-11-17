@@ -7,10 +7,11 @@ const {chatMeter}=require('../../lib/chat-credit-context');
 const {countRequestTokens}=require('./gemini-token-counter');
 
 const MODELS = Object.freeze({
-    // Modelos comprobados para esta cuenta el 2026-09-09. Se pueden fijar por
-    // entorno si un despliegue requiere una versión distinta.
+    // Cada ruta puede fijar su modelo por entorno sin cambiar las demás.
     flash: process.env.GEMINI_MODEL_FLASH || 'gemini-3.8-flash',
     pro: process.env.GEMINI_MODEL_PRO || 'gemini-3.1-pro-preview',
+    // Separate report routing from the interactive ORION profiles.
+    report: process.env.GEMINI_MODEL_REPORTS || 'gemini-4-argon',
 });
 
 // La vista previa Pro puede no estar habilitada en todas las cuentas. Antes
@@ -69,6 +70,7 @@ function normalizeProviderError(error) {
     const lower = message.toLowerCase();
     const status = Number(error?.status || error?.statusCode || error?.error?.code);
     const wrapped = new Error(message);
+    if (error?.cause) wrapped.cause = error.cause;
     if(Number.isInteger(status) && status>=400 && status<=599)wrapped.providerStatus=status;
     wrapped.code = status === 429 || lower.includes('429') || lower.includes('quota') ? 'AI_RATE_LIMIT'
         : lower.includes('safety') || lower.includes('blocked') ? 'AI_SAFETY'
@@ -80,6 +82,7 @@ function normalizeProviderError(error) {
 }
 
 function thinkingFor(model, tier, modelProfile = null) {
+    if (tier === 'report' && /^gemini-4-/i.test(model)) return { thinkingLevel: 'medium' };
     const profile = orionModel(modelProfile);
     if (profile) {
         if (/^gemini-2\.5/i.test(model)) {
@@ -98,7 +101,7 @@ function thinkingFor(model, tier, modelProfile = null) {
     if (/^gemini-3\.6-/i.test(model)) return { thinkingLevel: tier === 'pro' ? 'low' : 'minimal' };
     if (/^gemini-(?:3|[4-9])/i.test(model)) return { thinkingLevel: tier === 'pro' ? 'high' : 'low' };
     if (/^gemini-2\.5/i.test(model)) {
-        return { thinkingBudget: tier === 'pro' ? 1024 : 0 };
+        return { thinkingBudget: tier === 'pro' || tier === 'report' || /pro/i.test(model) ? 1024 : 0 };
     }
     return null;
 }
@@ -116,10 +119,12 @@ class GeminiProvider {
         const reservation=await attempt.wait(()=>meter.reserve(model,{countTokens:()=>this.countRequestTokens({model,contents,systemInstruction:options.systemInstruction,tools:options.tools,signal:attempt.signal}),maxOutputTokens:config.maxOutputTokens,hasTools:Boolean(options.tools?.length),audio:options.attachments?.some(file=>file.type?.startsWith('audio/'))}));
         config.maxOutputTokens=reservation.maxOutputTokens;config.httpOptions.retryOptions={attempts:1};return reservation;
     }
-    modelForTier(tier) { return tier === 'pro' ? MODELS.pro : MODELS.flash; }
-    tierForModel(model) { return [MODELS.pro, ...PRO_FALLBACKS].includes(model) ? 'pro' : 'flash'; }
+    modelForTier(tier) { return tier === 'report' ? MODELS.report : tier === 'pro' ? MODELS.pro : MODELS.flash; }
+    tierForModel(model) { return model === MODELS.report ? 'report' : [MODELS.pro, ...PRO_FALLBACKS].includes(model) ? 'pro' : 'flash'; }
     modelsForTier(tier) {
-        const candidates = tier === 'pro'
+        const candidates = tier === 'report'
+            ? [MODELS.report, MODELS.pro, ...PRO_FALLBACKS, MODELS.flash, ...FLASH_FALLBACKS]
+            : tier === 'pro'
             ? [MODELS.pro, ...PRO_FALLBACKS, MODELS.flash, ...FLASH_FALLBACKS]
             : [MODELS.flash, ...FLASH_FALLBACKS];
         return [...new Set(candidates.filter(Boolean))];
@@ -138,8 +143,9 @@ class GeminiProvider {
     requestConfig({ systemInstruction, tier, model, modelProfile, json = false, tools, maxOutputTokens, signal, timeoutMs }) {
         const thinkingConfig = thinkingFor(model, tier, modelProfile);
         return {
-            systemInstruction, temperature: json ? 0.18 : 0.3, topP: 0.86,
-            maxOutputTokens: maxOutputTokens || (tier === 'pro' ? 12288 : 4096),
+            systemInstruction,
+            ...(/^gemini-4-/i.test(model) ? {} : {temperature: json ? 0.18 : 0.3, topP: 0.86}),
+            maxOutputTokens: maxOutputTokens || (tier === 'report' ? 32768 : tier === 'pro' ? 12288 : 4096),
             ...(thinkingConfig ? { thinkingConfig } : {}),
             ...(json ? { responseMimeType: 'application/json' } : {}),
             ...(Array.isArray(tools) && tools.length ? { tools } : {}),
@@ -180,7 +186,7 @@ class GeminiProvider {
                 if(!responseReceived)await reservation?.fail(lastError);
                 if (signal?.aborted) throw lastError;
                 if (['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
-                console.warn(`[Gemini] ${model} no disponible; se evalúa el respaldo dentro del plazo restante.`);
+                console.warn(`[Gemini] ${model} no disponible (${lastError.code}${lastError.providerStatus ? ` ${lastError.providerStatus}` : ''}: ${String(lastError.message).slice(0, 160)}${lastError.cause ? ` · ${lastError.cause.code || lastError.cause.message}` : ''}); se evalúa el respaldo dentro del plazo restante.`);
             } finally { attempt.dispose(); }
         }
         throw lastError;

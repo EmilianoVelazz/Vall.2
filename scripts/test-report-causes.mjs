@@ -5,7 +5,7 @@ import {weeklyReport} from '../shared/report-weekly.mjs';
 import {reportOutline} from '../frontend/src/lib/reportOutline.js';
 
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-causes-test';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-causes-test-fixture-only-testing-32bytes';
 const {_test}=require('../backend/routes/export');
 const {normalizeReport}=require('../backend/services/user-report-store');
 const {createReportTranslator}=require('../backend/services/report-translation');

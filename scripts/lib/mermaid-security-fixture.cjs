@@ -30,8 +30,10 @@ const html = `<!doctype html><html lang="es"><meta charset="utf-8"><title>Verifi
  document.querySelector('#status').textContent=passed+'/'+tests.length+' comprobaciones correctas';
 })().catch(error=>document.querySelector('#status').textContent='Fallo: '+error.message);
 </script></html>`;
-http.createServer((req,res)=>{
+function createFixtureServer(){return http.createServer((req,res)=>{
  if(req.url==='/mermaid.min.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});fs.createReadStream(bundle).pipe(res);}
  else if(req.url==='/'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);}
  else {res.writeHead(404);res.end();}
-}).listen(5280,'127.0.0.1',()=>console.log('Prueba local: http://127.0.0.1:5280'));
+});}
+module.exports={createFixtureServer};
+if(require.main===module)createFixtureServer().listen(5280,'127.0.0.1',()=>console.log('Prueba local: http://127.0.0.1:5280'));

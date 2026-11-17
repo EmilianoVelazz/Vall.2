@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {getDocument} from '../frontend/node_modules/pdfjs-dist/legacy/build/pdf.mjs';
-const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-spacing-audit';
+const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-spacing-audit-fixture-only-testing-32bytes';
 const {_test}=require('../backend/routes/export');
 const stage=process.argv.includes('--baseline')?'before':'after',analyzeOnly=process.argv.includes('--analyze-only'),root=path.resolve('tmp/pdfs/todos-informes'),sources=path.join(root,'sources.json');
 await fs.mkdir(root,{recursive:true});

@@ -1,9 +1,10 @@
 'use strict';
+process.env.NODE_ENV='test';
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const express = require('express');
 const jwt = require('jsonwebtoken');
-process.env.JWT_SECRET = 'test-only-profile-recovery';
+process.env.JWT_SECRET = 'test-only-profile-recovery-fixture-only-testing-32bytes';
 process.env.VERCEL = '1';
 process.env.VALL_AUTH_EMAIL = 'admin@example.invalid';
 const profiles = require('../backend/services/user-profile-store');

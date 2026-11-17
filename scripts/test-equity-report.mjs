@@ -6,7 +6,7 @@ import {getDocument,OPS} from '../frontend/node_modules/pdfjs-dist/legacy/build/
 import {reportOutline} from '../frontend/src/lib/reportOutline.js';
 import {reportLayout} from '../frontend/src/lib/reportLayout.js';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-equity-report-secret';delete process.env.USER_PASSWORD;
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-equity-report-secret-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
 const {_test}=require('../backend/routes/export');
 const {enrichSectorReport}=require('../backend/lib/report-sector-format');
 const {UserReportAgent}=require('../backend/ai/user-report-agent');

@@ -6,9 +6,10 @@ const { externalGet, gdeltFetch, yahooFetch, YF_UA } = require('../lib/http');
 const { verifyToken } = require('./auth');
 const { analysisLimiter, analysisWork, analysisCacheKey, proteinAnalysisInput } = require('../lib/private-analysis');
 const { boundedJson } = require('../lib/resource-limits');
-const { BoundedCache } = require('../lib/bounded-cache');
+const { BoundedCache, createSingleFlight } = require('../lib/bounded-cache');
 
 const router = express.Router();
+const externalFlight = createSingleFlight(32);
 
 
 // Utilidad FIFO: limita el tamaño de los Map de caché
@@ -48,13 +49,16 @@ router.get('/banxico/:serie/history', async (req, res) => {
     const hit = _bnxCache.get(cacheKey);
     if (hit && Date.now() - hit.ts < BNX_TTL) return res.json(hit.data);
     try {
-        const url = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/${start}/${end}`;
-        const response = await externalGet(url, { 'Bmx-Token': BANXICO_TOKEN }, 20000);
-        const payload = await response.json();
-        if (payload?.error || !Array.isArray(payload?.bmx?.series?.[0]?.datos)) {
-            throw new Error(payload?.error?.mensaje || 'Respuesta histórica inválida de Banxico');
-        }
-        boundedSet(_bnxCache, cacheKey, { ts: Date.now(), data: payload }, 100);
+        const payload = await externalFlight(`bnx-hist:${cacheKey}`, async () => {
+            const url = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/${start}/${end}`;
+            const response = await externalGet(url, { 'Bmx-Token': BANXICO_TOKEN }, 20000);
+            const data = await response.json();
+            if (data?.error || !Array.isArray(data?.bmx?.series?.[0]?.datos)) {
+                throw new Error(data?.error?.mensaje || 'Respuesta histórica inválida de Banxico');
+            }
+            boundedSet(_bnxCache, cacheKey, { ts: Date.now(), data }, 100);
+            return data;
+        });
         res.json(payload);
     } catch (error) {
         console.error('/api/banxico history:', error.message);
@@ -104,11 +108,15 @@ router.get('/banxico/:serie', async (req, res) => {
     }
 
     try {
-        const url = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/oportuno`;
-        const response = await externalGet(url, { 'Bmx-Token': BANXICO_TOKEN }, 20000);
-        const payload = await response.json();
+        const result = await externalFlight(`bnx-spot:${serie}`, async () => {
+            const url = `https://www.banxico.org.mx/SieAPIRest/service/v1/series/${serie}/datos/oportuno`;
+            const response = await externalGet(url, { 'Bmx-Token': BANXICO_TOKEN }, 20000);
+            const payload = await response.json();
+            return { status: response.status, payload };
+        });
+        const { status: respStatus, payload } = result;
 
-        if (response.status === 401 || response.status === 403) {
+        if (respStatus === 401 || respStatus === 403) {
             _bnxCircuitOpen = true;
             _bnxCircuitUntil = Date.now() + BNX_CIRCUIT_MS;
             console.error('/api/banxico: token rechazado; se abre el circuito 6 h');
@@ -1124,11 +1132,14 @@ router.get('/finnhub-news', async (req, res) => {
     if (!FINNHUB_TOKEN) return res.status(503).json({ error: 'FINNHUB_TOKEN no configurado.' });
 
     try {
-        const url = `https://finnhub.io/api/v1/news?category=${category}&token=${encodeURIComponent(FINNHUB_TOKEN)}`;
-        const response = await externalGet(url, {}, 10000);
-        const payload = await response.json();
-        if (!Array.isArray(payload)) throw new Error(payload?.error || 'Respuesta inesperada de Finnhub');
-        _finnhubCache.set(category, payload);
+        const payload = await externalFlight(`finnhub:${category}`, async () => {
+            const url = `https://finnhub.io/api/v1/news?category=${category}&token=${encodeURIComponent(FINNHUB_TOKEN)}`;
+            const response = await externalGet(url, {}, 10000);
+            const data = await response.json();
+            if (!Array.isArray(data)) throw new Error(data?.error || 'Respuesta inesperada de Finnhub');
+            _finnhubCache.set(category, data);
+            return data;
+        });
         res.json(payload);
     } catch (error) {
         console.error('/api/finnhub-news:', error.message);
@@ -1226,10 +1237,13 @@ router.get('/crypto-global', async (req, res) => {
     const fresco = _cryptoCache.get('global');
     if (fresco) return res.json(fresco);
     try {
-        const response = await externalGet('https://api.coingecko.com/api/v3/global', {}, 10000);
-        const payload = await response.json();
-        if (!payload?.data?.market_cap_percentage) throw new Error('Respuesta inesperada de CoinGecko');
-        _cryptoCache.set('global', payload);
+        const payload = await externalFlight('crypto:global', async () => {
+            const response = await externalGet('https://api.coingecko.com/api/v3/global', {}, 10000);
+            const data = await response.json();
+            if (!data?.data?.market_cap_percentage) throw new Error('Respuesta inesperada de CoinGecko');
+            _cryptoCache.set('global', data);
+            return data;
+        });
         res.json(payload);
     } catch (error) {
         console.error('/api/crypto-global:', error.message);
@@ -1248,40 +1262,45 @@ router.get('/exchange-rates', async (req, res) => {
     const fresco = _fxCache.get('usd');
     if (fresco) return res.json(fresco);
     try {
-        const response = await externalGet('https://open.er-api.com/v6/latest/USD', {}, 10000);
-        const payload = await response.json();
-        if (!payload?.rates?.MXN) throw new Error('Respuesta sin tipos de cambio');
-        // La cotización puntual no incluye variación. Frankfurter aporta los dos
-        // últimos cierres hábiles de una misma serie para colorear el mapa sin
-        // mezclar niveles de proveedores distintos.
-        try {
-            const end = new Date();
-            const start = new Date(end);
-            start.setUTCDate(start.getUTCDate() - 10);
-            const iso = date => date.toISOString().slice(0,10);
-            const historyResponse = await externalGet(`https://api.frankfurter.app/${iso(start)}..${iso(end)}?from=USD`, {}, 10000);
-            const historyPayload = await historyResponse.json();
-            const dates = Object.keys(historyPayload?.rates || {}).sort();
-            if (dates.length >= 2) {
-                const currentDate = dates[dates.length - 1];
-                const previousDate = dates[dates.length - 2];
-                payload.comparison = {
-                    source: 'Frankfurter · BCE',
-                    currentDate,
-                    previousDate,
-                    currentRates: { USD:1, ...historyPayload.rates[currentDate] },
-                    previousRates: { USD:1, ...historyPayload.rates[previousDate] },
-                };
+        const payload = await externalFlight('fx:usd', async () => {
+            const response = await externalGet('https://open.er-api.com/v6/latest/USD', {}, 10000);
+            const data = await response.json();
+            if (!data?.rates?.MXN) throw new Error('Respuesta sin tipos de cambio');
+            // La cotización puntual no incluye variación. Frankfurter aporta los dos
+            // últimos cierres hábiles de una misma serie para colorear el mapa sin
+            // mezclar niveles de proveedores distintos.
+            try {
+                const end = new Date();
+                const start = new Date(end);
+                start.setUTCDate(start.getUTCDate() - 10);
+                const iso = date => date.toISOString().slice(0,10);
+                const historyResponse = await externalGet(`https://api.frankfurter.app/${iso(start)}..${iso(end)}?from=USD`, {}, 10000);
+                const historyPayload = await historyResponse.json();
+                const dates = Object.keys(historyPayload?.rates || {}).sort();
+                if (dates.length >= 2) {
+                    const currentDate = dates[dates.length - 1];
+                    const previousDate = dates[dates.length - 2];
+                    data.comparison = {
+                        source: 'Frankfurter · BCE',
+                        currentDate,
+                        previousDate,
+                        currentRates: { USD:1, ...historyPayload.rates[currentDate] },
+                        previousRates: { USD:1, ...historyPayload.rates[previousDate] },
+                    };
+                }
+            } catch (comparisonError) {
+                console.warn('/api/exchange-rates comparación diaria:', comparisonError.message);
             }
-        } catch (comparisonError) {
-            console.warn('/api/exchange-rates comparación diaria:', comparisonError.message);
-        }
-        _fxCache.set('usd', payload);
+            data.stale=false;
+            data.retrievedAt=new Date().toISOString();
+            _fxCache.set('usd', data);
+            return data;
+        });
         res.json(payload);
     } catch (error) {
         console.error('/api/exchange-rates:', error.message);
         const viejo = _fxCache.stale('usd');
-        if (viejo) return res.json(viejo);
+        if (viejo) {res.set('Cache-Control','no-store');return res.json({...viejo,stale:true});}
         res.status(502).json({ error: 'Proveedor de divisas no disponible.' });
     }
 });

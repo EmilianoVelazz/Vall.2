@@ -8,7 +8,7 @@ import {reportOutline} from '../frontend/src/lib/reportOutline.js';
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
 import {reportCsv} from '../frontend/src/lib/reportCsv.js';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-bond-test';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-bond-test-fixture-only-testing-32bytes';
 const {config,loadBondMarkets,parseTreasuryXml,parseBanxicoSeries}=require('../backend/lib/report-bond-markets');
 const {normalizeReport}=require('../backend/services/user-report-store');
 const {reportExportContent}=require('../backend/lib/report-export-content');
@@ -60,7 +60,7 @@ const translator=createReportTranslator({provider:{isConfigured:()=>true,generat
 const localized=await translator.localize({report:payload,language:'en'}),translated=weeklyReport(localized.report);assert(translated.summary.startsWith('Translated: '));assert(translated.commentary.some(item=>item.body.startsWith('Translated: ')));assert.equal(translated.curve.current,model.curve.current);
 const bytes=await _test.makeExecutivePdf(report.title,payload),{getDocument}=await import('../frontend/node_modules/pdfjs-dist/legacy/build/pdf.mjs');
 const task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,disableFontFace:true}),pdf=await task.promise;assert(pdf.numPages<=8);let text='';
-for(let i=1;i<=pdf.numPages;i++){const items=(await(await pdf.getPage(i)).getTextContent()).items;text+=items.map(item=>item.str).join(' ')+'\n';for(const item of items.filter(item=>item.str.trim() && !/^(USO INTERNO|PAGINA)/.test(item.str))) assert(item.transform[5]>=55,'Separado del pie: '+item.str);}
+for(let i=1;i<=pdf.numPages;i++){const items=(await(await pdf.getPage(i)).getTextContent()).items;text+=items.map(item=>item.str).join(' ')+'\n';for(const item of items.filter(item=>item.str.trim() && !/^(USO INTERNO|P[AÁ]GINA)/.test(item.str))) assert(item.transform[5]>=55,'Separado del pie: '+item.str);}
 assert(pdf.numPages<=2);assert(text.includes('Curva soberana'));assert(text.includes('CETES'));assert(text.includes('Implicaciones para el negocio'));assert(text.includes('Día'));await task.destroy();
 if(process.argv.includes('--preview')) {await fs.mkdir('output/pdf',{recursive:true});await fs.writeFile('output/pdf/bonos-formato-sesion-muestra.pdf',bytes);}
 if(process.argv.includes('--ui')) {

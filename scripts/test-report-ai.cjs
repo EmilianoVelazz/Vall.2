@@ -1,4 +1,5 @@
 'use strict';
+process.env.NODE_ENV='test';
 const assert=require('node:assert/strict');
 const express=require('express');
 const jwt=require('jsonwebtoken');
@@ -65,7 +66,10 @@ async function tests() {
     await assert.rejects(new UserReportAgent({provider:{isConfigured:()=>true,generate:async()=>({text:JSON.stringify(edition),finishReason:'MAX_TOKENS'})}}).generate({report,instructions:'Adaptar'}),/no terminó/,'Una respuesta cortada nunca sustituye el informe');
     assert.equal(sourceReport({title:'Anterior',content:'Texto anterior completo'}).sections[0].text,'Texto anterior completo','La IA recibe el contenido de documentos anteriores');
 
-    process.env.JWT_SECRET='isolated-report-ai-http-secret';delete process.env.USER_PASSWORD;
+    process.env.JWT_SECRET='isolated-report-ai-http-secret-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
+    // Isolate account persistence while retaining the real JWT/owner checks.
+    require('../backend/services/user-profile-store').findById=async id=>id==='fixture' ? {id,email:'fixture@example.invalid',active:true,credentialVersion:0,role:'user',preferences:{}} : null;
+    require('../backend/services/session-revocations').sessionRevocations.isRevoked=async()=>false;
     const {createUserReportsRouter}=require('../backend/routes/user-reports');
     const app=express();let saves=0;
     const learning={load:async()=>({status:'empty',historyEnabled:true,providerEnabled:false,interests:[]})};

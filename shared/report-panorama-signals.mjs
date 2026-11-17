@@ -1,6 +1,5 @@
 const list=value=>Array.isArray(value) ? value : [];
 const number=value=>value.toLocaleString('es-MX',{maximumFractionDigits:3});
-const money=value=>value.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
 const signed=(value,unit)=>(value>0 ? '↑ +' : value<0 ? '↓ ' : '→ ')+number(value)+' '+unit;
 const fold=value=>String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function published(reference,cutoff){
@@ -40,18 +39,11 @@ export function panoramaSignals(chapters,{scope='finance',cutoff,weekly=false,t=
  return selected.slice(0,8);
 }
 export function panoramaImplications(signals,chapters,{t=value=>value}={}){
- const effects=[],fx=signals.find(item=>item.id==='usdmxn'),wti=signals.find(item=>item.id==='wti'),growth=signals.find(item=>item.id==='macro-Crecimiento real del PIB');
- if(fx && Number.isFinite(fx.baseValue)){
-  const amount=(fx.numericValue-fx.baseValue)*100000;
-  effects.push({heading:t('Exposición al dólar'),body:t('Escenario para USD 100,000: ')+(amount===0 ? t('sin cambio en la conversión a pesos') : money(Math.abs(amount))+' MXN '+t(amount>0 ? 'más para pagar; mayor conversión para quien cobra' : 'menos para pagar; menor conversión para quien cobra'))+' ('+fx.baseDate+' / '+fx.date+'). '+t('Comparación de referencia, antes de comisiones y coberturas; no es una oferta bancaria.')});
- }
- if(wti && Number.isFinite(wti.baseValue)){
-  const amount=(wti.numericValue-wti.baseValue)*1000;
-  effects.push({heading:t('Compras de energía'),body:t('En 1,000 barriles ligados uno a uno al WTI físico, el cambio de referencia equivale a ')+(amount<0 ? '-' : '+')+money(Math.abs(amount))+' USD ('+wti.baseDate+' / '+wti.date+'). '+t('El efecto entregado depende del contrato, calidad y transporte; no se traslada automáticamente a combustibles o electricidad.')});
- }
- if(growth && Number.isFinite(growth.numericChange))effects.push({heading:t('Demanda y planeación'),body:t('El crecimiento del PIB cambió ')+signed(growth.numericChange,'p. p.')+' ('+growth.baseDate+' / '+growth.date+'). '+t('Contrastar el presupuesto de ventas con pedidos e inventarios actuales; es contexto anual y no confirma el comportamiento de la demanda de hoy.')});
- if(chapters.some(chapter=>chapter.componentReport?.key==='bonds'))effects.push({heading:t('Fondeo y tesorería'),body:t('Revisar SOFR y TIIE junto con la próxima fecha de reajuste de la deuda. La curva soberana y los diferenciales de crédito ayudan a distinguir tasa base y prima de riesgo; no sustituyen la tasa pactada de la empresa.')});
- if(chapters.some(chapter=>['grains','proteins','mx_proteins'].includes(chapter.componentReport?.key)))effects.push({heading:t('Abastecimiento y margen'),body:t('Priorizar los productos comprados por la empresa. Antes de fijar precio, contrastar la referencia física, presentación, moneda y entrega; los futuros y cutouts aportan contexto y no equivalen a una oferta del producto final.')});
- if(chapters.some(chapter=>chapter.componentReport?.key==='mx_production'))effects.push({heading:t('Continuidad regional'),body:t('Usar las tablas de concentración agrícola y minera para revisar orígenes alternativos, transporte y proveedores. La producción del periodo declarado no demuestra inventario comercial disponible hoy.')});
- return effects.slice(0,chapters.every(chapter=>chapter.componentReport?.collection==='mexico') ? 2 : 3);
+ const read=item=>item.label+' '+(Number.isFinite(item.numericChange) ? item.numericChange>0 ? 'sube' : item.numericChange<0 ? 'baja' : 'sin cambio' : 'con publicación disponible')+' ('+(item.baseDate ? item.baseDate+' / ' : '')+item.date+')',effects=[];
+ const cash=signals.filter(item=>['usdmxn','sofr','treasury10'].includes(item.id)),inputs=signals.filter(item=>['corn','wti','pork','mx-chicken','mx-egg','mexico-corn'].includes(item.id)),structure=signals.filter(item=>item.kind==='structural');
+ if(cash.length)effects.push({heading:t('Tesorería · moneda y fondeo'),body:t(cash.map(read).join('; ')+'. Contrastar pagos y cobros netos por moneda con los contratos de deuda próximos a reajustarse. El efecto depende del saldo, referencia y diferencial pactados.')});
+ if(inputs.length)effects.push({heading:t('Compras · reposición y costos'),body:t(inputs.slice(0,3).map(read).join('; ')+'. Revisar primero los contratos y compras próximos a fijarse. Vincular cada referencia con el producto comprado, calidad, moneda y entrega; estas trayectorias no constituyen un margen conjunto.')});
+ if(structure.length)effects.push({heading:t('Dirección · demanda y exposición regional'),body:t('Contexto anual: '+structure.map(read).join('; ')+'. Contrastar el presupuesto con pedidos y continuidad de proveedores actuales; los datos anuales describen estructura, no la demanda de hoy.')});
+ else {const equity=chapters.find(chapter=>chapter.model?.equityExecutive);if(equity)effects.push({heading:t('Dirección · riesgo y concentración'),body:t((equity.model.equityExecutive.risk?.label || 'Revisar riesgo de mercado')+'. Contrastar concentración por país y sector con volatilidad y crédito del mismo periodo. Identificar vencimientos y decisiones corporativas documentadas antes de modificar la exposición.')});}
+ return effects.slice(0,3);
 }

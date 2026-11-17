@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict'),express=require('express'),path=require('node:path');
-process.env.NODE_ENV='test';process.env.VERCEL='1';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';process.env.JWT_SECRET='weekly-refresh-fixture';
+process.env.NODE_ENV='test';process.env.VERCEL='1';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';process.env.JWT_SECRET='weekly-refresh-fixture-fixture-only-testing-32bytes';
 for(const key of ['SUPABASE_URL','VITE_SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_ANON_KEY','SUPABASE_DATABASE_URL','DATABASE_URL','SUPABASE_PASSWORD','GEMINI_API_KEY'])process.env[key]='';
 const NativeDate=Date;let instant=NativeDate.parse('2026-11-05T20:30:00Z');
 global.Date=class extends NativeDate{constructor(...args){super(...(args.length ? args : [instant]));}static now(){return instant;}};

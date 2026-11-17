@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import {getDocument} from '../frontend/node_modules/pdfjs-dist/legacy/build/pdf.mjs';
 import {STATE_GRAIN_PRODUCTION} from '../frontend/src/lib/mexico-state-production.js';
 const require=createRequire(import.meta.url);
-process.env.JWT_SECRET='mexico-reports-test-secret';delete process.env.USER_PASSWORD;
+process.env.JWT_SECRET='mexico-reports-test-secret-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
 const {input,time}=require('./lib/mexico-report-fixture.cjs');
 const {buildMexicoReports,createMexicoReports}=require('../backend/services/mexico-executive-reports');
 const {createMexicoReportStore}=require('../backend/services/mexico-report-store');

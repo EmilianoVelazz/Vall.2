@@ -1,5 +1,6 @@
 'use strict';
 const {equityHistoryChart}=require('../../shared/report-equity-history-chart.mjs');
+const {equityCountry,equityRegionMatches,equityRegionalGroups,equityRegionalLabel}=require('../../shared/report-equity-regions.mjs');
 const INK='#193758',MUTED='#586b78',GRID='#dce4ea';
 function equityHistoryPages(visual){const chart=equityHistoryChart(visual);return chart ? [chart.series] : [];}
 function drawEquityHistoryPage(doc,series,{left,top,width,bottom,write,t=value=>value}){
@@ -28,4 +29,26 @@ function drawEquityHistoryPage(doc,series,{left,top,width,bottom,write,t=value=>
     write(t('Escala logarítmica común · Base 100 por serie. El porcentaje de la leyenda es el cambio desde su fecha base, no una variación diaria.'),left,end,width,7,false,MUTED);
     return end+17;
 }
-module.exports={equityHistoryPages,drawEquityHistoryPage};
+function drawRegionalEquityHistory(doc,visual,{left,top,width,bottom,write,t=value=>value}){
+    const all=equityHistoryChart(visual);if(!all)return top;
+    const groups=equityRegionalGroups(all.series);
+    const scope=t('Base 100 por índice; escala logarítmica propia de cada panel. Colores y números corresponden a la gráfica global. Las fechas base y metodologías permanecen en su leyenda.');
+    doc.roundedRect(left,top,width,22,3).fill('#edf3f8');write(scope,left+5,top+3,width-10,7,false,MUTED);top+=25;
+    const gap=14,cw=(width-gap)/2,rows=Math.ceil(groups.length/2),height=(bottom-top)/rows;
+    groups.forEach((group,index)=>{
+        const america=group.label==='América',columns=america && group.series.length<=10 ? 1 : 2;
+        const x=left+(index%2)*(cw+gap),y=top+Math.floor(index/2)*height,chart=equityHistoryChart({series:group.series}),legendRows=Math.ceil(group.series.length/columns),ph=height-62-legendRows*12,px=x+29,py=y+27,pw=cw-37;
+        if(ph<85)throw Error('La comparativa regional necesita más espacio para conservar las referencias.');
+        doc.roundedRect(x,y,cw,height-7,3).fillAndStroke('#f8fafb',GRID);
+        const label=america && group.series.some(item=>equityRegionMatches(item,'Latinoamérica')) ? 'América · México y Latinoamérica' : group.label;
+        write(t(label)+' · '+group.series.length,x+6,y+6,cw-12,9,true,INK);
+        const xx=date=>px+all.x(date)*pw,yy=value=>py+chart.y(value)*ph;
+        for(const tick of chart.scale.ticks){doc.moveTo(px,yy(tick)).lineTo(px+pw,yy(tick)).strokeColor(GRID).lineWidth(.35).stroke();write(tick.toLocaleString('es-MX',{maximumFractionDigits:0}),x+1,yy(tick)-3,24,6.8,false,MUTED,{align:'right'});}
+        for(const item of group.series){doc.save();if(item.dash)doc.dash(item.dash.split(' ').map(Number));item.points.forEach((point,i)=>{if(i)doc.lineTo(xx(point.date),yy(point.value));else doc.moveTo(xx(point.date),yy(point.value));});doc.strokeColor(item.color).lineWidth(.9).stroke().restore();}
+        const dates=[new Date(all.first).toISOString().slice(0,4),new Date(all.last).toISOString().slice(0,10)];
+        write(dates[0],px,py+ph+5,pw/2,7,false,MUTED);write(dates[1],px+pw/2,py+ph+5,pw/2,7,false,MUTED,{align:'right'});
+        group.series.forEach((item,i)=>{const lx=x+6+(i%columns)*(cw-12)/columns,ly=py+ph+22+Math.floor(i/columns)*12;doc.save();if(item.dash)doc.dash(item.dash.split(' ').map(Number));doc.moveTo(lx,ly+4).lineTo(lx+10,ly+4).strokeColor(item.color).lineWidth(1.2).stroke().restore();write(item.ordinal+'. '+(america ? equityRegionalLabel(item,{t}) : item.label)+(item.returnBasis==='total-return' ? ' †' : ''),lx+14,ly,(cw-12)/columns-17,6.9,america && equityCountry(item)==='México',INK,{height:10,ellipsis:true});});
+    });
+    return top+rows*height;
+}
+module.exports={equityHistoryPages,drawEquityHistoryPage,drawRegionalEquityHistory};

@@ -53,8 +53,33 @@ function buildFxReportData({rates=[],histories=[],previous,generatedAt=new Date(
         if(recent.length>=2) visuals.push({type:'line',title:label+' · '+name,unit:quote.unit,series:[{label,points:recent}],note:''});
         else if(positive(quote.value)) visuals.push({type:'bar',title:label+' · '+name,unit:quote.unit,bars:[{label:quote.updatedAt,value:quote.value}],note:''});
     }
-    const metrics=quotes.map(quote=>({label:quote.label+' · '+quote.name,value:positive(quote.value) ? reportNumber(quote.value)+' '+quote.code : 'Sin dato',change:quote.updatedAt || '',tone:'flat'}));
-    const table={title:'Cotizaciones por 1 USD',columns:['Moneda','Par','Unidades por 1 USD','Fecha del dato','Fuente'],rows:quotes.map(quote=>[quote.name,quote.label,positive(quote.value) ? reportNumber(quote.value)+' '+quote.code : 'Sin dato',quote.updatedAt || 'Sin dato',quote.source || 'Sin dato']),note:''};
+    // Prioridad ejecutiva para empresas en México: divisas clave primero
+    const PRIORITY_CODES = ['MXN', 'EUR', 'CAD', 'CNY', 'BRL', 'JPY', 'GBP'];
+    const sortedQuotes = [...quotes].sort((a, b) => {
+        const ia = PRIORITY_CODES.indexOf(a.code);
+        const ib = PRIORITY_CODES.indexOf(b.code);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.code.localeCompare(b.code);
+    });
+    const metrics=sortedQuotes.map(quote=>{
+        let change = quote.updatedAt || '';
+        let tone = 'flat';
+        if (positive(quote.value) && positive(quote.previous)) {
+            const delta = ((quote.value - quote.previous) / quote.previous) * 100;
+            const sign = delta > 0 ? '+' : '';
+            change = sign + delta.toFixed(2) + '%';
+            tone = Math.abs(delta) < 0.05 ? 'flat' : delta > 0 ? 'up' : 'down';
+        }
+        return {
+            label: quote.label+' · '+quote.name,
+            value: positive(quote.value) ? reportNumber(quote.value)+' '+quote.code : 'Sin dato',
+            change,
+            tone
+        };
+    });
+    const table={title:'Cotizaciones por 1 USD',columns:['Moneda','Par','Unidades por 1 USD','Fecha del dato','Fuente'],rows:sortedQuotes.map(quote=>[quote.name,quote.label,positive(quote.value) ? reportNumber(quote.value)+' '+quote.code : 'Sin dato',quote.updatedAt || 'Sin dato',quote.source || 'Sin dato']),note:''};
     return {fxSchemaVersion:config.schemaVersion,metrics,visuals,tables:[table],sourceSnapshot:{baseCurrency:'USD',fx:quotes,fxHistories:keptHistories,fxHistory:keptHistories.find(item=>item.code==='MXN') || null},sources:[...new Set(quotes.map(quote=>quote.source).filter(Boolean))],sourceLinks:[...new Map(keptHistories.filter(item=>item.url).map(item=>[item.url,{label:item.source || item.label,url:item.url}])).values()]};
 }
 function exportFxHistory(report){

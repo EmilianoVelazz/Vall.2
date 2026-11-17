@@ -41,15 +41,21 @@ async function connectDatabase() {
     if (!config) return null;
     if (Date.now() < disabledUntil) throw Object.assign(new Error('Base de datos temporalmente no disponible.'), { code: 'DB_UNAVAILABLE' });
     if (!pool) {
-        pool = new Pool({ ...config, ssl: databaseTls(), max: 5,
+        pool = new Pool({ ...config, ssl: databaseTls(), max: Math.min(Math.max(Number(process.env.DB_POOL_MAX) || 20, 1), 50),
             connectionTimeoutMillis: 4000, idleTimeoutMillis: 30000,
             query_timeout: 10000, statement_timeout: 10000, allowExitOnIdle: true });
-        pool.on('error', () => { disabledUntil = Date.now() + 30000; });
+        // Un error de un cliente inactivo no debe apagar la base para todos;
+        // el pool descarta ese cliente y abre otro en la siguiente petición.
+        pool.on('error', error => { console.warn('[db] Error en cliente inactivo del pool:', error.message); });
     }
-    if (pool.waitingCount >= 20) throw Object.assign(new Error('Base de datos ocupada.'), { code: 'DB_BUSY' });
+    if (pool.waitingCount >= 50) throw Object.assign(new Error('Base de datos ocupada.'), { code: 'DB_BUSY' });
     let client;
     try { client = await pool.connect(); }
-    catch (error) { disabledUntil = Date.now() + 30000; throw error; }
+    catch (error) {
+        // Disyuntor breve (3 s, antes 30 s) para no saturar un servidor caído.
+        disabledUntil = Date.now() + 3000;
+        throw error;
+    }
     let released = false;
     return {
         query: (...args) => client.query(...args),

@@ -18,9 +18,10 @@ const compression  = require('compression');
 const cors         = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit    = require('express-rate-limit');
-const { originPolicy, securityHeaders, mutationOriginGuard, safeErrorHandler } = require('./lib/request-security');
+const { originPolicy, securityHeaders, mutationOriginGuard, safeErrorHandler, hasBearerSecret } = require('./lib/request-security');
 const { anonymousKey } = require('./lib/resource-limits');
 const legacyRoutes = require('../shared/legacy-routes.json');
+const {createSiteSeo}=require('./lib/site-seo');
 
 
 // ── 4. Routers ────────────────────────────────────────────────────────────────
@@ -59,7 +60,8 @@ app.use(cors({
     },
     credentials: true,
     methods:      ['GET', 'POST', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'x-refresh-secret', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'x-refresh-secret', 'Authorization', 'X-VALL-Account'],
+    exposedHeaders: ['X-VALL-Account', 'X-VALL-Data-Status'],
 }));
 
 app.use(cookieParser());
@@ -94,6 +96,7 @@ app.use('/api', chatRouter);
 app.use('/api', externalRouter);
 // Los documentos tienen su propio límite antes del parser global pequeño.
 app.use('/api', require('./routes/user-reports'));
+app.use('/api', require('./routes/report-reader').router);
 app.use(express.json({ limit: '10kb' }));
 
 // ── Puentes hacia la SPA ──────────────────────────────────────────────────────
@@ -110,6 +113,8 @@ app.use(express.json({ limit: '10kb' }));
 // es relativa.
 const EN_DESARROLLO = process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
 const ORIGEN_SPA = process.env.SPA_ORIGIN || (EN_DESARROLLO ? 'http://localhost:5273' : '');
+
+app.use(createSiteSeo({directory: !EN_DESARROLLO && !process.env.VERCEL ? path.join(__dirname,'../dist') : null,production:!EN_DESARROLLO}));
 
 const RUTAS_SPA = {
     ...(ORIGEN_SPA ? { '/': '/', '/login': '/login' } : {}),
@@ -144,7 +149,7 @@ Object.entries(RUTAS_SPA).filter(([desde, hacia]) => ORIGEN_SPA || desde !== hac
 // Durante desarrollo, nunca reutilizar HTML/CSS/JS anteriores. Esto evita que
 // el navegador mantenga una versión visual vieja después de un rediseño.
 app.use((req, res, next) => {
-    if (/\.(?:html|css|js)$/i.test(req.path)) {
+    if (EN_DESARROLLO && /\.(?:html|css|js)$/i.test(req.path)) {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         res.set('Pragma', 'no-cache');
         res.set('Expires', '0');
@@ -156,6 +161,7 @@ app.use((req, res, next) => {
 // evita publicar por accidente el código del servidor, documentación y cachés.
 app.use('/assets', express.static(path.join(__dirname, '..', 'assets'), {
     setHeaders: (res, pathPath) => {
+        if (!EN_DESARROLLO && pathPath.endsWith('.css')) res.setHeader('Cache-Control','public, max-age=0, must-revalidate');
         if (pathPath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             res.setHeader('Pragma', 'no-cache');
@@ -202,6 +208,8 @@ app.use('/api',mexicoReportsRouter);
 app.use('/api',require('./routes/report-history').createReportHistoryRouter());
 app.use('/api',require('./routes/report-library'));
 
+app.use('/api',require('./routes/morning-brief').router);
+
 // Vercel invoca esta ruta dos veces al día. CRON_SECRET viaja automáticamente
 // como Bearer token. Finanzas y México conservan cortes a las 06:00 y 14:00;
 // Mercados sólo renueva su edición cuando vence el corte del viernes a las 14:00.
@@ -210,9 +218,7 @@ app.get([
     '/api/executive-reports/refresh/morning',
     '/api/executive-reports/refresh/afternoon',
 ], async (req, res) => {
-    const expected = process.env.CRON_SECRET;
-    const authorization = String(req.headers.authorization || '');
-    if (!expected || authorization !== `Bearer ${expected}`) {
+    if (!hasBearerSecret(req, process.env.CRON_SECRET)) {
         return res.status(401).json({ success: false, error: 'No autorizado.' });
     }
     try {
@@ -244,9 +250,7 @@ app.get([
 // Corte semanal de los complementos estatales: Vercel lo invoca los domingos
 // a las 17:00 UTC, equivalentes a las 11:00 de Ciudad de México.
 app.get('/api/livestock-prices/refresh', async (req, res) => {
-    const expected = process.env.CRON_SECRET;
-    const authorization = String(req.headers.authorization || '');
-    if (!expected || authorization !== `Bearer ${expected}`) {
+    if (!hasBearerSecret(req, process.env.CRON_SECRET)) {
         return res.status(401).json({ success: false, error: 'No autorizado.' });
     }
     try {
@@ -264,7 +268,8 @@ app.get('/api/livestock-prices/refresh', async (req, res) => {
 if (SIRVE_SPA) {
     app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
         res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-        res.sendFile(DIST_INDEX);
+        res.set('X-Robots-Tag','noindex');
+        res.status(404).sendFile(path.join(DIST_DIR,'404.html'));
     });
 }
 
@@ -274,12 +279,13 @@ app.use(safeErrorHandler);
 
 // ── Commodity warmer ──────────────────────────────────────────────────────────
 // Pasa true si server.js se ejecuta directamente (no como módulo serverless)
-initCommodityWarmer(require.main === module);
-
+const RUN_BACKGROUND_JOBS = String(process.env.RUN_BACKGROUND_JOBS || 'true').toLowerCase() !== 'false'; // false en réplicas que solo sirven HTTP
+initCommodityWarmer(require.main === module && RUN_BACKGROUND_JOBS);
 // ── SNIIM warmer ──────────────────────────────────────────────────────────────
-if (require.main === module) {
+if (require.main === module && RUN_BACKGROUND_JOBS) {
     finanzasRouter.startExecutiveReportsScheduler?.();
     startMarketExecutiveReportsScheduler?.();
+    finanzasRouter.initDailyNewsWarmer?.();
     require('./lib/report-schedule').scheduleDailyReport(()=>mexicoReports.refresh(),'mexico-reports');
     require('./lib/report-schedule').scheduleDailyReport(()=>require('./ml/forecast-review-job').runForecastReview(),'orion-forecast-review');
     const { initSNIIMWarmer } = require('./lib/sniim-service');
@@ -293,7 +299,7 @@ if (require.main === module) {
 }
 
 // ── Proyecto Loopus · aprendizaje continuo y control de integridad ────────────
-if (require.main === module) {
+if (require.main === module && RUN_BACKGROUND_JOBS) {
     try {
         const brainWorker = require('./ai/brain-worker');
         brainWorker.startWorker(); // Inicia el ciclo de aprendizaje autónomo
@@ -311,6 +317,9 @@ if (require.main === module) {
 // ── Inicio del servidor ───────────────────────────────────────────────────────
 if (require.main === module) {
     const server = app.listen(PORT, () => {
+        // These public brand assets are identical for every report. Preparing
+        // them once at startup keeps image decoding out of the first preview.
+        setImmediate(()=>require('./lib/report-branding').prepareReportBranding().catch(()=>console.warn('[reports] La marca se preparará al generar el primer informe.')));
         console.log(`\n  VALLNEWS Backend · http://localhost:${PORT}`);
         console.log(`   GET  /api/finanzas          → Datos Finanzas (caché 24h)`);
         console.log(`   POST /api/finanzas/refresh   → Forzar actualización (requiere x-refresh-secret)`);

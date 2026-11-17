@@ -2,6 +2,7 @@
 
 const { MODES, cleanString } = require('./response-schema');
 const { forecastRequest, buildAnswerStrategy } = require('./answer-strategy');
+const {responseLength}=require('./answer-format');
 const {
     normalizeForIntent,
     visibleTurns,
@@ -211,11 +212,13 @@ function buildPrompt({ message, context = '', history = [], mode = 'auto', respo
     // Una orden explícita de ampliar no debe heredar accidentalmente el modo
     // breve de una pregunta inicial corta.
     const currentIntent = intentText(userMessage, 8000);
+    const length = responseLength(userMessage);
     if (/\b(profundiza|amplia|detalla|mas completo|mas informacion|explica mejor)\b/.test(currentIntent)) selectedMode = 'detailed';
+    if(length.explicit && length.brief)selectedMode='quick';
     const taskType = detectTaskType(classificationText);
     const recent = normalizeHistory(history);
     const sections = [
-        buildAnswerStrategy({ message, history, plan }).guidance,
+        buildAnswerStrategy({ message, history, plan,includeFormat:false }).guidance,
         `[MODO DE RESPUESTA]\n${selectedMode}: ${MODE_GUIDANCE[selectedMode]}`,
         `[TIPO DE TAREA]\n${taskType}: ${TASK_GUIDANCE[taskType] || TASK_GUIDANCE.general}`,
         `[ARQUITECTURA DE RESPUESTA]\n${TASK_BLUEPRINTS[taskType] || TASK_BLUEPRINTS.general}\nAdapta esta secuencia a la pregunta; no uses encabezados vacios ni secciones sin contenido sustantivo.`,
@@ -224,10 +227,9 @@ function buildPrompt({ message, context = '', history = [], mode = 'auto', respo
     const resolvedConversation = conversationInstruction(userMessage, history);
     if (resolvedConversation) sections.push(resolvedConversation);
     if (plan.providedInputsOnly) sections.push('[CÁLCULO CON SUPUESTOS DEL USUARIO]\nUsa exclusivamente las cifras y restricciones del ejercicio y del historial. No sustituyas costos, precios o monedas por valores de mercado. Conserva los supuestos anteriores al cambiar una sola variable. No inventes si el precio es en pie, canal, mayorista, incluye impuestos o corresponde a una fecha. Calcula resultados, distingue utilidad de margen sobre ventas y explica únicamente los límites que afecten la conclusión.');
-    const wordLimit = currentIntent.match(/\b(menos de|maximo|hasta|no mas de)\s+(\d{1,4})\s+palabras\b/);
-    if (taskType === 'document') sections.push(reportRequirements());
-    else if (wordLimit && Number(wordLimit[2]) > 1) sections.push(`[EXTENSIÓN SOLICITADA POR EL USUARIO]\nEntrega toda la respuesta en un máximo de ${Number(wordLimit[2]) - (wordLimit[1] === 'menos de' ? 1 : 0)} palabras. Este límite tiene prioridad sobre la extensión habitual del modo. Incluye todos los resultados solicitados sin introducciones ni secciones accesorias.`);
-    else if (selectedMode === 'quick' || /\b(?:breve|rapido|en una frase|solo dime)\b/.test(intentText(userMessage))) sections.push('[EXTENSIÓN Y COMPLETITUD]\nUsa entre 120 y 180 palabras como máximo para el análisis breve. Conserva la respuesta directa, el corte, la señal principal y el límite material; omite antecedentes y metodología repetida. La ficha cuantitativa y las fuentes se añaden desde el servidor.');
+    if(length.explicit)sections.push('[EXTENSIÓN SOLICITADA POR EL USUARIO]\n'+length.guidance);
+    else if (taskType === 'document') sections.push(reportRequirements());
+    else if (length.guidance || selectedMode === 'quick') sections.push('[EXTENSIÓN Y COMPLETITUD]\n'+(length.guidance || responseLength('breve').guidance));
     else if (selectedMode !== 'detailed' && selectedMode !== 'technical') sections.push('[EXTENSIÓN Y COMPLETITUD]\nEntrega una respuesta completa y concentrada, normalmente entre 300 y 600 palabras cuando se pide análisis. Da prioridad a todas las partes solicitadas, las cifras verificadas y sus enlaces. No escribas un informe largo si sólo se pide una comparación o noticias; omite introducciones, metodología genérica y repeticiones. Una consulta sencilla de precios necesita sólo tabla, corte y límites del proveedor.');
     if (recent.length) sections.push('[HISTORIAL RECIENTE EN ORDEN CRONOLOGICO]\n' + recent.map((item, index) => `${index + 1}. ${item.role}: ${item.content}`).join('\n'));
     if (webGrounding) {
@@ -250,8 +252,9 @@ La propiedad summary debe contener la conclusion ejecutiva, no una introduccion.
 - Conserva todas las restricciones previas que no hayan sido reemplazadas.
 - Antes de terminar, comprueba que respondiste el ultimo mensaje y no solo repetiste la respuesta anterior.
 - Si el usuario pide agregar, quitar, comparar, cambiar formato, ampliar o corregir, entrega el resultado ya modificado.`);
+    sections.push('Si el turno contiene varias preguntas, responde cada una. Distingue los cálculos con supuestos del usuario de hechos externos y señala cualquier parte que no pueda resolverse; no ocultes una pregunta pendiente detrás de una conclusión general.');
     sections.push('[SOLICITUD ACTUAL DEL USUARIO]\n' + userMessage);
-    return { systemInstruction: SYSTEM_PROMPT, prompt: sections.join('\n\n'), mode: selectedMode, taskType, recommendedTier: selectModelTier({ message: classificationText, mode: selectedMode, taskType, attachments }) };
+    return { systemInstruction: SYSTEM_PROMPT, prompt: sections.join('\n\n'), mode: selectedMode, taskType, responseLength:length, recommendedTier: selectModelTier({ message: classificationText, mode: selectedMode, taskType, attachments }) };
 }
 
 module.exports = { REPORT_MIN_WORDS, SYSTEM_PROMPT, MODE_GUIDANCE, TASK_GUIDANCE, TASK_BLUEPRINTS, reportRequirements, detectMode, detectTaskType, selectModelTier, buildPrompt, intentText };

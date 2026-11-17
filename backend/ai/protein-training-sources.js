@@ -9,6 +9,8 @@ const path = require('path');
 const vm = require('vm');
 const JSZip = require('jszip');
 const { REJECT_UNAUTHORIZED } = require('../lib/http');
+const { configureSystemTrust, trustedCertificates } = require('../lib/tls-trust');
+configureSystemTrust();
 
 // El ciclo puede ejecutarse fuera de server.js; en ese caso también necesita
 // las credenciales locales. `.env` está ignorado por Git y nunca se expone al
@@ -22,7 +24,7 @@ function requestJson(url, { method = 'GET', body, headers = {}, timeout = 20_000
         const target = new URL(url);
         const request = https.request({
             hostname: target.hostname, port: target.port || 443,
-            path: `${target.pathname}${target.search}`, method, rejectUnauthorized: REJECT_UNAUTHORIZED,
+            path: `${target.pathname}${target.search}`, method, ca: trustedCertificates(), rejectUnauthorized: REJECT_UNAUTHORIZED,
             headers: { Accept: 'application/json', 'User-Agent': 'VALLNews-Protein-Research/1.0', ...headers },
         }, response => {
             let content = '';

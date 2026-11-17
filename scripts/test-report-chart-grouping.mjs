@@ -5,7 +5,7 @@ import {priceChartGroups,unifyAnnualEquityCharts,COMPARISON_LINE_LIMIT} from '..
 import {weeklyReport} from '../shared/report-weekly.mjs';
 import {filteredReportModel} from '../shared/report-view-filters.mjs';
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
-const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='offline-chart-grouping-test';
+const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='offline-chart-grouping-test-fixture-only-testing-32bytes';
 const {_test}=require('../backend/routes/export');
 const points=[{date:'2026-10-21',value:-3},{date:'2026-10-22',value:0},{date:'2026-10-23',value:4}];
 const future=(label,extra={})=>({label,unit:'USD/bbl',cadence:'daily',basis:'serie continua de futuros; cierre sin ajustar',sector:'Petróleo',points,...extra});

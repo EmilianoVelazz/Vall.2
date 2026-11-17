@@ -8,7 +8,7 @@ import {reportOutline} from '../frontend/src/lib/reportOutline.js';
 import {reportLayout} from '../frontend/src/lib/reportLayout.js';
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
 import {reportCsv} from '../frontend/src/lib/reportCsv.js';
-const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-sector-format-test';
+const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-sector-format-test-fixture-only-testing-32bytes';
 const {_test}=require('../backend/routes/export'),{normalizeReport}=require('../backend/services/user-report-store'),{reportExportContent}=require('../backend/lib/report-export-content'),{withDailyEvidence}=require('../backend/lib/report-daily-evidence'),{buildMexicoReports}=require('../backend/services/mexico-executive-reports'),{input,time}=require('./lib/mexico-report-fixture.cjs');
 const cutoff='2026-10-19T18:00:00Z',points=[{date:'2026-10-15',value:100},{date:'2026-10-16',value:110},{date:'2026-10-19',value:105}];
 const records=[['finance','fx','USD/MXN','MXN por 1 USD'],['finance','overview','Mercado financiero','puntos'],['markets','overview','Maíz','USD/t'],['markets','grains','Maíz','USD/t'],['markets','energy_metals','Cobre','USD/lb'],['markets','proteins','Cerdo','USD/lb']];

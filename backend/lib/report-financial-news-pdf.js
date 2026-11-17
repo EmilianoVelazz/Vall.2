@@ -18,6 +18,7 @@ function makeFinancialNewsPdf(title,report,helpers){
   try{
    header();write(report.title || title,x,y,w,16,true);y+=26;write(desk.date+' · '+desk.stories.length+' '+t('noticias')+' · '+desk.sourceCount+' '+t('fuentes')+' · '+t('Corte')+': '+stamp(report.generatedAt),x,y,w,8,false,muted);y+=18;
    write(model.summary,x,y,w,8.5);y+=height(model.summary,w,8.5)+8;write(desk.note,x,y,w,7.5,false,muted);y+=height(desk.note,w,7.5)+12;
+   for(const panel of model.decisionSummary?.panels || []){const text=panel.heading+': '+panel.body;write(text,x,y,w,8.2);y+=height(text,w,8.2)+6;}
    if(!desk.stories.length){band(t('Cobertura del día'));write(report.newsStatus==='unavailable' ? t('Las fuentes no respondieron en esta consulta. Vuelve a consultar; no se sustituyen con noticias de fechas anteriores.') : t('No hay publicaciones financieras del día disponibles en las fuentes recuperadas.'),x,y,w,10);}
    for(const group of desk.groups){
     if(y+cardSize(group.stories[0]).cardHeight+22>bottom)next();band(group.label);
@@ -29,7 +30,7 @@ function makeFinancialNewsPdf(title,report,helpers){
      if(item.description){write(item.description,x+8,y,w-16,8.5);y+=descriptionHeight;}
      doc.rect(x+8,y,w-16,16).fill('#edf2f6');write(item.channel,x+14,y+3,w-28,8,true);y+=22;
      write(t('Posibles repercusiones'),x+8,y,col,8.2,true);if(report.personalization?.sections?.risks!==false)write(t('Qué vigilar'),x+22+col,y,col,8.2,true);y+=14;write(item.effect,x+8,y,col,8.2);if(report.personalization?.sections?.risks!==false)write(item.watch,x+22+col,y,col,8.2);
-     const linkY=top+cardHeight-14;if(report.personalization?.sections?.sources!==false)write(t('Leer publicación')+' · '+item.source,x+8,linkY,w-16,7.5,false,'#52728e',{link:item.url});y=top+cardHeight+8;
+     const linkY=top+cardHeight-14;if(report.personalization?.sections?.sources!==false)write(t('Leer publicación')+' · '+item.source+(item.corroboratingSources?.length ? ' · +'+item.corroboratingSources.length+' '+t('fuentes') : ''),x+8,linkY,w-16,7.5,false,'#52728e',{link:item.url});y=top+cardHeight+8;
     }
    }
    pdfExecutiveFooter(doc,page);doc.end();

@@ -3,6 +3,7 @@ const path=require('node:path');
 const PDFDocument=require('pdfkit');
 const {makeCompanyDashboardPdf}=require('./report-company-dashboard-pdf');
 const {reportLayout}=require('./report-layout');
+const {reportBrandHeader,reportBrandFooter}=require('./report-branding');
 
 function localizedPdfDocument(localization) {
     const {language,locale}=localization;
@@ -20,21 +21,10 @@ async function makeLocalizedReportPdf(title,report,localization,watermark) {
     const {t}=localization;
     const layout=reportLayout(report) || {collection:'mine',key:'manual',label:report.title,collectionLabel:'Mis informes',chartHeading:'Gráficas del informe'};
     const pdfPersonalization=value=>({audience:t('Comité directivo'),horizon:t('Corte actual'),confidentialityLabel:t('Uso interno'),...value.personalization});
-    const pdfPageHeader=(document,label)=>{
-        const x=document.page.margins.left,y=document.page.margins.top,width=document.page.width-x-document.page.margins.right;
-        const identity=document._vallPdfPersonalization || {},owner=identity.organization || identity.recipientName || 'VALLNEWS';
-        document.fillColor('#586b78').font('Helvetica-Bold').fontSize(6.2).text(`${owner} · ${t('Hoja')} ${String(document._vallPdfPageNumber || 1).padStart(2,'0')}`,x,y,{width:width*.45,ellipsis:true});
-        document.text(label,x+width*.45,y,{width:width*.55,align:'right',ellipsis:true});
-        document.moveTo(x,y+17).lineTo(x+width,y+17).strokeColor('#bccdd4').lineWidth(.5).stroke();document.x=x;document.y=y+29;
-    };
+    const pdfPageHeader=(document,label)=>reportBrandHeader(document,label,{t});
     const pdfExecutiveFooter=(document,page)=>{
         if(report.panoramaMember)return;
-        const x=document.page.margins.left,y=document.page.height-46,width=document.page.width-x-document.page.margins.right;
-        const previousBottom=document.page.margins.bottom;document.page.margins.bottom=0;
-        document.moveTo(x,y-5).lineTo(x+width,y-5).strokeColor('#bccdd4').lineWidth(.4).stroke();
-        const identity=document._vallPdfPersonalization || {},owner=identity.organization || identity.recipientName || 'VALLNEWS';
-        document.fillColor('#586b78').font('Helvetica').fontSize(5.4).text(`${identity.confidentialityLabel || t('Uso interno')} · ${owner}${document._vallPdfDataOnly ? '' : ' · '+t('Documento informativo. Confirme fecha, unidad y fuente primaria.')}`,x,y,{width:width-65,ellipsis:true,lineBreak:false});
-        document.font('Helvetica-Bold').text(`${t('Página')} ${page}`,x+width-60,y,{width:60,align:'right',lineBreak:false});document.page.margins.bottom=previousBottom;document.x=x;document.y=document.page.margins.top+29;
+        reportBrandFooter(document,page,{t});
     };
     const pdfWatermark=document=>{
         if(report.panoramaMember || weekly?.commodityExecutive || weekly?.mexicoExecutive)return;

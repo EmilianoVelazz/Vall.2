@@ -12,5 +12,7 @@ export function reportLayout(report) {
     if(matches.length===1) collection=matches[0];
   }
   const layout=collections[collection]?.reportKeys?.includes(key) ? layouts[collection]?.[key] : null;
-  return layout ? {...layouts.defaults,...layout,collection,key,collectionLabel:collections[collection].label} : null;
+  const isCustomEdition=report?.userEdition===true && (!origin || Boolean(report?.editionId || report?.aiEdition || (report?.key && String(report.key).startsWith('edition_'))));
+    const composition=isCustomEdition ? 'company-dashboard' : (layout?.composition || layouts.defaults.composition);
+  return layout ? {...layouts.defaults,...layout,composition,collection,key,collectionLabel:collections[collection].label} : null;
 }

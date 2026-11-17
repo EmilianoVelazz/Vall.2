@@ -1,33 +1,44 @@
 import { useEffect, useRef, useState } from 'react';
 import { animate } from 'animejs';
 
+// @refresh reset
+
 // Swap copy between the exit and entrance, instead of replacing a moving panel.
 export function useAnimatedContent(value, moving) {
   const panel = useRef(null);
-  const tween = useRef(null);
+  const exitTween = useRef(null);
+  const entryTween = useRef(null);
   const shown = useRef(value);
   const [displayed, setDisplayed] = useState(value);
   useEffect(() => {
-    tween.current?.cancel();
-    const swap = () => { shown.current = value; setDisplayed(value); };
+    const element = panel.current;
+    if (!element) return undefined;
+    let canceled = false;
+    exitTween.current?.cancel();
+    entryTween.current?.cancel();
+    const swap = () => { if (!canceled) { shown.current = value; setDisplayed(value); } };
     if (!moving) { swap(); panel.current.style.removeProperty('opacity'); panel.current.style.removeProperty('transform'); return undefined; }
     if (shown.current === value) {
       const restore = animate(panel.current, { opacity: 1, y: 0, duration: 300, ease: 'out(4)' });
-      tween.current = restore;
+      entryTween.current = restore;
       return () => restore.cancel();
     }
     const exit = animate(panel.current, { opacity: 0, y: -6, duration: 160, ease: 'in(2)', onComplete: swap });
-    tween.current = exit;
-    return () => exit.cancel();
+    exitTween.current = exit;
+    return () => { canceled = true; exit.cancel(); };
   }, [value, moving]);
   useEffect(() => {
     const element = panel.current;
+    if (!element) return undefined;
     if (!moving) { element.style.removeProperty('opacity'); element.style.removeProperty('transform'); return undefined; }
-    tween.current?.cancel();
+    // A newer value may already be exiting while React commits an older swap.
+    // Its entrance must never cancel the exit that will publish the latest copy.
+    if (displayed !== value) return undefined;
+    entryTween.current?.cancel();
     const entry = animate(element, { opacity: [.15, 1], y: [10, 0], duration: 500, ease: 'out(4)' });
-    tween.current = entry;
+    entryTween.current = entry;
     return () => entry.cancel();
-  }, [displayed, moving]);
+  }, [displayed, moving, value]);
   return { panel, displayed };
 }
 

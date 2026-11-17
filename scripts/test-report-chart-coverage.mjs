@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {weeklyReport} from '../shared/report-weekly.mjs';
 import {reportLineSeries} from '../frontend/src/lib/reportVisualData.js';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-chart-coverage';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-chart-coverage-fixture-only-testing-32bytes';
 const {enrichSectorReport}=require('../backend/lib/report-sector-format');
 const collections=require('../shared/report-collections.json');
 const reports={};

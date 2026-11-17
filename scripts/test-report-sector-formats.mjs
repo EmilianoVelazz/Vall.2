@@ -16,7 +16,7 @@ async function tests() {
   let count=0,prompt='';
   const agent=new UserReportAgent({provider:{isConfigured:()=>true,generate:async request=>{
     prompt=request.prompt;assert.match(request.systemInstruction,/COBERTURA SECTORIAL/);assert.match(request.systemInstruction,/no transcribas sus filas/);
-    return {model:'fixture',text:JSON.stringify({title:'Edición sectorial',summary:'Análisis basado en el corte de prueba.',sections:[{heading:'Datos pendientes',text:'Contrastar la evidencia con el inventario interno.'}],dataSelection:{metrics:[0],visuals:[],tables:[0,1]}})};
+    return {model:'fixture',text:JSON.stringify({title:'Edición sectorial',summary:'Análisis basado en el corte de prueba.',sections:[{heading:'Datos pendientes',text:'Contrastar la evidencia con el inventario interno.'}],dataSelection:{metrics:[],visuals:[],tables:[]}})};
   }}});
   for(const [collection,items] of Object.entries(formats)) {
     assert.deepEqual(Object.keys(items).sort(),[...collections[collection].reportKeys].sort());
@@ -26,10 +26,17 @@ async function tests() {
       const base={key,collection,title:definition.label,generatedAt:time.toISOString(),summary:'Precio de prueba: 40 MXN/kg.',sections:[{heading:'Referencia',text:'Material de simulación'}],metrics:[{label:'Referencia',value:'40 MXN/kg'}],tables:[{title:'Datos originales',columns:['Dato'],rows:[['40 MXN/kg']]}]};
       const before=JSON.stringify(base),expanded=enrichSectorReport(base,collection);
       assert.equal(JSON.stringify(base),before,'Enriquecer no cambia el informe base');
-      assert.equal(expanded.tables[0],base.tables[0],'Conservar la evidencia');assert.equal(expanded.tables[1].kind,'guide');
-      assert.match(expanded.tables[1].note,/no acredita/);
-      assert.strictEqual(enrichSectorReport(expanded,collection),expanded,'No duplicar la guía');
-      assert.equal(normalizeReport(expanded).tables[1].kind,'guide','La distinción sobrevive al guardado y al PDF');
+      const focused=['grains','proteins','daily_news','market_news'].includes(key);
+      if(!focused){
+        assert.equal(expanded.tables[0],base.tables[0],'Conservar la evidencia');assert.equal(expanded.tables[1].kind,'guide');
+        assert.match(expanded.tables[1].note,/no acredita/);
+        assert.strictEqual(enrichSectorReport(expanded,collection),expanded,'No duplicar la guía');
+        assert.equal(normalizeReport(expanded).tables[1].kind,'guide','La distinción sobrevive al guardado y al PDF');
+      }else{
+        assert(!expanded.tables.some(table=>table.kind==='guide'),'Las composiciones especializadas no añaden la guía genérica');
+        if(['grains','proteins'].includes(key))assert.deepEqual(expanded.tables,[],'Un ejemplo sin referencias canónicas no publica cotizaciones ficticias');
+        else assert.equal(expanded.tables[0],base.tables[0],'Las noticias conservan el material proporcionado');
+      }
       assert.deepEqual(reportSectorFormat(base),sectorFormat(base),'Pantalla e IA utilizan el mismo formato');
       for(const [audience,label] of Object.entries(audiences)) {
         const result=await agent.generate({report:expanded,preferences:{audience,depth:'detailed'},instructions:'Desarrolla el sector con los datos disponibles.'});
@@ -44,7 +51,7 @@ async function tests() {
   assert.equal(sectorFormat({key:'overview',collection:'other'}),null);
   assert.equal(sectorFormat({key:'manual',title:'Proteínas'}),null,'El título no impone un sector');
   const owned={key:'draft',baseReport:{collection:'mexico',key:'mx_proteins'}};assert.equal(reportSectorFormat(owned).label,formats.mexico.mx_proteins.label);
-  const evidence=enrichSectorReport({key:'proteins',collection:'markets',title:'Proteínas',summary:'Referencia de simulación: 40 MXN/kg.',metrics:[{label:'Dato original',value:'40 MXN/kg'}],tables:[{title:'Detalle original',columns:['Dato'],rows:[['40 MXN/kg']]}]},'markets');
+  const evidence=enrichSectorReport({key:'mx_proteins',collection:'mexico',title:'Proteínas',summary:'Referencia de simulación: 40 MXN/kg.',metrics:[{label:'Dato original',value:'40 MXN/kg'}],tables:[{title:'Detalle original',columns:['Dato'],rows:[['40 MXN/kg']]}]},'mexico');
   const synthesize=new UserReportAgent({provider:{isConfigured:()=>true,generate:async()=>({text:JSON.stringify({title:'Síntesis',summary:'Lectura del corte.',sections:[{heading:'Análisis',text:'Validar disponibilidad.'}],tables:[{title:'Tabla de síntesis',columns:['Validación'],rows:[['Cotización del proveedor']]}],dataSelection:{metrics:[],tables:[],visuals:[]}})})}});
   const full=await synthesize.generate({report:evidence,preferences:{depth:'detailed'}});
   assert.deepEqual(full.tables.slice(0,2),normalizeReport(evidence).tables,'Una síntesis no reemplaza el respaldo del formato completo');

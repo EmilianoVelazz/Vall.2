@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import ConstelacionOrion from '../components/ConstelacionOrion.jsx';
 import Footer from '../components/Footer.jsx';
 import AdminProfiles from '../components/AdminProfiles.jsx';
+
+const AdminLoopus = lazy(() => import('../components/AdminLoopus.jsx'));
 import usePageStyles from '../lib/usePageStyles.js';
 import { apiPost } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -23,6 +25,7 @@ const SECTIONS = [
 ];
 const EMPTY_PERSONAL = { phone: '', organization: '', position: '', country: '' };
 const PROFILE_SECTION = {id:'perfiles',label:'Perfiles de acceso',icon:'fa-users',hint:'Gestiona las cuentas y su acceso a la plataforma.',terms:'usuarios perfiles acceso cuentas restablecer contraseña'};
+const LOOPUS_SECTION = {id:'loopus',label:'Proyecto Loopus',icon:'fa-brain',hint:'Revisa y aprueba las reglas aprendidas por ORION.',terms:'loopus aprendizaje ml reglas propuestas ia'};
 const BUSINESS_PRODUCTS = [['beef','Res'],['pork','Cerdo'],['eggs','Huevo'],['poultry','Pollo']];
 const clean = value => typeof value === 'string' ? value : '';
 const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -66,7 +69,7 @@ export default function Configuracion() {
   const email = profile?.email || user || '';
   const displayName = profile?.displayName || (email ? email.split('@')[0] : 'Tu cuenta');
   const role = profile?.role === 'admin' ? 'Administrador' : profile ? 'Usuario' : 'Cuenta VALLNews';
-  const sections = profile?.role==='admin' ? [...SECTIONS,PROFILE_SECTION] : SECTIONS;
+  const sections = profile?.role==='admin' ? [...SECTIONS,PROFILE_SECTION,LOOPUS_SECTION] : SECTIONS;
   const active = sections.find(item => item.id === params.get('seccion')) || SECTIONS[0];
   const matches = search.trim() ? sections.filter(item => normalize(`${item.label} ${item.terms}`).includes(normalize(search.trim()))) : [];
 
@@ -160,6 +163,7 @@ export default function Configuracion() {
       <div className="ac-section-heading"><h2 ref={heading} tabIndex={-1}>{active.label}</h2><p>{active.hint}</p></div>
       {notice && <div className={`ac-message ac-message--${notice.type}`} role={notice.type === 'error' ? 'alert' : 'status'}><Icon name={notice.type === 'ok' ? 'fa-circle-check' : 'fa-circle-info'} /><span>{notice.message}</span></div>}
       {active.id === 'perfiles' && profile?.role==='admin' && <AdminProfiles />}
+      {active.id === 'loopus' && profile?.role==='admin' && <Suspense fallback={<p role="status">Cargando Proyecto Loopus…</p>}><AdminLoopus /></Suspense>}
 
       {active.id === 'inicio' && <><section className="ac-welcome"><AccountAvatar name={displayName} large /><div><span className="ac-eyebrow">Tu espacio en VALLNews</span><h3>Hola, {displayName}</h3><p>{email}</p><div className="ac-welcome-tags"><span><Icon name="fa-user-check" />{role}</span><span><Icon name="fa-language" />{IDIOMAS.find(item => item.lang === idioma)?.nombre || idioma}</span></div></div><button className="ac-btn ac-btn-secondary" type="button" onClick={() => go('personal')}>Editar perfil <Icon name="fa-arrow-right" /></button></section>
         <div className="ac-overview-grid">{[

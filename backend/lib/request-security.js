@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 function originPolicy(env = process.env) {
@@ -53,4 +55,19 @@ function safeErrorHandler(err, req, res, next) {
     res.status(status).json({ success: false, error: message });
 }
 
-module.exports = { originPolicy, securityHeaders, mutationOriginGuard, safeErrorHandler };
+function safeSecretEqual(provided, expected) {
+    if (typeof provided !== 'string' || typeof expected !== 'string' || !expected || !provided) {
+        return false;
+    }
+    const left = Buffer.from(provided, 'utf8');
+    const right = Buffer.from(expected, 'utf8');
+    return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function hasBearerSecret(req, expected) {
+    if (typeof expected !== 'string' || !expected) return false;
+    const match = /^Bearer\s+(.+)$/i.exec(String(req?.headers?.authorization || ''));
+    return Boolean(match && safeSecretEqual(match[1], expected));
+}
+
+module.exports = { originPolicy, securityHeaders, mutationOriginGuard, safeErrorHandler, safeSecretEqual, hasBearerSecret };

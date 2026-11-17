@@ -268,7 +268,7 @@ export default [
         },
     },
     {
-        files: ['frontend/src/lib/mexico-state-production.js', 'frontend/src/lib/reportSectorFormat.js', 'frontend/src/lib/reportLayout.js', 'frontend/src/lib/reportCreation.js', 'frontend/src/lib/reportDraftSession.js', 'frontend/src/lib/reportNumberFormat.js', 'frontend/src/lib/reportPresentation.js', 'frontend/src/lib/reportLibrary.js', 'frontend/src/lib/reportRefreshLabel.js'],
+        files: ['frontend/src/lib/mexico-state-production.js', 'frontend/src/lib/reportSectorFormat.js', 'frontend/src/lib/reportLayout.js', 'frontend/src/lib/reportCreation.js', 'frontend/src/lib/reportDraftSession.js', 'frontend/src/lib/reportNumberFormat.js', 'frontend/src/lib/reportPresentation.js', 'frontend/src/lib/reportLibrary.js', 'frontend/src/lib/reportRefreshLabel.js', 'frontend/src/lib/reportHistory.js'],
         languageOptions: { ecmaVersion: 2025 },
     },
 ];

@@ -32,6 +32,30 @@
     }
   },
   "labels": {
+    "Qué cambió": ["What changed", "Ce qui a changé", "Cosa è cambiato", "Was sich geändert hat", "変化したこと"],
+    "Cuánto importa": ["Why it matters", "Pourquoi c’est important", "Perché conta", "Was es bedeutet", "影響の大きさ"],
+    "Qué revisar primero": ["What to review first", "Quoi vérifier en priorité", "Cosa verificare prima", "Was zuerst zu prüfen ist", "優先して確認すること"],
+    "Contexto y evidencia": ["Context and evidence", "Contexte et éléments probants", "Contesto ed evidenze", "Kontext und Belege", "背景と根拠"],
+    "Publicación relacionada; no demuestra causalidad": ["Related publication; it does not establish causation", "Publication liée ; elle ne démontre pas de causalité", "Pubblicazione correlata; non dimostra causalità", "Zugehörige Veröffentlichung; kein Kausalitätsnachweis", "関連する公表資料。因果関係を証明するものではありません"],
+    "Sin un catalizador específico corroborado para esta sesión.": ["No specific catalyst was corroborated for this session.", "Aucun catalyseur précis n’a été corroboré pour cette séance.", "Nessun catalizzatore specifico è stato corroborato per questa seduta.", "Für diese Sitzung wurde kein konkreter Auslöser bestätigt.", "この取引日の具体的な変動要因は確認されていません。"],
+    "Política fiscal y apoyos al sector": ["Tax policy and sector support", "Politique fiscale et aides au secteur", "Politica fiscale e sostegno al settore", "Steuerpolitik und Branchenförderung", "税制と業界支援"],
+    "Impuestos, apoyos y costo neto": ["Taxes, support and net cost", "Impôts, aides et coût net", "Imposte, aiuti e costo netto", "Steuern, Förderung und Nettokosten", "税金・支援・純費用"],
+    "Buen día:": ["Hello:", "Bonjour :", "Buongiorno:", "Guten Tag:", "こんにちは。"],
+    "Le compartimos su informe de VALLNEWS para apoyar su análisis y toma de decisiones.": ["We are sharing your VALLNEWS report to support your analysis and decision-making.", "Nous vous transmettons votre rapport VALLNEWS pour accompagner votre analyse et vos décisions.", "Le inviamo il suo rapporto VALLNEWS a supporto dell’analisi e delle decisioni.", "Wir senden Ihnen Ihren VALLNEWS-Bericht als Grundlage für Ihre Analysen und Entscheidungen.", "分析や意思決定にお役立ていただけるよう、VALLNEWSのレポートをお届けします。"],
+    "Consulte la edición completa en el PDF adjunto.": ["Please see the attached PDF for the full edition.", "Consultez l’édition complète dans le PDF joint.", "Consulti l’edizione completa nel PDF allegato.", "Die vollständige Ausgabe finden Sie in der beigefügten PDF-Datei.", "レポートの全内容は添付PDFでご覧いただけます。"],
+    "Gracias por confiar en VALLNEWS.": ["Thank you for choosing VALLNEWS.", "Merci de votre confiance en VALLNEWS.", "Grazie per la fiducia in VALLNEWS.", "Vielen Dank für Ihr Vertrauen in VALLNEWS.", "VALLNEWSをご利用いただき、ありがとうございます。"],
+    "Hola:": ["Hello:", "Bonjour :", "Buongiorno:", "Guten Tag:", "こんにちは。"],
+    "Hola, {name}:": ["Hello, {name}:", "Bonjour {name} :", "Buongiorno {name}:", "Guten Tag {name}:", "{name} 様"],
+    "Informes ejecutivos": ["Executive reports", "Rapports exécutifs", "Rapporti esecutivi", "Executive-Berichte", "エグゼクティブレポート"],
+    "Más opciones del informe": ["More report options", "Autres options du rapport", "Altre opzioni del rapporto", "Weitere Berichtsoptionen", "レポートのその他のオプション"],
+    "Otros formatos": ["Other formats", "Autres formats", "Altri formati", "Andere Formate", "その他の形式"],
+    "Vista del informe": ["Report view", "Vue du rapport", "Vista del rapporto", "Berichtsansicht", "レポートの表示"],
+    "Pantalla completa": ["Full screen", "Plein écran", "Schermo intero", "Vollbild", "全画面表示"],
+    "Salir de pantalla completa": ["Exit full screen", "Quitter le plein écran", "Esci da schermo intero", "Vollbild beenden", "全画面表示を終了"],
+    "Cerrar búsqueda": ["Close search", "Fermer la recherche", "Chiudi ricerca", "Suche schließen", "検索を閉じる"],
+    "Buscar en el PDF": ["Search in PDF", "Rechercher dans le PDF", "Cerca nel PDF", "Im PDF suchen", "PDF内を検索"],
+    "Número de página del PDF": ["PDF page number", "Numéro de page du PDF", "Numero di pagina del PDF", "PDF-Seitennummer", "PDFのページ番号"],
+    "Página del PDF; desplázate para revisar el documento": ["PDF page; scroll to read the document", "Page du PDF ; faites défiler pour lire le document", "Pagina del PDF; scorri per leggere il documento", "PDF-Seite; zum Lesen des Dokuments scrollen", "PDFのページ。スクロールして文書を確認できます"],
     "Vista filtrada": [
       "Filtered view",
       "Vue filtrée",
@@ -5856,6 +5880,20 @@
       "Für diese Filter sind keine gespeicherten Ausgaben vorhanden. Das Archiv erfasst verfügbare Berichte ab seiner Aktivierung.",
       "条件に一致する保存版はありません。履歴には、この機能の有効化後に利用可能になったレポートが記録されます。"
     ],
+    "Cargar más cortes": [
+      "Load more editions",
+      "Charger plus d'éditions",
+      "Carica altre edizioni",
+      "Weitere Ausgaben laden",
+      "さらに版を読み込む"
+    ],
+    "Gráficas de la edición": [
+      "Edition charts",
+      "Graphiques de l'édition",
+      "Grafici dell'edizione",
+      "Diagramme der Ausgabe",
+      "この版のグラフ"
+    ],
     "Actualizar historial": [
       "Update history",
       "Mettre à jour l'historique",
@@ -7136,6 +7174,13 @@
       "Variazione del riferimento futures; non equivale al rendimento di un investimento o al prezzo fisico di acquisto.",
       "Änderung der Futures-Referenz; kein Anlagerenditewert oder physischer Einkaufspreis.",
       "先物の参照価格の変化率です。投資収益率や現物の購入価格とは異なります。"
+    ],
+    "México y Latinoamérica": [
+      "Mexico and Latin America",
+      "Mexique et Amérique latine",
+      "Messico e America Latina",
+      "Mexiko und Lateinamerika",
+      "メキシコとラテンアメリカ"
     ],
     "América · México y Latinoamérica": [
       "Americas · Mexico and Latin America",

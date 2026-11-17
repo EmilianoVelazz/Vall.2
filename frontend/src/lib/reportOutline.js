@@ -34,7 +34,10 @@ export function reportOutline(report, chapters = []) {
     const labels = {summary:'Lectura del periodo',charts:layout.chartHeading,tables:'Detalle de referencias',indicators:'Indicadores del corte',analysis:'Análisis para el destinatario'};
     const dashboard = blocks.filter(block => !['risks','closing'].includes(block.key)).map(block => ({...block,label:labels[block.key] || block.label}));
     if (report?.closing || executiveReading(report).highlights.length || reportBlockCount(report,'risks')) dashboard.push({key:'conclusions',label:'Conclusiones',icon:'fa-list-check',count:null});
-    return reportReaderOrder([...dashboard.sort((a,b) => layout.order.indexOf(a.key) - layout.order.indexOf(b.key)),{key:'causes',number:'A',label:'Causas y consecuencias',icon:'fa-diagram-project',count:null}]);
+    const items = dashboard.sort((a,b) => layout.order.indexOf(a.key) - layout.order.indexOf(b.key)).map((block,index)=>({...block,number:String(index+1)}));
+    const weekly = weeklyReport(report);
+    if (weekly?.causes?.groups?.length) items.push({key:'causes',number:'A',label:'Causas y consecuencias',icon:'fa-diagram-project',count:null});
+    return items;
   }
   return reportReaderOrder(layout?.order ? [...blocks].sort((a,b) => layout.order.indexOf(a.key) - layout.order.indexOf(b.key)) : blocks);
 }

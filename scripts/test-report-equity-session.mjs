@@ -10,7 +10,7 @@ import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
 import {reportCsv} from '../frontend/src/lib/reportCsv.js';
 const require=createRequire(import.meta.url);
 const marketConfig=require('../shared/report-equity-markets.json');
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-equity-session-test';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-equity-session-test-fixture-only-testing-32bytes';
 const {normalizeReport}=require('../backend/services/user-report-store');
 const {reportExportContent}=require('../backend/lib/report-export-content');
 const {_test}=require('../backend/routes/export');

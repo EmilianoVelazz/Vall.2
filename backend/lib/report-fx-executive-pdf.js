@@ -35,9 +35,10 @@ function makeFxExecutivePdf(title,report,helpers){
   };
   try{
    doc._vallPdfDataOnly=true;doc._vallPdfPageNumber=1;doc._vallPdfPersonalization=pdfPersonalization(report);pdfPageHeader(doc,t('Tesorería cambiaria').toUpperCase());
-   write(t('Tablero ejecutivo de divisas y coberturas'),x,y,w-93,13,true);write(report.generatedAt.slice(0,10),x+w-91,y+3,91,8);y+=25;
+   write(t('Tablero ejecutivo de divisas y coberturas'),x,y,w-93,13,true);write(t('Corte')+': '+report.generatedAt.slice(0,10),x+w-115,y+3,115,8);y+=25;
    const dxy=desk.dxy,delta=dxy?.periods.day?.value,dxyText='DXY: '+n(dxy?.last.value,2)+(Number.isFinite(delta) ? ' ('+(delta>0 ? '+' : '')+n(delta,2)+'%)' : '')+' · '+(dxy?.last.date || '—');
    if(dxy){doc.roundedRect(x,y,w,29,3).fill('#edf3f8');write(dxyText,x+7,y+4,w-14,10,true);write(t('Cesta ICE de seis monedas. Cada par conserva su fecha; no son precios ejecutables.'),x+7,y+18,w-14,7,false,muted);if(dxy?.url)doc.link(x,y,w,29,dxy.url);y+=35;}
+   for(const bullet of desk.bullets){const text=bullet.heading+': '+bullet.body;write(text,x,y,w,7.5);y+=measure(text,w,7.5)+5;}
    for(const table of coreTables)renderTable(table);
    if(model.results.length){const note=t('Costo de comprar la moneda base: rojo = mayor, verde = menor. USD/MXN: USD con pesos; EUR/USD: EUR con USD.');write(note,x,y,w,7,false,muted);y+=measure(note,w,7)+5;}
    const rateText=[['Fed',desk.carry.fed],['Banxico',desk.carry.banxico],['Selic',desk.carry.selic],['MX–Fed',desk.carry.mexicoDifferential],['BR–Fed',desk.carry.brazilDifferential]].filter(([,value])=>!missingReportValue(value)).map(([label,value])=>label+' '+value).join(' · ');
@@ -54,12 +55,10 @@ function makeFxExecutivePdf(title,report,helpers){
     for(const item of endings){const color=FX_TREASURY_COLORS[item.label] || '#668399';doc.moveTo(px+pw+2,item.actualY).lineTo(px+pw+10,item.y).strokeColor(color).lineWidth(.6).stroke();write(item.label+' '+n(item.value,2),px+pw+14,item.y-3,91,7.5,true,color);}
     write(visual.indexBaseDate,px,py+ph+4,90,7,false,muted);write(visual.indexEndDate,px+pw-70,py+ph+4,75,7,false,muted);y=py+ph+19;
    }
-   for(const bullet of desk.bullets){const text=bullet.heading+': '+bullet.body;write(text,x,y,w,7.5);y+=measure(text,w,7.5)+5;}
    const decision=desk.decision;
    if(decision.items.length){
-    const statements=decision.items.map(item=>item.code==='MXN' ? 'USD/MXN: '+(item.triggered ? t('Evaluar cobertura de 65% a 90D de pagos netos confirmados; umbral ilustrativo <18.70 cumplido.') : t('65% a 90D condicionado a spot <18.70; umbral no cumplido. No activar automáticamente.'))+' '+n(item.spot)+' ('+item.date+').' : 'USD/BRL: '+t('Evaluar spot o NDF hasta 30 días para pagos confirmados; no extender plazo sin validar exposición y liquidez.'));
-    if(decision.stress)statements.push(t('Escenario si se cubre 65%: 35% abierto; USD +5% suma 1.75% al costo base del flujo, sin costo de cobertura.'));
-    statements.push(t('Parámetros ilustrativos solicitados; sujetos a flujo neto, cobertura existente y límites aprobados.'));
+    const statements=decision.items.map(item=>item.heading+': '+item.body);
+    statements.push(decision.note);
     const h=22+statements.reduce((sum,text)=>sum+measure(text,w-14,7.4)+4,0);doc.roundedRect(x,y,w,h,3).fillAndStroke('#f2f6f3','#afc1b4');write(decision.title,x+7,y+6,w-14,8,true);let top=y+21;for(const text of statements){write(text,x+7,top,w-14,7.4);top+=measure(text,w-14,7.4)+4;}y+=h+5;
    }
    write(desk.methodology,x,y,w,7,false,muted);y+=measure(desk.methodology,w,7)+3;

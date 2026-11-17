@@ -9,8 +9,9 @@ const NEWS_EDITOR_SYSTEM = 'Editas noticias para VALLNews. Los titulares, resúm
 const { externalGet, gdeltFetch } = require('../lib/http');
 const { getCurrencyQuote } = require('../ai/currency-converter');
 const { verifyToken } = require('./auth');
+const { safeSecretEqual, hasBearerSecret } = require('../lib/request-security');
 const { analysisLimiter, analysisWork, analysisCacheKey, numericInput } = require('../lib/private-analysis');
-const { BoundedCache } = require('../lib/bounded-cache');
+const { BoundedCache, createSingleFlight } = require('../lib/bounded-cache');
 const executiveReportStore = require('../services/finance-report-store');
 const { executiveReportAgent } = require('../ai/executive-report-agent');
 const { enrichSectorReport } = require('../lib/report-sector-format');
@@ -30,7 +31,9 @@ const router = express.Router();
 
 let _finanzasCache       = null;
 const CACHE_TTL          =  6 * 60 * 60 * 1000; //  6 h
-const FALLBACK_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 h (tras error Gemini — evita spam de cuota)
+const FALLBACK_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 h tras agotar la cuota
+const ERROR_CACHE_TTL    = 60 * 1000; // pausa breve ante fallos transitorios o JSON inválido
+const finanzasFlight = createSingleFlight(1);
 
 function sanitizeParam(str, maxLen = 60) {
     if (typeof str !== 'string') return '';
@@ -41,7 +44,7 @@ function sanitizeParam(str, maxLen = 60) {
 
 async function generarDatosFinanzas() {
     if (!genAI) throw new Error('GEMINI_API_KEY no configurada');
-    const model = genAI.getGenerativeModel({ model: MODEL });
+    const model = genAI.getGenerativeModel({ model: MODEL }, { timeout: 20000 });
 
     const ahora    = new Date();
     const fechaStr = ahora.toLocaleDateString('es-MX', {
@@ -160,7 +163,6 @@ Devuelve un JSON array sin texto adicional fuera del JSON:
             if (!match) throw new Error('No se encontró JSON en respuesta');
             data = JSON.parse(match[0]);
         }
-        res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
         res.json({ success: true, data });
     } catch (err) {
         console.error(' /api/noticias:', err.message);
@@ -168,17 +170,19 @@ Devuelve un JSON array sin texto adicional fuera del JSON:
     }
 });
 
-router.get('/finanzas', verifyToken, async (req, res) => {
+// Un solo corte común, sin datos de la cuenta. Compartir únicamente el trabajo
+// y sus datos; cada respuesta conserva las cabeceras privadas de verifyToken.
+async function loadFinanzasSnapshot() {
     if (_finanzasCache) {
         try {
             const cache = _finanzasCache;
             const edad  = Date.now() - cache.timestamp;
-            const ttl   = cache.fallback ? FALLBACK_CACHE_TTL : CACHE_TTL;
-            res.set('Cache-Control', `public, s-maxage=${Math.floor(ttl/1000)}, stale-while-revalidate=${Math.floor(ttl/1000)*2}`);
-            if (edad < ttl) {
+            const ttl   = cache.ttl || (cache.fallback ? FALLBACK_CACHE_TTL : CACHE_TTL);
+            if (!cache.invalidated && edad < ttl) {
                 const horasRestantes = ((ttl - edad) / 3600000).toFixed(1);
                 console.log(` Sirviendo desde caché${cache.fallback ? ' (fallback)' : ''} (expira en ${horasRestantes}h)`);
-                return res.json({ success: true, data: cache.data, desde_cache: true });
+                return { success: true, data: cache.data, desde_cache: true,
+                    ...(cache.fallback ? { fallback: true } : {}) };
             }
         } catch { /* caché corrupta, regenerar */ }
     }
@@ -188,15 +192,15 @@ router.get('/finanzas', verifyToken, async (req, res) => {
         const data = await generarDatosFinanzas();
         _finanzasCache = { timestamp: Date.now(), data };
         console.log(' Datos generados y guardados en caché');
-        res.set('Cache-Control', `public, s-maxage=${Math.floor(CACHE_TTL/1000)}, stale-while-revalidate=${Math.floor(CACHE_TTL/1000)*2}`);
-        res.json({ success: true, data, desde_cache: false });
+        return { success: true, data, desde_cache: false };
     } catch (err) {
-        const is429 = err.message?.includes('429');
+        const message = String(err?.message || 'Error del proveedor');
+        const is429 = err?.status === 429 || message.includes('429');
         const kind  = is429                              ? '429-cuota'
-                    : err.message?.includes('timeout')  ? 'timeout'
-                    : err.message?.includes('JSON')     ? 'parse-error'
+                    : message.includes('timeout')       ? 'timeout'
+                    : message.includes('JSON')          ? 'parse-error'
                     : 'desconocido';
-        console.error(`Error Gemini /api/finanzas [${kind}]:`, err.message.slice(0, 220));
+        console.error(`Error Gemini /api/finanzas [${kind}]:`, message.slice(0, 220));
 
         let fallbackData = null;
         if (_finanzasCache) {
@@ -227,27 +231,31 @@ router.get('/finanzas', verifyToken, async (req, res) => {
             console.warn('[Gemini] No disponible — sirviendo datos de respaldo contextuales');
         }
 
-        if (is429) {
-            try {
-                _finanzasCache = { timestamp: Date.now(), data: fallbackData, fallback: true };
-                console.log('[Gemini] Fallback guardado en caché por 12h (cuota agotada)');
-            } catch { /* no crítico */ }
-        }
+        // También agrupar los fallos: al terminar una llamada fallida, la
+        // siguiente petición no debe volver a consumir cuota inmediatamente.
+        _finanzasCache = { timestamp: Date.now(), data: fallbackData, fallback: true,
+            ttl: is429 ? FALLBACK_CACHE_TTL : ERROR_CACHE_TTL };
 
-        res.set('Cache-Control', `public, s-maxage=${Math.floor(FALLBACK_CACHE_TTL/1000)}, stale-while-revalidate=${Math.floor(FALLBACK_CACHE_TTL/1000)*2}`);
-        res.json({ success: true, data: fallbackData, desde_cache: false, fallback: true });
+        return { success: true, data: fallbackData, desde_cache: false, fallback: true };
     }
+}
+
+router.get('/finanzas', verifyToken, async (req, res, next) => {
+    try { res.json(await finanzasFlight('snapshot', loadFinanzasSnapshot)); }
+    catch (error) { next(error); }
 });
 
 router.post('/finanzas/refresh', (req, res, next) => {
     const secret = process.env.REFRESH_SECRET;
     if (!secret) return res.status(503).json({ success: false, error: 'Refresh no configurado en el servidor.' });
     const provided = req.headers['x-refresh-secret'];
-    if (!provided || provided !== secret)
+    if (!safeSecretEqual(provided, secret))
         return res.status(401).json({ success: false, error: 'No autorizado.' });
     next();
 }, async (req, res) => {
-    _finanzasCache = null;
+    // Conservar el último corte como respaldo y respetar una generación en
+    // curso: varios refrescos no abren llamadas adicionales al proveedor.
+    if (_finanzasCache) _finanzasCache = { ..._finanzasCache, invalidated: true };
     res.redirect(303, '/api/finanzas');
 });
 
@@ -348,9 +356,10 @@ const FINNHUB_TOKEN = process.env.FINNHUB_TOKEN || '';
 const NEWSAPI_KEY   = process.env.NEWSAPI_KEY   || '';
 
 const _dailyNewsCache = { ts: 0, data: null, fallback: false };
+let _dailyNewsPending = null;
 const DAILY_NEWS_TTL      = 40 * 60 * 1000; // 40 min (frescura razonable, controla costo Gemini)
 const DAILY_NEWS_FB_TTL   = 15 * 60 * 1000; // 15 min si servimos sin editorial
-const EDITORIAL_TIMEOUT_MS = 5_000;
+const EDITORIAL_TIMEOUT_MS = process.env.VERCEL ? 5_000 : 25_000;
 const EDITORIAL_ARTICLES_LIMIT = 6;
 
 
@@ -363,58 +372,76 @@ function _normTitle(t) {
     return String(t || '').toLowerCase().replace(/[^a-z0-9áéíóúñ ]/gi, '').replace(/\s+/g, ' ').trim();
 }
 
+const _sharedFeedCache = {
+    finnhub: { ts: 0, data: null, pending: null },
+    newsapi: { ts: 0, data: null, pending: null },
+};
+const SHARED_FEED_TTL = 15 * 60 * 1000;
+
 async function _fetchFinnhubNews() {
     if (!FINNHUB_TOKEN) return [];
-    try {
-        const r = await externalGet(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_TOKEN}`, {}, 6000);
-        if (!r.ok) return [];
-        const arr = await r.json();
-        if (!Array.isArray(arr)) return [];
-        return arr.filter(a => a && a.headline && a.url).map(a => ({
-            title: a.headline,
-            summary: _stripHtml(a.summary),
-            source: a.source || 'Finnhub',
-            url: a.url,
-            image: a.image || '',
-            publishedAt: a.datetime ? new Date(a.datetime * 1000).toISOString() : null,
-            origin: 'finnhub',
-        }));
-    } catch (e) {
-        console.warn('[daily-news] Finnhub:', e.message);
-        return [];
-    }
+    const slot = _sharedFeedCache.finnhub;
+    if (slot.data && Date.now() - slot.ts < SHARED_FEED_TTL) return slot.data;
+    if (slot.pending) return slot.pending;
+    slot.pending = (async () => {
+        try {
+            const r = await externalGet(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_TOKEN}`, {}, 6000);
+            if (!r.ok) return slot.data || [];
+            const arr = await r.json();
+            if (!Array.isArray(arr)) return slot.data || [];
+            const mapped = arr.filter(a => a && a.headline && a.url).map(a => ({
+                title: a.headline,
+                summary: _stripHtml(a.summary),
+                source: a.source || 'Finnhub',
+                url: a.url,
+                image: a.image || '',
+                publishedAt: a.datetime ? new Date(a.datetime * 1000).toISOString() : null,
+                origin: 'finnhub',
+            }));
+            slot.data = mapped;
+            slot.ts = Date.now();
+            return mapped;
+        } catch (e) {
+            console.warn('[daily-news] Finnhub:', e.message);
+            return slot.data || [];
+        }
+    })().finally(() => { slot.pending = null; });
+    return slot.pending;
 }
 
 async function _fetchNewsApiBusiness() {
     if (!NEWSAPI_KEY) return [];
-    try {
-        const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=40&apiKey=${NEWSAPI_KEY}`;
-        const r = await externalGet(url, { 'X-Api-Key': NEWSAPI_KEY }, 6000);
-        if (!r.ok) return [];
-        const j = await r.json();
-        const arts = Array.isArray(j?.articles) ? j.articles : [];
-        return arts.filter(a => a && a.title && a.url && a.title !== '[Removed]').map(a => ({
-            title: a.title,
-            summary: _stripHtml(a.description || a.content),
-            source: a.source?.name || 'NewsAPI',
-            url: a.url,
-            image: a.urlToImage || '',
-            publishedAt: a.publishedAt || null,
-            origin: 'newsapi',
-        }));
-    } catch (e) {
-        console.warn('[daily-news] NewsAPI:', e.message);
-        return [];
-    }
+    const slot = _sharedFeedCache.newsapi;
+    if (slot.data && Date.now() - slot.ts < SHARED_FEED_TTL) return slot.data;
+    if (slot.pending) return slot.pending;
+    slot.pending = (async () => {
+        try {
+            const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=40&apiKey=${NEWSAPI_KEY}`;
+            const r = await externalGet(url, { 'X-Api-Key': NEWSAPI_KEY }, 6000);
+            if (!r.ok) return slot.data || [];
+            const j = await r.json();
+            const arts = Array.isArray(j?.articles) ? j.articles : [];
+            const mapped = arts.filter(a => a && a.title && a.url && a.title !== '[Removed]').map(a => ({
+                title: a.title,
+                summary: _stripHtml(a.description || a.content),
+                source: a.source?.name || 'NewsAPI',
+                url: a.url,
+                image: a.urlToImage || '',
+                publishedAt: a.publishedAt || null,
+                origin: 'newsapi',
+            }));
+            slot.data = mapped;
+            slot.ts = Date.now();
+            return mapped;
+        } catch (e) {
+            console.warn('[daily-news] NewsAPI:', e.message);
+            return slot.data || [];
+        }
+    })().finally(() => { slot.pending = null; });
+    return slot.pending;
 }
 
-function _gdeltIsoDate(value) {
-    const text = String(value || '').trim();
-    const compact = text.match(/^(\d{4})(\d{2})(\d{2})T?(\d{2})(\d{2})(\d{2})Z?$/);
-    if (compact) return new Date(`${compact[1]}-${compact[2]}-${compact[3]}T${compact[4]}:${compact[5]}:${compact[6]}Z`).toISOString();
-    const date = new Date(text);
-    return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
+const {newsIsoDate:_gdeltIsoDate}=require('../lib/news-date');
 
 // Respaldo abierto para las ventanas en que NewsAPI o Finnhub no devuelven
 // historias. La nota sigue mostrando el dominio original y su enlace.
@@ -578,15 +605,15 @@ router.get('/daily-news', verifyToken, async (req, res) => {
     const cache = _dailyNewsCache;
     if (cache.data) {
         const ttl = cache.data.editorial ? DAILY_NEWS_TTL : DAILY_NEWS_FB_TTL;
-        res.set('Cache-Control', `public, s-maxage=${Math.floor(ttl/1000)}, stale-while-revalidate=${Math.floor(ttl/1000)*2}`);
         if (Date.now() - cache.ts < ttl) return res.json({ success: true, data: cache.data, desde_cache: true });
     }
     try {
-        const data = await _buildDailyNews();
+        if (!_dailyNewsPending) {
+            _dailyNewsPending = _buildDailyNews().finally(() => { _dailyNewsPending = null; });
+        }
+        const data = await _dailyNewsPending;
         _dailyNewsCache.ts = Date.now();
         _dailyNewsCache.data = data;
-        const ttl = data.editorial ? DAILY_NEWS_TTL : DAILY_NEWS_FB_TTL;
-        res.set('Cache-Control', `public, s-maxage=${Math.floor(ttl/1000)}, stale-while-revalidate=${Math.floor(ttl/1000)*2}`);
         res.json({ success: true, data, desde_cache: false });
     } catch (err) {
         console.error('/api/daily-news:', err.message);
@@ -790,7 +817,6 @@ router.get('/daily-news-markets', verifyToken, async (req, res) => {
     const cache = _dailyNewsMktCache;
     if (cache.data) {
         const ttl = cache.data.editorial ? DAILY_NEWS_TTL : DAILY_NEWS_FB_TTL;
-        res.set('Cache-Control', `public, s-maxage=${Math.floor(ttl/1000)}, stale-while-revalidate=${Math.floor(ttl/1000)*2}`);
         if (Date.now() - cache.ts < ttl) return res.json({ success: true, data: cache.data, desde_cache: true });
     }
     try {
@@ -800,8 +826,6 @@ router.get('/daily-news-markets', verifyToken, async (req, res) => {
         const data = await _dailyNewsMktPending;
         _dailyNewsMktCache.ts = Date.now();
         _dailyNewsMktCache.data = data;
-        const ttl = data.editorial ? DAILY_NEWS_TTL : DAILY_NEWS_FB_TTL;
-        res.set('Cache-Control', `public, s-maxage=${Math.floor(ttl/1000)}, stale-while-revalidate=${Math.floor(ttl/1000)*2}`);
         res.json({ success: true, data, desde_cache: false });
     } catch (err) {
         console.error('/api/daily-news-markets:', err.message);
@@ -816,6 +840,7 @@ router.get('/daily-news-markets', verifyToken, async (req, res) => {
 // titulares globales. La selección empieza con fuentes que mencionan México o
 // sus instituciones; Gemini después ordena y traduce sólo ese material.
 const _dailyNewsMexicoCache = { ts: 0, data: null };
+let _dailyNewsMexicoPending = null;
 const _MEXICO_CAT_MAP = { bolsa: 'bolsa', economia: 'economia', comercio: 'comercio', empresas: 'empresas', politica: 'politica' };
 const _MEXICO_CAT_LABEL = { bolsa: 'Bolsa', economia: 'Economía', comercio: 'Comercio', empresas: 'Empresas', politica: 'Política pública' };
 const MEXICO_NEWS_RE = /\b(?:m[eé]xico|mexicana?|banxico|peso mexicano|bmv|ipc|pemex|nearshoring|inegi|hacienda|shcp|cetes|tiie|t-?mec)\b/i;
@@ -1036,7 +1061,10 @@ router.get('/mexico-daily-news', verifyToken, async (req, res) => {
     const ttl = cached?.editorial ? DAILY_NEWS_TTL : DAILY_NEWS_FB_TTL;
     if (cached && Date.now() - _dailyNewsMexicoCache.ts < ttl) return res.json({ success: true, data: cached, desde_cache: true });
     try {
-        const data = await _buildMexicoDailyNews();
+        if (!_dailyNewsMexicoPending) {
+            _dailyNewsMexicoPending = _buildMexicoDailyNews().finally(() => { _dailyNewsMexicoPending = null; });
+        }
+        const data = await _dailyNewsMexicoPending;
         _dailyNewsMexicoCache.ts = Date.now();
         _dailyNewsMexicoCache.data = data;
         res.json({ success: true, data, desde_cache: false });
@@ -1269,7 +1297,7 @@ function bondSourceLinks(bonds=[]) {
 }
 
 function performanceLabel(value) {
-    return Number.isFinite(value) ? reportChange(value) : 'Sin serie comparable';
+    return Number.isFinite(value) ? reportChange(value) : '—';
 }
 
 function bpsLabel(delta) {
@@ -1321,11 +1349,7 @@ function executiveDocument(report) {
     const metrics = (report.metrics || []).map(metric => `- **${metric.label}:** ${metric.value}${metric.change ? ` (${metric.change})` : ''}`).join('\n');
     const takeaways = (report.takeaways || []).map((item, index) => `${index + 1}. ${item}`).join('\n');
     const watchlist = (report.watchlist || []).map((item, index) => `${index + 1}. ${item}`).join('\n');
-    const tables = (report.tables || []).map(table => {
-        const header = `| ${table.columns.join(' | ')} |\n| ${table.columns.map(() => '---').join(' | ')} |`;
-        const rows = table.rows.map(row => `| ${row.map(value => String(value).replace(/\|/g, '/')).join(' | ')} |`).join('\n');
-        return `## ${table.title}\n${header}\n${rows}${table.note ? `\n\nNota: ${table.note}` : ''}`;
-    }).join('\n\n');
+    const tables = require("../lib/report-markdown").reportTablesMarkdown(report.tables);
     const sections = (report.sections || []).map(section => `## ${section.heading}\n${section.text}`).join('\n\n');
     const context = {
         equities: 'La renta variable debe leerse separando una variación de sesión de una tendencia de inversión. Los índices reúnen compañías sensibles a resultados, tasas, crecimiento y flujos internacionales. La volatilidad implícita aporta contexto de incertidumbre, pero no es un pronóstico direccional. Para dirección, el valor del corte está en identificar qué referencias cambian, qué calendario puede explicarlo y si se requiere revisar exposición, liquidez o límites internos.',
@@ -1356,7 +1380,7 @@ async function buildExecutiveReports(previousSnapshot) {
         loadBondMarkets({previous:previousSnapshot?.reports?.find(report=>report.key==='bonds')?.sourceSnapshot?.bonds || [],loadYahoo:(item,cutoff)=>reportYahoo(item.symbol,item.label,{cutoff})}),
         reportDeadline(financeExecutiveFxSnapshot).catch(()=>[]),
         loadDiverseFxHistories(currency=>reportDeadline(()=>reportYahoo(currency.symbol,'USD/'+currency.code,{fxCode:currency.code,historySince2020:true}),10000)),
-        reportDeadline(financeExecutiveNewsSnapshot).catch(()=>null),
+        reportDeadline(financeExecutiveNewsSnapshot, 25000).catch(()=>null),
         loadBondNews({previous:previousSnapshot?.reports?.find(report=>report.key==='bonds')?.bondNews || []}),
     ]);
 
@@ -1389,6 +1413,16 @@ async function buildExecutiveReports(previousSnapshot) {
         category: item.category || '', categoryLabel: item.categoryLabel || '', publishedAt: item.publishedAt || null,
     }));
     const laggards = [...leaders].reverse();
+    const ipcIndex = equities.find(item => item.symbol === '^MXX' || item.label?.includes('IPC'));
+    const spIndex = equities.find(item => item.symbol === '^GSPC');
+    const priorityEquities = [ipcIndex, spIndex].filter(Boolean);
+    const regularLeaders = leaders.filter(item => !priorityEquities.some(p => p.symbol === item.symbol));
+    const sortedEquities = [...priorityEquities, ...regularLeaders];
+    const cetesBonds = bonds.filter(item => item.market === 'México' || String(item.label).toUpperCase().includes('CETES'));
+    const cetes28d = cetesBonds.find(item => String(item.label).includes('28'));
+    const usBonds = bonds.filter(item => item.market === 'Estados Unidos');
+    const otherBonds = bonds.filter(item => !cetesBonds.includes(item) && !usBonds.includes(item));
+    const sortedBonds = [...cetesBonds, ...usBonds, ...otherBonds];
     const equityVisual = indexedVisual('Índices: evolución relativa por región', regionalEquityAnchors(equities), 'Base 100 en el primer cierre del periodo mostrado; incluye referencias de América, Europa y Asia para comparar direcciones, no niveles absolutos.');
     const bondVisual = levelsVisual('Curva Treasury: evolución de rendimientos', bonds.filter(item=>item.market==='Estados Unidos').slice(0,6), '%', 'Rendimientos de referencia; el movimiento diario se expresa en puntos base dentro de la tabla.');
     const fxVisual = fxData.visuals.find(visual=>visual.title.startsWith('USD/MXN ')) || null;
@@ -1400,8 +1434,8 @@ async function buildExecutiveReports(previousSnapshot) {
             pdfSchemaVersion: EQUITY_PDF_SCHEMA_VERSION, equityCatalogVersion:EQUITY_MARKETS.version,
             equityNews:sessionNews.map(item=>({title:financeNewsHeadline(item).slice(0,500),description:financeNewsDescription(item).slice(0,600),source:String(item.source || 'Fuente del corte').slice(0,240),publishedAt:item.publishedAt,url:financeNewsSourceLinks([item])[0]?.url || ''})),
             objective: 'Explicar las sesiones de las bolsas del catálogo mundial, con México destacado, cierres fechados, gráficas regionales y causas y repercusiones condicionadas a la evidencia disponible.',
-            summary: equities.length ? `El corte reúne ${leaders.length} referencias de renta variable en América, Europa y Asia${risk ? ', más VIX como contexto de volatilidad' : ''}. ${leaders[0] ? `${leaders[0].label} lidera la sesión (${performanceLabel(leaders[0].performance?.day)});` : ''}${laggards[0] ? ` ${laggards[0].label} registra la variación relativa más débil (${performanceLabel(laggards[0].performance?.day)}).` : ''}` : 'No hubo suficientes cotizaciones verificables para elaborar el corte de bolsa.',
-            metrics: [...leaders.slice(0,28),...(risk?.series?.length ? [risk] : [])].map(item => ({ label: item.label, value: Number.isFinite(item.value) ? `${reportNumber(item.value)} puntos` : 'Sin dato', change: performanceLabel(item.performance?.day), tone: item.performance?.day > 0 ? 'up' : item.performance?.day < 0 ? 'down' : 'neutral' })),
+            summary: equities.length ? `${ipcIndex ? `S&P/BMV IPC (México) en ${reportNumber(ipcIndex.value)} pts (${performanceLabel(ipcIndex.performance?.day)}). ` : ''}${spIndex ? `S&P 500: ${reportNumber(spIndex.value)} (${performanceLabel(spIndex.performance?.day)}). ` : ''}El corte reúne ${leaders.length} referencias globales${risk ? ', más VIX en ' + reportNumber(risk.value) : ''}. ${leaders[0] ? `${leaders[0].label} encabeza el movimiento (${performanceLabel(leaders[0].performance?.day)}).` : ''}` : 'No hubo suficientes cotizaciones verificables para elaborar el corte de bolsa.',
+            metrics: [...sortedEquities.slice(0,28),...(risk?.series?.length ? [risk] : [])].map(item => ({ label: item.label, value: Number.isFinite(item.value) ? `${reportNumber(item.value)} puntos` : 'Sin dato', change: performanceLabel(item.performance?.day), tone: item.performance?.day > 0 ? 'up' : item.performance?.day < 0 ? 'down' : 'neutral' })),
             takeaways: [
                 leaders[0] && `${leaders[0].label} encabeza el movimiento diario (${performanceLabel(leaders[0].performance?.day)}), con ${performanceLabel(leaders[0].performance?.month)} acumulado en el último mes.`,
                 laggards[0] && `${laggards[0].label} es la referencia más rezagada de la sesión (${performanceLabel(laggards[0].performance?.day)}); conviene diferenciar ese cierre de su lectura YTD (${performanceLabel(laggards[0].performance?.ytd)}).`,
@@ -1427,12 +1461,12 @@ async function buildExecutiveReports(previousSnapshot) {
             key: 'bonds', title: 'Bonos', eyebrow: 'Rendimientos soberanos · cobertura internacional', bondSchemaVersion:BOND_MARKETS.version,
             bondNews:[...bondPrimaryNews,...sessionNews].slice(0,12).map(item=>({title:financeNewsHeadline(item).slice(0,500),description:financeNewsDescription(item).slice(0,600),source:String(item.source || 'Fuente del corte').slice(0,240),publishedAt:item.publishedAt,url:financeNewsSourceLinks([item])[0]?.url || ''})),
             objective: 'Comparar rendimientos soberanos por plazo en Estados Unidos y México, explicar sus cambios en puntos base y distinguir repercusiones en precios, reinversión y financiamiento.',
-            summary: `El catálogo reúne ${bonds.length} referencias de mercados soberanos, con moneda, fuente y frecuencia de publicación. ${bonds.filter(item=>item.series.length>1).length} tienen al menos dos publicaciones fechadas. Los cambios se expresan en puntos base y no equivalen al retorno de una inversión en bonos.`,
-            metrics: bonds.slice(0,30).map(item => ({ label: item.label, value: `${reportNumber(item.value)}%`, change: bpsLabel(item.delta), tone: item.delta <= 0 ? 'up' : 'down' })),
+            summary: `Curva soberana: ${cetes28d ? `CETES 28d en ${reportNumber(cetes28d.value)}% (${bpsLabel(cetes28d.delta)}); ` : ''}${long ? `Treasury 10A en ${reportNumber(long.value)}% (${bpsLabel(long.delta)}); ` : ''}${Number.isFinite(curve) ? `pendiente 10A–3M en ${curve >= 0 ? '+' : ''}${curve.toFixed(2)} pp. ` : ''}El catálogo reúne ${bonds.length} referencias soberanas.`,
+            metrics: sortedBonds.slice(0,30).map(item => ({ label: item.label, value: `${reportNumber(item.value)}%`, change: bpsLabel(item.delta), tone: (item.delta ?? 0) > 0 ? 'up' : (item.delta ?? 0) < 0 ? 'down' : 'flat' })),
             takeaways: [
-                Number.isFinite(curve) && `La pendiente 10 años–3 meses es de ${curve.toFixed(2)} pp; describe la relación entre plazos, no una predicción automática de crecimiento o recesión.`,
+                cetes28d && `CETES 28 días se ubicó en ${reportNumber(cetes28d.value)}% (${bpsLabel(cetes28d.delta)} diario), referencia clave para costo de fondeo y pagarés en pesos.`,
+                Number.isFinite(curve) && `La pendiente 10 años–3 meses es de ${curve >= 0 ? '+' : ''}${curve.toFixed(2)} pp; describe la relación entre plazos soberanos.`,
                 long && `El Treasury a 10 años cerró en ${reportNumber(long.value)}%, con un cambio diario de ${bpsLabel(long.delta)} entre las dos últimas publicaciones.`,
-                short && `El tramo a 3 meses se ubicó en ${reportNumber(short.value)}%; su comparación con el largo ayuda a dimensionar el costo relativo de duración.`,
             ].filter(Boolean),
             watchlist: [
                 'Inflación, empleo y decisiones de bancos centrales que puedan mover expectativas de política monetaria.',
@@ -1654,27 +1688,42 @@ function ensureEquityExecutiveContext(snapshot){
     return seeded;
 }
 
+let _financeReadCoverage=null;
+let _financeReadCoverageNextAt=0;
+function queueFinanceReadCoverage(snapshot,response){
+    if(_financeReadCoverage || Date.now()<_financeReadCoverageNextAt)return;
+    // Finish delivering the saved edition before consulting sources or writing
+    // a new one. A slow news/AI provider must not hold the library response.
+    const delivered=new Promise(resolve=>{
+        const finish=()=>{response.removeListener('close',close);resolve(true);};
+        const close=()=>{response.removeListener('finish',finish);resolve(false);};
+        response.once('finish',finish);response.once('close',close);
+    });
+    _financeReadCoverage=delivered.then(async ready=>{
+        if(!ready)return;
+        let current=_executiveReportMemory || snapshot;
+        if(nextReportRefreshAt(current.generatedAt).getTime()<=Date.now())return refreshExecutiveReports(current);
+        current=await ensureFxReportCoverage(current);
+        current=await ensureEquityReportCoverage(current);
+        current=await ensureBondReportCoverage(current);
+        current=ensureEquityExecutiveContext(current);
+        current=await ensureDailyNewsCoverage(current);
+        const integrated=await require('../lib/report-panorama').withPanorama(current);
+        if(integrated!==current){_executiveReportMemory=await executiveReportStore.save(integrated.reports,integrated.generatedAt);}
+    }).catch(()=>console.warn('[finance-reports] Actualización pendiente; el corte guardado sigue disponible.'))
+      .finally(()=>{_financeReadCoverageNextAt=Date.now()+60000;_financeReadCoverage=null;});
+}
+
 router.get('/finance-executive-reports', verifyToken, async (req, res) => {
     try {
         let snapshot = _executiveReportMemory || await executiveReportStore.load().catch(() => null);
         // Un corte disponible sigue siendo legible mientras se recupera uno
         // programado. Una fuente caída no debe convertir la biblioteca en 502.
-        const previousCut=Boolean(snapshot?.reports?.length && nextReportRefreshAt(snapshot.generatedAt).getTime()<=Date.now());
-        if(previousCut) {
-            refreshExecutiveReports(snapshot).catch(()=>console.warn('[finance-reports] Actualización diaria pendiente; el último corte sigue disponible.'));
-        } else {
-            if(!snapshot?.reports?.length)snapshot=await refreshExecutiveReports(snapshot);
-            snapshot=await ensureFxReportCoverage(snapshot);
-            snapshot=await ensureEquityReportCoverage(snapshot);
-            snapshot=await ensureBondReportCoverage(snapshot);
-            snapshot=ensureEquityExecutiveContext(snapshot);
-            snapshot=await ensureDailyNewsCoverage(snapshot);
-            const integrated=await require('../lib/report-panorama').withPanorama(snapshot);
-            if(integrated!==snapshot){snapshot=await executiveReportStore.save(integrated.reports,integrated.generatedAt);_executiveReportMemory=snapshot;}
-        }
+        if(!snapshot?.reports?.length)snapshot=await refreshExecutiveReports(snapshot);
+        else queueFinanceReadCoverage(snapshot,res);
         // Un cambio de esquema no debe bloquear la lectura del corte anterior.
         // El siguiente corte programado renueva las series y la versión del PDF.
-        const updatePending=equityReportNeedsDailySeries(snapshot) || Boolean(_equityExecutiveContextRefresh || _executiveReportRefresh);
+        const updatePending=equityReportNeedsDailySeries(snapshot) || Boolean(_equityExecutiveContextRefresh || _executiveReportRefresh || _financeReadCoverage);
         res.set('Cache-Control', 'private, no-store');
         res.json({ success: true, data: snapshot.reports.map(report=>enrichSectorReport(report,'finance')), generatedAt: snapshot.generatedAt, nextRefreshAt: nextReportRefreshAt().toISOString(), persistence: snapshot.persistence, updatePending, refreshing:Boolean(_executiveReportRefresh), stale:nextReportRefreshAt(snapshot.generatedAt).getTime()<=Date.now() });
     } catch (error) {
@@ -1684,9 +1733,8 @@ router.get('/finance-executive-reports', verifyToken, async (req, res) => {
 });
 
 function allowsReportRefresh(req) {
-    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const expected = process.env.CRON_SECRET || process.env.REFRESH_SECRET;
-    return Boolean(expected && token && token === expected);
+    return hasBearerSecret(req, expected);
 }
 
 router.get('/finance-executive-reports/refresh', async (req, res) => {
@@ -1702,6 +1750,38 @@ router.get('/finance-executive-reports/refresh', async (req, res) => {
 
 router.startExecutiveReportsScheduler = function startExecutiveReportsScheduler() {
     return scheduleDailyReport(refreshExecutiveReports, 'finance-reports');
+};
+router.initDailyNewsWarmer = function initDailyNewsWarmer() {
+    if (process.env.NODE_ENV === 'test' || process.env.VERCEL) return null;
+    const warmOnce = async () => {
+        const now = Date.now();
+        if (!_dailyNewsCache.data || now - _dailyNewsCache.ts >= 30 * 60 * 1000) {
+            try {
+                if (!_dailyNewsPending) _dailyNewsPending = _buildDailyNews().finally(() => { _dailyNewsPending = null; });
+                _dailyNewsCache.data = await _dailyNewsPending;
+                _dailyNewsCache.ts = Date.now();
+            } catch (error) { console.warn('[daily-news-warmer] finanzas:', error.message); }
+        }
+        if (!_dailyNewsMktCache.data || Date.now() - _dailyNewsMktCache.ts >= 30 * 60 * 1000) {
+            try {
+                if (!_dailyNewsMktPending) _dailyNewsMktPending = _buildDailyMarketNews().finally(() => { _dailyNewsMktPending = null; });
+                _dailyNewsMktCache.data = await _dailyNewsMktPending;
+                _dailyNewsMktCache.ts = Date.now();
+            } catch (error) { console.warn('[daily-news-warmer] mercados:', error.message); }
+        }
+        if (!_dailyNewsMexicoCache.data || Date.now() - _dailyNewsMexicoCache.ts >= 30 * 60 * 1000) {
+            try {
+                if (!_dailyNewsMexicoPending) _dailyNewsMexicoPending = _buildMexicoDailyNews().finally(() => { _dailyNewsMexicoPending = null; });
+                _dailyNewsMexicoCache.data = await _dailyNewsMexicoPending;
+                _dailyNewsMexicoCache.ts = Date.now();
+            } catch (error) { console.warn('[daily-news-warmer] mexico:', error.message); }
+        }
+    };
+    const initial = setTimeout(() => { warmOnce().catch(() => {}); }, 8_000);
+    initial.unref?.();
+    const interval = setInterval(() => { warmOnce().catch(() => {}); }, 35 * 60 * 1000);
+    interval.unref?.();
+    return { initial, interval };
 };
 router.refreshExecutiveReports = refreshExecutiveReports;
 router.ensureFxReportCoverage = ensureFxReportCoverage;

@@ -1,5 +1,5 @@
 'use strict';
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-bond-coverage';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-bond-coverage-fixture-only-testing-32bytes';
 const assert=require('node:assert/strict');
 const http=require('../backend/lib/http'),store=require('../backend/services/finance-report-store'),config=require('../shared/report-bond-markets.json');
 const context=require('../backend/lib/report-bond-context'),loadContext=context.loadBondContext,loadNews=context.loadBondNews;

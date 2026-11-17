@@ -1,0 +1,5 @@
+.reports-download-menu { display:flex; flex-wrap:wrap; align-items:end; gap:8px; min-width:0; }
+.reports-download-menu label { display:grid; gap:4px; color:#52647a; font-size:11px; }
+.reports-download-menu select { min-height:38px; max-width:100%; padding:6px 9px; border:1px solid #cbd8ec; border-radius:5px; background:#fff; color:#193758; }
+.reports-download-menu button { min-height:38px; padding:8px 13px; border:1px solid #315785; border-radius:5px; background:#193758; color:#fff; cursor:pointer; }
+.reports-download-menu button:disabled { opacity:.5; cursor:default; }

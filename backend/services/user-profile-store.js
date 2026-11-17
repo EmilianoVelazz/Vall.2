@@ -53,7 +53,10 @@ async function withStore(restOperation, sqlOperation) {
                 }
                 restError = error;
                 restDisabledUntil = Date.now() + 5 * 1000;
-                console.warn('[profiles] Supabase REST no disponible; usando PostgreSQL:', error.message);
+                // "fetch failed" a secas oculta el motivo real (certificado,
+                // DNS, timeout); undici lo deja en error.cause.
+                const cause = error?.cause ? ` (${error.cause.code || error.cause.name || 'causa'}: ${error.cause.message || ''})` : '';
+                console.warn('[profiles] Supabase REST no disponible; usando PostgreSQL:', `${error.message}${cause}`);
                 break;
             }
         }
@@ -80,24 +83,31 @@ async function findById(id) {
     }, async database => profile((await database.query('SELECT * FROM app_profiles WHERE id=$1 LIMIT 1', [id])).rows[0]));
 }
 
-async function upsertAdmin(email, displayName = 'Administrador') {
+async function upsertAdmin(email, displayName = 'Administrador', passwordHash = null) {
     const normalized = String(email || '').trim().toLowerCase();
+    const validHash = typeof passwordHash === 'string' && /^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$/.test(passwordHash) ? passwordHash : null;
     return withStore(async rest => {
         const { data: found, error: findError } = await rest.from('app_profiles').select('*').ilike('email', normalized).maybeSingle();
         if (findError) throw findError;
         const existing = profile(found);
         if (existing) {
-            const { data, error } = await rest.from('app_profiles').update({ role: 'admin', active: true, updated_at: new Date().toISOString() }).eq('id', existing.id).select().single();
+            if(!existing.active)return existing;
+            const patch = { role: 'admin', updated_at: new Date().toISOString(), ...(validHash ? { password_hash: validHash } : {}) };
+            const { data, error } = await rest.from('app_profiles').update(patch).eq('id', existing.id).eq('active',true).select().single();
             if (error) throw error;
             return profile(data);
         }
-        const { data, error } = await rest.from('app_profiles').insert({ email: normalized, role: 'admin', display_name: displayName, active: true }).select().single();
+        const row = { email: normalized, role: 'admin', display_name: displayName, active: true, ...(validHash ? { password_hash: validHash } : {}) };
+        const { data, error } = await rest.from('app_profiles').insert(row).select().single();
         if (error) throw error;
         return profile(data);
     }, async database => {
-        const existing = (await database.query('SELECT id FROM app_profiles WHERE LOWER(email)=$1 LIMIT 1', [normalized])).rows[0];
-        if (existing) return profile((await database.query("UPDATE app_profiles SET role='admin',active=TRUE,updated_at=NOW() WHERE id=$1 RETURNING *", [existing.id])).rows[0]);
-        return profile((await database.query("INSERT INTO app_profiles (email,role,display_name,active) VALUES ($1,'admin',$2,TRUE) RETURNING *", [normalized, displayName])).rows[0]);
+        const existing = (await database.query('SELECT * FROM app_profiles WHERE LOWER(email)=$1 LIMIT 1', [normalized])).rows[0];
+        if (existing) {
+            if(existing.active===false)return profile(existing);
+            return profile((await database.query("UPDATE app_profiles SET role='admin',password_hash=COALESCE($2,password_hash),updated_at=NOW() WHERE id=$1 AND active=TRUE RETURNING *", [existing.id, validHash])).rows[0]);
+        }
+        return profile((await database.query("INSERT INTO app_profiles (email,role,display_name,password_hash,active) VALUES ($1,'admin',$2,$3,TRUE) RETURNING *", [normalized, displayName, validHash])).rows[0]);
     });
 }
 
@@ -241,4 +251,41 @@ async function recentReportQueries(profileId, since) {
         ORDER BY created_at DESC LIMIT 80`, [profileId, since])).rows);
 }
 
-module.exports = { findByEmail, findById, upsertAdmin, markLogin, updatePassword, updateProfile, listProfiles, listConversations, saveConversation, deleteConversation, recordTrainingQuery, recordOrionQuery, recentReportQueries };
+async function listConversationMessages(profileId, conversationId, { limit = 80, offset = 0 } = {}) {
+    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 80));
+    const safeOffset = Math.max(0, Number(offset) || 0);
+    return withStore(async rest => {
+        const { data, error } = await rest.from('app_chat_messages')
+            .select('id,message_index,role,content,metadata,created_at')
+            .eq('profile_id', profileId)
+            .eq('conversation_id', String(conversationId).slice(0, 100))
+            .order('message_index', { ascending: true })
+            .range(safeOffset, safeOffset + safeLimit - 1);
+        if (error) throw error;
+        return data || [];
+    }, async database => (await database.query(`SELECT id,message_index,role,content,metadata,created_at
+        FROM app_chat_messages
+        WHERE profile_id=$1 AND conversation_id=$2
+        ORDER BY message_index ASC LIMIT $3 OFFSET $4`, [profileId, String(conversationId).slice(0, 100), safeLimit, safeOffset])).rows);
+}
+
+async function searchConversationMessages(profileId, query, { limit = 30 } = {}) {
+    const clean = String(query || '').trim().slice(0, 200);
+    if (!clean) return [];
+    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 30));
+    return withStore(async rest => {
+        const { data, error } = await rest.from('app_chat_messages')
+            .select('id,conversation_id,message_index,role,content,created_at')
+            .eq('profile_id', profileId)
+            .textSearch('content', clean, { config: 'spanish', type: 'websearch' })
+            .order('created_at', { ascending: false })
+            .limit(safeLimit);
+        if (error) throw error;
+        return data || [];
+    }, async database => (await database.query(`SELECT id,conversation_id,message_index,role,content,created_at
+        FROM app_chat_messages
+        WHERE profile_id=$1 AND to_tsvector('spanish', COALESCE(content, '')) @@ websearch_to_tsquery('spanish', $2)
+        ORDER BY created_at DESC LIMIT $3`, [profileId, clean, safeLimit])).rows);
+}
+
+module.exports = { findByEmail, findById, upsertAdmin, markLogin, updatePassword, updateProfile, listProfiles, listConversations, listConversationMessages, searchConversationMessages, saveConversation, deleteConversation, recordTrainingQuery, recordOrionQuery, recentReportQueries };

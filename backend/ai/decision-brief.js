@@ -28,8 +28,8 @@ function decisionBrief({message,history,plan,evidence={},inputs={},forecastAnaly
     return {audience,facts,effect,verification,
         forecastStatus:forecast.some(record=>record.available)?'validated_estimate':plan.asksForecast?'scenario_only':'not_requested',
         uncertainty:facts.length?'Las referencias disponibles pueden ser parciales; el efecto indicado es condicional.':'No se recuperó un dato observado suficiente para afirmar qué cambió; conserva una lectura condicional.',
-        business:calculation.available?{currency:inputs.currency,breakEvenPerKg:calculation.costPerSellableKg,profit:calculation.profit,
-            profitChangePerOneBuyUnit:-inputs.purchasedKg,profitChangePerOneSaleUnit:calculation.sellableKg}:null};
+        business:calculation.available?{currency:inputs.currency,breakEvenPerKg:calculation.costPerSellableKg,profit:calculation.perKgBasis?null:calculation.profit,profitPerKg:calculation.profitPerKg,
+            basis:calculation.perKgBasis?'per_kg':'lot',profitChangePerOneBuyUnit:calculation.perKgBasis?null:-inputs.purchasedKg,profitChangePerOneSaleUnit:calculation.perKgBasis?null:calculation.sellableKg}:null};
 }
 function decisionContext(input) {
     if(!input.plan.asksDecision&&!input.plan.asksAnalysis&&!input.plan.asksNews) return '';

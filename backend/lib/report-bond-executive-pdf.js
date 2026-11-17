@@ -1,6 +1,5 @@
 'use strict';
 const path=require('node:path');
-const {availableReportTables}=require('../../shared/report-available-data.mjs');
 const INK='#193758',MUTED='#586b78',LINE='#dce4ea';
 function makeBondExecutivePdf(title,report,helpers){
     const {PDFDocument,weekly:model,pdfPageHeader,pdfExecutiveFooter,pdfPersonalization,chartGeometry}=helpers,{t=value=>value}=helpers.localization || {},desk=model.bondExecutive;
@@ -16,12 +15,14 @@ function makeBondExecutivePdf(title,report,helpers){
         const header=()=>{doc._vallPdfPageNumber=page;pdfPageHeader(doc,doc._vallPdfPageLabel);};
         const next=()=>{pdfExecutiveFooter(doc,page);doc.addPage();page++;header();y=65;};
         const heading=text=>{doc.rect(left,y,width,18).fill(INK);write(text,left+6,y+4,width-12,8.3,true,'#ffffff');y+=23;};
-        const check=()=>{if(y>bottom || count>(desk.international?.references.length ? 5 : 2))throw Object.assign(Error('El informe de Bonos excede el espacio disponible para una composición legible.'),{layout:{page,y,bottom,count}});};
+        // The shared print selector chooses the page budget after a complete render.
+        const check=()=>{if(y>bottom)throw Object.assign(Error('El informe de Bonos excede el espacio disponible para una composición legible.'),{layout:{page,y,bottom,count}});};
         try{
-            header();write(report.title || title,left,y,width*.7,16,true);write(report.generatedAt.slice(0,10),left+width*.7,y+4,width*.3,8,false,MUTED,{align:'right'});y+=27;
+            header();write(report.title || title,left,y,width*.7,16,true);write(t('Corte')+': '+report.generatedAt.slice(0,10),left+width*.7,y+4,width*.3,8,false,MUTED,{align:'right'});y+=27;
             if(desk.dashboard.length){const cw=width/desk.dashboard.length;desk.dashboard.forEach((item,index)=>{const x=left+index*cw;doc.roundedRect(x,y,cw-6,44,3).fillAndStroke('#f3f6f9',LINE);write(item.label,x+6,y+5,cw-18,8,true);write(item.value,x+6,y+18,cw-18,10,true);write(item.date,x+6,y+32,cw-18,7,false,MUTED);if(/^https:\/\//.test(item.url))doc.link(x,y,cw-6,44,item.url);});y+=51;}
             for(const panel of model.summaryPanels){const text=panel.heading+': '+panel.body,h=measure(text,width-10,8.4);write('•',left,y,8,8.4);write(text,left+10,y,width-10,8.4);y+=h+6;}
-            const businessHeight=23+desk.business.reduce((sum,panel)=>sum+measure(panel.heading+': '+panel.body,width,8.3)+5,0);
+            const businessPanels=model.decisionSummary ? desk.business.filter(panel=>panel.heading!==t('Costo de deuda')) : desk.business;
+            const businessHeight=businessPanels.length ? 23+businessPanels.reduce((sum,panel)=>sum+measure(panel.heading+': '+panel.body,width,8.3)+5,0) : 0;
             const plot=(visual,h,curve,x=left,w=width,top=y)=>{
                 if(!visual)return;
                 doc.roundedRect(x,top,w,h-5,3).fillAndStroke('#f8fafb',LINE);
@@ -37,19 +38,19 @@ function makeBondExecutivePdf(title,report,helpers){
                 sets.forEach((set,index)=>{const lx=x+6+index*(w-12)/sets.length,ly=py+ph+17;doc.save();if(index)doc.dash(index===1 ? [5,3] : [2,3]);doc.moveTo(lx,ly+4).lineTo(lx+10,ly+4).strokeColor(set.color).lineWidth(1.4).stroke().restore();const start=!curve && visual.series[index].points[0].date.slice(0,4);write(t(set.label)+(set.date ? ' · '+set.date : start>'2020' ? ' ('+start+')' : ''),lx+14,ly,(w-12)/sets.length-17,7.2);});
             };
             if(flags.charts!==false){
-                const historical=(desk.historical || []).filter(visual=>!['mexico','slope'].includes(visual.historyKey)),rows=Math.ceil(historical.length/2),notes=historical.length ? t('Historia: última publicación de cada mes; mes actual parcial. Las líneas se interrumpen si faltan más de dos meses. OAS y EMBIG son primas distintas; fondeo USD/MXN en moneda original. Curva: plazos con separación uniforme.') : '',noteHeight=notes ? measure(notes,width,7)+7 : 0,curveHeight=desk.yieldCurve ? 140 : 0,available=bottom-y-businessHeight-noteHeight-5,historyHeight=rows ? Math.min(148,(available-curveHeight)/rows) : 0;
+                const historical=(desk.historical || []).filter(visual=>!['mexico','slope'].includes(visual.historyKey)),rows=Math.ceil(historical.length/2),notes=historical.length ? t('Historia: última publicación de cada mes; mes actual parcial. Las líneas se interrumpen si faltan más de dos meses. OAS y EMBIG son primas distintas; fondeo USD/MXN en moneda original. Curva: plazos con separación uniforme.') : '',noteHeight=notes ? measure(notes,width,7)+7 : 0,curveHeight=desk.yieldCurve ? 140 : 0,reserveBusiness=bottom-y-businessHeight-noteHeight-curveHeight-5>=rows*115 ? businessHeight : 0,available=bottom-y-reserveBusiness-noteHeight-5,historyHeight=rows ? Math.min(148,(available-curveHeight)/rows) : 0;
                 if(rows && historyHeight<115)throw Error('El espacio disponible no permite gráficas históricas legibles en dos páginas.');
                 if(desk.yieldCurve){plot(desk.yieldCurve,curveHeight,true);y+=curveHeight;}
                 if(historical.length){const cw=(width-10)/2,start=y;historical.forEach((visual,index)=>plot(visual,historyHeight,false,left+index%2*(cw+10),cw,start+Math.floor(index/2)*historyHeight));y=start+rows*historyHeight;write(notes,left,y,width,7,false,MUTED);y+=noteHeight;}
                 else if(desk.trend){plot(desk.trend,130,false);y+=130;}
             }
             let businessPlaced=false;
-            const business=()=>{heading(t('Implicaciones para el negocio'));for(const panel of desk.business){const text=panel.heading+': '+panel.body;write(text,left,y,width,8.3);y+=measure(text,width,8.3)+5;}};
-            if(desk.business.length && y+businessHeight<=bottom){business();businessPlaced=true;}
+            const business=()=>{if(y+businessHeight>bottom)next();heading(t('Implicaciones para el negocio'));for(const panel of businessPanels){const text=panel.heading+': '+panel.body;write(text,left,y,width,8.3);y+=measure(text,width,8.3)+5;}};
+            if(businessPanels.length && y+businessHeight<=bottom){business();businessPlaced=true;}
             check();
             write(t('CME FedWatch · consultar probabilidades de la próxima reunión'),left,bottom+5,width,7,false,'#668399');doc.link(left,bottom+4,width,12,'https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool');
             const additional=flags.charts===false ? [] : (desk.historical || []).filter(visual=>['mexico','slope'].includes(visual.historyKey));
-            if(model.results.length || additional.length || desk.business.length && !businessPlaced){next();}
+            if(model.results.length || additional.length || businessPanels.length && !businessPlaced){next();}
             if(additional.length){const cw=(width-10)/2,top=y;additional.forEach((visual,index)=>plot(visual,116,false,left+index*(cw+10),cw,top));y+=116;}
             const dateCodes=new Map(),getDates=item=>item.cadence==='auction' ? item.last.date : item.previous ? item.previous.date+' / '+item.last.date : item.last.date;
             for(const item of model.references.filter(item=>item.role!=='policy' && item.cadence!=='monthly')){const dates=getDates(item);if(!dateCodes.has(dates))dateCodes.set(dates,String.fromCharCode(65+dateCodes.size));}
@@ -67,7 +68,7 @@ function makeBondExecutivePdf(title,report,helpers){
                 });y+=5;
             }
             if(dateCodes.size){const note=[...dateCodes].map(([dates,code])=>code+': '+dates).join(' · ')+'. '+t('2020: cierre del año. Subastas: última publicación, sin cambio diario.');write(note,left,y,width,7,false,MUTED);y+=measure(note,width,7)+8;}
-            if(desk.business.length && !businessPlaced)business();
+            if(businessPanels.length && !businessPlaced)business();
             check();
             const international=desk.international;
             if(!desk.compactInternational && flags.charts!==false && international?.printVisuals.length){
@@ -81,18 +82,21 @@ function makeBondExecutivePdf(title,report,helpers){
             }
             if(!desk.compactInternational && flags.tables!==false && international?.table){
                 next();
-                for(const table of availableReportTables([international.table],{t,source:helpers.localization?.source})){
-                    const weights=table.columns.map((_,index)=>index===0 ? 2.2 : 1.2),total=weights.reduce((sum,value)=>sum+value,0),cols=weights.map(value=>value/total*width);
-                    const tableHeader=()=>{heading(t('Bonos internacionales · rendimientos mensuales por país'));const h=Math.max(16,...table.columns.map((label,index)=>measure(label,cols[index]-6,6.9,true)+3));let x=left;doc.rect(left,y,width,h).fill('#e8eef3');table.columns.forEach((label,index)=>{write(label,x+3,y+2,cols[index]-6,6.9,true);x+=cols[index];});y+=h+1;};
+                for(const table of [international.table]){
+                    const cols=[.19,.075,.12,.135,.115,.115,.14,.11].map(fraction=>fraction*width);
+                    const tableHeader=()=>{heading(t('Bonos internacionales · rendimientos mensuales por país'));const h=Math.max(19,...table.columns.map((label,index)=>measure(label,cols[index]-6,7.1,true)+5));let x=left;doc.rect(left,y,width,h).fill('#e8eef3');table.columns.forEach((label,index)=>{write(label,x+3,y+3,cols[index]-6,7.1,true);x+=cols[index];});y+=h+1;};
                     tableHeader();
-                    table.rows.forEach((row,index)=>{
-                        const reference=international.references.find(item=>String(row[0]).startsWith(item.market)),cells=[reference?.market || row[0],...row.slice(1)],h=Math.max(11.5,...cells.map((cell,column)=>measure(cell,cols[column]-6,6.7)+1.2));
-                        if(y+h>bottom-15){check();next();tableHeader();}
+                    const rows=table.rows.map(row=>({row,reference:international.references.find(item=>item.label===row[0])})).sort((a,b)=>(a.reference?.region || '').localeCompare(b.reference?.region || '','es') || (a.reference?.market || a.row[0]).localeCompare(b.reference?.market || b.row[0],'es'));
+                    let region=null;
+                    rows.forEach(({row,reference},index)=>{
+                        const group=reference?.region || t('Otras regiones'),cells=[reference?.market || row[0],...row.slice(1)],h=Math.max(12,...cells.map((cell,column)=>measure(cell,cols[column]-6,7.1)+1.6));
+                        if(y+h+(group!==region ? 12 : 0)>bottom-20){check();next();tableHeader();region=null;}
+                        if(group!==region){doc.rect(left,y,width,12).fill('#e8eef3');write(t(group),left+3,y+2,width-6,7.1,true);y+=12;region=group;}
                         doc.rect(left,y,width,h).fill(index%2 ? '#f3f6f9' : '#fff');let x=left;
-                        cells.forEach((cell,column)=>{write(cell,x+3,y+1.1,cols[column]-6,6.7,column===0,INK,{align:column>1 && column<cols.length-1 ? 'right' : 'left'});if(column===cols.length-1 && reference?.url?.startsWith('https://'))doc.link(x,y,cols[column],h,reference.url);x+=cols[column];});y+=h;
+                        cells.forEach((cell,column)=>{write(cell,x+3,y+1.5,cols[column]-6,7.1,column===0,INK,{align:column>1 && column<cols.length-1 ? 'right' : 'left'});if(column===cols.length-1 && reference?.url?.startsWith('https://'))doc.link(x,y,cols[column],h,reference.url);x+=cols[column];});y+=h;
                     });
                 }
-                const note=t('Promedios mensuales, no sesiones diarias. Mes/año: diferencia absoluta frente al mes anterior o al mismo mes de hace un año. Dic. 2020 es el promedio publicado de ese mes. Fuentes enlazadas por país.');
+                const note=t('Promedios mensuales, no sesiones diarias. Mes/año: cambio en puntos base frente al mes anterior o hace doce meses. Dic. 2020: promedio de ese mes. —: sin base publicada comparable. Fuentes enlazadas por país.');
                 y+=6;write(note,left,y,width,6.8,false,MUTED);y+=measure(note,width,6.8)+4;check();
             }
             const europe=desk.compactInternational ? international : international?.europe;

@@ -28,7 +28,7 @@ export const SUBTEMAS_NOTICIAS = [
   { id: 'porcino', label: 'Porcinos', pattern: /\b(porcin[oa]s?|cerdos?|hogs?|pork|sausage)\b/ },
   { id: 'avicola', label: 'Avicultura', pattern: /\b(avicultura|avicola|pollos?|huevos?|poultry|chicken|eggs?)\b/ },
   { id: 'lacteos', label: 'Lácteos', pattern: /\b(lacteos?|leche|dairy|milk)\b/ },
-  { id: 'sanidad', label: 'Sanidad animal', pattern: /\b(sanidad|barrenador|infectados?|contaminacion|contamination|animal health|recall(?:ed)?)\b/ },
+  { id: 'sanidad', label: 'Sanidad animal', pattern: /\b(sanidad|barrenador|infectados?|contaminacion|contamination|animal health|bird flu|avian flu|influenza aviar|peste porcina|recall(?:ed)?)\b/ },
   { id: 'energia', label: 'Energía', pattern: /\b(energia|energy|petroleo|crudo|oil|crude|gas|wti|brent|pemex)\b/ },
   { id: 'metales', label: 'Metales', pattern: /\b(metales?|metals?|cobre|copper|oro|gold|plata|silver|aluminio|aluminum)\b/ },
   { id: 'logistica', label: 'Logística e insumos', pattern: /\b(logistica|logistics|shipping|fletes?|freight|fertilizantes?|fertilizers?|insumos|supply chain)\b/ },
@@ -49,8 +49,18 @@ export function textoPlano(value) {
 
 export function enlaceSeguro(value) {
   try {
-    const url = new URL(String(value || ''));
-    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : '';
+    const raw = String(value || '').trim();
+    if (!raw || /^https?:\/\/\d+(?:[/:?#]|$)/i.test(raw)) return '';
+    const url = new URL(raw);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return '';
+    const host = url.hostname.toLowerCase().replace(/\.$/, '');
+    if (!host || host.includes(':') || host === 'localhost' || /\.(local|internal)$/.test(host)
+      || /^\d+$/.test(host)
+      || /^(0|10|127|169\.254|192\.168|198\.(18|19))\./.test(host)
+      || /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+      || /^100\.(6[4-9]|[78]\d|9\d|1[01]\d|12[0-7])\./.test(host)
+      || (/^\d+\./.test(host) && Number(host.split('.')[0]) >= 224)) return '';
+    return url.href;
   } catch { return ''; }
 }
 
@@ -64,7 +74,7 @@ export function temaDeNoticia(article) {
   const text = textoPlano(`${article.title || ''} ${article.description || ''}`);
   // La ganadería precede a los granos: un titular de alimento para ganado
   // puede mencionar ambos; debe poder encontrarse desde el filtro pecuario.
-  if (category === 'ganaderia' || /\b(ganad[oa]|ganaderia|pecuari[oa]s?|bovin[oa]s?|porcin[oa]s?|avicultura|avicola|livestock|cattle|hog[s]?|poultry|beef|pork|dairy|leche|carne|pollo[s]?|huevo[s]?)\b/.test(text)) return 'ganaderia';
+  if (category === 'ganaderia' || /\b(ganad[oa]|ganaderia|pecuari[oa]s?|bovin[oa]s?|porcin[oa]s?|avicultura|avicola|livestock|cattle|hog[s]?|poultry|chickens?|eggs?|avian|bird flu|beef|pork|dairy|leche|carne|pollo[s]?|huevo[s]?)\b/.test(text)) return 'ganaderia';
   if (['granos', 'cosechas', 'agro'].includes(category) || /\b(cosecha[s]?|cultivo[s]?|agricultura|agricola[s]?|agropecuari[oa]s?|maiz|trigo|soja|soya|grano[s]?|harvest[s]?|crop[s]?|wheat|soybeans?|corn|grain[s]?)\b/.test(text)) return 'cosechas';
   if (['bolsa', 'equities'].includes(category) || /\b(bolsa[s]?|bmv|nasdaq|acciones|bursatil|wall street|stock[s]?|equities|bourses|s&p|dow jones)\b/.test(text)) return 'bolsas';
   if (['energia', 'metales', 'logistica', 'commodities'].includes(category) || /\b(petroleo|crudo|cobre|oro|plata|fertilizante[s]?|commodities|crude|oil|copper|gold)\b/.test(text)) return 'materias';
@@ -72,8 +82,9 @@ export function temaDeNoticia(article) {
 }
 
 export function normalizarNoticia(article, edition) {
-  const url = enlaceSeguro(article?.url);
-  const title = String(article?.title || '').trim();
+  if (!article || typeof article !== 'object' || Array.isArray(article) || typeof article.title !== 'string') return null;
+  const url = enlaceSeguro(article.url);
+  const title = article.title.trim();
   if (!url || !title) return null;
   const parsed = new URL(url);
   // Evita duplicar una noticia por etiquetas de seguimiento de los agregadores.
@@ -82,18 +93,28 @@ export function normalizarNoticia(article, edition) {
   for (const key of [...canonical.searchParams.keys()]) {
     if (/^(utm_|fbclid$|gclid$)/i.test(key)) canonical.searchParams.delete(key);
   }
-  const timestamp = Date.parse(article.publishedAt);
-  const publishedAt = Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+  const rawDate = String(article.publishedAt || '').trim();
+  const isoDayMatch = rawDate.match(/^(\d{4}-\d{2}-\d{2})/);
+  const parsedTime = Date.parse(rawDate);
+  const validCalendarDate = Number.isFinite(parsedTime)
+    && (!isoDayMatch || new Date(parsedTime).toISOString().slice(0, 10) === isoDayMatch[1]);
+  const timestamp = validCalendarDate ? parsedTime : 0;
+  const publishedAt = validCalendarDate ? new Date(parsedTime).toISOString() : null;
   const description = String(article.description || '')
     .replace(/\s+La entrada[\s\S]+?aparece primero en\s+Agroinformacion\s*\.\s*$/i, '').trim();
+  const sourceTitle = typeof article.originalTitle === 'string' && article.originalTitle.trim() ? article.originalTitle.trim() : title;
+  const sourceDescription = typeof article.originalDescription === 'string' ? article.originalDescription.trim() : description;
+  const sourceCategory = article.originalCategory || article.category;
   const text = textoPlano(`${title} ${description}`);
-  const scopeText = text.replace(/\bnew mexico\b/g, '');
+  const originText = textoPlano(`${sourceTitle} ${sourceDescription}`);
+  if (/\b(recetas?|recipes?|cocinar|cooking)\b/.test(text) || /\b(recetas?|recipes?|cocinar|cooking)\b/.test(originText)) return null;
+  const scopeText = originText.replace(/\bnew mexico\b/g, '');
   const mexicoReference = /\b(mexico|mexican[oa]s?|banxico|bmv|inegi|sader|senasica|pemex|peso mexicano|cdmx|ciudad de mexico|aguascalientes|baja california|campeche|chiapas|chihuahua|coahuila|colima|durango|guanajuato|guerrero|hidalgo|jalisco|michoacan|morelos|nayarit|nuevo leon|oaxaca|puebla|queretaro|quintana roo|san luis potosi|sinaloa|sonora|tabasco|tamaulipas|tlaxcala|veracruz|yucatan|zacatecas|mazatlan)\b/.test(scopeText);
   const scope = edition === 'mexico' || mexicoReference ? 'mexico' : 'mundo';
-  const topic = temaDeNoticia(article);
+  const topic = temaDeNoticia({ title: sourceTitle, description: sourceDescription, category: sourceCategory });
   // Los feeds generales incluyen salud, deportes y sucesos. La etiqueta
   // genérica «markets» del respaldo no prueba relevancia económica.
-  const economic = /\b(finanzas?|financier[oa]s?|econom[yi]a?|economic|economics|economy|inflacion|inflation|bancos?|banks?|banking|credito|credit|deuda|debt|tasas?|rates?|banxico|fed|dolar|dollars?|currency|currencies|euro|yen|peso|bonos?|bonds?|treasury|yield|inversion|investments?|investors?|revenue|earnings|profits?|ventas|sales|exportaciones|imports?|exports?|aranceles?|tariffs?|comercio|trade|pib|gdp|empresas?|companies|business|empleo|jobs?|wages|manufacturing|industria|industrial|nearshoring)\b/.test(text);
+  const economic = /\b(finanzas?|financier[oa]s?|econom[yi]a?|economic|economics|economy|inflacion|inflation|bancos?|banks?|banking|credito|credit|deuda|debt|tasas?|rates?|banxico|fed|dolar|dollars?|currency|currencies|euro|yen|peso|bonos?|bonds?|treasury|yield|inversion|investments?|investors?|revenue|earnings|profits?|ventas|sales|exportaciones|imports?|exports?|aranceles?|tariffs?|comercio|trade|pib|gdp|empresas?|companies|business|empleo|jobs?|wages|manufacturing|industria|industrial|nearshoring)\b/.test(`${text} ${originText}`);
   if (topic === 'finanzas' && !economic) return null;
   const comparable = value => textoPlano(value).replace(/[^a-z0-9]+/g, '');
   const summary = comparable(description) === comparable(title) ? '' : description;
@@ -101,6 +122,11 @@ export function normalizarNoticia(article, edition) {
   return {
     id: canonical.href,
     title,
+    originalTitle: sourceTitle,
+    originalDescription: sourceDescription,
+    originalCategory: sourceCategory || '',
+    editorial: Boolean(article.editorial),
+    summaryOrigin: article.summaryOrigin || 'source',
     description: summary,
     insight: summary && comparable(summary).startsWith(comparable(insight)) ? '' : insight,
     source: String(article.source || parsed.hostname.replace(/^www\./, '')).trim(),
@@ -113,14 +139,16 @@ export function normalizarNoticia(article, edition) {
   };
 }
 
-export function reunirNoticias(editions) {
+export function reunirNoticias(editions, now = Date.now()) {
   const byUrl = new Map();
   const byTitle = new Map();
   for (const edition of editions) {
     for (const raw of edition.articles || []) {
       const article = normalizarNoticia(raw, edition.id);
       if (!article) continue;
-      const titleKey = textoPlano(article.title).replace(/[^a-z0-9]+/g, ' ').trim();
+      if (article.timestamp && article.timestamp > now + 10 * 60 * 1000) continue;
+      const sourceKey = textoPlano(article.source).replace(/[^a-z0-9]+/g, ' ').trim();
+      const titleKey = `${sourceKey}::${textoPlano(article.title).replace(/[^a-z0-9]+/g, ' ').trim()}`;
       const previous = byUrl.get(article.id) || byTitle.get(titleKey);
       if (previous) {
         if (!previous.image) previous.image = article.image;
@@ -145,7 +173,7 @@ export function reunirNoticias(editions) {
 }
 
 export function filtrarNoticias(articles, {
-  scope = 'todos', topic = 'todos', query = '', subtopic = 'todos', source = 'todos',
+  scope = 'todos', topic = 'todos', sector = 'todos', query = '', subtopic = 'todos', source = 'todos',
   period = 'todos', from = '', until = '', impact = 'todos', withImage = false, withSummary = false,
 } = {}, now = Date.now()) {
   const words = textoPlano(query).trim().split(/\s+/).filter(Boolean);
@@ -163,6 +191,7 @@ export function filtrarNoticias(articles, {
   };
   return articles.filter(article => (scope === 'todos' || article.scope === scope)
     && (topic === 'todos' || article.topic === topic)
+    && (sector === 'todos' || (sector === 'food' ? ['ganaderia', 'cosechas'].includes(article.topic) : article.topic === sector))
     && (subtopic === 'todos' || article.subtopics?.includes(subtopic))
     && (source === 'todos' || textoPlano(article.source) === textoPlano(source))
     && (impact === 'todos' || article.impact === impact)
@@ -174,7 +203,10 @@ export function filtrarNoticias(articles, {
 export function destacarNoticias(articles, limit = 6) {
   if (limit <= 0) return [];
   const rank = { alto: 3, medio: 2, bajo: 1 };
-  const ranked = [...articles].sort((a, b) => (rank[b.impact] || 0) - (rank[a.impact] || 0) || b.timestamp - a.timestamp);
+  const newestTimestamp = articles.reduce((max, item) => Math.max(max, item.timestamp || 0), 0);
+  const recentCutoff = newestTimestamp ? newestTimestamp - 180 * 86_400_000 : 0;
+  const isRecent = item => !recentCutoff || (item.timestamp || 0) >= recentCutoff;
+  const ranked = [...articles].sort((a, b) => Number(isRecent(b)) - Number(isRecent(a)) || (rank[b.impact] || 0) - (rank[a.impact] || 0) || b.timestamp - a.timestamp);
   const selected = [];
   const topics = new Set();
   const scopes = new Set();
@@ -192,9 +224,10 @@ export function destacarNoticias(articles, limit = 6) {
 }
 
 export function fechaNoticia(iso) {
-  if (!iso) return 'Fecha no disponible';
+  const time = Date.parse(iso);
+  if (!iso || !Number.isFinite(time)) return 'Fecha no disponible';
   return new Intl.DateTimeFormat('es-MX', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     timeZone: 'America/Mexico_City',
-  }).format(new Date(iso));
+  }).format(new Date(time));
 }

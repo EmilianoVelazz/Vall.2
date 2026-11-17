@@ -12,13 +12,18 @@
        publica su propio desmontar() en window.VNVallAi. */
     window.VNVallAi?.desmontar?.();
 
+    const session=window.VNOrionSession;
+    if(!session?.owner || !session.current)return;
+    const localStorage=session.storage,sessionStorage=session.sessionStorage;
+    const fetch=(url,options)=>session.request(url,options);
+
     const _globales = [];
     const escucharGlobal = (destino, evento, fn) => {
         destino.addEventListener(evento, fn);
         _globales.push(() => destino.removeEventListener(evento, fn));
     };
 
-    const PROFILE_SCOPE = encodeURIComponent(String(sessionStorage.getItem('vn_user') || 'anonymous').trim().toLowerCase()).slice(0, 180);
+    const PROFILE_SCOPE = encodeURIComponent(session.owner);
     const CONV_KEY = `vn_chat_conversations_v2_${PROFILE_SCOPE}`;
     const ACTIVE_KEY = `vn_chat_active_id_v2_${PROFILE_SCOPE}`;
     const DELETED_CONV_KEY = `vn_chat_deleted_ids_v1_${PROFILE_SCOPE}`;
@@ -276,7 +281,7 @@
 
     function queueRemoteConversationRequest(conversationId, request) {
         const previous = remoteSaveQueues.get(conversationId) || Promise.resolve();
-        const next = previous.catch(() => {}).then(request).catch(() => {}).finally(() => {
+        const next = previous.catch(() => {}).then(()=>session.current ? request() : undefined).catch(() => {}).finally(() => {
             if (remoteSaveQueues.get(conversationId) === next) remoteSaveQueues.delete(conversationId);
         });
         remoteSaveQueues.set(conversationId, next);
@@ -317,6 +322,7 @@
         try {
             const response = await fetch('/api/chat-conversations', { credentials: 'include', cache: 'no-store' });
             const payload = await response.json().catch(() => ({}));
+            if(!session.current)return;
             if (!response.ok || !Array.isArray(payload.data)) return;
             if (payload.data.length) {
                 const activeBeforeSync = activeId;
@@ -385,6 +391,7 @@
     }
 
     function persistConversation(conversation) {
+        if(!session.current)return;
         conversation.title = conversationTitle(conversation.messages);
         conversation.updatedAt = Date.now();
         conversation.messages = conversation.messages.slice(-MAX_MESSAGES).map(ensureMessageIdentity);
@@ -1839,7 +1846,6 @@
         } finally {
             clearThinkingTimers();
             controller = null; setBusy(false);
-            window.dispatchEvent(new Event('vall:chat-usage-refresh'));
             if (els.form) delete els.form.dataset.orionSending;
             els.input.focus();
             if (continuousVoiceMode) {
@@ -2705,6 +2711,7 @@
     }
 
     window.VNVallAi = { desmontar };
+    escucharGlobal(session.signal,'abort',()=>{desmontar();els.messages?.replaceChildren();els.history?.replaceChildren();if(els.input)els.input.value='';});
 
     if (!activeConversation() && conversations.length) activeId = conversations[0].id;
     if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);

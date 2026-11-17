@@ -19,6 +19,9 @@ function trustedCertificates(extraPem = '') {
 // disabling certificate or hostname verification. Older runtimes retain their
 // existing defaults; this API is available on current Node 22/24 and newer.
 function configureSystemTrust() {
+    if (typeof window === 'undefined' && Object.getOwnPropertyDescriptor(globalThis, 'localStorage')?.get) {
+        Object.defineProperty(globalThis, 'localStorage', { value: undefined, configurable: true, writable: true });
+    }
     if (systemTrustConfigured) return true;
     if (typeof tls.setDefaultCACertificates !== 'function' || typeof tls.getCACertificates !== 'function') return false;
     tls.setDefaultCACertificates([...new Set([...tls.getCACertificates('default'), ...tls.getCACertificates('system')])]);

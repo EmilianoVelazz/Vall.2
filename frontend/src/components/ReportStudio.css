@@ -243,6 +243,15 @@
 }
 .erh-studio .erh-document-header { padding-bottom:24px; }
 .erh-studio .erh-document-brand { margin-bottom:20px; }
+.erh-studio .erh-document { position:relative; isolation:isolate; border-top:4px solid #082b4c; }
+.erh-studio .erh-document>.erh-reader { position:relative; isolation:isolate; }
+.erh-studio .erh-document>.erh-reader::before { content:''; position:absolute; z-index:2; top:140px; left:12%; width:76%; height:240px; background:url('/assets/templates/vallnews-report-watermark.png') center / contain no-repeat; opacity:.4; pointer-events:none; }
+.erh-studio .erh-document-brand { padding-bottom:16px; border-bottom:1px solid #cfdae3; gap:16px; }
+.erh-studio .erh-document-brand .erh-vallnews-logo { display:block; box-sizing:border-box; width:112px; height:59px; padding:6px; flex:none; object-fit:contain; border-radius:4px; background:#082b4c; }
+.erh-studio .erh-document-brand>small { color:#31556d; letter-spacing:1.2px; }
+.erh-studio .erh-document-brand>b { color:#106d69; border-color:#bfdbd8; background:#edf5f5; }
+.erh-studio .erh-document-footer { border-top:2px solid #168780; color:#31556d; }
+@media(max-width:600px) { .erh-studio .erh-document-brand .erh-vallnews-logo { width:92px; height:49px; } .erh-studio .erh-document-brand { gap:10px; } .erh-studio .erh-document>.erh-reader::before { left:6%; width:88%; } }
 .erh-studio .erh-document-header h2 { font-size:clamp(27px,2.4vw,36px); line-height:1.18; }
 .erh-studio .erh-document-meta { gap:8px; line-height:1.5; }
 .erh-studio .erh-document-meta>span { padding:5px 8px; border:1px solid #e1e8f1; border-radius:6px; background:#f8fafd; }
@@ -592,6 +601,26 @@
 .erh-studio .erh-document:focus-visible { outline:2px solid #618cba; outline-offset:-2px; }
 .erh-studio .erh-document-column>.erh-secondary-actions { flex:none; margin:0; border:0; border-top:1px solid #354861; border-radius:0; }
 .erh-studio .erh-document-column>.erh-pdf-stage { flex:1 1 auto; height:auto; min-height:0; border-radius:0; }
+.erh-studio .erh-pdf-jump,.erh-studio .erh-pdf-jump label { display:flex; align-items:center; gap:7px; color:#334155; font-size:12px; }
+.erh-studio .erh-pdf-jump input { width:65px; min-width:0; min-height:34px; box-sizing:border-box; border:1px solid #cbd8ec; border-radius:5px; padding:5px; background:#fff; color:#193758; }
+.erh-studio .erh-pdf-jump button { min-height:34px; background:#f1f5fa; color:#193758; border:1px solid #cbd8ec; border-radius:5px; padding:5px 10px; }
+.erh-studio .erh-pdf-search { flex:none; padding:8px 12px; background:#fff; border-bottom:1px solid #cbd8ec; color:#334155; font-size:12px; }
+.erh-studio .erh-pdf-search form { display:flex; align-items:end; flex-wrap:wrap; gap:8px; }
+.erh-studio .erh-pdf-search label { display:grid; flex:1 1 180px; min-width:0; gap:4px; }
+.erh-studio .erh-pdf-search input { width:100%; min-width:0; min-height:36px; box-sizing:border-box; border:1px solid #cbd8ec; border-radius:5px; padding:7px; background:#fff; color:#193758; }
+.erh-studio .erh-pdf-search button,.erh-studio .erh-pdf-coverage button { min-height:36px; padding:6px 10px; background:#f1f5fa; color:#193758; border:1px solid #cbd8ec; border-radius:5px; cursor:pointer; }
+.erh-studio .erh-pdf-search button:disabled { opacity:.5; cursor:default; }
+.erh-studio .erh-pdf-search nav { display:flex; flex-wrap:wrap; gap:5px; max-height:90px; overflow:auto; }
+.erh-studio .erh-pdf-search [aria-current=page] { background:#193758; color:#fff; }
+.erh-studio .erh-pdf-coverage,.erh-studio .erh-report-updates { padding:9px 12px; border:1px solid #d6e0eb; background:#f1f5fa; color:#193758; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.erh-studio .erh-report-updates { margin:8px 0; border-left:3px solid #193758; }
+.erh-studio .erh-report-updates summary,.erh-studio .erh-pdf-coverage summary { cursor:pointer; font-weight:650; }
+.erh-studio .erh-report-updates summary small { margin-left:12px; font-weight:400; }
+.erh-studio .erh-report-updates p,.erh-studio .erh-pdf-coverage p { margin:6px 0; }
+.erh-studio .erh-report-updates ul { margin:6px 0; padding-left:20px; }
+.erh-studio .erh-reference-status { display:inline-block; max-width:100%; box-sizing:border-box; padding:2px 6px; border:1px solid #d6e0eb; border-radius:4px; background:#edf3f8; color:#31516c; font-size:11px; line-height:1.5; white-space:pre-line; }
+.erh-studio .erh-reference-status:is(.is-pending,.is-preserved) { background:#faf3e6; color:#725728; border-color:#e3d3b4; }
+.erh-studio .erh-chart-context { display:flex; flex-wrap:wrap; gap:5px 14px; padding:6px 12px; margin:0; color:#52647a; background:#f1f5fa; font-size:11px; line-height:1.5; }
 .erh-studio .erh-review-layout .erh-edition { height:var(--erh-panel-height); max-height:var(--erh-panel-height); }
 .erh-studio .erh-review-layout .erh-edition-scroll { min-height:0; }
 @media(max-width:999px) {

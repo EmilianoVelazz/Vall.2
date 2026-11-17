@@ -1,5 +1,27 @@
 # Datos inteligentes de VALLNews
 
+## Historial de informes en Vercel
+
+La migración `021_report_history_editions.sql` crea el archivo privado e
+inmutable de cortes. Vercel lo consulta y escribe en Supabase/PostgreSQL,
+compartiendo los mismos informes entre las funciones HTTP y los cron. El
+almacenamiento local se conserva para desarrollo; `/tmp` no se usa como
+respaldo duradero del historial en Vercel.
+
+Antes de desplegar esta versión, aplica la migración con una conexión
+PostgreSQL administrativa:
+
+```powershell
+node scripts/apply-report-history-migration.cjs --apply
+```
+
+También se puede ejecutar el SQL en el editor de Supabase. El servidor utiliza
+la conexión PostgreSQL existente o `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`.
+Los clientes públicos no tienen acceso a la tabla. Si el almacén compartido
+falla, la API informa que el historial no está disponible; no devuelve un
+archivo local vacío como si fuera el historial completo. Los cortes antiguos
+que sólo existían en una instancia temporal desaparecida no se reconstruyen.
+
 La migración `migrations/001_ai_intelligence_schema.sql` prepara MariaDB para:
 
 1. `market_*` y `economic_*`: series numéricas verificables.

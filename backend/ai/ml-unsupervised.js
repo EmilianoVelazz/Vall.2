@@ -1,5 +1,7 @@
 'use strict';
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env'), quiet: true });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local'), quiet: true });
+require('../lib/tls-trust').configureSystemTrust();
 const fs = require('fs');
 const path = require('path');
 const { GeminiProvider } = require('./providers/gemini-provider');

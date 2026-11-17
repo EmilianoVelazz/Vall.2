@@ -10,7 +10,7 @@
     },
     "api/index.js": {
       "maxDuration": 300,
-      "includeFiles": "{assets/templates/**,assets/fonts/noto-jp/**,backend/data/**,shared/**,frontend/src/lib/produccion-proteinas.js,frontend/src/lib/reportCsv.js,frontend/src/lib/reportSources.js,frontend/src/lib/reportVisualData.js}",
+      "includeFiles": "{assets/templates/**,assets/img/brand/logo.png,assets/fonts/noto-jp/**,backend/data/**,shared/**,frontend/src/lib/produccion-proteinas.js,frontend/src/lib/reportCsv.js,frontend/src/lib/reportSources.js,frontend/src/lib/reportVisualData.js}",
       "excludeFiles": "{output/**,frontend/artifacts/**}"
     }
   },
@@ -33,61 +33,198 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/login", "destination": "/api/auth.js" },
-    { "source": "/api/logout", "destination": "/api/auth.js" },
-    { "source": "/api/verify-token", "destination": "/api/auth.js" },
-    { "source": "/api/profile", "destination": "/api/auth.js" },
-    { "source": "/api/change-password", "destination": "/api/auth.js" },
-    { "source": "/api/admin/profiles", "destination": "/api/auth.js" },
-    { "source": "/api/admin/profiles/:id/password", "destination": "/api/auth.js" },
-    { "source": "/api/:path*", "destination": "/api/index.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/login",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/logout",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/verify-token",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/profile",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/change-password",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/admin/profiles",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/admin/profiles/:id/password",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Strict-Transport-Security", "value": "max-age=31536000" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000"
+        }
       ]
     },
     {
       "source": "/((?!api/report-download/).*)",
       "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" }
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+        }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     },
     {
       "source": "/(.*)\\.html",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/assets/js/(.*)\\.js",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/assets/css/(.*)\\.css",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/vn-app/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
+    }
+  ],
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vallnews.com"
+        }
+      ],
+      "destination": "https://vallnews.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/login",
+      "permanent": true
+    },
+    {
+      "source": "/inicio.html",
+      "destination": "/inicio",
+      "permanent": true
+    },
+    {
+      "source": "/geopolitica",
+      "destination": "/inicio",
+      "permanent": true
+    },
+    {
+      "source": "/pages/finanzas.html",
+      "destination": "/finanzas",
+      "permanent": true
+    },
+    {
+      "source": "/pages/mercados.html",
+      "destination": "/mercados",
+      "permanent": true
+    },
+    {
+      "source": "/pages/geopolitica.html",
+      "destination": "/inicio",
+      "permanent": true
+    },
+    {
+      "source": "/pages/mexico.html",
+      "destination": "/mexico",
+      "permanent": true
+    },
+    {
+      "source": "/pages/mercadoproteinas.html",
+      "destination": "/mercado-proteinas",
+      "permanent": true
+    },
+    {
+      "source": "/pages/configuracion.html",
+      "destination": "/configuracion",
+      "permanent": true
+    },
+    {
+      "source": "/pages/vall-ai.html",
+      "destination": "/orion",
+      "permanent": true
+    },
+    {
+      "source": "/finanzas/finanzas.html",
+      "destination": "/finanzas",
+      "permanent": true
+    },
+    {
+      "source": "/mercados/mercados.html",
+      "destination": "/mercados",
+      "permanent": true
+    },
+    {
+      "source": "/finanzas/inicio.html",
+      "destination": "/inicio",
+      "permanent": true
+    },
+    {
+      "source": "/vall-ai",
+      "destination": "/orion",
+      "permanent": true
     }
   ]
 }

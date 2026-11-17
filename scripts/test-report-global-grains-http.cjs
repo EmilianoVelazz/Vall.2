@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs/promises');
-process.env.NODE_ENV='test';process.env.VERCEL='1';process.env.JWT_SECRET='fixture-global-grains-http';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
+process.env.NODE_ENV='test';process.env.VERCEL='1';process.env.JWT_SECRET='fixture-global-grains-http-fixture-only-testing-32bytes';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
 for(const key of ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_DATABASE_URL','SUPABASE_PASSWORD'])process.env[key]='';
 const express=require('express'),jwt=require('jsonwebtoken'),profiles=require('../backend/services/user-profile-store');
 profiles.findById=async id=>({id,email:'grains@example.invalid',active:true,credentialVersion:0});

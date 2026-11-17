@@ -15,6 +15,7 @@ import { spawnSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { assertRetiredFilesAbsent } from './lib/retired-files.mjs';
+import {buildPublicSeo} from './build-public-seo.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -96,5 +97,6 @@ if (!existsSync(path.join(DIST, 'index.html'))) {
     process.exit(1);
 }
 
+await buildPublicSeo();
 const bundle = path.join(DIST, 'vn-app');
 console.log(`\n[build-dist] dist/ listo: React${existsSync(bundle) ? ' (vn-app/)' : ''} + estáticos heredados.`);

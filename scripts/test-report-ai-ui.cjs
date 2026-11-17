@@ -1,8 +1,9 @@
 'use strict';
+process.env.NODE_ENV='test';
 /* global document, window */
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),express=require('express');
 const {chromium}=require('playwright');
-process.env.JWT_SECRET='isolated-report-ai-ui-secret';delete process.env.USER_PASSWORD;
+process.env.JWT_SECRET='isolated-report-ai-ui-secret-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
 const {UserReportAgent}=require('../backend/ai/user-report-agent');
 const {createUserReportStore}=require('../backend/services/user-report-store');
 const {createUserReportsRouter}=require('../backend/routes/user-reports');

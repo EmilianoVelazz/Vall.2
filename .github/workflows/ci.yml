@@ -1,0 +1,58 @@
+name: CI Verification
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Lint and production build
+        run: |
+          npm run lint
+          npm run build
+
+      - name: Security and authentication suites
+        run: |
+          npm run test:security
+          npm run test:auth:security
+
+      - name: ORION, AI, forecast and proteins suites
+        run: |
+          npm run test:orion:mcp
+          npm run test:orion:quality
+          npm run test:intelligence
+          npm run test:forecast
+          npm run test:proteins
+          node scripts/test-report-reader-agent.cjs
+
+      - name: News, SEO, reports and email suites
+        run: |
+          npm run test:news
+          npm run test:seo
+          npm run test:reports:argon
+          npm run test:reports:email
+          node scripts/test-report-bond-session.mjs

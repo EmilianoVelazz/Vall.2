@@ -89,6 +89,9 @@ function domainDecision({ message = '', history = [], attachments = [] } = {}) {
     // crear software de forma inequívoca.
     if (CODE_CREATION_RE.test(intent)) return { allowed: false, reason: 'programming' };
     if (EXPLICIT_OFF_TOPIC_RE.test(intent) && !ECONOMIC_IMPACT_RE.test(intent)) return { allowed: false, reason: 'off_topic' };
+    // An acknowledgement does not request another market investigation.
+    if (isSocialMessage(intent)) return { allowed: true, reason: 'social' };
+    if(/\b(?:forwards?|swaps?)\b/.test(intent) && !PROGRAMMING_RE.test(intent))return {allowed:true,reason:'domain'};
 
     const anchor = recentDomainUserMessage(history);
     if (anchor && isLikelyFollowUp(text, history)) return { allowed: true, reason: 'follow_up', anchor };
@@ -96,7 +99,6 @@ function domainDecision({ message = '', history = [], attachments = [] } = {}) {
     if (PLATFORM_RE.test(intent) && !CODE_CREATION_RE.test(intent)) return { allowed: true, reason: 'platform' };
     if (PROGRAMMING_RE.test(intent) && !DOMAIN_RE.test(intent)) return { allowed: false, reason: 'programming' };
     if (esDelDominio(intent)) return { allowed: true, reason: 'domain' };
-    if (isSocialMessage(intent)) return { allowed: true, reason: 'social' };
     if (Array.isArray(attachments) && attachments.length) return { allowed: true, reason: 'attachment' };
 
     /* Continuación: el turno anterior tiene que haber sido del dominio. Un

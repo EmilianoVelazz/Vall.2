@@ -1,4 +1,6 @@
 import {mapReportText,reportSourceText} from './report-localized-text.mjs';
+import {sameNewsEvent,corroborateNews,monetaryEvent} from './report-news-events.mjs';
+import {marketStoryTopic} from './report-news-qualification.mjs';
 export const FINANCIAL_NEWS_VERSION=1;
 const calendar=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'});
 export const newsDay=value=>Number.isFinite(Date.parse(value)) ? calendar.format(new Date(value)) : '';
@@ -20,32 +22,42 @@ export function newsUrl(value){try{const url=new URL(value);if(!['https:','http:
 export function classifyFinancialNews(item,topics=NEWS_TOPICS){
  const title=fold(item.originalTitle || item.title),text=title+' '+fold(item.description || item.summary);
  if(/\b(?:podcast|horoscopo|celebrity|celebridades|futbol|football|receta|recipe|bearista|viral sensation|concierto|recruitment|website maintenance|call for papers)\b/.test(title))return null;
- const primary=topics.find(topic=>topic.pattern.test(title)),topic=primary || topics.find(topic=>topic.pattern.test(text));
+ if(/\b(?:affair|infidelidad|romance|asunto personal)\b/.test(text) && !/\b(?:sec|filing|demanda|lawsuit|dimisi\w*|resign\w*|despid\w*|fired|suspend\w*)\b/.test(title))return null;
+ const ordered=[...topics].sort((a,b)=>({health:0,food_oils:1,corporate:2}[a.id] ?? 3)-({health:0,food_oils:1,corporate:2}[b.id] ?? 3));
+ const marketTopics=topics.some(topic=>topic.id==='livestock');
+ const primary=marketTopics ? ordered.find(topic=>topic.id===marketStoryTopic(item)) : ordered.find(topic=>topic.pattern.test(title)),topic=primary || (!marketTopics && ordered.find(topic=>topic.pattern.test(text)));
  if(!topic)return null;
  const material=/\b(?:decision|decide|recorta|recorte|sube|baja|eleva|inflacion|inflation|empleo|payrolls?|gdp|pib|earnings|resultados|arancel\w*|tariffs?|sancion\w*|sanction\w*|interes|interest|bancarrota|bankrupt\w*)\b/.test(title);
  return {topic,score:(primary ? 6 : 1)+(material ? 3 : 0)+(item.sourceType==='primary' ? 2 : 0)+(spanish(item.title) ? 1 : 0)};
 }
-export function safeFinancialNews(input,cutoff,{topics=NEWS_TOPICS}={}){
+export function safeFinancialNews(input,cutoff,{topics=NEWS_TOPICS,lookbackDays=1}={}){
  const end=Date.parse(cutoff),date=newsDay(cutoff);if(!Number.isFinite(end) || !Array.isArray(input))return [];
+ const firstDay=new Date(Date.parse(date)-Math.max(0,Math.min(6,lookbackDays-1))*86400000).toISOString().slice(0,10);
  const ranked=input.slice(0,500).flatMap(item=>{
   if(!item || typeof item!=='object')return [];
   const published=Date.parse(item.publishedAt),url=newsUrl(item.url),title=clean(item.title,300),source=clean(item.source,160),description=clean(item.description || item.summary,650),classified=classifyFinancialNews(item,topics);
   const explicitZone=typeof item.publishedAt==='string' && /(?:T.*(?:Z|[+-]\d{2}:?\d{2})|(?:GMT|UTC|[+-]\d{4}))$/i.test(item.publishedAt),isoDate=String(item.publishedAt).slice(0,10),validDate=!/^\d{4}-\d{2}-\d{2}$/.test(isoDate) || Number.isFinite(Date.parse(isoDate)) && new Date(isoDate).toISOString().slice(0,10)===isoDate;
-  if(!classified || !title || !source || !url || !explicitZone || !validDate || !Number.isFinite(published) || published>end || newsDay(item.publishedAt)!==date)return [];
+  if(!classified || !title || !source || !url || !explicitZone || !validDate || !Number.isFinite(published) || published>end || (newsDay(item.publishedAt)<firstDay || newsDay(item.publishedAt)>date))return [];
   const titleKey=identity(title.replace(/\s+[-–|]\s+[^-–|]+$/,'')),descKey=identity(description),substantive=descKey!==identity(title) && descKey!==identity(title+source);
-  return [{title,description:substantive ? description : '',source,publishedAt:new Date(published).toISOString(),url,sourceType:item.sourceType==='primary' ? 'primary' : 'publisher',provider:clean(item.provider,50),region:clean(item.region,50),originalTitle:clean(item.originalTitle,300),language:spanish(title) ? 'es' : 'original',topic:classified.topic.id,score:classified.score,titleKey}];
+  const corroboratingSources=(Array.isArray(item.corroboratingSources) ? item.corroboratingSources : []).flatMap(value=>{const link=newsUrl(value?.url),stamp=Date.parse(value?.publishedAt);return link && clean(value.source,160) && Number.isFinite(stamp) && stamp<=end && newsDay(value.publishedAt)>=firstDay && newsDay(value.publishedAt)<=date ? [{source:clean(value.source,160),url:link,publishedAt:new Date(stamp).toISOString()}] : [];}).slice(0,5);
+  return [{title,description:substantive ? description : '',source,publishedAt:new Date(published).toISOString(),url,sourceType:item.sourceType==='primary' ? 'primary' : 'publisher',provider:clean(item.provider,50),region:clean(item.region,50),originalTitle:clean(item.originalTitle,300),language:spanish(title) ? 'es' : 'original',topic:classified.topic.id,score:classified.score,titleKey,corroboratingSources}];
  }).sort((a,b)=>b.score-a.score || Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
  const urls=new Set(),titles=new Set(),counts=new Map(),selected=[];
  const words=item=>new Set(fold(item.title).replace(/\d[\d,.]*/g,'').split(/\W+/).filter(word=>word.length>2));
- const add=item=>{const publisher=fold(item.source).replace(/\s*·.*$/,''),tokens=words(item),repeated=selected.some(other=>{if(fold(other.source).replace(/\s*·.*$/,'')!==publisher || other.topic!==item.topic)return false;const prior=words(other),common=[...tokens].filter(word=>prior.has(word)).length;return common>=6 && common/Math.min(tokens.size,prior.size)>=.8;});if(repeated||urls.has(item.url)||titles.has(item.titleKey)||(counts.get(publisher)||0)>=2)return;urls.add(item.url);titles.add(item.titleKey);counts.set(publisher,(counts.get(publisher)||0)+1);selected.push(item);};
+ const add=item=>{const event=selected.find(prior=>sameNewsEvent(prior,item));if(event){corroborateNews(event,item);return;}const publisher=fold(item.source).replace(/\s*·.*$/,''),tokens=words(item),repeated=selected.some(other=>{if(fold(other.source).replace(/\s*·.*$/,'')!==publisher || other.topic!==item.topic)return false;const prior=words(other),common=[...tokens].filter(word=>prior.has(word)).length;return common>=6 && common/Math.min(tokens.size,prior.size)>=.8;});if(repeated||urls.has(item.url)||titles.has(item.titleKey)||(counts.get(publisher)||0)>=2)return;urls.add(item.url);titles.add(item.titleKey);counts.set(publisher,(counts.get(publisher)||0)+1);selected.push(item);};
  // Take the best actual story from each subject before filling by relevance.
  for(const topic of topics){const candidate=ranked.find(item=>item.topic===topic.id);if(candidate)add(candidate);}
  for(const item of ranked){if(selected.length>=12)break;add(item);}
  return selected.sort((a,b)=>b.score-a.score || Date.parse(b.publishedAt)-Date.parse(a.publishedAt)).map(({score,titleKey,...item})=>item);
 }
-export function financialNewsEvidence(report){return safeFinancialNews(report.financialNews || report.headlines || report.sourceSnapshot?.headlines || report.sessionNews || [],report.generatedAt);}
+export function financialNewsEvidence(report){return safeFinancialNews(report.financialNews || report.headlines || report.sourceSnapshot?.headlines || report.sessionNews || [],report.generatedAt,{lookbackDays:report.analysisPeriod==='weekly' ? 7 : 1});}
 function storyReading(item,topic){
  const text=fold(item.originalTitle || item.title);
+ const event=monetaryEvent(item);
+ if(topic.id==='rates' && event?.action){
+  const currency={banxico:'MXN',fed:'USD',boe:'GBP',ecb:'EUR'}[event.actor],direction=event.action==='cut' ? 'menor' : event.action==='raise' ? 'mayor' : 'estable';
+  return {effect:'Para deuda y tesorería en '+currency+', el anuncio apunta a un costo de referencia '+direction+'. El efecto en caja depende de la próxima revisión contractual y del diferencial pactado; la tasa fija no cambia por el anuncio.',watch:'Confirmar fecha efectiva y tasa oficial; contrastar contratos en '+currency+', vencimientos y próxima fecha de reajuste.'};
+ }
  if(topic.id==='rates' && !/\b(?:fmi|imf|riesgo pais|soberan\w*|sovereign)\b/.test(text))return {effect:topic.effect,watch:topic.watch};
  const cases=[
   [/\b(?:fmi|imf|riesgo pais|soberan\w*|sovereign)\b/,'Un desembolso o cambio de riesgo soberano puede modificar el acceso a financiamiento y las condiciones de crédito del país. Revisar exposición a deuda y contrapartes locales.','Confirmar monto, calendario y condiciones del financiamiento; seguir la prima soberana y el tipo de cambio.'],
@@ -63,8 +75,9 @@ function storyReading(item,topic){
 export function financialNewsReport(input,{t:labels=value=>value,source=value=>value,topics=NEWS_TOPICS,evidence=financialNewsEvidence,reading=storyReading,kicker='Inteligencia financiera · Edición diaria'}={}){
  const t=(value,parameters)=>input.causeText?.[value] || labels(value,parameters);
  const report=input.causeText ? mapReportText(input,reportSourceText(input,source)) : input,stories=evidence(report).map((item,index)=>{const topic=topics.find(topic=>topic.id===item.topic),insight=reading(item,topic);return {...item,id:'story-'+(index+1),label:t(topic.label),channel:t(topic.channel),effect:t(insight.effect),watch:t(insight.watch)};}),flags=report.personalization?.sections || {},groups=topics.flatMap(topic=>{const items=stories.filter(item=>item.topic===topic.id);return items.length ? [{id:topic.id,label:t(topic.label),stories:items}] : [];}),date=newsDay(report.generatedAt),summary=stories.length ? t('Noticias publicadas durante el día del informe, ordenadas por relevancia financiera y agrupadas por tema. Cada nota distingue lo publicado de sus posibles efectos en la empresa.') : t('No se recuperaron noticias financieras fechadas en el día de este corte. Las publicaciones anteriores no se presentan como noticias de hoy.'),note=t('Hora de Ciudad de México. La publicación puede describir un hecho de otra fecha. Los efectos son canales posibles; no prueban una reacción de precios ni constituyen una decisión de inversión.');
- const table={title:t('Noticias del día y canales financieros'),columns:['Tema','Titular','Detalle publicado','Canal financiero','Posibles repercusiones','Qué vigilar','Publicación','Fuente','Enlace'].map(t),rows:stories.map(item=>[item.label,item.title,item.description,item.channel,item.effect,item.watch,item.publishedAt,item.source,item.url]),note};
+ const table={title:t('Noticias del día y canales financieros'),columns:['Tema','Titular','Detalle publicado','Canal financiero','Posibles repercusiones','Qué vigilar','Publicación','Fuente','Enlace'].map(t),rows:stories.map(item=>[item.label,item.title,item.description,item.channel,item.effect,item.watch,item.publishedAt,[item.source,...item.corroboratingSources.map(source=>source.source)].join(' · '),[item.url,...item.corroboratingSources.map(source=>source.url)].join('\n')]),note};
  const blocks=[{key:'news-opening',number:'1',label:t('Lectura ejecutiva del día')},...groups.map((group,index)=>({key:'news-'+group.id,number:String(index+2),label:group.label}))];
- const model={newsExecutive:{stories,groups,date,note,kicker:t(kicker),titleLabel:report.title,checkedAt:report.newsCheckedAt || report.generatedAt,sourceCount:new Set(stories.map(item=>item.source)).size},sessionReport:true,focusedMarket:true,summary,summaryPanels:[],commentary:[],references:[],results:flags.tables===false ? [] : [table],annexTables:[],visuals:[],metrics:[],history:[],tables:[],statistics:[],followup:[],coverage:note,blocks};
+ const model={newsExecutive:{stories,groups,date,note,kicker:t(report.analysisPeriod==='weekly' ? kicker.replace('Edición diaria','Edición semanal') : kicker),titleLabel:report.title,windowStart:report.analysisPeriod==='weekly' ? new Date(Date.parse(date)-6*86400000).toISOString().slice(0,10) : date,windowEnd:date,checkedAt:report.newsCheckedAt || report.generatedAt,sourceCount:new Set(stories.flatMap(item=>[item.source,...item.corroboratingSources.map(source=>source.source)])).size},sessionReport:true,focusedMarket:true,summary,summaryPanels:[],commentary:[],references:[],results:flags.tables===false ? [] : [table],annexTables:[],visuals:[],metrics:[],history:[],tables:[],statistics:[],followup:[],coverage:note,blocks};
+ if(report.analysisPeriod==='weekly')model.summary=t('Publicaciones recuperadas en la semana terminada el ')+date+'. '+t('Se agrupan los acontecimientos disponibles; cada noticia conserva su fecha y su alcance.');
  return input.causeText ? mapReportText(model,t) : model;
 }

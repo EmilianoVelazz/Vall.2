@@ -7,7 +7,7 @@ import {reportLayout} from '../frontend/src/lib/reportLayout.js';
 import {reportOutline} from '../frontend/src/lib/reportOutline.js';
 import {weeklyReport} from '../shared/report-weekly.mjs';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-dashboard-test-secret';delete process.env.USER_PASSWORD;
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-dashboard-test-secret-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
 const collections=require('../shared/report-collections.json'),sectors=require('../shared/report-sector-formats.json');
 const {reportLayout:backendLayout}=require('../backend/lib/report-layout'),{enrichSectorReport}=require('../backend/lib/report-sector-format');
 const {_test}=require('../backend/routes/export'),{buildMexicoReports}=require('../backend/services/mexico-executive-reports');

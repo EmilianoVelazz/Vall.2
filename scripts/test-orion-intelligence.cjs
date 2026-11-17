@@ -43,6 +43,8 @@ async function main() {
     check(()=>assert(Math.abs(calculation.marginOnSalePercent-16.00790513833992)<1e-8));
     check(()=>assert.equal(calculateMargin({...inputs,shrinkFraction:1}).available,false));
     check(()=>assert.equal(calculateMargin({...inputs,mixedCurrencies:true}).available,false));
+    check(()=>assert.equal(calculateMargin(parseCommercialInputs('Y venta a 100 USD/kg',inputs)).available,false,'Una venta en otra moneda no convierte automáticamente los costos anteriores'));
+    check(()=>assert.equal(calculateMargin(parseCommercialInputs('Todos los costos en USD: compra a 80 USD/kg, venta a 100 USD/kg',inputs)).available,true,'Una declaración explícita cambia la moneda del ejercicio completo'));
     check(()=>assert.equal(calculateMargin({...inputs,incoterm:'CIF'}).available,false));
     check(()=>assert.equal(calculateMargin({...inputs,requiresTransformation:true}).available,false));
     check(()=>assert.equal(calculateMargin({...inputs,duties:null}).available,false));
@@ -62,7 +64,8 @@ async function main() {
     const valid='| Huevo | España | 2.50 EUR/docena | 2026-10-07 | [Fuente](https://example.invalid/observacion) |';
     const evidence={...empty,proteinPriceRecords:[record]};
     check(()=>assert.equal(guardProteinPrices(quotePlan,evidence,valid).blocked,false));
-    for(const bad of [valid.replace('2.50','9999.00'),valid.replace('España','Alemania'),valid.replace('docena','kg'),valid.replace('Huevo','Cerdo'),valid.replace('2026-10-07','2026-10-08'),valid.replace('/observacion','/otro'),valid.replace('2.50','2.50–9999')]) check(()=>assert(guardProteinPrices(quotePlan,evidence,bad).blocked,bad));
+    const normalizedQuote=guardProteinPrices(quotePlan,evidence,valid).text;
+    for(const bad of [valid.replace('2.50','9999.00'),valid.replace('España','Alemania'),valid.replace('docena','kg'),valid.replace('Huevo','Cerdo'),valid.replace('2026-10-07','2026-10-08'),valid.replace('/observacion','/otro'),valid.replace('2.50','2.50–9999')]) check(()=>{const guarded=guardProteinPrices(quotePlan,evidence,bad);assert(guarded.blocked || guarded.changed,bad);assert.equal(guarded.text,normalizedQuote,'Una tabla regenerada debe conservar exactamente la evidencia verificada, sin la cifra alterada');});
     check(()=>assert(guardProteinPrices(quotePlan,empty,valid).blocked));
     check(()=>assert(guardProteinPrices({...quotePlan,needsProteinPrices:false,needsProteinResearch:true},empty,valid).blocked));
     check(()=>assert(conceptualSimilarity('Enfermedad de cerdo afecta importaciones','African swine fever restricts pork imports')>0.7));

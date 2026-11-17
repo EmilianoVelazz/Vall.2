@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {equityFocusLabels} from '../../../shared/report-equity-history-chart.mjs';
+import {readReportSelection,saveReportSelection} from '../lib/reportReadingMemory.js';
+import {reportReferenceStatus} from '../../../shared/report-reference-status.mjs';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { startGeminiLive, supportsGeminiLive } from '../lib/geminiLive.js';
 import {
   REPORT_AUDIENCES, REPORT_DEPTHS, REPORT_HORIZONS,
@@ -17,11 +20,11 @@ import {proteinLegendLabels,proteinChartTicks,proteinBarColor} from '../../../sh
 import {compactChartReadings} from '../../../shared/report-chart-layout.mjs';
 import {reportLinePanels,chartLegendLabels,chartReadingIsTabulated} from '../../../shared/report-chart-density.mjs';
 import { executiveReading } from '../lib/reportReading.js';
-import { reportCsv } from '../lib/reportCsv.js';
 import {reportPresentation,withoutSourcesText,REPORT_PRESENTATION_VERSION} from '../lib/reportPresentation.js';
 import { finiteReportNumber as numeric, reportLineSeries,reportBarData,reportSeriesResults } from '../lib/reportVisualData.js';
 import {reportNumber,reportAxisDigits} from '../lib/reportNumberFormat.js';
 import { requestReportPdf,requestReportFile } from '../lib/reportPdf.js';
+import {createReportPdfCache} from '../lib/reportPdfCache.js';
 import {reportDownloadName} from '../../../shared/report-download-name.mjs';
 import useIdioma,{leerIdioma,IDIOMAS} from '../lib/idioma.js';
 import {useLocalizedReport} from '../lib/useLocalizedReport.js';
@@ -224,7 +227,7 @@ function LineVisualPanel({ visual,dashboard=false,dataOnly=false }) {
   const focusedSeries=series.some(item=>item.label===requestedSeries) ? requestedSeries : null;
   const legendLabels=visual.proteinChart ? proteinLegendLabels(series) : chartLegendLabels(series);
   const ordinal=index=>visual.seriesOrdinals?.[index] ?? index+(visual.seriesOffset || 0);
-  const color=index=>visual.fxTreasuryChart ? series[index].color || FX_TREASURY_COLORS[series[index].label] || '#668399' : visual.equityBenchmark ? index===0 ? '#668399' : VISUAL_COLORS[(ordinal(index)-1)%VISUAL_COLORS.length] : VISUAL_COLORS[ordinal(index)%VISUAL_COLORS.length];
+  const color=index=>visual.fxTreasuryChart ? series[index].color || FX_TREASURY_COLORS[series[index].label] || '#668399' : visual.equityBenchmark ? ordinal(index)===0 ? '#668399' : VISUAL_COLORS[(ordinal(index)-1)%VISUAL_COLORS.length] : VISUAL_COLORS[ordinal(index)%VISUAL_COLORS.length];
   const dash=index=>chartSeriesDash(ordinal(index),VISUAL_COLORS.length,visual.globalComparison);
   const intraday=series.some(item=>item.points.some(point=>point.date.includes("T")));
   const values = series.flatMap(item => item.points.map(point => point.value));
@@ -256,7 +259,8 @@ function LineVisualPanel({ visual,dashboard=false,dataOnly=false }) {
   const bondYears=Array.from({length:Math.max(0,new Date(lastDate).getUTCFullYear()-new Date(firstDate).getUTCFullYear())},(_,index)=>Date.UTC(new Date(firstDate).getUTCFullYear()+index,0,1)).filter(date=>date>=firstDate && date<=lastDate);
   const dateTicks=visual.proteinChart ? proteinChartTicks(firstDate,lastDate,width) : visual.bondHistory ? width>=500 ? [firstDate,...bondYears.filter(date=>date-firstDate>dateSpan*.055 && lastDate-date>dateSpan*.055),lastDate] : [firstDate,firstDate+dateSpan/2,lastDate] : historicalAxis && dates.length>1 ? [firstDate,firstDate+dateSpan/2,dates.at(-1)] : dateIndexes.map(index=>dates[index]);
   const axisDate=date=>visual.bondHistory || visual.proteinChart && historicalAxis ? new Intl.DateTimeFormat(t.locale,{year:'numeric',timeZone:'UTC'}).format(date) : historicalAxis ? new Intl.DateTimeFormat(t.locale,{year:'numeric',...(width>=480 ? {month:'short',day:'2-digit'} : {}),timeZone:'UTC'}).format(date) : shortDate(date,intraday,t.locale,visual.monthly);
-  const emphasis=index=>focusedSeries===null || focusedSeries===series[index]?.label ? 1 : .18;
+  const defaultFocus=visual.unifiedHistory ? equityFocusLabels(series) : null;
+  const emphasis=index=>focusedSeries!==null ? focusedSeries===series[index]?.label ? 1 : .12 : defaultFocus && !defaultFocus.has(series[index]?.label) ? .15 : 1;
   const endings=endLabels ? spreadChartLabels(series.flatMap((item,index)=>{
     const point=visual.proteinChart ? item.points.at(-1) : item.points.find(point=>point.timestamp===dates.at(-1));
     return point ? [{label:item.label,index,value:point.value,actualX:x(point.timestamp),actualY:y(point.value),y:y(point.value)}] : [];
@@ -268,8 +272,9 @@ function LineVisualPanel({ visual,dashboard=false,dataOnly=false }) {
   </div>;
   return <figure className={`erh-chart${dashboard ? ' erh-market-chart' : ''}${visual.proteinChart ? ' erh-protein-chart' : ''}${visual.bondHistory ? ' erh-bond-history-chart' : ''}${visual.fxOverview ? ' erh-fx-overview' : ''}${visual.equityBenchmark ? ' erh-equity-benchmark-chart' : ''}${visual.unifiedHistory ? ' erh-unified-history-chart' : ''}`} aria-label={visual.title}>
     <figcaption><span><i className="fas fa-chart-line" aria-hidden="true" /> {visual.title}</span><small>{visual.unit}{visual.proteinCatalogChart ? ' · '+t('Catálogo de respaldo') : ''}</small></figcaption>
+    {dates.length>0 && <p className="erh-chart-context"><span>{t('Primera observación visible')}: {chartDate(dates[0],intraday,t.locale,visual.monthly)}</span><span>{t('Última observación visible')}: {chartDate(dates.at(-1),intraday,t.locale,visual.monthly)}</span><span>{t(visual.equityLogScale || visual.globalComparison ? 'Escala logarítmica' : 'Escala propia de esta gráfica')}</span>{visual.monthly && <span className="erh-reference-status">{t('Publicación mensual')}</span>}</p>}
     {visual.dailyComparison && dates.length>0 && <div className="erh-chart-period"><span><i className="erh-point-previous" />{t('Anterior')} · {shortDate(dates[0],false,t.locale)}</span><span><i className="erh-point-current" />{t('Actual')} · {shortDate(dates.at(-1),false,t.locale)}</span></div>}
-    {visual.equityBenchmark && <div className="erh-equity-benchmark-label"><b>{t('Bolsa de referencia')}: {visual.benchmark}</b><span>{visual.indexBaseDate+' / '+visual.indexEndDate}</span><span>{t(visual.equityLogScale ? 'Escala logarítmica' : 'Base común 100 · monedas originales')}</span></div>}
+    {visual.equityBenchmark && !visual.regionalComparison && <div className="erh-equity-benchmark-label"><b>{t('Bolsa de referencia')}: {visual.benchmark}</b><span>{visual.indexBaseDate+' / '+visual.indexEndDate}</span><span>{t(visual.equityLogScale ? 'Escala logarítmica' : 'Base común 100 · monedas originales')}</span></div>}
     {visual.globalComparison && dates.length>0 && <div className="erh-equity-benchmark-label"><b>{t('Escala logarítmica')}</b><span>{new Date(firstDate).toISOString().slice(0,10)+' / '+new Date(dates.at(-1)).toISOString().slice(0,10)}</span></div>}
     {visual.bondHistory && <p className="erh-chart-period">{visual.rangeStart+' / '+visual.rangeEnd} · {t(visual.monthly ? 'Promedios mensuales publicados' : 'Última observación publicada de cada mes')}</p>}
     {visual.fxTreasuryChart && <p className="erh-chart-period">{visual.indexBaseDate+' / '+visual.indexEndDate}</p>}
@@ -279,7 +284,7 @@ function LineVisualPanel({ visual,dashboard=false,dataOnly=false }) {
       {ticks.map(value => {const yy=y(value);return <g key={value}><line x1={pad.left} x2={width-pad.right} y1={yy} y2={yy} className={`erh-chart-grid${visual.fxOverview && value===100 || (visual.historyKey==='slope' || visual.bondChange) && value===0 ? ' erh-chart-baseline' : ''}`} /><text x={pad.left-10} y={yy+3.5} textAnchor="end" className="erh-chart-axis">{reportNumber(value,axisDigits)}</text></g>;})}
       {visual.proteinChart && visual.indexBaseDate && min<=100 && max>=100 && <line className="erh-chart-baseline" x1={pad.left} x2={width-pad.right} y1={y(100)} y2={y(100)} />}
       {dateTicks.map(date=><line key={date} x1={x(date)} x2={x(date)} y1={pad.top} y2={height-pad.bottom} className="erh-chart-grid-vertical" />)}
-      {series.map((item, index) => <path key={item.label} d={line(item.points)} className="erh-series-path" fill="none" stroke={color(index)} opacity={emphasis(index)} strokeDasharray={visual.fxTreasuryChart ? undefined : visual.equityBenchmark && index===0 ? '6 4' : visual.globalComparison || visual.fxOverview || visual.bondHistory ? dash(index) : undefined} strokeWidth={focusedSeries===item.label ? '3.2' : visual.equityBenchmark && index===0 ? '2' : '2.7'} strokeLinecap="round" strokeLinejoin="round" />)}
+      {series.map((item, index) => <path key={item.label} d={line(item.points)} className="erh-series-path" fill="none" stroke={visual.unifiedHistory && focusedSeries===null && !defaultFocus.has(item.label) ? '#aebbc6' : color(index)} opacity={emphasis(index)} strokeDasharray={visual.fxTreasuryChart ? undefined : visual.equityBenchmark && ordinal(index)===0 ? '6 4' : visual.globalComparison || visual.fxOverview || visual.bondHistory ? dash(index) : undefined} strokeWidth={focusedSeries===item.label ? '3.2' : visual.equityBenchmark && ordinal(index)===0 ? '2' : '2.7'} strokeLinecap="round" strokeLinejoin="round" />)}
       {!values.length && <text x={width/2} y={height/2} textAnchor="middle" className="erh-chart-axis">{t('Sin datos comparables para estas fechas')}</text>}
       {visual.dailyComparison && series.flatMap((item,index)=>item.points.map(point=><circle key={item.label+point.timestamp} cx={x(point.timestamp)} cy={y(point.value)} r={point.timestamp===dates.at(-1) ? 4.2 : 3.5} opacity={emphasis(index)} fill={point.timestamp===dates[0] ? '#fff' : color(index)} stroke={color(index)} strokeWidth="1.8"><title>{item.label+': '+chartNumber(point.value)+' '+visual.unit+' · '+point.date}</title></circle>))}
       {selectedTime!==null && <line x1={x(selectedDate)} x2={x(selectedDate)} y1={pad.top} y2={height-pad.bottom} className="erh-chart-cursor" />}
@@ -288,7 +293,7 @@ function LineVisualPanel({ visual,dashboard=false,dataOnly=false }) {
       {dateTicks.map((date,index) => <text key={date} x={x(date)} y={height - 8} textAnchor={index===0 ? 'start' : index===dateTicks.length-1 ? 'end' : 'middle'} className="erh-chart-axis">{axisDate(date)}</text>)}
     </svg></div>
     {visual.equityBenchmark && !visual.globalComparison && <div className="erh-equity-last-values">{series.map((item,index)=><span key={item.label} style={{'--series-color':color(index)}}>{item.label}<strong>{reportNumber(item.points.at(-1).value,1)}</strong>{t('Último índice base 100')}</span>)}</div>}
-    {!visual.fxTreasuryChart && <div className="erh-chart-legend">{series.map((item, index) => <button type="button" key={item.label} aria-pressed={focusedSeries===item.label} aria-label={t('Resaltar {value0}',{value0:item.label})} title={item.label} onClick={()=>setFocusedSeries(previous=>previous===item.label ? null : item.label)} className={focusedSeries!==null && focusedSeries!==item.label ? 'is-muted' : ''}><svg width="24" height="8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" stroke={color(index)} strokeWidth="2" strokeDasharray={visual.equityBenchmark && index===0 ? '6 4' : visual.globalComparison || visual.fxOverview || visual.bondHistory ? dash(index) : undefined} /></svg>{visual.proteinChart ? <span className="erh-protein-legend-copy"><span>{legendLabels[index]}</span><strong>{reportNumber(item.points.at(-1).value,2)}<small> {visual.unit}</small></strong><small>{chartDate(item.points.at(-1).timestamp,false,t.locale)}</small></span> : legendLabels[index]}{visual.globalComparison && item.baseDate ? ' · '+item.baseDate : ''}{visual.fxOverview && !item.points.length ? ' · '+t('Sin dato') : ''}</button>)}</div>}
+    {!visual.fxTreasuryChart && <div className="erh-chart-legend">{series.map((item, index) => <button type="button" key={item.label} aria-pressed={focusedSeries===item.label} aria-label={t('Resaltar {value0}',{value0:item.label})} title={item.label} onClick={()=>setFocusedSeries(previous=>previous===item.label ? null : item.label)} className={focusedSeries!==null && focusedSeries!==item.label ? 'is-muted' : ''}><svg width="24" height="8" aria-hidden="true"><line x1="0" y1="4" x2="24" y2="4" stroke={color(index)} strokeWidth="2" strokeDasharray={visual.equityBenchmark && ordinal(index)===0 ? '6 4' : visual.globalComparison || visual.fxOverview || visual.bondHistory ? dash(index) : undefined} /></svg>{visual.proteinChart ? <span className="erh-protein-legend-copy"><span>{legendLabels[index]}</span><strong>{reportNumber(item.points.at(-1).value,2)}<small> {visual.unit}</small></strong><small>{chartDate(item.points.at(-1).timestamp,false,t.locale)}</small></span> : legendLabels[index]}{visual.globalComparison && item.baseDate ? ' · '+item.baseDate : ''}{visual.fxOverview && !item.points.length ? ' · '+t('Sin dato') : ''}</button>)}</div>}
     {!visual.dailyComparison && !visual.dataInTables && <ChartResults series={series} unit={visual.unit} compact={dashboard} dataOnly={dataOnly} monthly={visual.monthly} />}
     {dates.length>0 && (dashboard ? <details className="erh-market-explorer"><summary>{t("Explorar fechas y valores")}</summary>{explorer}</details> : explorer)}
     <details className="erh-chart-data" onToggle={event=>setShowData(event.currentTarget.open)}><summary>{t("Ver datos de la gráfica")}</summary>{showData && <div tabIndex={0} role="region" aria-label={t("Datos de {value0}",{value0:visual.title})}><table><thead><tr><th scope="col">{t("Fecha")}</th>{series.map(item=><th scope="col" key={item.label}>{item.label}{visual.unit ? ` · ${visual.unit}` : ''}</th>)}</tr></thead><tbody>{dates.map(date=><tr key={date}><th scope="row">{chartDate(date,intraday,t.locale,visual.monthly)}</th>{series.map(item=>{const point=item.points.find(point=>point.timestamp===date);return <td key={item.label}>{point ? chartNumber(point.value) : t("Sin dato")}</td>;})}</tr>)}</tbody></table></div>}</details>
@@ -349,7 +354,7 @@ function ReportTables({ report }) {
   if (!tables.length) return null;
   return <div className="erh-tables">{tables.map((table, tableIndex) => {
     const small=table.columns?.length<=4 && table.rows?.length<=10;
-    const content=<section key={tableIndex} className={`erh-table-wrap${small ? ' erh-table-small' : ' erh-table-wide'}`}><header><h4>{table.title}</h4>{table.note && !table.proteinQuote && <p>{table.note}</p>}</header><div tabIndex={0} role="region" aria-label={t("Tabla {value0}; desplázate para revisar todas las columnas",{value0:table.title})}><table aria-label={table.title}><thead><tr>{(table.columns || []).map((column, index) => <th scope="col" key={index}>{column}</th>)}</tr></thead><tbody>{(table.rows || []).map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex} className={reportTableCellClass(cell,cellIndex)}>{cell}</td>)}</tr>)}</tbody></table></div>{table.proteinQuote && table.note && <p className="erh-protein-conditions">{table.note}</p>}</section>;
+    const content=<section key={tableIndex} className={`erh-table-wrap${small ? ' erh-table-small' : ' erh-table-wide'}`}><header><h4>{table.title}</h4>{table.note && !table.proteinQuote && <p>{table.note}</p>}</header><div tabIndex={0} role="region" aria-label={t("Tabla {value0}; desplázate para revisar todas las columnas",{value0:table.title})}><table aria-label={table.title}><thead><tr>{(table.columns || []).map((column, index) => <th scope="col" key={index}>{column}</th>)}</tr></thead><tbody>{(table.rows || []).map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex} className={reportTableCellClass(cell,cellIndex)}>{reportReferenceStatus(originals.get(String(cell)) || cell) ? <span className={'erh-reference-status is-'+reportReferenceStatus(originals.get(String(cell)) || cell)}>{cell}</span> : cell}</td>)}</tr>)}</tbody></table></div>{table.proteinQuote && table.note && <p className="erh-protein-conditions">{table.note}</p>}</section>;
     return table.kind==='guide' && reportLayout(report) ? <details key={tableIndex} className="erh-equity-guide"><summary><i className="fas fa-list-check" aria-hidden="true" />{t("Información por validar con el cliente")}</summary>{content}</details> : content;
   })}</div>;
 }
@@ -431,12 +436,13 @@ function MarketConclusions({report,reading}) {
 
 function ReportCauses({annex}) {
   const t=useReportText();
+  if(!annex) return null;
   return <div className="erh-causes">
     <div className="erh-cause-status"><p>{annex.status}</p>{annex.conditions && <p>{annex.conditions}</p>}<small>{annex.period} · {annex.coverage}</small></div>
-    {annex.groups.map((group,index)=><section className="erh-cause-group" key={index}>
+    {(annex.groups || []).map((group,index)=><section className="erh-cause-group" key={index}>
       <h4>{group.label}</h4>
       <dl><div><dt>{t('De dónde viene')}</dt><dd>{group.origin}</dd></div><div><dt>{t('Posibles causas por contrastar')}</dt><dd>{group.factors}</dd></div><div><dt>{t('Qué verificar')}</dt><dd>{group.check}</dd></div></dl>
-      <ReportTables report={{tables:[{title:t('Movimiento e impacto posible'),columns:[t('Referencia'),t('Cambio observado'),t('Consecuencias posibles')],rows:group.rows.map(row=>[row.reference,row.movement+'\n'+row.values,row.impact])}]}} />
+      <ReportTables report={{tables:[{title:t('Movimiento e impacto posible'),columns:[t('Referencia'),t('Cambio observado'),t('Consecuencias posibles')],rows:(group.rows || []).map(row=>[row.reference,row.movement+'\n'+row.values,row.impact])}]}} />
       {group.link && <a className="erh-cause-method" href={group.link.url} target="_blank" rel="noreferrer">{t('Base del mecanismo')}: {group.link.label}<i className="fas fa-arrow-up-right-from-square" aria-hidden="true" /></a>}
     </section>)}
   </div>;
@@ -472,7 +478,7 @@ export function ReportReader({ report, prefix = 'erh-document' }) {
     equityBusiness:daily.equityExecutive ? <EquityBusiness desk={daily.equityExecutive} /> : null,
     bondBusiness:daily.bondExecutive ? <EquityBusiness desk={daily.bondExecutive} /> : null,
     sessionContext:<div className="erh-session-context">{(daily.commentary || []).slice(2).map(item=><section key={item.heading}><h4>{item.heading}</h4><p>{item.body}</p></section>)}{daily.followup?.length>0 && <section><h4>{daily.followupHeading}</h4><ul>{daily.followup.map(item=><li key={item}>{item}</li>)}</ul></section>}</div>,
-    causes:<ReportCauses annex={daily.causes} />,
+    causes:daily.causes ? <ReportCauses annex={daily.causes} /> : null,
     summary: <><div className={dashboard ? 'erh-executive-overview' : undefined}><p className="erh-document-summary">{report.summary || t("Sin resumen disponible para este corte.")}</p>
       {report.objective && <div className="erh-objective"><i className="fas fa-bullseye" aria-hidden="true" /><div><small>{t("Objetivo de la lectura")}</small><p>{report.objective}</p></div></div>}</div>
       {report.decisionGuide && <section className="erh-decision-guide" aria-label={t("Enfoque aplicado")}><h4>{report.decisionGuide.heading}</h4><p>{report.decisionGuide.action}</p><p>{report.decisionGuide.horizonNote}</p>{report.decisionGuide.coverageNote && <p className="erh-coverage-note">{report.decisionGuide.coverageNote}</p>}</section>}
@@ -513,6 +519,8 @@ export default function ExecutiveReportsHub({onAnnex}) {
   const presentationVersion=REPORT_PRESENTATION_VERSION;
   const [language]=useIdioma();
   const [requestedEdition] = useState(() => new URLSearchParams(window.location.search).get('informe') || '');
+  const [resumeSelection,setResumeSelection]=useState(null),[readingOwner,setReadingOwner]=useState('');
+  const resumedOwner=useRef(''),resumeRef=useRef(null);
   const [area, setArea] = useState(() => requestedEdition ? 'mine' : 'finance');
   const [reportSets, setReportSets] = useState({ finance: null, markets: null });
   const [selected, setSelected] = useState({ finance: null, markets: null });
@@ -574,24 +582,31 @@ export default function ExecutiveReportsHub({onAnnex}) {
   const previewRequest = useRef(null);
   const downloadRequest = useRef(null);
   const pdfArtifact=useRef(null);
+  const [pdfCache]=useState(()=>createReportPdfCache());
+  useEffect(()=>()=>pdfCache.clear(),[pdfCache]);
   const openedLink = useRef('');
   const reportAccount = useRef(accountEmail);
   useEffect(() => {
     if (reportAccount.current === accountEmail) return;
-    reportAccount.current = accountEmail; openRequest.current++;
+    pdfCache.clear();
+    reportAccount.current = accountEmail; openRequest.current++;resumedOwner.current='';resumeRef.current=null;setResumeSelection(null);setReadingOwner('');
     for (const request of [aiRequest, libraryRequest, editionRequest, saveRequest, deleteRequest, deliveryRequest, previewRequest, downloadRequest]) { request.current?.abort(); request.current=null; }
     setAiGenerating(false);setSavingContent(false);setPdfPreviewLoading(false);setDownloadingPdf(false);setDownloadingData(false);setLoadingArea('');setLibraryError({area:'',message:''});setOpening({id:'',pending:false,error:''});
     setAiBefore(null);setAiError('');setAiInstructions('');setDraftPreferences(null);setCreationOverrides([]);aiMaterial.current=null;
     setSaveIssue('');setRecoverableDraft(null);setDraftStorageStatus('idle');creationId.current='';saveIntent.current=null;loadedDraftOwner.current='';
-    setSelected(current => ({ ...current, mine: null }));
+    setSelected({finance:null,markets:null,mexico:null,mine:null});
+    setPendingCuts({});
     setReportSets(current => ({ ...current, mine: null }));
-    setContentDraft(null); setReloadVersion(value => value + 1);
+    setContentDraft(null);
+    // Public collections already reload when accountEmail changes. Private
+    // editions need a second pass after clearing the previous owner's cache.
+    if(area==='mine')setReloadVersion(value => value + 1);
     setCreationOpen(false);
     setDeleteTarget(null);setDeletingReport(false);setDeleteError('');
     setDeliveryOpen(false);setDeliveryFeedback({kind:'',message:''});setSendingEmail(false);setSchedulingEmail(false);
     setMailStatus(null);setMailStatusLoading(false);
     setRecipientChoice({mode:'account',email:''});
-  }, [accountEmail]);
+  }, [accountEmail,area,pdfCache]);
 
   const [contentDraft,setContentDraft]=useState(null);
   const draftRef = useRef(null);
@@ -613,15 +628,30 @@ export default function ExecutiveReportsHub({onAnnex}) {
   const reports = saveIssue==='account' || (area==='mine' && reportAccount.current!==accountEmail) ? [] : reportSets[area]?.data || [];
   useEffect(()=>{
     if(saveIssue!=='account') return;
+    pdfCache.clear();
     for(const request of [aiRequest,libraryRequest,editionRequest,deleteRequest,deliveryRequest,previewRequest,downloadRequest]) request.current?.abort();
     reader?.stop?.().catch(()=>{});setReader(null);setEmailSchedules([]);
     setCreationOpen(false);setDeliveryOpen(false);setDeleteTarget(null);setPreviewOpen(false);
-  },[saveIssue,reader]);
+  },[saveIssue,reader,pdfCache]);
   useEffect(()=>()=>{ for (const request of [aiRequest, libraryRequest, editionRequest, saveRequest, deleteRequest, deliveryRequest, previewRequest, downloadRequest]) request.current?.abort(); },[]);
 
-  const baseActive = selected[area] || (area==='mine' ? null : reports[0]) || null;
-  const editorPreferences = draftPreferences || reportEditionPreferences(baseActive, preferences);
-  const active = reportAccount.current===accountEmail && saveIssue!=='account' ? reportPresentation(visibleReportEdition(contentDraft || baseActive, editorPreferences)) : null;
+  useEffect(()=>{
+    if(!preferencesHydrated || !accountEmail || resumedOwner.current===accountEmail)return;
+    resumedOwner.current=accountEmail;setReadingOwner(accountEmail);
+    const remembered=requestedEdition ? null : readReportSelection(accountEmail);
+    resumeRef.current=remembered ? {...remembered,owner:accountEmail} : null;setResumeSelection(resumeRef.current);
+    if(remembered){setSelected(current=>({...current,[remembered.area]:null}));setArea(remembered.area);}else if(!requestedEdition)setArea('finance');
+  },[preferencesHydrated,accountEmail,requestedEdition]);
+  const resumedReport=resumeSelection?.owner===accountEmail && resumeSelection.area===area ? reports.find(report=>(report.editionId || report.key)===resumeSelection.key) : null;
+  const baseActive = selected[area] || (area==='mine' ? null : resumedReport || reports[0]) || null;
+  useEffect(()=>{
+    if(!accountEmail || !baseActive || contentDraft || saveIssue==='account' || readingOwner!==accountEmail)return;
+    saveReportSelection(accountEmail,{area,key:baseActive.editionId || baseActive.key});
+  },[accountEmail,baseActive,area,contentDraft,saveIssue,readingOwner]);
+  const editorPreferences = useMemo(()=>draftPreferences || reportEditionPreferences(baseActive,preferences),[draftPreferences,baseActive,preferences]);
+  const visibleActive=useMemo(()=>reportPresentation(visibleReportEdition(contentDraft || baseActive,editorPreferences)),[contentDraft,baseActive,editorPreferences]);
+  const active = reportAccount.current===accountEmail && saveIssue!=='account' ? visibleActive : null;
+  const chapters=useMemo(()=>reportChapters(active),[active]);
   const outputTitle=active ? `VALLNEWS · ${AREAS[area].label} · ${active.title}` : '';
   const localized=useLocalizedReport(active,outputTitle,language,accountEmail);
   const isPersonalized = reportPreferencesChanged(editorPreferences);
@@ -650,7 +680,10 @@ export default function ExecutiveReportsHub({onAnnex}) {
   const recipientEmail=recipientChoice.mode==='other' ? recipientChoice.email.trim().toLowerCase() : accountEmail;
   const recipientValid=Boolean(recipientEmail && recipientEmail.length<=254 && /^[^\s@,;<>]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(recipientEmail));
   const nextRefreshAt = reportSets[area]?.nextRefreshAt;
-  currentEdition.current = JSON.stringify([presentationVersion,language,area, baseActive?.key, baseActive?.generatedAt, baseActive?.editionVersion, preferences,draftPreferences,contentDraft]);
+  // A corrected publication can retain its key, timestamp and edition number.
+  // Cache the complete selected source, so its PDF never survives a data change.
+  const editionKey=useMemo(()=>JSON.stringify([presentationVersion,language,area,accountEmail,baseActive,preferences,draftPreferences,contentDraft]),[presentationVersion,language,area,accountEmail,baseActive,preferences,draftPreferences,contentDraft]);
+  currentEdition.current = editionKey;
 
   const sessionStorage=()=>{try {return window.sessionStorage;} catch {return null;}};
   const draftRecord=()=>({version:1,owner:accountEmail.toLowerCase(),creationId:creationId.current,report:contentDraft,material:aiMaterial.current || contentDraft,preferences:editorPreferences,overrides:creationOverrides,instructions:aiInstructions,tone:aiTone,undo:aiBefore,saveIntent:saveIntent.current,saveIssue:savingContent || saveUncertain ? 'uncertain' : saveIssue});
@@ -775,9 +808,10 @@ export default function ExecutiveReportsHub({onAnnex}) {
     pdfArtifact.current=null;
     setPdfPreviewUrl('');
     setPdfPreviewError('');
-  }, [presentationVersion,language,area, active?.key, active?.generatedAt, active?.editionVersion, preferences,draftPreferences,contentDraft,accountEmail]);
+  }, [editionKey]);
 
   useEffect(() => {
+    if(!accountEmail)return undefined;
     const cached = reportSets[area];
     if (area==='mine' && cached && !cached.partial) {
       // Al sincronizar la cuenta puede cancelarse una consulta mientras su
@@ -802,7 +836,8 @@ export default function ExecutiveReportsHub({onAnnex}) {
         if (controller.signal.aborted) return;
         setReportSets(current => ({ ...current, [area]: payload }));
         if(area!=='mine') {
-          const prior=selectedRef.current[area],updated=payload.data.find(report=>report.key===prior?.key) || payload.data[0] || null;
+          const preferred=resumeRef.current?.owner===accountEmail && resumeRef.current.area===area ? resumeRef.current.key : '';
+          const prior=selectedRef.current[area],updated=payload.data.find(report=>report.key===(prior?.key || preferred)) || payload.data[0] || null;
           const expandedGrains=area==='markets' && updated?.key==='grains' && (updated.commodityCatalogVersion || 0)>(prior?.commodityCatalogVersion || 0);
           if(prior && !requestedManually && !expandedGrains && JSON.stringify(updated)!==JSON.stringify(prior))setPendingCuts(current=>({...current,[area]:updated}));
           else {setSelected(current=>JSON.stringify(updated)===JSON.stringify(current[area])?current:{...current,[area]:updated});setPendingCuts(current=>({...current,[area]:null}));}
@@ -855,11 +890,11 @@ export default function ExecutiveReportsHub({onAnnex}) {
     if (saveIssue==='account' || area!=='mine' || !accountEmail || contentDraft || selected.mine || opening.id) return;
     const linkKey=accountEmail+':'+requestedEdition;
     const fromLink=requestedEdition && openedLink.current!==linkKey;
-    const report=fromLink ? {editionId:requestedEdition} : reportSets.mine?.data?.[0];
+    const report=fromLink ? {editionId:requestedEdition} : reportSets.mine?.data?.find(item=>resumeSelection?.owner===accountEmail && item.editionId===resumeSelection.key) || reportSets.mine?.data?.[0];
     if (!report) return;
     if (fromLink) openedLink.current=linkKey;
     void openSavedReport(report);
-  }, [area,accountEmail,contentDraft,selected.mine,opening.id,requestedEdition,reportSets.mine,openSavedReport,saveIssue]);
+  }, [area,accountEmail,contentDraft,selected.mine,opening.id,requestedEdition,reportSets.mine,openSavedReport,saveIssue,resumeSelection]);
 
   const cancelOpening = () => {
     openRequest.current++;editionRequest.current?.abort();editionRequest.current=null;
@@ -1083,22 +1118,25 @@ export default function ExecutiveReportsHub({onAnnex}) {
   };
 
   const openPdfPreview = async () => {
-    if (!active || previewRequest.current || downloadRequest.current || localized.pending || localized.error || aiPending || aiGenerating) return;
+    if (!active || !accountEmail || previewRequest.current || downloadRequest.current || localized.pending || localized.error || aiPending || aiGenerating) return;
     const requestedLanguage=leerIdioma();
     const edition = currentEdition.current,controller=new AbortController();previewRequest.current=controller;
     setPdfPreviewLoading(true);
     setPdfPreviewError('');
     setStatus('Generando la vista previa del PDF…');
     try {
-      await verifyReportOwner(accountEmail,controller.signal);
+      const cached=pdfArtifact.current || pdfCache.get(accountEmail,edition,requestedLanguage);
+      // Cached bytes need a fresh ownership check. New exports already check
+      // the expected account on the server before producing any private bytes.
+      if(cached)await verifyReportOwner(accountEmail,controller.signal);
       if(edition!==currentEdition.current || requestedLanguage!==leerIdioma()) return;
       if(pdfPreviewUrl && pdfArtifact.current?.language===requestedLanguage && pdfArtifact.current.edition===edition) return;
-      const cached=pdfArtifact.current;
-      const blob=cached?.language===requestedLanguage && cached.edition===edition ? cached.blob : await requestReportPdf(active,outputTitle,reportText(active),fetch,{signal:controller.signal,expectedOwner:accountEmail,language:requestedLanguage});
+      const blob=cached?.language===requestedLanguage && cached.edition===edition ? cached.blob : await requestReportPdf(active,outputTitle,'',fetch,{signal:controller.signal,expectedOwner:accountEmail,language:requestedLanguage});
       if (!mounted.current || controller.signal.aborted) return;
       if (edition !== currentEdition.current || requestedLanguage!==leerIdioma()) { setStatus('La edición o el idioma cambió durante la generación. Genera el PDF de la versión actual.'); return; }
       setPdfPreviewUrl(URL.createObjectURL(blob));
       pdfArtifact.current={blob,language:requestedLanguage,edition};
+      pdfCache.set(accountEmail,edition,requestedLanguage,blob);
       setStatus('Vista previa PDF lista. Esta copia no cambia el informe base.');
     } catch (error) { if (mounted.current && !controller.signal.aborted) {if(error.code==='REPORT_ACCOUNT_CHANGED') setSaveIssue('account');const message=error.message || 'No se pudo generar la vista previa del PDF.';setPdfPreviewError(message);setStatus(message);} }
     finally { if (previewRequest.current===controller) {previewRequest.current=null;if (mounted.current) setPdfPreviewLoading(false);} }
@@ -1116,7 +1154,7 @@ export default function ExecutiveReportsHub({onAnnex}) {
   };
 
   const downloadPdf = async event => {
-    if (!active || downloadRequest.current || previewRequest.current || localized.pending || localized.error || event.currentTarget.disabled || aiPending || aiGenerating) return;
+    if (!active || !accountEmail || downloadRequest.current || previewRequest.current || localized.pending || localized.error || event.currentTarget.disabled || aiPending || aiGenerating) return;
     const button = event.currentTarget;
     const owner=accountEmail,language=leerIdioma(),controller=new AbortController();downloadRequest.current=controller;setDownloadingPdf(true);
     setStatus('Preparando PDF…');
@@ -1124,12 +1162,13 @@ export default function ExecutiveReportsHub({onAnnex}) {
       // Se descarga exactamente la edición revisada, sin sustituirla por otro
       // corte entre la vista previa y el clic. El visor y la descarga comparten bytes.
       const reportToExport=active,edition=currentEdition.current;
-      await verifyReportOwner(owner,controller.signal);
+      const cached=pdfArtifact.current || pdfCache.get(owner,edition,language);
+      if(cached)await verifyReportOwner(owner,controller.signal);
       if(edition!==currentEdition.current || language!==leerIdioma()) return;
-      const cached=pdfArtifact.current;
-      const blob=cached?.language===language && cached.edition===edition ? cached.blob : await requestReportPdf(reportToExport,outputTitle,reportText(reportToExport),fetch,{signal:controller.signal,expectedOwner:owner,language});
+      const blob=cached?.language===language && cached.edition===edition ? cached.blob : await requestReportPdf(reportToExport,outputTitle,'',fetch,{signal:controller.signal,expectedOwner:owner,language});
       if (!mounted.current || controller.signal.aborted || reportAccount.current!==owner || language!==leerIdioma() || edition!==currentEdition.current) return;
       pdfArtifact.current={blob,language,edition};
+      pdfCache.set(owner,edition,language,blob);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url; link.download = reportDownloadName(reportToExport,'pdf',{language,title:localized.report?.title});
@@ -1140,14 +1179,15 @@ export default function ExecutiveReportsHub({onAnnex}) {
     finally { if(downloadRequest.current===controller) {downloadRequest.current=null;if(mounted.current) setDownloadingPdf(false);} button.disabled = false; }
   };
 
-  const downloadData = async () => {
+  const downloadData = async (format='csv') => {
+    if(!['csv','xlsx'].includes(format))return;
     if (!active || downloadRequest.current || aiPending || aiGenerating) return;
     const owner=accountEmail,language=leerIdioma(),report=active,controller=new AbortController();downloadRequest.current=controller;setDownloadingData(true);setStatus('Preparando datos en el idioma seleccionado…');
     try {
       await verifyReportOwner(owner,controller.signal);
-      const excel=(report.baseReport?.key || report.key)==='grains',blob=excel ? await requestReportFile(report,report.title,reportText(report),'xlsx',fetch,{signal:controller.signal,expectedOwner:owner,language}) : language==='es' ? new Blob([reportCsv(report)],{type:'text/csv;charset=utf-8'}) : await requestReportFile(report,report.title,reportText(report),'csv',fetch,{signal:controller.signal,expectedOwner:owner,language});
+      const blob=await requestReportFile(report,report.title,reportText(report),format,fetch,{signal:controller.signal,expectedOwner:owner,language});
       if(!mounted.current || controller.signal.aborted || reportAccount.current!==owner || language!==leerIdioma()) return;
-      const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=reportDownloadName(report,excel ? 'xlsx' : 'csv',{language,title:localized.report?.title});
+      const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=reportDownloadName(report,format,{language,title:localized.report?.title});
       document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
       setStatus('Datos estructurados listos para abrir en Excel o una hoja de cálculo.');
     } catch(error) {if(mounted.current && !controller.signal.aborted && reportAccount.current===owner) {if(error.code==='REPORT_ACCOUNT_CHANGED') setSaveIssue('account');setStatus(error.message || 'No se pudieron exportar los datos.');}}
@@ -1219,7 +1259,7 @@ export default function ExecutiveReportsHub({onAnnex}) {
     localizedReport={localized.report} localizingReport={localized.pending} localizationError={localized.error} retryLocalization={localized.retry}
     downloadPdf={downloadPdf} downloadingPdf={downloadingPdf} downloadingData={downloadingData} downloadData={downloadData} reader={reader} listen={listen}
     language={language} languageName={IDIOMAS.find(item=>item.lang===language)?.nombre || language}
-    previewOpen={previewOpen} setPreviewOpen={setPreviewOpen} chapters={reportChapters(active)}
+    previewOpen={previewOpen} setPreviewOpen={setPreviewOpen} chapters={chapters}
     renderReport={(report, prefix) => <><ReportOrigin report={report} /><ReportReader report={report} prefix={prefix} /></>}
   />;
 }

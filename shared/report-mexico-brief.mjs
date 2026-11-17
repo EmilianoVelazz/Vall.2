@@ -31,7 +31,7 @@ export function mexicoExecutiveBrief(key,{results=[],references=[],signals=[],we
   const species=[...new Set(references.map(item=>item.category))],changed=species.filter(category=>references.some(item=>item.category===category && item.periods[period]));
   const slower=species.filter(category=>references.some(item=>item.category===category && item.cadence!=='daily'));
   fact=changed.length ? 'Cambios de '+(weekly ? 'siete días' : 'sesión')+' verificables en '+changed.join(', ')+'. ' : 'Los precios conservan la fecha y la presentación de cada referencia; no se publica una variación sin base comparable. ';
-  if(slower.length)fact+=slower.join(', ')+': también hay publicaciones semanales o mensuales; su frecuencia no se convierte en un cambio diario. ';
+  if(slower.length)fact+='Publicaciones semanales o mensuales: '+slower.join(', ')+'. Se identifican por su periodo; no equivalen a cambios diarios. ';
   const mixed=[...new Set(references.filter(item=>heterogeneousProteinBasis(item.basis)).map(item=>item.category))];
   impact=(mixed.length ? mixed.join(', ')+': algunas referencias mezclan tipos o presentaciones. Su rango es descriptivo y no permite elegir un origen por precio sin igualar el producto. ' : '')+'Separar peso vivo, canal y mayoreo. Comparar el costo entregado con calidad, rendimiento y flete; la diferencia entre estados no es un ahorro garantizado.';
   const dated=references.filter(item=>item.last?.date).toSorted((a,b)=>a.last.date.localeCompare(b.last.date))[0];
@@ -40,7 +40,7 @@ export function mexicoExecutiveBrief(key,{results=[],references=[],signals=[],we
   const table=results.find(table=>table.title.includes('Concentración agrícola'));
   const ranked=(table?.rows || []).map(row=>({crop:row[0],states:row[3],share:numeric(String(row[5]).replace(/\s*%$/,''))})).filter(item=>finite(item.share)).sort((a,b)=>b.share-a.share),top=ranked.slice(0,2);
   const years=[...new Set(results.flatMap(table=>table.title.match(/20\d{2}/g) || []))].sort();
-  fact=top.map(item=>item.crop+': las tres mayores entidades reúnen '+number(item.share)+' % del volumen registrado ('+item.states+').').join(' ');
+  fact=top.map(item=>item.crop+': la mayor concentración regional se encuentra en '+item.states+'.').join(' ');
   if(years.length)fact+=' Periodos productivos: '+years.join(' y ')+'.';
   impact=top.length ? 'Si el abastecimiento depende de '+top[0].crop+', revisar continuidad y rutas de '+top[0].states+'. La concentración mide dependencia regional; no demuestra desabasto, inventario disponible ni una interrupción de transporte.' : profile.effect;
   watch='Contrastar la producción histórica con existencias y contratos vigentes antes de programar compras. '+(top.length ? 'Evaluar orígenes alternos para '+top.map(item=>item.crop).join(' y ')+'. ' : '')+'En minería, separar el valor en MXN del volumen físico y del precio de cada mineral.';

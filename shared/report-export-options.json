@@ -1,0 +1,5 @@
+[
+  {"value":"pdf","label":"PDF","button":"Descargar PDF"},
+  {"value":"xlsx","label":"Excel (.xlsx)","button":"Descargar Excel"},
+  {"value":"csv","label":"CSV","button":"Descargar datos CSV"}
+]

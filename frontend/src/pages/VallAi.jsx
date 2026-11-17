@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import Header from '../components/Header.jsx';
 import ConstelacionOrion from '../components/ConstelacionOrion.jsx';
 import OrionModelSelector from '../components/OrionModelSelector.jsx';
-import ChatUsageBar from '../components/ChatUsageBar.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { cargarCadaVez } from '../lib/loadScripts.js';
 import { startGeminiLive, supportsGeminiLive } from '../lib/geminiLive.js';
+import {useAuth} from '../context/AuthContext.jsx';
+import {createOrionSession} from '../lib/orionSession.js';
 
 /*
  * VALL AI en React (antes pages/vall-ai.html).
@@ -40,7 +41,7 @@ const HOJAS = [
 ];
 
 const DEPENDENCIAS = ['/assets/js/data-service.js?v=23', '/assets/js/report-artifacts.js?v=2'];
-const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=70';
+const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=71';
 
 const SUGERENCIAS = [
   { prompt: 'Soy distribuidor mundial de res, cerdo, huevo y pollo. ¿Qué noticias, restricciones sanitarias y riesgos logísticos de los últimos siete días pueden afectar mis compras, ventas y margen? Da fechas y fuentes; separa hechos de escenarios.', icono: 'fa-truck', titulo: 'Compra y venta de proteínas', nota: 'Abasto, rutas y margen comercial' },
@@ -75,6 +76,11 @@ const FORMATOS = [
 ];
 
 export default function Orion() {
+  const {user}=useAuth();
+  return <OrionWorkspace key={user} user={user} />;
+}
+function OrionWorkspace({user}) {
+  const [persistenceNotice,setPersistenceNotice]=useState('');
   const [ready,setReady]=useState(false);
   const [loadError,setLoadError]=useState(false);
   usePageStyles(HOJAS);
@@ -100,12 +106,17 @@ export default function Orion() {
   useEffect(() => {
     let vivo = true;
     let quitarScript = null;
+    setReady(false);setLoadError(false);setPersistenceNotice('');
+    const session=createOrionSession(user,{onInvalid:()=>{if(vivo){setReady(false);window.dispatchEvent(new Event('vn:session-refresh'));}},onStorageUnavailable:()=>{if(vivo)setPersistenceNotice('El almacenamiento local no está disponible. Puedes continuar; el historial se intentará guardar en tu perfil.');}});
+    window.VNOrionSession=session;
 
     (async () => {
       try {
         await loadScripts(DEPENDENCIAS);
       } catch (e) {
         console.error('ORION: no se pudo cargar data-service', e);
+        if(vivo)setLoadError(true);
+        return;
       }
       if (!vivo) return;
       quitarScript = cargarCadaVez(PAGINA_JS, 'vall-ai', {
@@ -116,10 +127,12 @@ export default function Orion() {
 
     return () => {
       vivo = false;
+      session.close();
       window.VNVallAi?.desmontar?.();
       quitarScript?.();
+      if(window.VNOrionSession===session)delete window.VNOrionSession;
     };
-  }, []);
+  }, [user]);
 
   return (
     <>
@@ -185,7 +198,6 @@ export default function Orion() {
           </div>
 
           <footer className="vai-composer-wrap">
-            <ChatUsageBar />
             <form className="vai-composer" id="vaiForm" aria-busy={!ready} onSubmit={event=>{if(!ready) event.preventDefault();}}>
               <div className="vai-compose-head">
                 <div className="vai-compose-identity">
@@ -216,6 +228,7 @@ export default function Orion() {
               </div>
             </form>
             {loadError && <p role="alert">No se pudo iniciar ORION. Recarga la página para volver a intentarlo.</p>}
+            {persistenceNotice && <p role="status">{persistenceNotice}</p>}
             <p className="vai-disclaimer">ORION puede cometer errores. Verifica cifras sensibles antes de tomar decisiones.</p>
           </footer>
         </section>

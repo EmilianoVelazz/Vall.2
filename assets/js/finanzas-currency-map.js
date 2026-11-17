@@ -6,7 +6,8 @@
     let mounted = false;
     let drag = null;
     let hoverCloseTimer = null;
-    const state = { rates:{}, comparison:null, countries:[], base:'USD', selected:'', filter:'all', zoom:1, inverted:false };
+    let loadController = null;
+    const state = { rates:{}, asOf:'', preserved:true, comparison:null, countries:[], base:'USD', selected:'', filter:'all', zoom:1, inverted:false };
     const NAME_ALIASES = {
         'United States of America':'United States of America','United Kingdom':'United Kingdom of Great Britain and Northern Ireland','Russia':'Russian Federation','South Korea':'Korea (Republic of)',
         'North Korea':"Korea (Democratic People's Republic of)",'Czechia':'Czech Republic','Czech Republic':'Czech Republic',
@@ -25,10 +26,6 @@
         China:['China','CNY'],Japan:['Japón','JPY'],'South Korea':['Corea del Sur','KRW'],India:['India','INR'],Indonesia:['Indonesia','IDR'],Malaysia:['Malasia','MYR'],Thailand:['Tailandia','THB'],Philippines:['Filipinas','PHP'],Vietnam:['Vietnam','VND'],Singapore:['Singapur','SGD'],Australia:['Australia','AUD'],'New Zealand':['Nueva Zelanda','NZD'],
         'South Africa':['Sudáfrica','ZAR'],Egypt:['Egipto','EGP'],Nigeria:['Nigeria','NGN'],Morocco:['Marruecos','MAD'],'Saudi Arabia':['Arabia Saudita','SAR'],'United Arab Emirates':['Emiratos Árabes Unidos','AED'],Israel:['Israel','ILS'],Qatar:['Catar','QAR'],Kuwait:['Kuwait','KWD'],
     };
-    // Última referencia conocida del mismo proveedor diario. Sólo se usa para
-    // que el mapa siga siendo explorable si la red falla; una respuesta en vivo
-    // sustituye inmediatamente estos valores.
-    const FALLBACK_RATES = {USD:1,MXN:17.060491,CAD:1.393222,COP:3131.993848,BRL:5.161053,ARS:1492.5477,CLP:913.709515,PEN:3.371041,GBP:.740511,EUR:.867027,CHF:.812728,NOK:9.48981,SEK:9.563154,DKK:6.470217,PLN:3.731369,RUB:82.744352,TRY:47.780731,CNY:6.756905,JPY:159.290909,KRW:1416.765449,INR:95.412039,IDR:17872.581694,MYR:4.085732,THB:33.080528,PHP:61.249268,VND:26016.726333,SGD:1.279831,AUD:1.415551,NZD:1.706012,ZAR:16.139767,EGP:50.212831,NGN:1360.25328,MAD:9.299136,SAR:3.75,AED:3.6725,ILS:2.98417,QAR:3.64,KWD:.308491};
     const FALLBACK_REGIONS = {
         Americas:new Set(['United States of America','Mexico','Canada','Colombia','Brazil','Argentina','Chile','Peru']),
         Europe:new Set(['United Kingdom','France','Germany','Spain','Italy','Portugal','Netherlands','Belgium','Ireland','Austria','Finland','Greece','Switzerland','Norway','Sweden','Denmark','Poland','Russia']),
@@ -108,7 +105,7 @@
             if(fromCode)fromCode.textContent=state.base;if(fromValue)fromValue.textContent='1';if(toCode)toCode.textContent='Selecciona un país';if(toValue)toValue.textContent='—';return;
         }
         const rate=rateFor(item), from=state.inverted?item.currency.code:state.base, to=state.inverted?state.base:item.currency.code;
-        if(fromCode)fromCode.textContent=from;if(fromValue)fromValue.textContent='1';if(toCode)toCode.textContent=`${item.spanishName} · ${to}`;if(toValue)toValue.textContent=rate?format(rate,to):'—';
+        if(fromCode)fromCode.textContent=from;if(fromValue)fromValue.textContent='1';if(toCode)toCode.textContent=`${item.spanishName} · ${to}`;if(toValue){toValue.textContent=rate?format(rate,to):'—';toValue.title=`${state.preserved?'Dato conservado':'Publicación diaria'} · ${state.asOf||'Fecha no disponible'}`;}
     }
     function updateStatus(items) {
         const shown=[...items.values()].filter(visible).length;
@@ -145,50 +142,35 @@
     function scheduleTipClose(){if(hoverCloseTimer)clearTimeout(hoverCloseTimer);hoverCloseTimer=setTimeout(()=>hideTip(),55);}
     function select(ne,node){state.selected=ne;$('fcm-country').value=ne;document.querySelectorAll('#fcm-map-canvas [data-fcm-country]').forEach(n=>n.classList.toggle('is-selected',n.dataset.fcmCountry===ne));updateConverter(selectedItem());showTip(ne,node);}
     function zoom(action){const stage=$('fcm-map-stage'),canvas=$('fcm-map-canvas');if(!stage||!canvas)return;state.zoom=action==='in'?Math.min(2,+(state.zoom+.2).toFixed(1)):action==='out'?Math.max(1,+(state.zoom-.2).toFixed(1)):1;canvas.style.setProperty('--fbm-zoom',state.zoom);$('fcm-zoom-value').textContent=`${Math.round(state.zoom*100)}%`;document.querySelector('[data-fcm-zoom="out"]')?.toggleAttribute('disabled',state.zoom<=1);document.querySelector('[data-fcm-zoom="in"]')?.toggleAttribute('disabled',state.zoom>=2);if(action==='reset')stage.scrollTo({left:0,top:0,behavior:'smooth'});}
-    async function loadDailyComparison(){
-        let board=[];
-        for(let attempt=0;attempt<16;attempt+=1){
-            board=Array.isArray(window._internationalFxBoard)?window._internationalFxBoard:[];
-            if(board.length)break;
-            await new Promise(resolve=>setTimeout(resolve,250));
-        }
-        const currentRates={USD:1},previousRates={USD:1};
-        board.forEach(item=>{
-            const [base,quote]=String(item.label||'').split('/'),price=+item.price,pct=+item.pct;
-            if(!(price>0&&Number.isFinite(pct)))return;
-            const previousPrice=price/(1+pct/100);
-            if(base==='USD'){currentRates[quote]=price;previousRates[quote]=previousPrice;}
-            else if(quote==='USD'){currentRates[base]=1/price;previousRates[base]=1/previousPrice;}
-        });
-        const today=new Date(),previous=new Date(today);previous.setDate(previous.getDate()-1);
-        return Object.keys(currentRates).length>1?{source:'Mesa cambiaria VALLNews',currentDate:today.toISOString().slice(0,10),previousDate:previous.toISOString().slice(0,10),currentRates,previousRates}:null;
+    function renderFreshness(){
+        const status=$('fcm-status');
+        if(status){status.className='fcm-status fbm-status '+(state.preserved?'is-partial':'is-ready');status.textContent=`${Math.max(0,Object.keys(state.rates).length-1)} monedas · ${state.preserved?'Dato conservado':'Publicación diaria'} · ${state.asOf ? state.asOf.slice(0,10) : 'Fecha no disponible'} · ExchangeRate-API`;}
     }
     async function load(){
+        loadController?.abort();const controller=new AbortController();loadController=controller;
         try {
-            const countryRequest=fetch('/api/country-currencies')
+            const countryRequest=fetch('/api/country-currencies',{signal:controller.signal})
                 .then(response=>{if(!response.ok)throw Error(response.status);return response.json();})
                 .catch(()=>({countries:state.countries.length?state.countries:fallbackCountries()}));
             const [rates,countries]=await Promise.all([
-                fetch('/api/exchange-rates').then(response=>{if(!response.ok)throw Error(response.status);return response.json();}).catch(()=>({rates:state.rates})),
+                fetch('/api/exchange-rates',{signal:controller.signal}).then(async response=>{if(!response.ok)throw Error(response.status);const data=await response.json();if(data.rates?.USD!==1 || Object.values(data.rates).some(value=>!Number.isFinite(value)||value<=0))throw Error('Tipos de cambio no válidos');return data;}).catch(()=>({rates:state.rates,asOf:state.asOf,stale:true})),
                 countryRequest,
             ]);
+            if(controller.signal.aborted || !mounted)return;
             state.rates=rates.rates||{};
-            state.countries=(countries.countries||[])
-                .filter(country=>!excludedCountry(country))
-                .map(country=>({...country,spanishName:spanishCountryName(country),currencies:(country.currencies||[]).filter(currency=>!excludedCurrency(currency))}))
-                .filter(country=>country.currencies.length);
-            state.comparison=rates.comparison||await loadDailyComparison();
-            const status=$('fcm-status');
-            if(status){status.className='fcm-status fbm-status is-ready';status.innerHTML=`<i class="fas fa-signal"></i> ${Object.keys(state.rates).length-1} monedas · actualización diaria`;}
-            render();
+            state.asOf=Number.isFinite(rates.time_last_update_unix)?new Date(rates.time_last_update_unix*1000).toISOString():rates.asOf||rates.time_last_update_utc||'';
+            state.preserved=Boolean(rates.stale)||!Number.isFinite(Date.parse(state.asOf))||Date.now()-Date.parse(state.asOf)>3*86400000;
+            state.countries=(countries.countries||[]).filter(country=>!excludedCountry(country)).map(country=>({...country,spanishName:spanishCountryName(country),currencies:(country.currencies||[]).filter(currency=>!excludedCurrency(currency))})).filter(country=>country.currencies.length);
+            state.comparison=rates.comparison||null;
+            renderFreshness();render();
         } catch(error) {
-            const status=$('fcm-status');
-            if(status){status.className='fcm-status fbm-status is-partial';status.innerHTML='<i class="fas fa-shield-halved"></i> Cobertura de respaldo disponible';}
+            if(controller.signal.aborted)return;
+            state.preserved=true;renderFreshness();
             console.warn('Mapa de divisas:',error);
         }
     }
-    function mount(){if(mounted||!$('currency-world-map'))return;mounted=true;state.rates={...FALLBACK_RATES,...(window.VN_WORLD_FX_FALLBACK?.rates||{})};state.countries=(window.VN_WORLD_CURRENCIES||fallbackCountries()).filter(country=>!excludedCountry(country)).map(country=>({...country,spanishName:spanishCountryName(country),currencies:(country.currencies||[]).filter(currency=>!excludedCurrency(currency))})).filter(country=>country.currencies.length);render();const root=$('currency-world-map');const click=e=>{const zoomBtn=e.target.closest('[data-fcm-zoom]');if(zoomBtn){zoom(zoomBtn.dataset.fcmZoom);return;}const filter=e.target.closest('[data-fcm-filter]');if(filter){state.filter=filter.dataset.fcmFilter;state.selected='';hideTip(true);render();return;}if(e.target.closest('#fcm-invert')){state.inverted=!state.inverted;hideTip(true);render();return;}const target=e.target.closest('[data-fcm-country]:not(.is-filtered)');if(target)select(target.dataset.fcmCountry,target);else if(e.target.closest('#fcm-map-stage'))hideTip(true);};const change=e=>{if(e.target.id==='fcm-base'){state.base=e.target.value;state.inverted=false;hideTip(true);render();}if(e.target.id==='fcm-country'&&e.target.value){const node=document.querySelector(`#fcm-map-canvas [data-fcm-country="${CSS.escape(e.target.value)}"]`);select(e.target.value,node);}};const over=e=>{if(hoverCloseTimer){clearTimeout(hoverCloseTimer);hoverCloseTimer=null;}const target=e.target.closest('[data-fcm-country]:not(.is-filtered)');if(target)showTip(target.dataset.fcmCountry,target);};const out=e=>{const country=e.target.closest('[data-fcm-country]:not(.is-filtered)');if(!country)return;const nextCountry=e.relatedTarget?.closest?.('[data-fcm-country]:not(.is-filtered)');if(nextCountry?.dataset.fcmCountry===country.dataset.fcmCountry)return;scheduleTipClose();};const moveHover=e=>{const tip=$('fcm-hover-tip');if(!tip||tip.hidden)return;if(!e.target.closest('[data-fcm-country]:not(.is-filtered)'))scheduleTipClose();};const focusout=e=>{if(!e.relatedTarget?.closest?.('#currency-world-map'))scheduleTipClose();};const leave=()=>scheduleTipClose();root.addEventListener('click',click);root.addEventListener('change',change);root.addEventListener('mouseover',over);root.addEventListener('mouseout',out);root.addEventListener('mousemove',moveHover);root.addEventListener('focusout',focusout);root.addEventListener('mouseleave',leave);cleanups.push(()=>root.removeEventListener('click',click),()=>root.removeEventListener('change',change),()=>root.removeEventListener('mouseover',over),()=>root.removeEventListener('mouseout',out),()=>root.removeEventListener('mousemove',moveHover),()=>root.removeEventListener('focusout',focusout),()=>root.removeEventListener('mouseleave',leave));const stage=$('fcm-map-stage');if(stage){const down=e=>{if(e.pointerType==='mouse'&&e.button===0)drag={x:e.clientX,y:e.clientY,left:stage.scrollLeft,top:stage.scrollTop};};const move=e=>{if(!drag)return;stage.scrollLeft=drag.left-(e.clientX-drag.x);stage.scrollTop=drag.top-(e.clientY-drag.y);stage.classList.add('is-dragging','has-interacted');};const up=()=>{drag=null;stage.classList.remove('is-dragging');};stage.addEventListener('pointerdown',down);stage.addEventListener('pointermove',move);window.addEventListener('pointerup',up);cleanups.push(()=>stage.removeEventListener('pointerdown',down),()=>stage.removeEventListener('pointermove',move),()=>window.removeEventListener('pointerup',up));}load();}
-    function unmount(){cleanups.splice(0).forEach(fn=>fn());if(hoverCloseTimer)clearTimeout(hoverCloseTimer);hoverCloseTimer=null;mounted=false;drag=null;}
+    function mount(){if(mounted||!$('currency-world-map'))return;mounted=true;state.rates={...(window.VN_WORLD_FX_FALLBACK?.rates||{})};state.asOf=window.VN_WORLD_FX_FALLBACK?.asOf||'';state.preserved=true;renderFreshness();state.countries=(window.VN_WORLD_CURRENCIES||fallbackCountries()).filter(country=>!excludedCountry(country)).map(country=>({...country,spanishName:spanishCountryName(country),currencies:(country.currencies||[]).filter(currency=>!excludedCurrency(currency))})).filter(country=>country.currencies.length);render();const root=$('currency-world-map');const click=e=>{const zoomBtn=e.target.closest('[data-fcm-zoom]');if(zoomBtn){zoom(zoomBtn.dataset.fcmZoom);return;}const filter=e.target.closest('[data-fcm-filter]');if(filter){state.filter=filter.dataset.fcmFilter;state.selected='';hideTip(true);render();return;}if(e.target.closest('#fcm-invert')){state.inverted=!state.inverted;hideTip(true);render();return;}const target=e.target.closest('[data-fcm-country]:not(.is-filtered)');if(target)select(target.dataset.fcmCountry,target);else if(e.target.closest('#fcm-map-stage'))hideTip(true);};const change=e=>{if(e.target.id==='fcm-base'){state.base=e.target.value;state.inverted=false;hideTip(true);render();}if(e.target.id==='fcm-country'&&e.target.value){const node=document.querySelector(`#fcm-map-canvas [data-fcm-country="${CSS.escape(e.target.value)}"]`);select(e.target.value,node);}};const over=e=>{if(hoverCloseTimer){clearTimeout(hoverCloseTimer);hoverCloseTimer=null;}const target=e.target.closest('[data-fcm-country]:not(.is-filtered)');if(target)showTip(target.dataset.fcmCountry,target);};const out=e=>{const country=e.target.closest('[data-fcm-country]:not(.is-filtered)');if(!country)return;const nextCountry=e.relatedTarget?.closest?.('[data-fcm-country]:not(.is-filtered)');if(nextCountry?.dataset.fcmCountry===country.dataset.fcmCountry)return;scheduleTipClose();};const moveHover=e=>{const tip=$('fcm-hover-tip');if(!tip||tip.hidden)return;if(!e.target.closest('[data-fcm-country]:not(.is-filtered)'))scheduleTipClose();};const focusout=e=>{if(!e.relatedTarget?.closest?.('#currency-world-map'))scheduleTipClose();};const leave=()=>scheduleTipClose();root.addEventListener('click',click);root.addEventListener('change',change);root.addEventListener('mouseover',over);root.addEventListener('mouseout',out);root.addEventListener('mousemove',moveHover);root.addEventListener('focusout',focusout);root.addEventListener('mouseleave',leave);cleanups.push(()=>root.removeEventListener('click',click),()=>root.removeEventListener('change',change),()=>root.removeEventListener('mouseover',over),()=>root.removeEventListener('mouseout',out),()=>root.removeEventListener('mousemove',moveHover),()=>root.removeEventListener('focusout',focusout),()=>root.removeEventListener('mouseleave',leave));const stage=$('fcm-map-stage');if(stage){const down=e=>{if(e.pointerType==='mouse'&&e.button===0)drag={x:e.clientX,y:e.clientY,left:stage.scrollLeft,top:stage.scrollTop};};const move=e=>{if(!drag)return;stage.scrollLeft=drag.left-(e.clientX-drag.x);stage.scrollTop=drag.top-(e.clientY-drag.y);stage.classList.add('is-dragging','has-interacted');};const up=()=>{drag=null;stage.classList.remove('is-dragging');};stage.addEventListener('pointerdown',down);stage.addEventListener('pointermove',move);window.addEventListener('pointerup',up);cleanups.push(()=>stage.removeEventListener('pointerdown',down),()=>stage.removeEventListener('pointermove',move),()=>window.removeEventListener('pointerup',up));}load();}
+    function unmount(){loadController?.abort();loadController=null;cleanups.splice(0).forEach(fn=>fn());if(hoverCloseTimer)clearTimeout(hoverCloseTimer);hoverCloseTimer=null;mounted=false;drag=null;}
     window.VNCurrencyMap={montar:mount,desmontar:unmount};
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();

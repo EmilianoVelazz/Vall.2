@@ -32,14 +32,15 @@ function sectorFormat(report,collection) {
 }
 function enrichSectorReport(report,collection) {
     if(require('../../shared/report-panorama.mjs').isPanorama(report) || require('../../shared/report-financial-news.mjs').isFinancialNews(report) || require('../../shared/report-market-news.mjs').isMarketNews(report))return report;
+    const format=sectorFormat(report,collection);
+    const heading=format ? 'Información complementaria para '+format.label.toLowerCase() : null;
+    if(heading && report.sections?.some(section=>section.heading===heading)) return report;
     report=withDailyEvidence(report);
     if(['grains','proteins'].includes(report.baseReport?.key || report.key))return {...report,collection:report.collection || collection};
     report=reportPresentation(report);
     report=normalizeEquityEvidence(report.collection ? report : {...report,collection});
     report=enrichReportObservations(equityRegionalVisuals(report,collection));
-    const format=sectorFormat(report,collection);
     if(!format) return report;
-    const heading='Información complementaria para '+format.label.toLowerCase();
     if(report.sections?.some(section=>section.heading===heading)) return report;
     const section={heading,text:format.topics.map(topic=>topic.heading+': '+topic.question+'\nInformación a contrastar o solicitar: '+topic.inputs+'.').join('\n\n')};
     const table={kind:'guide',title:'Guía sectorial de validación',note:'Campos a contrastar con las fuentes del corte y los datos de la empresa. Esta guía no acredita que todas las variables estén disponibles ni contiene cotizaciones adicionales.',columns:['Frente','Pregunta de decisión','Información necesaria'],rows:format.topics.map(topic=>[topic.heading,topic.question,topic.inputs])};

@@ -5,7 +5,7 @@ import {getDocument} from '../frontend/node_modules/pdfjs-dist/legacy/build/pdf.
 import {executiveReading} from '../frontend/src/lib/reportReading.js';
 import {reportOutline} from '../frontend/src/lib/reportOutline.js';
 const require=createRequire(import.meta.url);
-process.env.JWT_SECRET='isolated-report-quality-secret';
+process.env.JWT_SECRET='isolated-report-quality-secret-at-least-32-bytes';
 delete process.env.USER_PASSWORD;
 const {_test}=require('../backend/routes/export');
 const {input,time}=require('./lib/mexico-report-fixture.cjs');

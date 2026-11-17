@@ -5,7 +5,7 @@ import {sourceEntries,reportCsv} from '../frontend/src/lib/reportCsv.js';
 import {reportBlockCount} from '../frontend/src/lib/reportOutline.js';
 import {reportNumber,reportAxisDigits} from '../frontend/src/lib/reportNumberFormat.js';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-review-secret';delete process.env.USER_PASSWORD;
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-report-review-secret-at-least-32-bytes';delete process.env.USER_PASSWORD;
 const {_test}=require('../backend/routes/export');
 const backendNumbers=require('../backend/lib/report-number-format');
 const collections=require('../shared/report-collections.json');
@@ -48,7 +48,17 @@ let sample,count=0;
 for(const [collection,definition] of Object.entries(collections)) for(const key of definition.reportKeys) {
   // An equity index needs a positive level; its zero session change is valid.
   const report={...base,collection,key,...(key==='equities' ? {metrics:[{label:'Índice de simulación',value:100,change:0}]} : {})},before=JSON.stringify(report),payload=_test.executivePayload(report);
-  count++;assert.equal(JSON.stringify(report),before);assert.equal(payload.metrics[0].value,key==='equities' ? '100' : '0',collection+'/'+key);
+  count++;assert.equal(JSON.stringify(report),before);
+  if(collection==='markets' && ['grains','proteins'].includes(key)) {
+    // Base commodity reports are now rebuilt from dated source observations.
+    // This legacy fixture has no such quotes; it must not invent published data.
+    assert.equal(payload.metrics.length,0);assert.equal(payload.tables.length,0);assert.equal(payload.visuals.length,0);
+    const own=_test.executivePayload({...report,userEdition:true});
+    assert.equal(own.metrics[0].value,'0');assert.equal(own.tables[0].rows[0][1],'0');assert.deepEqual(own.visuals[0].series[0].points,intraday.series[0].points);
+    for(const field of ['summary','objective','closing','takeaways','watchlist'])assert.deepEqual(own[field],report[field]);
+    continue;
+  }
+  assert.equal(payload.metrics[0].value,key==='equities' ? '100' : '0',collection+'/'+key);
   if(key==='equities') assert.equal(payload.metrics[0].change,'0');
   assert.equal(payload.tables[0].rows[0][1],'0');assert.deepEqual(payload.sections,report.sections);
   for(const field of ['summary','objective','closing','takeaways','watchlist']) assert.deepEqual(payload[field],report[field],'El PDF conserva '+collection+'/'+key+' · '+field);
@@ -61,6 +71,9 @@ for(const [collection,definition] of Object.entries(collections)) for(const key 
   if(key==='fx') sample=payload;
 }
 assert.equal(count,14);
+// Intraday precision belongs to an authored/manual edition. A base FX report
+// now uses its canonical currency histories, not an unrelated legacy chart.
+sample=_test.executivePayload({...base,userEdition:true,collection:'mine',key:'edition_precision',aiEdition:{model:'isolated-fixture',generatedAt:base.generatedAt}});
 const bytes=await _test.makeExecutivePdf(sample.title,sample),task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,disableFontFace:true}),pdf=await task.promise;
 let text='';const links=[];
 for(let i=1;i<=pdf.numPages;i++) {
@@ -71,9 +84,12 @@ for(let i=1;i<=pdf.numPages;i++) {
   text+=items.map(item=>item.str).join(' ')+'\n';links.push(...await page.getAnnotations());
 }
 for(const marker of ['1.05329','12:00 UTC','13:00 UTC']) assert(text.includes(marker),'Conservar en PDF: '+marker);
-for(const marker of ['FINDELRESUMEN','FINDELOBJETIVO','FINDELCIERRE','FINDELBLOQUE0','FINDELBLOQUE11','SEÑALCONSERVADA6','RIESGOCONSERVADO5']) assert(!text.includes(marker),'Presentación de datos sin narrativa: '+marker);
+for(const marker of ['FINDELRESUMEN','FINDELOBJETIVO','FINDELCIERRE','FINDELBLOQUE0','FINDELBLOQUE11','SEÑALCONSERVADA6','RIESGOCONSERVADO5']) assert(text.includes(marker),'La edición propia conserva su narrativa: '+marker);
 assert(!text.includes('FUENTES Y TRAZABILIDAD'),'Sin apartado de fuentes en PDF');
-for(const source of references.sourceLinks.slice(0,2)) assert(!links.some(link=>link.url===source.url),'No exportar la lista de referencias: '+source.url);
+for(const source of references.sourceLinks.slice(0,2)) assert(links.some(link=>link.url===source.url),'La edición propia conserva las fuentes seleccionadas: '+source.url);
 await task.destroy();
+const excluded=_test.executivePayload({...sample,personalization:{...sample.personalization,sections:{...sample.personalization.sections,sources:false}}}),hiddenTask=getDocument({data:new Uint8Array(await _test.makeExecutivePdf(excluded.title,excluded)),useSystemFonts:true}),hiddenPdf=await hiddenTask.promise;
+for(let i=1;i<=hiddenPdf.numPages;i++){const annotations=await(await hiddenPdf.getPage(i)).getAnnotations();for(const source of references.sourceLinks.slice(0,2))assert(!annotations.some(link=>link.url===source.url),'La exclusión explícita de fuentes se respeta');}
+await hiddenTask.destroy();
 console.log('Revisión de reportes: OK · 14 subapartados, texto completo, ceros, ausencias, fuentes repetidas, horas, precisión, CSV y PDF');
 process.exit(0);

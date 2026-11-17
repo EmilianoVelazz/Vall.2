@@ -20,7 +20,7 @@ const waitMessage = predicate => new Promise((resolve, reject) => {
 function percentile(values, fraction) { return values.slice().sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * fraction))] || 0; }
 async function runStage(url, { users, requests, concurrency }) {
     const tokens = Array.from({ length: users }, (_, i) => 'Bearer ' + jwt.sign({ sub: `load-${users}-${i}`,
-        email: `load-${i}@example.invalid`, role: 'user', trainingOptIn: false }, 'fixture-only-security-secret-never-for-production', { expiresIn: '5m' }));
+        email: `load-${users}-${i}@example.invalid`, role: 'user', trainingOptIn: false }, 'fixture-only-security-secret-never-for-production', { expiresIn: '5m' }));
     let next = 0, decodedBytes = 0, networkErrors = 0, aborted = false;
     const latencies = [], statuses = {};
     const started = performance.now();
@@ -32,7 +32,7 @@ async function runStage(url, { users, requests, concurrency }) {
             const route = i % 10 < 8 ? '/api/stock-history?ticker=TSN&range=1y' : i % 10 === 8 ? '/api/profile' : '/api/chat-conversations';
             const begin = performance.now();
             try {
-                const response = await fetch(url + route, { headers: { Authorization: tokens[i % users] }, signal: AbortSignal.timeout(5000) });
+                const response = await fetch(url + route, { headers: { Authorization: tokens[i % users], 'X-VALL-Account': `load-${users}-${i % users}@example.invalid` }, signal: AbortSignal.timeout(5000) });
                 const responseBytes = (await response.arrayBuffer()).byteLength;
                 decodedBytes += responseBytes;
                 statuses[response.status] = (statuses[response.status] || 0) + 1;

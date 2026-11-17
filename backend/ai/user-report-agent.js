@@ -84,6 +84,7 @@ class UserReportAgent {
         const configured=preferences && typeof preferences==='object' && !Array.isArray(preferences),instructionMode=options?.mode==='instructions';
         const preferenceOverrides=normalizePreferenceOverrides(options?.preferenceOverrides);
         if(preferenceOverrides.length && !configured) throw failure('Envía también la configuración de tus preferencias elegidas.');
+        if(typeof instructions==='string' && instructions.length>500000) throw failure('El texto de instrucciones excede el límite del servicio.',413);
         if(typeof instructions!=='string' || instructions.length>4000 || (!instructions.trim() && (instructionMode || !configured))) throw failure('Escribe qué quieres cambiar, agregar o quitar del informe, hasta 4000 caracteres.');
         const format=sectorFormat(report);
         const materialInput=format && !report.baseReport && report.userEdition!==true ? {...report,baseReport:{collection:format.collection,key:format.key,title:report.title,generatedAt:report.generatedAt}} : report;
@@ -122,7 +123,7 @@ class UserReportAgent {
             for(let attempt=0;attempt<2;attempt++) {
                 if(workSignal.aborted) throw failure('La generación tardó demasiado o se canceló. Tu informe sigue disponible.',504);
                 let response;
-                try {response=await generationResponse(this.provider,{prompt:prompt+repair,systemInstruction:system,tier:'flash',json:true,maxOutputTokens:12288,signal:workSignal,timeoutMs:this.timeoutMs});}
+                try {response=await generationResponse(this.provider,{prompt:prompt+repair,systemInstruction:system,tier:'report',json:true,maxOutputTokens:32768,signal:workSignal,timeoutMs:this.timeoutMs});}
                 catch(error) {if(workSignal.aborted) throw failure('La generación tardó demasiado o se canceló. Tu informe sigue disponible.',504);throw failure(error.code==='AI_RATE_LIMIT' ? 'La IA está recibiendo demasiadas solicitudes. Intenta de nuevo en unos minutos.' : 'No se pudo conectar con la IA. Tu informe sigue disponible.',error.code==='AI_RATE_LIMIT' ? 429 : 503);}
                 if(workSignal.aborted) throw failure('La generación tardó demasiado o se canceló. Tu informe sigue disponible.',504);
                 try {

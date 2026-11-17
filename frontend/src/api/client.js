@@ -36,10 +36,21 @@ async function request(path, method, body, opts) {
   }
 }
 
+const inflightGets = new Map();
+
 export function apiPost(path, body, opts = {}) {
   return request(path, 'POST', body, opts);
 }
 
 export function apiGet(path, opts = {}) {
-  return request(path, 'GET', undefined, opts);
+  if (opts.signal || opts.cache === 'no-store') {
+    return request(path, 'GET', undefined, opts);
+  }
+  const existing = inflightGets.get(path);
+  if (existing) return existing;
+  const promise = request(path, 'GET', undefined, opts).finally(() => {
+    inflightGets.delete(path);
+  });
+  inflightGets.set(path, promise);
+  return promise;
 }

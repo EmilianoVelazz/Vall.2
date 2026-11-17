@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {weeklyReport} from '../shared/report-weekly.mjs';
-const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-library-ui';
+const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-library-ui-fixture-only-testing-32bytes';
 const express=require('express'),{chromium}=require('playwright'),{_test}=require('../backend/routes/export');
 const library=JSON.parse(await fs.readFile('backend/cache/annual-report-library.json','utf8')),daily={};for(const [area,file] of [['finance','finance_executive_reports.json'],['markets','market_executive_reports.json'],['mexico','mexico-executive-reports.json']])daily[area]=JSON.parse(await fs.readFile('backend/cache/'+file,'utf8')).reports;
 await fs.mkdir('tmp/pdfs',{recursive:true});await fs.mkdir('output/otros-informes',{recursive:true});const pdfs={};for(const [year,area,key] of [[2022,'finance','equities'],[2025,'markets','proteins'],[2024,'mexico','mx_production']]){const report=library.years[year].find(report=>report.collection===area && report.key===key);pdfs[key]=await _test.makeExecutivePdf(report.title,_test.executivePayload(report));await fs.writeFile(`tmp/pdfs/anual-${key}-${year}.pdf`,pdfs[key]);}

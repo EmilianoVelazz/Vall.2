@@ -202,8 +202,9 @@ async function groundMarketData(plan, message, { get = externalGet, currencyQuot
                 available = true;
                 quotesAvailable = true;
                 sourceCodes.push('exchange_rate_api');
+                marketQuotes.push({symbol:`${quote.from}/${quote.to}`,label:`Tipo de cambio ${quote.from}/${quote.to}`,value:quote.rate,unit:`${quote.to}/${quote.from}`,updatedAt:quote.updatedAt,source:quote.source,url:`https://open.er-api.com/v6/latest/${quote.from}`});
                 contexts.push(`[DATOS EN VIVO VERIFICADOS]\n[L1] Tipo de cambio ${quote.from}/${quote.to}: 1 ${quote.from} = ${formatted(quote.rate, quote.to === 'MXN' ? 4 : 6)} ${quote.to}. Fuente: ${quote.source}; corte: ${quote.updatedAt || 'última actualización del proveedor'}.`);
-                citations.push({ id: 'FX1', title: `Tipo de cambio ${quote.from}/${quote.to}`, source: quote.source, date: quote.updatedAt || null, type: 'live_fx_quote', url: 'https://open.er-api.com/v6/latest/USD' });
+                citations.push({ id: 'FX1', title: `Tipo de cambio ${quote.from}/${quote.to}`, source: quote.source, date: quote.updatedAt || null, type: 'live_fx_quote', url: `https://open.er-api.com/v6/latest/${quote.from}` });
             }
         } catch (error) { warnings.push(`Divisas: ${error.message}`); }
     })());

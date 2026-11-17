@@ -1,6 +1,7 @@
 'use strict';
 
 const { normalizeForIntent, isLikelyFollowUp, visibleTurns } = require('./conversation-context');
+const {responseLength}=require('./answer-format');
 
 const FORECAST = /\b(?:pronostic\w*|predicci\w*|predecir|proyecci\w*|subira|bajara|que pasara|como (?:estara|se comportara)|a cuanto (?:llegara|estara))\b/;
 
@@ -17,6 +18,8 @@ function activeUserContext(message, history) {
 function forecastRequest(message, history = []) {
     const current = normalizeForIntent(message);
     const subject = normalizeForIntent([...activeUserContext(message, history), message].join(' '));
+    const certaintyChallenge=/\b(?:puedes|puedo|se puede|es posible)\s+(?:afirmar|asegurar|garantizar|saber con certeza|predecir con certeza)\b/.test(current)
+        && !/\b(?:pronostica|predice|proyecta|estima|dame (?:un|el) pronostico)\b/.test(current);
     // Una revisión de previsiones publicadas no pide un objetivo propio.
     const historical = /\b(?:que|cuando)\s+(?:pronostico|predijo|proyecto)\b|\b(?:pronosticos?|predicciones?|proyecciones?)\b.{0,70}\b(?:publicad[oa]s?|anunciad[oa]s?|del informe|del reporte)\b/.test(current);
     const operational = /\b(?:documentos?|permisos?|requisitos?|tramites?|entregar|entrega|embarcar|embarque|importar|exportar|reunion|cita|voy a vender|voy a comprar)\b/.test(current);
@@ -26,7 +29,7 @@ function forecastRequest(message, history = []) {
     const researchOnly = !predictive && !futureMarket && /\b(?:noticias?|titulares?|comunicados?|acuerdos? comerciales?|anuncios?)\b/.test(current);
     const observedOnly = !predictive && !futureMarket && /\b(?:precios?|cotizaciones?|cuanto cuesta|cuanto vale)\b/.test(current)
         && /\b(?:hoy|actual(?:es)?|ahora|ultimo|ultima)\b/.test(current);
-    const requested = !historical && !researchOnly && !observedOnly && (predictive || (!operational && (FORECAST.test(subject) || futureMarket
+    const requested = !certaintyChallenge && !historical && !researchOnly && !observedOnly && (predictive || (!operational && (FORECAST.test(subject) || futureMarket
         || /^(?:[¿\s]*)(?:y |para |en )?(?:manana|(?:el |la )?(?:proximo|proxima|siguiente)\s+(?:mes|semana|ano|sesion))[?\s]*$/.test(current))));
     const matches = [...subject.matchAll(/\b(?:proxim[oa]s?|siguientes?|en|a|para)\s+(?:(\d{1,3}|un|una|dos|tres|cuatro)\s*)?(sesion(?:es)?|dias?|semanas?|mes(?:es)?|anos?)\b|\bmanana\b/g)];
     const last = matches.at(-1);
@@ -41,10 +44,10 @@ function forecastRequest(message, history = []) {
         label = last[0];
         assumption = !/^sesion/.test(unit) || last[0] === 'manana';
     }
-    return { requested, horizon, label, assumption, supported: horizon !== null && horizon >= 1 && horizon <= 20 };
+    return { requested, horizon, label, assumption, certaintyChallenge, supported: horizon !== null && horizon >= 1 && horizon <= 20 };
 }
 
-function buildAnswerStrategy({ message, history = [], plan = {} } = {}) {
+function buildAnswerStrategy({ message, history = [], plan = {}, includeFormat=true } = {}) {
     const current = normalizeForIntent(message);
     const audienceText = normalizeForIntent([...activeUserContext(message, history), message].join(' '));
     const roleMatches = [...audienceText.matchAll(/\b(inversor|inversionista|inversiones|portafolio|cartera|productor|porcicultor|avicultor|comprador|abastecimiento|distribuidor|importador|exportador|comercializador|mayorista|distributor)\b/g)];
@@ -56,7 +59,9 @@ function buildAnswerStrategy({ message, history = [], plan = {} } = {}) {
     const intent = forecast.requested ? 'forecast' : plan.asksNews ? 'news'
         : plan.asksComparison ? 'comparison' : plan.asksDecision ? 'decision'
             : plan.needsProteinPrices || plan.needsLiveQuote ? 'price' : 'analysis';
-    const short = /\b(?:breve|resum\w*|rapido|en una frase|solo dime)\b/.test(current);
+    const length = responseLength(message);
+    const proteinContext=Boolean(plan.proteinProfile?.products?.length) || /\b(?:proteinas?|cerdo|porcino|pollo|huevo|res|bovino|ganado|carne)\b/.test(audienceText);
+    const currencyContext=plan.topics?.includes('fx') || /\b(?:usd|mxn|dolar|divisas?|forward|tipo de cambio)\b/.test(current);
     const guidance = [
         '[RESPUESTA ADAPTADA A LA PERSONA]',
         `Objetivo: ${intent}. Perfil expresado: ${audience}. No supongas capital, tolerancia al riesgo ni posiciones que no se hayan indicado.`,
@@ -64,15 +69,23 @@ function buildAnswerStrategy({ message, history = [], plan = {} } = {}) {
             : audience === 'investor' ? 'Relaciona cada hallazgo con ventas, costos, márgenes, deuda, valoración y catalizadores del emisor pertinente. Un precio de proteína no acredita por sí solo una tesis bursátil.'
             : audience === 'producer' ? 'Relaciona demanda, alimento, bioseguridad, productividad, margen por unidad y flujo de caja. Distingue precio de granja de mayoreo y futuros.'
                 : audience === 'buyer' ? 'Prioriza disponibilidad, costo puesto en destino, moneda, logística, plazos y riesgos sanitarios.' : 'Explica los términos necesarios en lenguaje sencillo y aterriza su consecuencia práctica.',
-        'Responde primero lo que sí puede sostenerse. Si falta un dato que cambiaría la decisión, formula una sola pregunta concreta sobre la variable más decisiva al final, sin acumular varias variables en esa pregunta; conserva lo ya indicado en el hilo.',
+        'Responde primero lo que sí puede sostenerse. Pregunta sólo si falta una condición indispensable para el cálculo o la decisión personalizada que se pidió. En definiciones, comparaciones generales o revisión de una premisa, entrega la respuesta y sus límites sin añadir una pregunta comercial. Cuando sí sea indispensable, pide una sola variable y conserva lo ya indicado en el hilo.',
         'No preguntes otra vez el horizonte o activo ya expresados. Un plazo corto no acredita que la persona opere intradía: no presupongas estilo de ejecución ni des órdenes de compra o venta sin su contexto.',
+        'Si se pide una definición o comprobar una premisa, resuélvela sin añadir una pregunta de negocio que no sea necesaria para contestar. No conviertas una explicación conceptual en una recomendación personalizada.',
+        'No llames utilidad neta a un resultado calculado sólo con los costos del ejercicio si faltan impuestos, gastos financieros u operativos; conserva la base declarada.',
         'Ofrece una lectura propia respaldada y qué la haría cambiar. Si el usuario corrige algo, compruébalo y actualiza la conclusión; no confirmes automáticamente su premisa.',
-        short ? 'Usa entre 120 y 180 palabras de análisis, conservando el dato decisivo, el corte y el principal límite. No repitas las tablas de la ficha del servidor.' : 'Evita repetir antecedentes. Usa tablas sólo para comparar y prioriza el mecanismo que explica el resultado.',
+        includeFormat && length.guidance || 'Evita repetir antecedentes. Usa tablas sólo para comparar y prioriza el mecanismo que explica el resultado.',
     ];
-    if (audience === 'merchant') guidance.push(
+    if(currencyContext)guidance.push('[TESORERÍA CAMBIARIA]',
+        'Distingue comprar divisas al spot hoy de dejar el pago abierto hasta el vencimiento. Un spot actual sólo permite calcular el desembolso de referencia actual: no es el spot futuro. Si ya compra la divisa y la conserva para el mismo pago, ese importe queda convertido; no atribuyas riesgo de una compra aún pendiente a una compra ya ejecutada.',
+        'Un forward fija condiciones para el importe y fecha contratados, no garantiza ganancia ni elimina todos los riesgos. La diferencia aritmética frente al spot actual no prueba una pérdida ni permite comparar costos financieros totales sin tasas, comisiones, financiación y fechas. No inventes esos conceptos ni el spot futuro.',
+        'No afirmes que un forward carece de desembolso inicial: garantías, colateral, márgenes y condiciones dependen del contrato. Si no se conocen, identifica esa limitación sin asignar importes.',
+        'Un importador o un pago en USD no implican comercio de carne ni unidades por kg. Conserva el producto y la unidad indicados; si no se indicó mercancía, no la supongas ni preguntes su precio por kilo.');
+    if(forecast.certaintyChallenge)guidance.push('La pregunta cuestiona si puede garantizarse una predicción; no solicita emitir otro pronóstico. Contesta esa premisa y sus límites. Cierra sin pedir datos del proveedor, plazos o márgenes que no hacen falta para responderla.');
+    if (audience === 'merchant' && proteinContext) guidance.push(
         '[COMERCIO DE PROTEÍNAS]',
         'Escribe cálculos y fórmulas comerciales en texto plano legible (por ejemplo, 85 / 0.96 = 88.54 MXN/kg). No uses LaTeX, delimitadores $, ni comandos como frac o text, porque el chat no renderiza ecuaciones LaTeX.',
-        'En consultas normales entrega de 200 a 350 palabras, salvo que se pida otro formato o detalle. Escribe «distribuidor» o «comercializador», nunca el identificador interno merchant. Una pregunta al final debe pedir sólo una variable, no una lista disimulada.',
+        `${length.guidance ? 'Respeta la extensión solicitada.' : 'En consultas normales entrega de 200 a 350 palabras, salvo que se pida otro formato o detalle.'} Escribe «distribuidor» o «comercializador», nunca el identificador interno merchant. Una pregunta al final debe pedir sólo una variable, no una lista disimulada.`,
         'No inventes límites de crédito, porcentajes de merma, márgenes objetivo, horarios de reparto, umbrales de días ni temperaturas como si fueran reglas verificadas o datos del negocio. Los ejemplos numéricos se permiten únicamente bajo el rótulo «Ejemplo hipotético, no es una cotización ni un dato de tu empresa», con todos los supuestos explícitos. No declares rechazo automático de lotes ni autorices recongelación o reventa sin procedimiento validado.',
         'Prioriza datos actuales para esta semana. Cada hecho externo lleva fecha y enlace específico junto a la afirmación. Si sólo recuperaste análisis antiguos, abre diciendo que no se confirmó la situación de esta semana; etiquétalos como antecedentes y ofrece señales a verificar. No traslades porcentajes de 2025 a 2026 ni extrapoles una cifra regional al mercado mundial.',
           'Conserva país de origen y destino, especie, corte, presentación, fresco/congelado, volumen, moneda, unidad e Incoterm ya indicados. Identifica qué falta; no extrapoles precio de canal a un corte ni peso de huevo a docenas sin equivalencia documentada.',

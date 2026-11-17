@@ -2,7 +2,7 @@
 const path=require('node:path');
 const {availableReportTables}=require('../../shared/report-available-data.mjs');
 const COLORS=require('../../shared/report-chart-colors.json');
-const {equityHistoryPages,drawEquityHistoryPage}=require('./report-equity-history-pdf');
+const {equityHistoryPages,drawEquityHistoryPage,drawRegionalEquityHistory}=require('./report-equity-history-pdf');
 const INK='#193758',MUTED='#586b78',UP='#657455',DOWN='#946c64',LINE='#d5dfe7';
 const number=(value,digits=2)=>Number.isFinite(value) ? value.toLocaleString('es-MX',{maximumFractionDigits:digits}) : '—';
 const percent=value=>Number.isFinite(value) ? (value>0 ? '+' : '')+number(value,Math.abs(value)<1 ? 3 : 2) : '—';
@@ -31,7 +31,7 @@ function makeEquityExecutivePdf(title,report,helpers){
         const next=()=>{foot();doc.addPage();page++;pageHeader();y=65;};
         const tone=value=>value>0 ? UP : value<0 ? DOWN : MUTED;
         pageHeader();
-        write(report.title || title,left,y,width*.62,16,true);write(report.generatedAt.slice(0,10),left+width*.65,y+3,width*.35,8,false,MUTED,{align:'right'});y+=25;
+        write(report.title || title,left,y,width*.62,16,true);write(t('Corte')+': '+report.generatedAt.slice(0,10),left+width*.65,y+3,width*.35,8,false,MUTED,{align:'right'});y+=25;
         write(desk.risk.label+' · '+t('EE. UU.'),left,y,width,9,true,desk.risk.tone==='up' ? UP : desk.risk.tone==='down' ? DOWN : INK);y+=16;
         if(desk.dashboard.length){
             const cellWidth=width/desk.dashboard.length,top=y;
@@ -237,6 +237,11 @@ function makeEquityExecutivePdf(title,report,helpers){
             write(scope,left,y,width,7.5,false,MUTED);y+=measure(scope,width,7.5)+7;
             y=drawEquityHistoryPage(doc,series,{left,top:y,width,bottom,write,t});
             if(y>bottom+2){doc.end();reject(Error('El anexo de evolución histórica excedió el espacio disponible.'));return;}
+        }
+        if(report.personalization?.sections?.charts!==false && desk.globalHistory?.series.some(item=>item.region)){
+            doc._vallPdfPageLabel=t('Bolsa · comparativas regionales').toUpperCase();next();
+            y=heading(t('Comparativas regionales · historia desde 2020'));
+            y=drawRegionalEquityHistory(doc,desk.globalHistory,{left,top:y,width,bottom,write,t});
         }
         foot();doc.end();
     });

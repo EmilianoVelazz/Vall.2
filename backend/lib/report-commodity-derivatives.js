@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('node:fs/promises'),path=require('node:path');
-const {readPublicDocument,proteinPdfPages}=require('./report-public-document');
+const {proteinPdfPages}=require('./report-public-document');
+const {readCmeBulletin}=require('./report-cme-document');
 const {safeCommodityDerivatives,DERIVATIVES_VERSION}=require('../../shared/report-commodity-derivatives.mjs');
 const cachePath=path.join(__dirname,'../cache/commodity_derivatives.json');
 const seed=require('../data/commodity-derivatives-public-2026-10-23.json');
@@ -15,7 +16,6 @@ const products={
   OG:['GC=F','OG','Oro COMEX','COMEX'],HX:['HG=F','HX','Cobre COMEX','COMEX'],HXE:['HG=F','HXE','Cobre COMEX · HXE','COMEX'],
 };
 const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-let memory=null,pending=null;
 function parseCmeOptions(pages,{url,retrievedAt}={}){
   const text=pages.map(page=>page.text || page.lines.join(' ')).join(' '),stamp=text.match(/\b(?:Mon|Tue|Wed|Thu|Fri),\s*([A-Z][a-z]{2})\s+(\d{1,2}),\s*(20\d{2})/);
   if(!stamp)return {options:[],futures:[]};
@@ -25,8 +25,12 @@ function parseCmeOptions(pages,{url,retrievedAt}={}){
   let active=null,activeFuture=null,contractMonth='',side='',blocked=false;const options=[],futures=[];
   pages.forEach((page,index)=>{
     const status=/\bPRELIMINARY\b/.test(page.text || page.lines.join(' ')) ? 'preliminary' : /\bFINAL\b/.test(page.text || page.lines.join(' ')) ? 'final' : 'published';
-    for(const line of page.lines){
-      if(/OPTIONS EOO|BLOCKS and EXERCISES|OPTION EXERCISES/i.test(line)){blocked=true;active=null;}
+    for(const [lineIndex,rawLine] of page.lines.entries()){
+      // Energy/metals PDFs place the TOTAL label on the line after its counts.
+      // Accept only the same complete numeric total schema as grain bulletins.
+      const previous=page.lines[lineIndex-1] || '';
+      const line=rawLine==='TOTAL' && /^(?:\d+\s+){1,2}\d+(?:\s+[+-]\s*\d+|\s+-\d+|\s+UNCH)?$/.test(previous) ? 'TOTAL '+previous : rawLine;
+      if(/^(?:OPTIONS EOOS?|BLOCKS and EXERCISES|OPTION EXERCISES)(?:\b|\s)/i.test(line)){blocked=true;active=null;}
       if(blocked)continue;
       const futureHeader=line.match(/^([A-Z][A-Z ]*) FUT$/);if(futureHeader){activeFuture=products[futureHeader[1]] || null;active=null;contractMonth='';}
       const header=line.match(/^(LEAN HOGS?|LV CATTLE|LIVE CATTLE|FEEDER CATTLE|FDR CATTLE|CORN|SOYBEAN|SOY MEAL|WHEAT) (CALL|PUT)S?(?: OPTIONS)?$/) || line.match(/^(LO2?|OG|HXE?) (CALL|PUT)\b/);
@@ -49,28 +53,41 @@ function parseCmeOptions(pages,{url,retrievedAt}={}){
   });
   return {options,futures};
 }
-async function loadReportDerivatives({cutoff=new Date().toISOString(),read=readPublicDocument,pdfPages=proteinPdfPages,refresh=true,force=false}={}){
+function createReportDerivativesLoader({filePath=cachePath,initialSeed=seed,documentNames=documents,now=()=>Date.now()}={}){
+let memory=null,pending=null,initializing=null;
+const timestamp=()=>new Date(now()).toISOString();
+return async function loadReportDerivatives({cutoff,read=readCmeBulletin,pdfPages=proteinPdfPages,refresh=true,force=false}={}){
+  // A current report is cut after retrieval; explicit historical cuts stay strict.
+  const safe=data=>safeCommodityDerivatives(data,cutoff || timestamp());
   if(!memory){
-    let saved;try{saved=JSON.parse(await fs.readFile(cachePath,'utf8'));}catch{saved=seed;}
+    if(!initializing)initializing=(async()=>{
+    let saved;try{saved=JSON.parse(await fs.readFile(filePath,'utf8'));}catch{saved=initialSeed;}
+    if(!saved || typeof saved!=='object' || Array.isArray(saved))saved=initialSeed;
     // A newer public reading supplements an older cache without replacing newer provider observations.
-    memory={...saved,checkedAt:[saved.checkedAt,seed.checkedAt].filter(value=>Number.isFinite(Date.parse(value))).sort().at(-1)};
-    for(const field of ['options','futures']){const rows=[...(seed[field] || []),...(saved[field] || [])].filter(item=>item && typeof item==='object').sort((a,b)=>Date.parse(a.retrievedAt)-Date.parse(b.retrievedAt));memory[field]=[...new Map(rows.map(item=>[[item.productCode,item.date,item.contractMonth || '',item.side || ''].join('|'),item])).values()];}
+    memory={...saved,checkedAt:[saved.checkedAt,initialSeed.checkedAt].filter(value=>Number.isFinite(Date.parse(value))).sort().at(-1)};
+    for(const field of ['options','futures']){const rows=[...(Array.isArray(initialSeed[field]) ? initialSeed[field] : []),...(Array.isArray(saved[field]) ? saved[field] : [])].filter(item=>item && typeof item==='object').sort((a,b)=>Date.parse(a.retrievedAt)-Date.parse(b.retrievedAt));memory[field]=[...new Map(rows.map(item=>[[item.productCode,item.date,item.contractMonth || '',item.side || ''].join('|'),item])).values()];}
+    })();
+    await initializing;
   }
-  if(!refresh || !force && Date.now()-Date.parse(memory.checkedAt)<3600000)return safeCommodityDerivatives(memory,cutoff);
+  const age=now()-Date.parse(memory.checkedAt),retryMs=memory.unavailable?.length ? 5*60000 : 3600000;
+  if(!refresh || !force && age>=0 && age<retryMs)return safe(memory);
   if(!pending)pending=(async()=>{
-    const latest={version:DERIVATIVES_VERSION,checkedAt:new Date().toISOString(),options:[],futures:[],unavailable:[]};
+    const latest={version:DERIVATIVES_VERSION,options:[],futures:[],unavailable:[],failures:[]};
     let cursor=0;
-    await Promise.all([0,1].map(async()=>{while(cursor<documents.length){const file=documents[cursor++],url=prefix+file+'.pdf';try{const buffer=await read(url,{encoding:null,timeoutMs:7000,maxBytes:8*1024*1024});const pages=await pdfPages(buffer,{maxPages:200});const parsed=parseCmeOptions(pages,{url,retrievedAt:new Date().toISOString()});latest.options.push(...parsed.options);latest.futures.push(...parsed.futures);}catch{latest.unavailable.push(file);}}}));
+    await Promise.all([0,1].map(async()=>{while(cursor<documentNames.length){const file=documentNames[cursor++],url=prefix+file+'.pdf';try{const buffer=await read(url,{encoding:null,timeoutMs:15000,maxBytes:8*1024*1024});const pages=await pdfPages(buffer,{maxPages:200});const parsed=parseCmeOptions(pages,{url,retrievedAt:timestamp()});const valid=safeCommodityDerivatives(parsed,timestamp());if(!valid.options.length && !valid.futures.length)throw Object.assign(new Error('No dated rows'),{code:'CME_NO_CURRENT_ROWS'});latest.options.push(...valid.options);latest.futures.push(...valid.futures);}catch(error){latest.unavailable.push(file);latest.failures.push({document:file,code:typeof error.code==='string' && /^[A-Z0-9_]+$/.test(error.code) ? error.code : error.name==='TimeoutError' ? 'CME_TIMEOUT' : 'CME_DOWNLOAD_FAILED'});}}}));
     // A failed provider never erases a dated, still-valid previous observation.
     for(const field of ['options','futures']){
       const fresh=new Set(latest[field].map(item=>[item.productCode,item.date,item.contractMonth || '',item.side || ''].join('|')));
       latest[field].push(...(memory[field] || []).filter(item=>!fresh.has([item.productCode,item.date,item.contractMonth || '',item.side || ''].join('|'))));
     }
-    memory={...latest,...safeCommodityDerivatives(latest,new Date().toISOString())};
-    await fs.mkdir(path.dirname(cachePath),{recursive:true});const temp=cachePath+'.tmp';await fs.writeFile(temp,JSON.stringify(memory));await fs.rename(temp,cachePath);return memory;
+    latest.checkedAt=timestamp();memory={...latest,...safeCommodityDerivatives(latest,latest.checkedAt)};
+    await fs.mkdir(path.dirname(filePath),{recursive:true});const temp=filePath+'.'+require('node:crypto').randomUUID()+'.tmp';
+    try{await fs.writeFile(temp,JSON.stringify(memory));await fs.rename(temp,filePath);}finally{await fs.rm(temp,{force:true}).catch(()=>{});}return memory;
   })().finally(()=>{pending=null;});
-  try{return safeCommodityDerivatives(await pending,cutoff);}catch{return safeCommodityDerivatives(memory,cutoff);}
+  try{return safe(await pending);}catch{return safe(memory);}
+};
 }
+const loadReportDerivatives=createReportDerivativesLoader();
 function attachReportDerivatives(snapshot,data,{generatedAt}={}){
     if(!snapshot?.reports?.length)return snapshot;
     const safe=safeCommodityDerivatives(data,generatedAt || new Date().toISOString());
@@ -85,4 +102,4 @@ function attachReportDerivatives(snapshot,data,{generatedAt}={}){
     });
     return reports.every((report,index)=>report===snapshot.reports[index]) ? snapshot : {...snapshot,generatedAt:new Date(Math.max(Date.parse(snapshot.generatedAt),...reports.map(report=>Date.parse(report.generatedAt)))).toISOString(),reports};
 }
-module.exports={loadReportDerivatives,parseCmeOptions,attachReportDerivatives,DERIVATIVES_VERSION};
+module.exports={loadReportDerivatives,createReportDerivativesLoader,parseCmeOptions,attachReportDerivatives,DERIVATIVES_VERSION};

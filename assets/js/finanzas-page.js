@@ -32,6 +32,11 @@ function _vnFinIntervalo(fn, ms) {
     _vnFinLimpieza.push(function () { window.clearInterval(id); });
     return id;
 }
+function _vnFinDemorar(fn, ms) {
+    var id=window.setTimeout(fn,ms);
+    _vnFinLimpieza.push(function(){window.clearTimeout(id);});
+    return id;
+}
 
 function _vnFinEscuchar(destino, evento, fn, opciones) {
     destino.addEventListener(evento, fn, opciones);
@@ -206,7 +211,7 @@ function _vnFinObservar(observador) {
                     { signal: _loadController.signal }
                 );
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                const { candles: allCandles, meta = {} } = await r.json();
+                const { candles: allCandles, meta = {}, stale=false, asOf } = await r.json();
                 if (requestId !== _loadSequence) return;
                 if (!allCandles?.length) throw new Error('Sin velas');
                 // 15min/1H: recortar a las últimas N velas de 1 minuto de la sesión más reciente.
@@ -243,7 +248,7 @@ function _vnFinObservar(observador) {
                 document.getElementById('ch-high').textContent = sessionHigh == null ? '—' : formatChartNumber(sessionHigh, Math.abs(sessionHigh) < 10 ? 4 : 2);
                 document.getElementById('ch-low').textContent = sessionLow == null ? '—' : formatChartNumber(sessionLow, Math.abs(sessionLow) < 10 ? 4 : 2);
                 document.getElementById('ch-cur').textContent   = meta.currency || 'Moneda no indicada';
-                document.getElementById('ch-updated').textContent = `Consulta ${new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' })}`;
+                document.getElementById('ch-updated').textContent = `${stale ? 'Dato conservado · ' : ''}${asOf ? 'Observación '+String(asOf).slice(0,10) : 'Fecha de observación no disponible'}`;
                 _lastCandles = candles;
                 renderChartSeries(candles);
                 renderPeriodReading(candles);
@@ -5059,7 +5064,7 @@ function finTab(name, btnEl, skipLoad, skipScroll) {
 
     // Permitir que el navegador pinte la información incluida en el HTML antes
     // de iniciar red. Solo se carga la sección visible; el resto espera al clic.
-    setTimeout(() => {
+    _vnFinDemorar(() => {
         if (startTab === 'general') {
             Promise.allSettled([cargarFinanzas(), loadFxStrip(), loadBonds(), loadPetroleo(), updateTicker()])
                 .then(() => { updateGeneralKPIs(); });

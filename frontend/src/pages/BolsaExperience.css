@@ -7,6 +7,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.vn-bolsa-polish.ff-detail-bolsa {
   --fin-line: rgba(143,177,218,.22) !important;
   --fin-text-main: #edf4ff !important;
   --fin-text-muted: #afc1d9 !important;
+  
   --fin-accent-blue: #9ac5ff !important;
 
   & :is(#ff-detail-navigation, #ff-world-map, #ff-exchange-board, #bvmx-panel, #ff-detail-supplement, #sectors-panel)[id] {
@@ -63,7 +64,7 @@ html.vn-dark-pilot body.vn-dark-finanzas.vn-bolsa-polish.ff-detail-bolsa {
   & #bvmx-panel .ff-market-field, & #bvmx-panel .ff-market-search-field { min-height: 46px !important; border-radius: 11px !important; }
   & #bvmx-panel #bmv-custom-btn { background: #315d92 !important; }
   & #bvmx-panel .market-chart-quote { gap: 22px !important; padding: 22px 26px !important; border-bottom: 1px solid var(--fin-line); }
-  & #bvmx-panel .ff-quote-price > strong { font-size: clamp(27px,3vw,38px) !important; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+  & #bvmx-panel .ff-quote-price > strong { font-size: clamp(27px,3vw,38px) !important;    font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
   & #bvmx-panel :is(.ff-quote-price > strong, .ff-quote-stat strong, .ff-chart-reading article > strong) { font-variant-numeric: tabular-nums; font-style: normal !important; }
   & #bvmx-panel :is(#ch-price, #ch-high, #ch-low, #ch-period-change, #ch-period-range, #ch-observations, #ch-trend) { font-style: normal !important; }
   & #bvmx-panel .ff-chart-stage-layout { padding: 22px 26px !important; gap: 20px !important; grid-template-rows: auto auto; }

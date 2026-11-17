@@ -10,7 +10,7 @@ import {reportCsv} from '../frontend/src/lib/reportCsv.js';
 // Current session presentation is covered by test-report-sector-session.mjs.
 const weeklyReport=report=>reportModel(report,{equitySession:false});
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-daily-report-test';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-daily-report-test-fixture-only-testing-32bytes';
 const {withDailyEvidence,withPreviousDailyEvidence,windowFor}=require('../backend/lib/report-daily-evidence');
 const {normalizeReport}=require('../backend/services/user-report-store');
 const {_test}=require('../backend/routes/export');
@@ -47,10 +47,10 @@ assert.equal(build([{date:'2026-10-14',value:110},{date:'2026-10-14',value:111}]
 assert.equal(build([{date:'2026-10-14T12:00Z',value:109},{date:'2026-10-14T17:00Z',value:110},{date:'2026-10-14T19:00Z',value:999}]).results[0].rows[0][3],'110','Última observación del día anterior al corte');
 const rates=weeklyReport({...report,dailyReferences:[{label:'Treasury',unit:'%',points:[{date:'2026-10-13',value:4},{date:'2026-10-14',value:4.5}]}]});assert.equal(rates.results[0].rows[0][5],'0.5 p. p.');
 const raw={...report,sourceSnapshot:{grains:[{label:'Maíz',unit:'USD/bu',series:points}]}};
-assert.equal(withDailyEvidence({...raw,dailyReferences:[]}).dailyReferences[0].points.length,2,'Recuperar una proyección vacía desde la evidencia original');
+assert.equal(withDailyEvidence({...raw,dailyReferences:[]}).dailyReferences[0].points.length,3,'Recuperar el historial original anterior al corte; aplicar la ventana de presentación después');
 const prepared=withDailyEvidence(raw),payload=_test.executivePayload(raw),owned=normalizeReport({...raw,userEdition:true,baseReport:{collection:'markets',key:'grains'}});
 assert.deepEqual(weeklyReport(prepared).results,weeklyReport(payload).results);assert.deepEqual(weeklyReport(owned).results,weeklyReport(payload).results);
-assert.equal(owned.dailyReferences[0].points.length,2);assert.throws(()=>normalizeReport({...report,dailyReferences:Array(193).fill({label:'A',unit:'USD',points:[]})}),/demasiados/);
+assert.equal(owned.dailyReferences[0].points.length,3);assert.throws(()=>normalizeReport({...report,dailyReferences:Array(193).fill({label:'A',unit:'USD',points:[]})}),/demasiados/);
 assert.deepEqual(normalizeReport({...report,dailyReferences:[{label:'Maíz',unit:'USD/t',points:[{date:'2026-10-13',value:'100'},{date:'2026-10-14',value:'110'}]}]}).dailyReferences[0].points.map(point=>point.value),[100,110]);
 assert.equal(withDailyEvidence({...raw,collection:'finance',key:'equities',sourceSnapshot:{equities:[{label:'Índice',series:[{date:'2026-10-13',value:100},{date:'2026-10-14',value:0}]}]}}).dailyReferences[0].points.length,1,'Un cero no es un cierre válido de un índice');
 const prior={...report,generatedAt:'2026-10-13T18:00Z',dailyReferences:[{label:'Maíz',unit:'USD/t',points:[{date:'2026-10-13',value:100}]},{label:'Maíz',unit:'MXN/t',points:[{date:'2026-10-13',value:2000}]}]};
@@ -63,12 +63,13 @@ for(const key of ['mx_overview','mx_production']) {const daily=weeklyReport(mexi
 const noDate=weeklyReport({...report,visuals:[{type:'bar',title:'Anual',unit:'t',bars:[{label:'2025',value:987654}]}]});assert.equal(noDate.visuals.length,1);assert(noDate.visuals[0].bars.every(bar=>bar.value===null),'Mantener el panel visible con sus fechas sin fabricar valores');assert.equal(noDate.metrics[0].value,'Sin dato');
 const excluded=weeklyReport({...prepared,personalization:{sections:{charts:false,indicators:false,tables:false}}});assert.deepEqual(excluded.metrics,[]);assert.deepEqual(excluded.results,[]);assert.deepEqual(excluded.visuals,[]);
 for(const [collection,key] of [['finance','daily_news'],['markets','market_news']]) assert.equal(reportLayout({collection,key}).composition,'weekly-sheet');
-const text=await reportExportContent(raw);assert(text.includes('2026-10-13') && text.includes('2026-10-14'));assert(text.includes('Anual 2025'),'La referencia estructural conserva su periodo, fuera del cambio de sesión');assert(!text.includes('NARRATIVE_HIDDEN'));
-const csv=reportCsv(payload);assert(csv.includes('2026-10-13') && csv.includes('2026-10-14'));assert(csv.includes('Anual 2025') && !csv.includes('NARRATIVE_HIDDEN'));
+const text=await reportExportContent(raw);assert(text.includes('2026-10-13') && text.includes('2026-10-14'));assert(!text.includes('NARRATIVE_HIDDEN'));
+const csv=reportCsv(payload);assert(csv.includes('2026-10-13') && csv.includes('2026-10-14'));assert(csv.includes('Maíz') && csv.includes('USD/bu') && !csv.includes('NARRATIVE_HIDDEN'));
 const pdfBytes=await _test.makeExecutivePdf(report.title,payload),{getDocument}=await import('../frontend/node_modules/pdfjs-dist/legacy/build/pdf.mjs'),task=getDocument({data:new Uint8Array(pdfBytes),useSystemFonts:true,disableFontFace:true}),pdf=await task.promise;let pdfText='';
 for(let i=1;i<=pdf.numPages;i++) pdfText+=(await(await pdf.getPage(i)).getTextContent()).items.map(item=>item.str).join(' ');await task.destroy();
 for(const token of ['2026-10-13','2026-10-14','100','110','10 %']) assert(pdfText.includes(token),'PDF comparativo: '+token);
-assert(pdfText.includes('Anual 2025'));assert(!pdfText.includes('NARRATIVE_HIDDEN'));
+assert(!pdfText.includes('NARRATIVE_HIDDEN'));
+assert.equal(JSON.stringify(report),before,'La exportación conserva las tablas originales sin confundirlas con cotizaciones del corte');
 const output=path.resolve('output/reportes-diarios');await fs.mkdir(output,{recursive:true});await fs.writeFile(path.join(output,'comparacion-diaria-simulacion.pdf'),pdfBytes);
 console.log('Reportes diarios: OK · dos fechas CDMX, fechas límite, cierres ausentes, ceros, variación, unidades, México, persistencia, PDF y exportación');
 process.exit(0);

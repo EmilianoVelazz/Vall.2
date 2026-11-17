@@ -6,7 +6,7 @@ import {getDocument,OPS} from '../frontend/node_modules/pdfjs-dist/legacy/build/
 import {requestReportPdf} from '../frontend/src/lib/reportPdf.js';
 import {weeklyReport} from '../shared/report-weekly.mjs';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-archived-report-test';delete process.env.USER_PASSWORD;
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-archived-report-test-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
 // Exercise the real route with an isolated account and archived material.
 const auth=require.resolve('../backend/routes/auth');
 require.cache[auth]={id:auth,filename:auth,loaded:true,exports:{verifyToken:(req,res,next)=>{req.user={email:'density-fixture@example.invalid'};next();}}};

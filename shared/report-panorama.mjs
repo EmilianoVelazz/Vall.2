@@ -5,8 +5,9 @@ import {sessionEvidence} from './report-session-evidence.mjs';
 import {compactBondPoints} from './report-bond-evidence.mjs';
 import {weeklyReport} from './report-weekly.mjs';
 import {panoramaSignals,panoramaImplications} from './report-panorama-signals.mjs';
+import {distinctNewsEvents} from './report-news-events.mjs';
 
-export const PANORAMA_VERSION=2,PANORAMA_MAX_BYTES=3*1024*1024;
+export const PANORAMA_VERSION=3,PANORAMA_MAX_BYTES=3*1024*1024;
 const permitted=new Set(['finance:equities','finance:bonds','finance:fx','finance:daily_news','markets:grains','markets:energy_metals','markets:proteins','markets:market_news','mexico:mx_overview','mexico:mx_bolsa','mexico:mx_proteins','mexico:mx_production']);
 const areas={finance:'Finanzas',markets:'Mercados',mexico:'México'},finite=Number.isFinite;
 const text=(value,max=4000)=>typeof value==='string' || typeof value==='number' ? String(value).slice(0,max) : '';
@@ -41,12 +42,12 @@ export function panoramaReport(report,{t=value=>value}={}){
  const cutoff=report.generatedAt,scope=report.baseReport?.collection || report.collection,parts=safePanoramaParts(report.panoramaParts,cutoff),news=[],urls=new Set(),titles=new Set(),chapters=[];
  if(scope!=='finance' && parts.some(part=>part.collection!==scope))throw Error('Un capítulo no pertenece al panorama solicitado.');
  for(const part of parts){
-  if(part.key.endsWith('news')){for(const item of ['daily_news','market_news'].includes(part.key) ? weeklyReport(part,{t}).newsExecutive.stories : part.headlines || []){const key=newsKey(item),title=item.title.normalize('NFKD').replace(/[\u0300-\u036f\W_]+/g,'').toLowerCase();if(urls.has(key) || titles.has(title))continue;urls.add(key);titles.add(title);news.push(item);}continue;}
+  if(part.key.endsWith('news')){for(const item of weeklyReport(part,{t}).newsExecutive.stories){const key=newsKey(item),title=item.title.normalize('NFKD').replace(/[\u0300-\u036f\W_]+/g,'').toLowerCase();if(urls.has(key) || titles.has(title))continue;urls.add(key);titles.add(title);news.push(item);}}
   const model=weeklyReport({...part,personalization:report.personalization,analysisPeriod:report.analysisPeriod},{t}),id=part.collection+'-'+part.key,structural=part.collection==='mexico' && ['mx_overview','mx_production'].includes(part.key);
   const lead=model.summaryPanels?.[0]?.body || shortFact(model.summary || part.summary),risk=model.equityExecutive?.risk;
-  chapters.push({id,label:part.title,area:areas[part.collection],kind:structural ? 'structural' : 'market',generatedAt:part.generatedAt,componentReport:part,model,fact:(risk ? risk.label+' · EE. UU. '+lead : lead).slice(0,750),references:model.references?.length || 0,charts:model.visuals?.length || 0,rows:(model.results || []).reduce((sum,table)=>sum+table.rows.length,0)});
+  chapters.push({id,label:part.title,area:areas[part.collection],kind:structural ? 'structural' : part.key.endsWith('news') ? 'news-report' : 'market',generatedAt:part.generatedAt,componentReport:part,model,fact:(risk ? risk.label+' · EE. UU. '+lead : lead).slice(0,750),references:model.references?.length || 0,charts:model.visuals?.length || 0,rows:(model.results || []).reduce((sum,table)=>sum+table.rows.length,0)});
  }
- if(news.length)chapters.push({id:'news',label:'Noticias y agenda integrada',area:'Actualidad',kind:'news',generatedAt:cutoff,news,fact:news.length+' publicaciones únicas con fecha y fuente.',references:0,charts:0,rows:news.length});
+ const events=distinctNewsEvents(news);news.splice(0,news.length,...events);
  const facts=chapters.filter(item=>item.kind!=='news').map(item=>({heading:item.label,body:item.fact})),structural=chapters.filter(item=>item.kind==='structural'),seen=new Set(),references=chapters.flatMap(chapter=>list(chapter.model?.references).filter(item=>{const key=JSON.stringify([item.label,item.unit,item.source,item.points]);if(seen.has(key))return false;seen.add(key);return true;}).map(item=>({...item,panoramaChangeUnit:chapter.model.bondExecutive ? 'pb' : '%'})));
  const flags=report.personalization?.sections || {},signals=flags.indicators===false ? [] : panoramaSignals(chapters,{scope,cutoff,weekly:report.analysisPeriod==='weekly',t}).map(item=>flags.charts===false ? {...item,points:[]} : item),implications=flags.risks===false ? [] : panoramaImplications(signals,chapters,{t});
  const scopeLabel=t(scope==='markets' ? 'Mercados · granos, energía, metales y proteínas' : scope==='mexico' ? 'México · economía, bolsa, proteínas y producción' : 'Finanzas · Mercados · México');

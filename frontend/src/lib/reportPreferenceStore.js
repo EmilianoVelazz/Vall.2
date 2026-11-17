@@ -2,7 +2,8 @@ import { normalizePreferences } from './executiveReportPreferences.js';
 
 // A draft belongs to the verified account and lasts only for this browser session.
 // The server remains the source of truth for settings synchronized across devices.
-export function createReportPreferenceStore({ request = fetch, storage, notify = () => {}, delay = 500, retryDelays = [1000, 3000] } = {}) {
+export function createReportPreferenceStore({ request = fetch, storage, notify = () => {}, delay = 500, retryDelays = [1000, 3000], verifiedEmail = '', readTimeoutMs = 12000 } = {}) {
+  verifiedEmail=String(verifiedEmail || '').trim().toLowerCase();
   let state = { preferences: normalizePreferences(), ready: false, status: 'loading', email: '', errorMessage: '' };
   let saved = null, dirty = false, timer, revision = 0, disposed = false, writing = false, pendingSave, queue = Promise.resolve();
   const emit = patch => { if (!disposed) { state = { ...state, ...patch }; notify(state); } };
@@ -11,7 +12,9 @@ export function createReportPreferenceStore({ request = fetch, storage, notify =
     try { if (key()) storage?.setItem(key(), JSON.stringify({ preferences: state.preferences, pending })); } catch { /* Storage can be unavailable in private browsing. */ }
   };
   const api = async (path, options = {}) => {
-    const response = await request(path, { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(options.method === 'POST' ? 30000 : 12000), ...options });
+    const owner=verifiedEmail || state.email;
+    const headers={...options.headers,...(owner ? {'X-VALL-Account':owner} : {})};
+    const response = await request(path, { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(options.method === 'POST' ? 30000 : readTimeoutMs), ...options,headers });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload || payload.success === false) {
       const retryAfter = Number(response.headers?.get('Retry-After'));
@@ -69,9 +72,17 @@ export function createReportPreferenceStore({ request = fetch, storage, notify =
   const load = async (attempt = 0) => {
     emit({ status: 'loading' });
     const version = revision;
-    const [session, profile] = await Promise.allSettled([api('/api/verify-token'), api('/api/profile')]);
+    // The mounted app has already checked this identity. Its last preferences
+    // can be displayed while remote synchronization is unavailable; all API
+    // requests remain bound to the same account on the server.
+    if(verifiedEmail && !state.ready){
+      let previous;try{previous=JSON.parse(storage?.getItem(`vallnews:report-edition:v1:${encodeURIComponent(verifiedEmail)}`) || 'null');}catch{ /* No usable local preferences. */ }
+      if(previous?.preferences)emit({email:verifiedEmail,preferences:normalizePreferences(previous.preferences),ready:true});
+      else emit({email:verifiedEmail});
+    }
+    const [session, profile] = await Promise.allSettled([verifiedEmail ? Promise.resolve({email:verifiedEmail}) : api('/api/verify-token'), api('/api/profile')]);
     if (disposed || version !== revision) return;
-    if ([session, profile].some(result => result.status === 'rejected' && result.reason.status === 401)) {
+    if ([session, profile].some(result => result.status === 'rejected' && [401,409].includes(result.reason.status))) {
       emit({ status: 'session-error', ready: false }); return;
     }
     const email = String(session.value?.email || profile.value?.profile?.email || '').trim().toLowerCase();
@@ -86,6 +97,7 @@ export function createReportPreferenceStore({ request = fetch, storage, notify =
     const preferences = draft?.pending || !remote ? normalizePreferences(draft?.preferences || remote) : remote;
     dirty = Boolean(draft?.pending && JSON.stringify(preferences) !== saved);
     emit({ preferences, ready: true, status: remote ? 'idle' : 'load-error' });
+    persist(dirty);
     if (dirty && email) await save();
     else if (profile.status === 'rejected' && email && attempt < retryDelays.length) {
       const error = profile.reason;

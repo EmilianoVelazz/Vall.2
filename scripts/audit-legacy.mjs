@@ -82,7 +82,9 @@ function followCommonJS(file) {
 const packageScripts = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).scripts;
 const cliRoots = Object.entries(packageScripts).filter(([name]) => !name.startsWith('test:'))
   .flatMap(([, command]) =>
-  [...command.matchAll(/node\s+(\S+\.(?:js|cjs|mjs))/g)].map(match => path.join(ROOT, match[1])));
+  // Las banderas sin argumento separado (p. ej. --use-system-ca) no son
+  // archivos de entrada. Admitirlas conserva las entradas reales de los CLI.
+  [...command.matchAll(/\bnode\s+(?:--[\w-]+(?:=[^\s]+)?\s+)*(\S+\.(?:js|cjs|mjs))/g)].map(match => path.join(ROOT, match[1])));
 const operationalScripts = walk(path.join(ROOT, 'scripts')).filter(file =>
   /\.(?:js|cjs|mjs)$/.test(file) && !path.basename(file).startsWith('test-') && !file.endsWith('security-fixture.cjs'));
 [path.join(ROOT, 'backend/server.js'), path.join(ROOT, 'backend/auth-server.js'),

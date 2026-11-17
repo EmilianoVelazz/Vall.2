@@ -24,7 +24,7 @@ async function main() {
         let bytes=0,record;
         const run=createScheduledReportDelivery({
             collections,store:{due:async()=>[structuredClone(schedule)],claim:async()=>true,isCurrent:async()=>true,record:async(id,value)=>{record=value;}},
-            loadSnapshot:area=>area==='finance'?require('../backend/services/finance-report-store').load():area==='markets'?require('../backend/services/market-report-store').load():require('../backend/services/mexico-executive-reports').get(),
+            loadSnapshot:area=>area==='finance'?require('../backend/services/finance-report-store').load():area==='markets'?require('../backend/services/market-report-store').load():require('../backend/services/mexico-executive-reports').mexicoReports.get(),
             generate:async(request,{ownerEmail})=>agent.generate(request,{userContext:await reportLearning.load({email:ownerEmail})}),
             personalize:personalizeExecutiveReport,prepare:renderer.executivePayload,
             deliver:async({title,executive,language,owner})=>{

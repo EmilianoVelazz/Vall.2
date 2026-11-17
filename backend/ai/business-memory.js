@@ -4,6 +4,8 @@ const { normalizeForIntent, isLikelyFollowUp } = require('./conversation-context
 const { parseCommercialInputs } = require('./commercial-calculator');
 const { stateName, STATES, requestedMexicoCities } = require('../services/mexico-price-scope');
 const { forecastRequest } = require('./answer-strategy');
+const {sanitizeMarketMemory,prepareMarketMemory,marketMemorySummary}=require('./market-memory');
+const {sanitizeScenarios}=require('./commercial-scenarios');
 const array = value => Array.isArray(value) ? value : [];
 const { normalizeBusinessProfile } = require('../lib/business-profile');
 function sanitizeMemory(memory) {
@@ -32,7 +34,7 @@ function sanitizeMemory(memory) {
     const cleanForecast = Number.isInteger(forecast?.horizon) && forecast.horizon>0 && forecast.horizon<=252
         && /^[\p{L}\p{N}\s]{1,100}$/u.test(forecast.label || '') ? { horizon:forecast.horizon,label:forecast.label,assumption:forecast.assumption===true,supported:forecast.horizon<=20,requested:true } : null;
     return { version:2, profile:cleanProfile, inputs, forecast:cleanForecast, anchor:typeof memory.anchor === 'string' ? memory.anchor.slice(0,1200) : '', noExternalLookup:memory.noExternalLookup === true,
-        pendingLocation:['Mérida','León','Córdoba'].includes(memory.pendingLocation) ? memory.pendingLocation : null };
+        pendingLocation:['Mérida','León','Córdoba'].includes(memory.pendingLocation) ? memory.pendingLocation : null,market:sanitizeMarketMemory(memory.market),scenarios:sanitizeScenarios(memory.scenarios) };
 }
 function memorySummary(memory) {
     if (!memory) return '';
@@ -51,6 +53,7 @@ function memorySummary(memory) {
     if (Object.keys(memory.inputs).length) lines.push('Supuestos del ejercicio, nunca precios actuales: ' + JSON.stringify(memory.inputs));
     if (p.asksPrices) lines.push('Solicitud anterior: precios.');
     if (memory.noExternalLookup) lines.push('Ejercicio hipotético: no busques precios externos; usa solo mis supuestos.');
+    if(memory.market)lines.push(marketMemorySummary(memory.market));
     return lines.join('\n');
 }
 function commercialSeed(state, profile, message) {
@@ -93,11 +96,15 @@ function reduceMemory(history = [], initial = null) {
 function prepareBusinessConversation({ message, history = [], conversationMemory = null, businessProfile = null, context = '' }) {
     const company = normalizeBusinessProfile(businessProfile || {});
     const remembered = sanitizeMemory(conversationMemory) || reduceMemory(history);
+    const financial=prepareMarketMemory({message,history,memory:remembered?.market});
     const locationReply = remembered?.pendingLocation && /^(?:en |de |es |si[, ]+)?(?:mexico|espana|argentina|colombia|venezuela|nicaragua|yucatan|guanajuato|veracruz)[.\s]*$/.test(normalizeForIntent(message));
     if (locationReply) message = `Ahora en ${remembered.pendingLocation}, ${message}`;
     const follows = remembered && (locationReply || isLikelyFollowUp(message,[{role:'user',content:memorySummary(remembered)},...history]));
-    const activeHistory = follows ? [{role:'user',content:memorySummary(remembered)},...history.slice(-22)] : history;
-    const state = reduceMemory([{role:'user',content:message}], follows ? remembered : null);
+    let activeHistory = follows ? [{role:'user',content:memorySummary(remembered)},...history.slice(-22)] : history;
+    if(financial.followUp && financial.memory && !follows)activeHistory=[{role:'user',content:marketMemorySummary(financial.memory)},...history.slice(-22)];
+    let state = reduceMemory([{role:'user',content:message}], follows ? remembered : null);
+    if(financial.memory){state ||= sanitizeMemory({profile:{},inputs:{},anchor:financial.memory.anchor});state.market=financial.memory;}else if(state)state.market=null;
+    if(state && follows)state.scenarios=sanitizeScenarios(remembered.scenarios);
     const commercialInputs = state ? { ...state.inputs } : parseCommercialInputs(message);
     if (!commercialInputs.currency && company.currency) { commercialInputs.currency = company.currency; commercialInputs.currencySource = 'company_preference'; }
     if (state && commercialInputs.currency) { state.inputs.currency = commercialInputs.currency; state.inputs.currencySource = commercialInputs.currencySource || 'user'; }
@@ -105,7 +112,7 @@ function prepareBusinessConversation({ message, history = [], conversationMemory
     // producto, país o moneda expresamente pedido.
     const companyContext = company.products.length || company.markets.length
         ? `Perfil comercial editable: ${company.products.map(id=>PRODUCTS.find(p=>p.id===id).name).join(', ')}; mercados habituales: ${company.markets.join(', ')}; moneda preferida: ${company.currency || 'sin indicar'}; actividad: ${{merchant:'comercialización',buyer:'compras',producer:'producción',investor:'inversión'}[company.role]}. La consulta actual tiene prioridad; un mercado habitual no es el mercado solicitado.` : '';
-    return { message, history:activeHistory, conversationMemory:state, commercialInputs,
+    return { message, history:activeHistory, conversationMemory:state, commercialInputs, previousCommercialInputs:follows ? remembered.inputs : null,
         context:[context,companyContext,state ? '[CONDICIONES VIGENTES DEL EJERCICIO]\n'+memorySummary(state)
             +'\nPara cálculos usa sólo los supuestos de este bloque. Un importe ausente está pendiente: no lo recuperes de un lote anterior de otra especie o presentación. Reutiliza condiciones anteriores únicamente si el usuario lo pidió expresamente.' : ''].filter(Boolean).join('\n\n') };
 }

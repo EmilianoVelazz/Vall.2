@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "events": [
+    {
+      "date": "2022-04-07",
+      "title": "La AIE confirma una liberación coordinada de reservas petroleras",
+      "kind": "Decisión",
+      "source": "AIE",
+      "url": "https://www.iea.org/news/iea-confirms-member-country-contributions-to-second-collective-action-to-release-oil-stocks-in-response-to-russias-invasion-of-ukraine",
+      "scope": [
+        "markets:energy_metals",
+        "markets:market_news",
+        "markets:overview",
+        "finance:daily_news",
+        "finance:overview"
+      ],
+      "text": "Compromiso de liberar 120 millones de barriles durante seis meses. Puede modificar disponibilidad y expectativas de suministro; no demuestra una caída determinada del petróleo ni del combustible entregado."
+    },
+    {
+      "date": "2022-05-12",
+      "title": "USDA publica su primer pronóstico de trigo de invierno de 2022",
+      "kind": "Pronóstico",
+      "source": "USDA NASS",
+      "url": "https://www.nass.usda.gov/Newsroom/archive/2022/05-12-2022.php",
+      "scope": [
+        "markets:grains",
+        "markets:market_news",
+        "markets:overview"
+      ],
+      "text": "El pronóstico de mayo anticipó una producción 8% menor que en 2021; no es el resultado final de la cosecha. Contrastar revisiones, existencias y origen de compra antes de estimar disponibilidad."
+    },
+    {
+      "date": "2022-06-23",
+      "title": "Banxico eleva la tasa objetivo a 7.75%",
+      "kind": "Decisión",
+      "source": "Banxico",
+      "url": "https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7BCACDD0D6-B5C5-C4F8-65A6-C79D36A1981D%7D.pdf",
+      "scope": [
+        "finance:bonds",
+        "finance:fx",
+        "finance:daily_news",
+        "finance:overview",
+        "mexico:mx_overview",
+        "mexico:mx_bolsa"
+      ],
+      "text": "Aumento de 75 puntos base, efectivo desde el 24 de junio. Puede cambiar referencias de fondeo y reinversión en pesos al reajustarse los contratos; no modifica de inmediato toda la deuda fija.",
+      "effectiveDate": "2022-06-24"
+    },
+    {
+      "date": "2023-03-12",
+      "title": "EE. UU. anuncia protección a depositantes de SVB y Signature",
+      "kind": "Decisión",
+      "source": "Reserva Federal / Tesoro / FDIC",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20230312b.htm",
+      "scope": [
+        "finance:equities",
+        "finance:bonds",
+        "finance:daily_news",
+        "finance:overview"
+      ],
+      "text": "Las autoridades anunciaron protección de depósitos y medidas de liquidez; accionistas y determinados acreedores no quedaron protegidos. Revisar concentración de depósitos y contrapartes; no implica una recuperación de todas las acciones bancarias."
+    },
+    {
+      "date": "2023-03-30",
+      "title": "Banxico eleva la tasa objetivo a 11.25%",
+      "kind": "Decisión",
+      "source": "Banxico",
+      "url": "https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7BB5CDF10E-D32B-9E92-3E8E-13BB22940D60%7D.pdf",
+      "scope": [
+        "finance:bonds",
+        "finance:fx",
+        "finance:daily_news",
+        "finance:overview",
+        "mexico:mx_overview",
+        "mexico:mx_bolsa"
+      ],
+      "text": "Aumento de 25 puntos base, efectivo desde el 31 de marzo. El efecto en deuda variable y caja depende de referencia y fecha de reajuste; un diferencial de tasas no garantiza un movimiento cambiario.",
+      "effectiveDate": "2023-03-31"
+    },
+    {
+      "date": "2023-07-17",
+      "title": "Termina la Iniciativa de Granos del Mar Negro",
+      "kind": "Acontecimiento",
+      "source": "ONU",
+      "url": "https://www.un.org/en/black-sea-grain-initiative/background",
+      "scope": [
+        "markets:grains",
+        "markets:market_news",
+        "markets:overview",
+        "finance:daily_news",
+        "finance:overview"
+      ],
+      "text": "Finalizó el mecanismo para exportar desde tres puertos ucranianos; no desaparecieron todas las exportaciones del país. Puede cambiar rutas, flete y bases comerciales según puerto y origen contratado."
+    },
+    {
+      "date": "2024-03-21",
+      "title": "Banxico reduce la tasa objetivo a 11.00%",
+      "kind": "Decisión",
+      "source": "Banxico",
+      "url": "https://www.banxico.org.mx/canales/%7B562187AA-39FE-4059-8B12-7C7F20A88209%7D.pdf",
+      "scope": [
+        "finance:bonds",
+        "finance:fx",
+        "finance:daily_news",
+        "finance:overview",
+        "mexico:mx_overview",
+        "mexico:mx_bolsa"
+      ],
+      "text": "Recorte de 25 puntos base, efectivo desde el 22 de marzo. Puede reducir referencias al reajustarse los contratos; no cambia la deuda fija ni asegura tasas bancarias más bajas.",
+      "effectiveDate": "2024-03-22"
+    },
+    {
+      "date": "2024-04-24",
+      "title": "USDA ordena pruebas y notificación en ganado lechero",
+      "kind": "Medida sanitaria",
+      "source": "USDA APHIS",
+      "url": "https://www.aphis.usda.gov/sites/default/files/dairy-federal-order.pdf",
+      "scope": [
+        "markets:proteins",
+        "markets:market_news",
+        "markets:overview"
+      ],
+      "text": "Orden con pruebas para determinados movimientos interestatales de ganado lechero y reporte de positivos, efectiva desde el 29 de abril. Puede afectar programación y controles; no constituye una restricción general de toda carne bovina.",
+      "effectiveDate": "2024-04-29"
+    },
+    {
+      "date": "2024-06-06",
+      "title": "El BCE reduce sus tasas de referencia",
+      "kind": "Decisión",
+      "source": "BCE",
+      "url": "https://www.ecb.europa.eu/press/pr/date/2024/html/ecb.mp240606~2148ecdb3c.en.html",
+      "scope": [
+        "finance:equities",
+        "finance:bonds",
+        "finance:fx",
+        "finance:daily_news",
+        "finance:overview"
+      ],
+      "text": "Recorte de 25 puntos base efectivo desde el 12 de junio; la facilidad de depósito quedó en 3.75%. Revisar exposición en euros y reajustes contractuales; no atribuye el rendimiento anual de las bolsas al anuncio.",
+      "effectiveDate": "2024-06-12"
+    },
+    {
+      "date": "2024-06-11",
+      "title": "EIA documenta desvíos petroleros por el cabo de Buena Esperanza",
+      "kind": "Publicación de datos",
+      "source": "EIA",
+      "url": "https://www.eia.gov/todayinenergy/detail.php?id=62263",
+      "scope": [
+        "markets:energy_metals",
+        "markets:market_news",
+        "markets:overview",
+        "finance:daily_news",
+        "finance:overview"
+      ],
+      "text": "Análisis de enero a mayo de 2024 frente al promedio de 2023; mayo era preliminar. Las rutas más largas pueden aumentar tránsito, flete y capital inmovilizado según producto y condiciones de entrega."
+    },
+    {
+      "date": "2025-02-26",
+      "title": "USDA anuncia un plan contra la influenza aviar y las presiones sobre el huevo",
+      "kind": "Anuncio",
+      "source": "USDA",
+      "url": "https://www.usda.gov/about-usda/news/press-releases/2025/02/26/usda-invests-1-billion-combat-avian-flu-and-reduce-egg-prices",
+      "scope": [
+        "markets:proteins",
+        "markets:market_news",
+        "markets:overview"
+      ],
+      "text": "Estrategia anunciada de hasta USD 1,000 millones. No acredita ejecución total ni una reducción de precios; contrastar avances, inventario de ponedoras y producción observada."
+    },
+    {
+      "date": "2025-05-11",
+      "title": "EE. UU. suspende determinadas importaciones de animales vivos desde México",
+      "kind": "Medida sanitaria",
+      "source": "USDA APHIS",
+      "url": "https://www.aphis.usda.gov/news/agency-announcements/secretary-rollins-suspends-live-animal-imports-through-ports-entry-along",
+      "scope": [
+        "markets:proteins",
+        "markets:market_news",
+        "markets:overview",
+        "mexico:mx_proteins",
+        "mexico:mx_overview"
+      ],
+      "text": "Suspensión inmediata de bovinos, caballos y bisontes por puertos de la frontera sur ante el gusano barrenador. Confirmar especie, puerto y vigencia; no extender a carne procesada ni afirmar que el régimen permaneció igual todo el año.",
+      "effectiveDate": "2025-05-11"
+    },
+    {
+      "date": "2025-05-15",
+      "title": "Banxico reduce la tasa objetivo a 8.50%",
+      "kind": "Decisión",
+      "source": "Banxico",
+      "url": "https://www.banxico.org.mx/canales/%7BB0E67419-19C8-5893-D1C4-2426F165965A%7D.pdf",
+      "scope": [
+        "finance:bonds",
+        "finance:fx",
+        "finance:daily_news",
+        "finance:overview",
+        "mexico:mx_overview",
+        "mexico:mx_bolsa"
+      ],
+      "text": "Recorte de 50 puntos base, efectivo desde el 16 de mayo. El cambio en deuda variable o reinversión depende del plazo y contrato; no garantiza un movimiento del peso ni determina un porcentaje de cobertura.",
+      "effectiveDate": "2025-05-16"
+    },
+    {
+      "date": "2024-09-30",
+      "title": "USDA informa mayores existencias estadounidenses de maíz y soya",
+      "kind": "Estimación de existencias",
+      "source": "USDA NASS",
+      "url": "https://www.nass.usda.gov/Newsroom/archive/2024/09-30-2024.php",
+      "scope": [
+        "markets:grains",
+        "markets:market_news",
+        "markets:overview"
+      ],
+      "text": "Existencias al 1 de septiembre de 2024: maíz y soya, en ambos casos, 29% más que un año antes. Una mayor existencia no garantiza menor costo entregado; contrastar calidad, exportaciones, origen y flete."
+    },
+    {
+      "date": "2025-03-31",
+      "title": "Productores estadounidenses planean más maíz y menos soya",
+      "kind": "Intenciones de siembra",
+      "source": "USDA NASS",
+      "url": "https://www.nass.usda.gov/Newsroom/archive/2025/03-31-2025.php",
+      "scope": [
+        "markets:grains",
+        "markets:market_news",
+        "markets:overview"
+      ],
+      "text": "La encuesta registró planes de 95.3 millones de acres de maíz (+5%) y 83.5 millones de soya (-4%). Son intenciones sujetas a ejecución, clima y rendimiento; no cosecha confirmada ni explicación del precio posterior."
+    },
+    {
+      "date": "2022-02-09",
+      "title": "APHIS confirma influenza aviar en una parvada comercial de pavos en Indiana",
+      "kind": "Anuncio sanitario",
+      "source": "USDA APHIS",
+      "url": "https://content.govdelivery.com/accounts/USDAAPHIS/bulletins/309e0a3",
+      "scope": [
+        "markets:proteins",
+        "markets:market_news",
+        "markets:overview"
+      ],
+      "text": "Confirmación en una explotación de Dubois County con cuarentena y despoblación. Revisar bioseguridad y restricciones regionales; un brote aislado no cuantifica la pérdida de oferta nacional ni explica el precio anual de pollo o huevo."
+    },
+    {
+      "date": "2023-01-31",
+      "title": "USDA registra un menor hato de vacas de carne en Estados Unidos",
+      "kind": "Estimación de inventario",
+      "source": "USDA NASS",
+      "url": "https://www.nass.usda.gov/Newsroom/archive/2023/01-31-2023.php",
+      "scope": [
+        "markets:proteins",
+        "markets:market_news",
+        "markets:overview"
+      ],
+      "text": "NASS informó 28.9 millones de vacas de carne al 1 de enero de 2023, 4% menos interanual. El hato reproductor puede condicionar reposición y oferta futura; no es producción de carne observada ni causa demostrada de una variación de precios."
+    }
+  ]
+}

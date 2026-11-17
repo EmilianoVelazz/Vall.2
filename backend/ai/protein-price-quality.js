@@ -58,10 +58,10 @@ function quoteMatchesRecord(line, record, citations) {
 function guardProteinPrices(plan = {}, evidence = {}, text = '') {
     if (!(plan.needsProteinPrices || plan.needsProteinResearch) || plan.providedInputsOnly || plan.proteinProfile?.futures) return { text, blocked: false };
     const profile = plan.proteinProfile || { products: [], countries: [] };
-    const localTable = profile.countries.length === 1 && profile.countries[0] === 'MX' && (!profile.specificPrice || profile.priceBasis === 'live'
+    const isMexicoLocal = profile.countries.length === 1 && profile.countries[0] === 'MX' && (!profile.specificPrice || profile.priceBasis === 'live'
         || profile.commercialStages?.length || evidence.proteinPrices?.coverage?.some(report=>report.stage)
-        || mexicoTableRecords(profile,evidence).some(record=>record.commercialStage))
-        && !plan.asksAnalysis && !plan.asksNews && !plan.needsTradeResearch;
+        || mexicoTableRecords(profile,evidence).some(record=>record.commercialStage));
+    const localTable = isMexicoLocal && !plan.asksAnalysis && !plan.asksNews && !plan.needsTradeResearch;
     if (localTable && plan.needsProteinPrices) return { text: mexicoPriceTable(plan, evidence), blocked: false, changed: true };
     if (plan.needsProteinPrices && matchingProteinRecords(profile,evidence).length
         && !plan.asksAnalysis && !plan.asksNews && !plan.needsTradeResearch) {
@@ -86,8 +86,7 @@ function guardProteinPrices(plan = {}, evidence = {}, text = '') {
         return !DATE.test(visible) || !records.some(record=>quoteMatchesRecord(line,record,evidence.citations || []));
     });
     if (!invalid) return { text, blocked: false };
-    if (records.length) return {blocked:true,text:proteinPriceTable(plan,evidence)};
-    return { blocked: true, text: proteinPriceTable(plan,evidence) };
+    return { blocked: true, text: isMexicoLocal ? mexicoPriceTable(plan, evidence) : proteinPriceTable(plan, evidence) };
 }
 
 module.exports = { guardProteinPrices, quoteMatchesRecord };

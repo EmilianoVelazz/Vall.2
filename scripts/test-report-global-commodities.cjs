@@ -1,5 +1,5 @@
 'use strict';
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-global-commodity-test';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-global-commodity-test-fixture-only-testing-32bytes';
 const assert=require('node:assert/strict'),http=require('../backend/lib/http'),store=require('../backend/services/market-report-store');
 // La expansión de precios físicos mundiales tiene pruebas propias. Esta prueba
 // aísla el catálogo de futuros y EIA, sin descargar boletines ni usar su caché.

@@ -8,6 +8,7 @@ const { GeminiProvider } = require('./providers/gemini-provider');
 const { enrichSectorReport } = require('../lib/report-sector-format');
 const {numericTokens}=require('../lib/report-evidence-numbers');
 const {reportDeadline}=require('../lib/report-deadline');
+const {editorialFacts,editorialFingerprint}=require('../lib/report-editorial-evidence');
 
 function cleanText(value, limit) {
     return String(value ?? '')
@@ -24,30 +25,57 @@ function list(value, maxItems, maxLength) {
         : [];
 }
 
-function factsFor(report) {
+// Validate the complete answer before publishing. Cutting a field to length
+// can leave its condition or conclusion unfinished even when the JSON is valid.
+function checkedBrief(draft, facts) {
+    const issues=[],brief={};
+    const read=value=>typeof value==='string' ? cleanText(value,Number.MAX_SAFE_INTEGER) : '';
+    for(const [key,limit] of Object.entries({headline:120,context:320,thesis:420,committeeQuestion:260})) {
+        brief[key]=read(draft?.[key]);
+        if(!brief[key] || brief[key].length>limit)issues.push(`${key}: texto completo de hasta ${limit} caracteres`);
+        else if(key!=='headline' && !/[.!?…]["'»”’)]?$/.test(brief[key]))issues.push(`${key}: cerrar la frase con puntuación`);
+    }
+    for(const key of ['drivers','risks']) {
+        brief[key]=Array.isArray(draft?.[key]) ? draft[key].map(read) : [];
+        if(!brief[key].length || brief[key].length>3)issues.push(`${key}: de una a tres frases`);
+        if(brief[key].some(value=>!value || value.length>240 || !/[.!?…]["'»”’)]?$/.test(value)))issues.push(`${key}: frases completas de hasta 240 caracteres, con puntuación final`);
+    }
+    const allowed=numericTokens(JSON.stringify(facts));
+    const unsupported=[...numericTokens(JSON.stringify(brief))].filter(value=>!allowed.has(value));
+    if(unsupported.length)issues.push('Conservar las cifras literales del material; eliminar cifras nuevas, redondeos o conteos derivados: '+unsupported.slice(0,20).join(', '));
+    return {brief,issues};
+}
+
+function factsFor(report) { return editorialFacts(report); }
+
+function compactFactsForPrompt(fact) {
     return {
-        key: report.key,
-        title: cleanText(report.title, 100),
-        objective: cleanText(report.objective, 700),
-        summary: cleanText(report.summary, 900),
-        generatedAt: report.generatedAt,
-        sections: (report.sections || []).slice(0, 20).map(item=>({heading:cleanText(item.heading,140),text:cleanText(item.text,8000)})),
-        metrics: (report.metrics || []).slice(0, 30).map(item => ({
-            label: cleanText(item?.label, 80), value: cleanText(item?.value, 80), change: cleanText(item?.change, 80),
+        ...fact,
+        sections: (fact.sections || []).slice(0, 6).map(s => ({ heading: s.heading, text: cleanText(s.text, 550) })),
+        tables: (fact.tables || []).slice(0, 4).map(t => ({
+            ...t,
+            rows: (t.rows || []).slice(0, 8),
         })),
-        conclusions: list(report.takeaways, 4, 340),
-        watchlist: list(report.watchlist, 3, 340),
-        headlines: (report.headlines || []).slice(0, 5).map(item => ({
-            title: cleanText(item?.title, 240), source: cleanText(item?.source, 100),
-            description: cleanText(item?.description, 360),
-        })),
-        sources: list(report.sources, 8, 180),
-        tables:(report.tables || []).slice(0,6).map(table=>({kind:table.kind==='guide' ? 'guide' : 'data',title:cleanText(table.title,140),note:cleanText(table.note,800),columns:(table.columns || []).slice(0,12),rows:(table.rows || []).slice(0,100)})),
-        sourceLinks:(report.sourceLinks || []).slice(0,40),
+        sources: (fact.sources || []).slice(0, 8),
+        sourceLinks: (fact.sourceLinks || []).slice(0, 6),
     };
 }
 
+const QUESTIONS_BY_KEY = {
+    fx: '¿La paridad USD/MXN actual altera el costo de importaciones o compromisos en dólares del mes? Revisa margen y ventanas de cobertura.',
+    bonds: '¿El nivel de CETES y Treasury impacta el costo de financiamiento o la tasa variable de los créditos de la empresa?',
+    equities: '¿La volatilidad en el IPC y bolsas de EE. UU. cambia valuaciones de contrapartes o apetito de inversión este trimestre?',
+    daily_news: '¿Las noticias del día introducen riesgos regulatorios, arancelarios o de liquidez sobre la operación inmediata?',
+    grains: '¿La relación entre futuros CBOT y precios puestos en México justifica adelantar compras o fijar coberturas de maíz y soya?',
+    proteins: '¿El precio en canal de cerdo, res, pollo o huevo frente al costo de alimento sostiene el margen operativo proyectado?',
+    energy_metals: '¿El movimiento en crudo y gas natural se está reflejando en el costo de diésel, fletes y fertilizantes de la empresa?',
+    market_news: '¿Los acontecimientos comerciales o sanitarios reportados comprometen rutas de abastecimiento o acceso a insumos?',
+    overview: '¿El balance conjunto de tipo de cambio, tasas e insumos exige ajustar el presupuesto operativo de la semana?'
+};
+
 function deterministicBrief(report) {
+    const key = report.baseReport?.key || report.key;
+    const committeeQuestion = QUESTIONS_BY_KEY[key] || '¿Qué dato del corte confirmaría o cambiaría esta lectura antes de comprometer inventario o liquidez?';
     return {
         generated: true,
         mode: 'deterministic',
@@ -57,18 +85,20 @@ function deterministicBrief(report) {
         thesis: cleanText(report.summary || 'No hubo evidencia suficiente para elaborar una tesis adicional en este corte.', 420),
         drivers: list(report.takeaways, 3, 240),
         risks: list(report.watchlist, 3, 240),
-        committeeQuestion: '¿Qué dato de las fuentes del corte confirmaría o cambiaría esta lectura antes de tomar una decisión?',
-        evidenceNote: 'Síntesis determinista construida con los indicadores y fuentes verificables ya incluidos en este informe; no es una respuesta generada por IA.',
+        committeeQuestion,
+        evidenceNote: 'Síntesis ejecutiva elaborada a partir de los datos verificados del corte.',
     };
 }
 
 class ExecutiveReportAgent {
-    constructor({ provider = new GeminiProvider(), timeoutMs = 15000 } = {}) {
+    constructor({ provider = new GeminiProvider(), timeoutMs = 45000 } = {}) {
         this.provider = provider;
         this.timeoutMs = timeoutMs;
     }
 
     async enrich(reports, { area = 'Mercados' } = {}) {
+        const effectiveBudget = process.env.NODE_ENV === 'test' || process.env.VERCEL ? this.timeoutMs : Math.max(this.timeoutMs, 90000);
+        const deadline=Date.now()+effectiveBudget;
         if (!Array.isArray(reports) || !reports.length) return reports;
         // El diseño de informe no desaparece por una cuota, un timeout o una
         // credencial ausente. Primero construimos una síntesis reproducible y
@@ -77,57 +107,48 @@ class ExecutiveReportAgent {
         const fallbackReports = sectorReports.map(report => report?.executiveBrief ? report : ({ ...report, executiveBrief: deterministicBrief(report) }));
         if (!this.provider.isConfigured()) return fallbackReports;
         const facts = sectorReports.map(factsFor);
+        const promptFacts = facts.map(compactFactsForPrompt);
         const systemInstruction = `Eres el agente editorial de informes ejecutivos de VALLNEWS. Entregas una lectura de nivel editorial para comité directivo: un titular sobrio, contexto, tesis verificable, señales que la sostienen, riesgos que podrían invalidarla y una pregunta de seguimiento. No imitas ni atribuyes el resultado a publicaciones, analistas o plataformas externas.
 
 Reglas no negociables:
 1. Usa únicamente los hechos incluidos en DATOS VERIFICADOS.
-2. No inventes cifras, porcentajes, fechas, países, causas, fuentes, titulares ni relaciones causales.
+2. No inventes cifras, porcentajes, fechas, países, causas, fuentes, titulares ni relaciones causales. Copia las cifras con la precisión literal del material: no redondees ni calcules porcentajes, diferencias o conteos nuevos, aunque la operación parezca obvia.
 3. No des recomendaciones de inversión, compra, venta o cobertura. Formula acciones como validaciones o preguntas para comité.
 4. La tesis y cada señal deben diferenciar hecho observado de implicación condicional; evita adjetivos promocionales y frases genéricas. El contexto explica la exposición del negocio sin repetir la tesis ni el resumen. Cada impulsor une evidencia e implicación; cada riesgo identifica la condición y el dato a contrastar. La pregunta de comité debe ser específica para el informe, sin inventar responsables, umbrales ni plazos.
 5. Si faltan hechos, dilo de forma explícita y breve.
 Las preguntas e información a solicitar de la guía sectorial son criterios de análisis, no datos observados. Úsalas para precisar qué debe validarse; no afirmes que esa evidencia o exposición ya existe.
-6. Devuelve JSON válido, sin Markdown ni texto adicional.`;
-        const prompt = `Área: ${area}. Para cada informe, devuelve exactamente este esquema:
+6. Devuelve JSON válido, sin Markdown ni texto adicional. Sintetiza dentro de los límites de cada campo; todas las frases deben quedar completas y cerrar con puntuación. No copies todas las filas de las tablas.`;
+        const buildAreaPrompt = (selectedFacts, repairNote = '') => `Área: ${area}. Para cada informe, devuelve exactamente este esquema:
 {"reports":[{"key":"","headline":"máximo 120 caracteres; describe el hecho sin sensacionalismo","context":"máximo 320 caracteres; explica por qué el corte merece atención usando sólo los datos dados","thesis":"máximo 420 caracteres; hecho y lectura condicional","drivers":["máximo 3, 240 caracteres c/u; señal observable y por qué importa"],"risks":["máximo 3, 240 caracteres c/u; condición que hay que contrastar"],"committeeQuestion":"máximo 260 caracteres"}]}
 
 DATOS VERIFICADOS:
-${JSON.stringify(facts)}`;
-        try {
-            const response = await reportDeadline(signal=>this.provider.generate({
-                prompt, systemInstruction, tier: 'pro', json: true, maxOutputTokens: 5000,
-                signal, timeoutMs:this.timeoutMs,
-            }),this.timeoutMs);
-            const parsed = JSON.parse(response.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, ''));
-            const byKey = new Map((parsed?.reports || []).filter(item => item?.key).map(item => [String(item.key), item]));
-            return fallbackReports.map(report => {
-                const draft = byKey.get(String(report.key));
-                if (!draft) return report;
-                const headline = cleanText(draft.headline, 120);
-                const context = cleanText(draft.context, 320);
-                const thesis = cleanText(draft.thesis, 420);
-                const drivers = list(draft.drivers, 3, 240);
-                const risks = list(draft.risks, 3, 240);
-                const committeeQuestion = cleanText(draft.committeeQuestion, 260);
-                if (!headline && !context && !thesis && !drivers.length && !risks.length && !committeeQuestion) return report;
-                const allowed=numericTokens(JSON.stringify(factsFor(report)));
-                if([...numericTokens(JSON.stringify({headline,context,thesis,drivers,risks,committeeQuestion}))].some(value=>!allowed.has(value))) return report;
-                return {
-                    ...report,
-                    executiveBrief: {
-                        generated: true,
-                        mode: 'ai',
-                        agent: 'VALL Executive Desk',
-                        model: response.model,
-                        generatedAt: new Date().toISOString(),
-                        headline, context, thesis, drivers, risks, committeeQuestion,
-                        evidenceNote: 'Lectura editorial generada exclusivamente a partir del corte verificable mostrado en este informe.',
-                    },
-                };
-            });
-        } catch (error) {
-            console.warn('[executive-report-agent] Edición no disponible:', error.message);
-            return fallbackReports;
+${JSON.stringify(selectedFacts)}${repairNote}`;
+        const output=[...fallbackReports],remaining=new Set(fallbackReports.map(report=>String(report.key)));
+        let repair='';
+        for(let attempt=0;attempt<2 && remaining.size;attempt++) {
+            const timeoutMs=deadline-Date.now();if(timeoutMs<=0)break;
+            const targetFacts=attempt===0 ? promptFacts : promptFacts.filter((_,index)=>remaining.has(String(fallbackReports[index].key)));
+            try {
+                const response=await reportDeadline(signal=>this.provider.generate({prompt:buildAreaPrompt(targetFacts,repair),systemInstruction,tier:'report',json:true,maxOutputTokens:32768,signal,timeoutMs}),timeoutMs);
+                const parsed=JSON.parse(response.text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/i,''));
+                if(!Array.isArray(parsed?.reports))throw new SyntaxError('Esquema de informes inválido');
+                const byKey=new Map();
+                for(const draft of parsed.reports)if(draft?.key){const key=String(draft.key);byKey.set(key,byKey.has(key) ? null : draft);}
+                const corrections=[];
+                for(const [index,report] of fallbackReports.entries()) {
+                    const key=String(report.key);if(!remaining.has(key))continue;
+                    const {brief,issues}=checkedBrief(byKey.get(key),facts[index]);
+                    if(issues.length){corrections.push({key,corrections:issues});continue;}
+                    output[index]={...report,executiveBrief:{generated:true,mode:'ai',agent:'VALL Executive Desk',model:response.model,generatedAt:new Date().toISOString(),evidenceHash:editorialFingerprint(facts[index]),...brief,evidenceNote:'Lectura editorial generada exclusivamente a partir del corte verificable mostrado en este informe.'}};
+                    remaining.delete(key);
+                }
+                repair='\n\nCORRECCIÓN ÚNICA: devuelve sólo las claves pendientes. Conserva las cifras literales de DATOS VERIFICADOS; abrevia la redacción sin cortar frases ni añadir información. Corrige estos campos: '+JSON.stringify(corrections);
+            } catch(error) {
+                if(!(error instanceof SyntaxError)) {console.warn('[executive-report-agent] Edición no disponible; se conserva el respaldo.');break;}
+                repair='\n\nCORRECCIÓN ÚNICA: devuelve JSON válido con el esquema indicado, frases completas y sólo las claves pendientes: '+JSON.stringify([...remaining]);
+            }
         }
+        return output;
     }
 }
 

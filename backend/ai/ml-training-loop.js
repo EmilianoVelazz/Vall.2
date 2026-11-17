@@ -2,7 +2,15 @@
 
 // Proyecto Loopus propone reglas para revisión humana; nunca modifica precios ni
 // modelos desplegados sin aprobación humana.
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
+// El servidor lee backend/.env; el ciclo independiente debe ver la misma
+// configuración (Supabase, Gemini). Ninguna llamada sobrescribe variables ya
+// definidas, así que el entorno del despliegue conserva prioridad.
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env'), quiet: true });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local'), quiet: true });
+// Redes con inspección TLS (p. ej. Zscaler) firman con una CA instalada en el
+// sistema operativo: sin esto, fetch/Supabase fallan con "fetch failed".
+const { configureSystemTrust, trustedCertificates } = require('../lib/tls-trust');
+configureSystemTrust();
 
 const fs = require('fs');
 const https = require('https');
@@ -102,9 +110,20 @@ function saveRuleProposals(newRules, source) {
         const parsed = JSON.parse(fs.readFileSync(output, 'utf8'));
         if (Array.isArray(parsed)) existing = parsed;
     } catch { /* primera ejecución */ }
+    // La misma hipótesis puede reaparecer en cada ciclo; repetirla no la hace
+    // más fiable y solo infla la cola de revisión humana.
+    const ruleKey = rule => `${rule?.condition_trigger || ''}\u0000${rule?.learned_rule || ''}`.toLowerCase().replace(/\s+/g, ' ').trim();
+    const known = new Set(existing.map(ruleKey));
+    const fresh = formattedRules.filter(rule => {
+        const key = ruleKey(rule);
+        if (known.has(key)) return false;
+        known.add(key);
+        return true;
+    });
+    if (!fresh.length) return [];
     fs.mkdirSync(path.dirname(output), { recursive: true });
-    fs.writeFileSync(output, JSON.stringify([...existing, ...formattedRules].slice(-200), null, 2), 'utf8');
-    return formattedRules;
+    fs.writeFileSync(output, JSON.stringify([...existing, ...fresh].slice(-200), null, 2), 'utf8');
+    return fresh;
 }
 
 function saveTrainingEvent(event) {
@@ -127,6 +146,7 @@ function fetchJSON(url) {
             timeout: 20_000,
             // Mantiene TLS estricto en producción y sigue la política local de
             // los demás conectores para no bloquear Windows por CAs intermedias.
+            ca: trustedCertificates(),
             rejectUnauthorized: REJECT_UNAUTHORIZED,
         }, response => {
             let data = '';

@@ -18,6 +18,8 @@ assert.equal(parsed.futures[0].openInterest,299200,'Aggregate futures counts are
 const feeder=parseCmeOptions([page(header,'FEEDER CATTLE CALL OPTIONS','TOTAL FDR CATTLE FUT 0 19462 64644 + 813 31466 82016','FEEDER CATTLE CALLS','FDR CATTLE CALL','NOV26 FDR CATTLE CALL (FUTURES SETT. 348.125 + 120.0 )','TOTAL 387 12157 + 79','FEEDER CATTLE PUTS','FDR CATTLE PUT','NOV26 FDR CATTLE PUT (FUTURES SETT. 348.125 + 120.0 )','TOTAL 427 18597 + 77')],{url,retrievedAt:cutoff});
 assert.deepEqual(feeder.options.map(item=>[item.symbol,item.side,item.openInterest]),[['GF=F','call',12157],['GF=F','put',18597]],'The published FDR CATTLE abbreviation preserves the same product identity');
 assert.equal(feeder.futures[0].openInterest,64644);
+const energy=parseCmeOptions([page(header,'CASH SETTLEMENTS, OPTION EXERCISES OR ASSIGNMENTS.','LO2 CALL CRUDE OIL OPTIONS','DEC26','10 127 + 32','TOTAL','LO2 PUT CRUDE OIL OPTIONS','DEC26','20 251 - 7','TOTAL')],{url,retrievedAt:cutoff});
+assert.deepEqual(energy.options.map(item=>[item.productCode,item.side,item.openInterest]),[['LO2','call',127],['LO2','put',251]],'Energy and metal totals retain the counts printed before the TOTAL label');
 const wheat=parseCmeOptions([page(header,'WHEAT FUT'),page(header,'371 126843 523737 - 3905 105046 526213','UNKNOWN FUT','1 2 999999 + 1 4 5')],{url,retrievedAt:cutoff});
 assert.deepEqual(wheat.futures.map(item=>[item.symbol,item.openInterest,item.page]),[['ZW=F',523737,2]],'A continued futures total retains its product but cannot leak into an unknown contract');
 assert.equal(parseCmeOptions([page(header),page('Mon, Oct 26, 2026 FINAL')],{url,retrievedAt:cutoff}).options.length,0,'Mixed dated documents are rejected');
@@ -33,7 +35,14 @@ const unpaired={...seed,options:seed.options.map(item=>item.side==='put' ? {...i
 assert(!commodityDerivativesTables({generatedAt:cutoff,marketDerivatives:unpaired},refs).some(table=>table.printGroup==='commodity-options'),'Never compare mismatched call and put series');
 const zero={...seed,options:seed.options.map(item=>({...item,openInterest:item.side==='call' ? 0 : item.openInterest}))};
 assert(commodityDerivativesTables({generatedAt:cutoff,marketDerivatives:zero},refs)[0].rows.every(row=>row[4]==='—'),'Zero is valid but a zero denominator never produces an invented ratio');
-const original=JSON.parse(fs.readFileSync('backend/cache/market_executive_reports.json')),before=JSON.stringify(original),snapshot=attachReportDerivatives(original,seed,{generatedAt:cutoff});
+const original=JSON.parse(fs.readFileSync('backend/cache/market_executive_reports.json'));
+// This checks the legacy flat overview; current panoramas compose tested chapters.
+const overview=original.reports.find(report=>report.key==='overview');
+if(overview?.panoramaParts){
+ for(const field of Object.keys(overview).filter(field=>field.startsWith('panorama')))delete overview[field];
+ overview.sourceSnapshot=Object.assign({},...original.reports.filter(report=>report.key!=='overview').map(report=>report.sourceSnapshot || {}));
+}
+const before=JSON.stringify(original),snapshot=attachReportDerivatives(original,seed,{generatedAt:cutoff});
 assert.equal(JSON.stringify(original),before,'Attaching derivatives does not mutate published price evidence');
 assert.equal(attachReportDerivatives(snapshot,seed,{generatedAt:cutoff}),snapshot,'An identical refresh does not create a new report');
 assert.equal(attachReportDerivatives(original,seed).generatedAt,attachReportDerivatives(original,seed).generatedAt,'A repeated read does not fabricate a new report generation time');
@@ -47,7 +56,7 @@ for(const source of snapshot.reports){
   const expected=report.key==='grains' ? ['ZC=F','ZS=F','ZW=F','ZM=F'] : ['HE=F','LE=F','GF=F'];
   assert.deepEqual(new Set(report.marketDerivatives.options.map(item=>item.symbol)),new Set(expected),'Each report includes every covered product and excludes unrelated derivatives');
   const content=await require('../backend/lib/report-export-content').reportExportContent(report);
-  const start=content.indexOf('Call, put e interés abierto'),options=content.indexOf('Opciones de commodities · call y put');
+  const start=content.indexOf(model.blocks.find(block=>block.key==='derivatives').label),options=content.indexOf('Opciones de commodities · call y put');
   assert(start>=0 && options>start,'Narrative exports put options under the derivative section');
   assert.equal(content.split('### Opciones de commodities · call y put').length-1,1,'Narrative exports never duplicate the option table');
  }

@@ -1,4 +1,5 @@
 'use strict';
+process.env.NODE_ENV='test';
 // All identities, providers and writes are simulated in this process.
 const assert=require('node:assert/strict');
 const jwt=require('jsonwebtoken');
@@ -14,6 +15,7 @@ async function main(){
  const token=patch=>jwt.sign({sub:current.id,email:current.email,role:'user',trainingOptIn:true,...patch},process.env.JWT_SECRET,{expiresIn:'5m'});
  const legacy=token({});
  const request=async(token,route='/api/verify-token',body)=>{
+  require('../backend/routes/auth').invalidateProfileCache();
   const response=await fetch(fixture.url+route,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(5000)});
   await response.text();return response.status;
  };

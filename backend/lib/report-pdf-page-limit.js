@@ -1,18 +1,29 @@
 'use strict';
 const {REPORT_PDF_MAX_PAGES,PROTEIN_PDF_MAX_PAGES,THREE_PAGE_BUDGETS,executivePrintEdition,distributedSelection}=require('../../shared/report-print-edition.mjs');
 const {availablePresentationModel,hasPublishedReportData}=require('../../shared/report-available-data.mjs');
+function derivativePageAllowance(model){
+ const rows=(model.results || []).filter(table=>table.derivatives && table.printGroup!=='commodity-cftc').reduce((total,table)=>total+table.rows.length,0);
+ return Math.ceil(Math.max(0,rows-12)/14);
+}
 
 // Select complete evidence before rendering; never crop pages or shrink fonts.
-// Panorama keeps every chapter; its executive print mode reuses each specialist
-// edition rather than repeating every exploratory chart from the reader.
+// Complete Panorama chapters bypass individual edition budgets. Saved executive
+// print requests retain their compact behavior for compatibility.
 async function renderIndividualReportPdf({report,model,render,renderCompact=render,completeFirst=false,t=value=>value,source=value=>value}){
  if(!hasPublishedReportData(model))throw Object.assign(Error(t('No hay datos publicados para generar este informe.')),{status:422,code:'REPORT_DATA_UNAVAILABLE'});
  model=availablePresentationModel(model,{t,source});
  if(report.panoramaMember && report.panoramaPrint!=='executive')return render(model);
  const isGlobalProtein=Boolean(model.commodityExecutive?.key==='proteins' && report?.proteinScope!=='US_ONLY');
  const isProtein=model.commodityExecutive?.key==='proteins';
- const maxBudgetPages=isProtein ? PROTEIN_PDF_MAX_PAGES : model.bondExecutive ? 5 : REPORT_PDF_MAX_PAGES;
- if(completeFirst){const pdf=await render(model);if(pdf.reportPageCount<=maxBudgetPages)return pdf;}
+ // Official bulletins contain multiple monthly option series per product.
+ // Reserve readable pages for those mandatory rows instead of failing or
+ // dropping contracts when the source publishes more than the seed sample.
+ const derivativePages=derivativePageAllowance(model);
+ const maxBudgetPages=(isProtein ? PROTEIN_PDF_MAX_PAGES : model.bondExecutive ? 5 : model.equityExecutive ? 4 : REPORT_PDF_MAX_PAGES)+derivativePages;
+ // Executive Mexico chapters use the same executive distribution as their
+ // individual editions, keeping a small FX table beside the equities board.
+ const mexicoChapter=report.panoramaMember && report.panoramaPrint==='executive' && model.mexicoExecutive;
+ if(completeFirst && !mexicoChapter){const pdf=await render(model);if(pdf.reportPageCount<=maxBudgetPages)return pdf;}
  // Keep the sovereign curve and all core funding rates. International countries
  // share a compact board instead of separate global and European appendices.
  if(model.bondExecutive?.international?.references.length){
@@ -55,6 +66,6 @@ async function renderIndividualReportPdf({report,model,render,renderCompact=rend
    }
   }
  }
- throw Error(t(isProtein ? 'No se pudo componer un informe de proteínas legible de hasta seis páginas.' : 'No se pudo componer un PDF legible de hasta tres páginas.'));
+ throw Error(derivativePages ? t('No se pudo componer un PDF legible con todas las series de derivados.') : t(isProtein ? 'No se pudo componer un informe de proteínas legible de hasta seis páginas.' : 'No se pudo componer un PDF legible de hasta tres páginas.'));
 }
-module.exports={renderIndividualReportPdf};
+module.exports={renderIndividualReportPdf,derivativePageAllowance};

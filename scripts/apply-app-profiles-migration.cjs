@@ -14,7 +14,8 @@ dotenv.config({ path: path.resolve(__dirname, '../backend/.env'), quiet: true })
     try {
         await database.query(fs.readFileSync(path.resolve(__dirname, '../backend/db/migrations/011_app_profiles_and_chat.sql'), 'utf8'));
         await database.query(fs.readFileSync(path.resolve(__dirname, '../backend/db/migrations/017_app_profile_access.sql'), 'utf8'));
-        const result = await database.query("SELECT to_regclass('public.app_profiles') AS profiles, to_regclass('public.app_chat_conversations') AS conversations, to_regclass('public.app_training_queries') AS training");
+        await database.query(fs.readFileSync(path.resolve(__dirname, '../backend/db/migrations/022_user_schema_improvements.sql'), 'utf8'));
+        const result = await database.query("SELECT to_regclass('public.app_profiles') AS profiles, to_regclass('public.app_chat_conversations') AS conversations, to_regclass('public.app_chat_messages') AS messages, to_regclass('public.app_training_queries') AS training");
         console.log(JSON.stringify({ migrated: Object.values(result.rows[0]).every(Boolean) }));
     } catch(error) {await database.query('ROLLBACK').catch(()=>{});throw error;}
     finally { await database.end(); }

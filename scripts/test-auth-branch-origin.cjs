@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 process.env.NODE_ENV = 'test';
 process.env.VERCEL = '1';
-process.env.JWT_SECRET = 'fixture-branch-origin-only';
+process.env.JWT_SECRET = 'fixture-branch-origin-only-fixture-only-testing-32bytes';
 process.env.ALLOWED_ORIGINS = 'https://app.example.test';
 process.env.PRODUCTION_URL = 'https://app.example.test';
 process.env.SPA_ORIGIN = '';

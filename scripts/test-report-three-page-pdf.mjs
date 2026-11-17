@@ -6,6 +6,7 @@ import {weeklyReport} from '../shared/report-weekly.mjs';
 import {REPORT_PDF_MAX_PAGES} from '../shared/report-print-edition.mjs';
 const require=createRequire(import.meta.url);process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
 const {_test}=require('../backend/routes/export'),{reportLabels}=require('../backend/lib/report-language');
+const {derivativePageAllowance}=require('../backend/lib/report-pdf-page-limit');
 assert.equal(REPORT_PDF_MAX_PAGES,3);
 const directory='output/tres-paginas-20261028';await fs.mkdir(directory,{recursive:true});
 const inputs=[];
@@ -17,10 +18,11 @@ const annual=JSON.parse(await fs.readFile('backend/cache/annual-report-library.j
 const markets=inputs.filter(report=>report.collection==='markets' && !report.reportYear);
 inputs.push(...markets.filter(report=>report.key!=='market_news').map(report=>({...report,analysisPeriod:'weekly'})));
 const stats=[];
-for(const report of inputs){
+for(const report of process.argv.includes('--localized-only') ? [] : inputs){
  const before=JSON.stringify(report),model=weeklyReport(report),integrated=Boolean(model.panorama),bytes=await _test.makeExecutivePdf(report.title,report),task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,isEvalSupported:false}),pdf=await task.promise;
  assert.equal(pdf.numPages,bytes.reportPageCount,report.key+' reports its actual page count');
- if(integrated)assert(pdf.numPages>3,'Integrated Panorama remains extensive');else if(model.bondExecutive)assert(pdf.numPages<=5,report.key+' exceeds five pages');else if(model.commodityExecutive?.key==='proteins')assert(pdf.numPages<=6,report.key+' exceeds six pages');else assert(pdf.numPages<=3,report.key+' exceeds three pages');
+ const limit=(model.bondExecutive ? 5 : model.equityExecutive ? 4 : model.commodityExecutive?.key==='proteins' ? 6 : 3)+derivativePageAllowance(model);
+ if(integrated)assert(pdf.numPages>3,'Integrated Panorama remains extensive');else assert(pdf.numPages<=limit,report.key+' exceeds its readable page budget including required derivative series');
  let printed='';
  for(let index=1;index<=pdf.numPages;index++){
   const page=await pdf.getPage(index),items=(await page.getTextContent()).items.filter(item=>item.str.trim());
@@ -33,6 +35,6 @@ for(const report of inputs){
  if(!report.reportYear)await fs.writeFile(directory+'/'+key+'.pdf',bytes);
  stats.push({key,pages:pdf.numPages,integrated,bytes:bytes.length});console.log(stats.at(-1));await task.destroy();
 }
-for(const report of markets){const labels=reportLabels('en'),bytes=await _test.makeExecutivePdf(report.title,report,{...labels,source:value=>value,images:[]});const maxPages=report.key==='proteins' ? 6 : 3;assert(bytes.reportPageCount<=maxPages,'Localized report also respects the limit: '+report.key);}
-await fs.writeFile(directory+'/validation.json',JSON.stringify(stats,null,2));
+if(stats.length)await fs.writeFile(directory+'/validation.json',JSON.stringify(stats,null,2));
+for(const report of markets){const labels=reportLabels('en'),bytes=await _test.makeExecutivePdf(report.title,report,{...labels,source:value=>value,images:[]});const model=weeklyReport(report),maxPages=(report.key==='proteins' ? 6 : 3)+derivativePageAllowance(model);if(model.panorama)assert(bytes.reportPageCount>3,'Localized integrated Panorama remains extensive');else assert(bytes.reportPageCount<=maxPages,'Localized report also respects the limit: '+report.key);console.log('English '+report.key+': '+bytes.reportPageCount+' pages');}
 console.log('Three-page PDFs: '+stats.filter(item=>!item.integrated).length+' daily/weekly/annual editions; integrated Panorama remains complete; English market exports also fit; no clipping or source mutation.');

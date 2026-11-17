@@ -12,6 +12,7 @@ async function reportExportContent(report,t=value=>value,source=value=>value) {
     }
     if(model.panorama){
         const lines=[`# ${report.title}`,`${t('Corte integrado')}: ${report.generatedAt}`];
+        lines.push(`## ${t('Índice de contenidos')}`,...model.panorama.chapters.map((chapter,index)=>`${String(index+1).padStart(2,'0')} · ${chapter.label} · ${chapter.area}`));
         if(model.panorama.signals.length){lines.push(`## ${t('Señales principales')}`);for(const item of model.panorama.signals)lines.push(item.label+': '+item.value+' '+item.unit+' · '+item.date+(item.change ? ' · '+item.change+' ('+item.baseDate+' / '+item.date+')' : ''));}
         for(const item of [...(model.panorama.signals.length ? [] : model.panorama.facts),...model.panorama.implications])lines.push(`## ${item.heading}`,item.body);
         for(const chapter of model.panorama.chapters){

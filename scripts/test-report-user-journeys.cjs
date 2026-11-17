@@ -8,14 +8,14 @@ const {UserReportAgent}=require('../backend/ai/user-report-agent');
 const {reportOwnerBinding}=require('../backend/lib/report-session-owner');
 
 async function main() {
- const root=path.resolve(__dirname,'..'),directory=await fs.mkdtemp(path.join(os.tmpdir(),'vall-report-journeys-')),output=path.join(root,'output/pruebas-usuario-informes');
+ const root=path.resolve(__dirname,'..'),directory=await fs.mkdtemp(path.join(os.tmpdir(),'vall-report-journeys-')),output=path.resolve(root,process.env.REPORT_JOURNEY_OUTPUT || 'output/pruebas-usuario-informes');
  await fs.mkdir(output,{recursive:true});const store=createUserReportStore({directory}),writes=[],generations=[],exports=[],errors=[];let server,browser,page,saveMode='normal',aiMode='normal',cases=0,releaseAi,waitingAi;
  const owner='ana@example.invalid',other='luis@example.invalid';
  const base=(key,title)=>({key,title,generatedAt:'2026-10-13T14:00:00Z',summary:'Material de simulación: 40 MXN/kg.',sections:[{heading:'Datos del corte',text:'Referencia de prueba; confirmar condiciones antes de comprar.'}],metrics:[{label:'Referencia',value:'40 MXN/kg'}],visuals:[{type:'bar',title:'Comparación de prueba',unit:'MXN/kg',bars:[{label:'Referencia',value:40}]}],tables:[{title:'Detalle de prueba',columns:['Producto','Referencia'],rows:[['Pollo','40 MXN/kg']]}],sources:['Fuente de prueba'],sourceLinks:[{label:'Fuente de prueba',url:'https://example.invalid/datos'}],watchlist:['Validar vigencia y disponibilidad.'],takeaways:[]});
  const catalog={finance:base('overview','Finanzas de prueba'),markets:base('proteins','Mercados de prueba'),mexico:base('mx_proteins','México de prueba')};
  catalog.markets.sourceSnapshot={proteins:[{label:'Cerdo de prueba · Estados Unidos',market:'Estados Unidos',unit:'USD/100 lb',cadence:'daily',source:'USDA · SIMULACIÓN',url:'https://example.invalid/fixture',series:[{date:'2026-10-12',value:39},{date:'2026-10-13',value:40}]}]};
  const user=req=>req.headers.cookie?.includes('fixture_account=luis') ? other : owner;
- const check=async(name,operation)=>{await operation();cases++;console.log('OK · '+name);};
+ const checks=[],check=async(name,operation)=>{await operation();cases++;checks.push(name);console.log('OK · '+name);};
  try {
   const wrappedStore={...store,save:async(email,input)=>{
    writes.push({email,input});const mode=saveMode;saveMode='normal';
@@ -154,8 +154,8 @@ async function main() {
    await page.locator('.erh-library-entry').filter({has:page.locator('strong',{hasText:catalog.finance.title})}).first().waitFor({state:'visible'});
    await context.addCookies([{name:'fixture_account',value:'luis',url}]);await page.getByRole('tab',{name:/Mis informes/}).click();await page.getByRole('button',{name:'Recargar cuenta',exact:true}).waitFor();assert.equal(await page.locator('.erh-library-entry').count(),0);assert.equal(await page.locator('.erh-document').count(),0);await context.addCookies([{name:'fixture_account',value:'ana',url}]);await page.reload();
   });
-  assert.deepEqual(errors,[]);console.log(`Report user journeys: OK · ${cases} recorridos, navegador real, servidor real y cuentas de prueba; IA y exportaciones simuladas`);
+  assert.deepEqual(errors,[]);await fs.writeFile(path.join(output,'results.json'),JSON.stringify({cases,checks,errors,isolatedAccounts:true,simulatedAi:true,simulatedExports:true},null,2));console.log(`Report user journeys: OK · ${cases} recorridos, navegador real, servidor real y cuentas de prueba; IA y exportaciones simuladas`);
  } catch(error) {if(page) {await fs.writeFile(path.join(output,'error.txt'),await page.locator('body').innerText());await page.screenshot({path:path.join(output,'error.png'),fullPage:true});}throw error;}
- finally {if(browser) await browser.close();if(server) {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}await fs.rm(directory,{recursive:true,force:true});}
+ finally {if(browser) await browser.close();if(server) {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}const target=path.resolve(directory),relative=path.relative(path.resolve(os.tmpdir()),target);assert(relative && !relative.startsWith('..') && !path.isAbsolute(relative) && path.basename(target).startsWith('vall-report-journeys-'),'Only the isolated temporary fixture directory may be removed');await fs.rm(target,{recursive:true,force:true});}
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

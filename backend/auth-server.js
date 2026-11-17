@@ -19,7 +19,7 @@ app.use(securityHeaders);
 app.use((req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
 app.use(cors({
     origin(origin, callback) { callback(allowed(origin) ? null : Object.assign(new Error('Origen no permitido.'), { status: 403 }), allowed(origin)); },
-    credentials: true, methods: ['GET', 'POST'], allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true, methods: ['GET', 'POST'], allowedHeaders: ['Content-Type', 'Authorization', 'X-VALL-Account'], exposedHeaders:['X-VALL-Account'],
 }));
 app.use(cookieParser());
 app.use('/api', mutationOriginGuard(allowed));

@@ -7,6 +7,7 @@ const { execFileSync } = require('node:child_process');
 const dotenv = require('dotenv');
 const root = path.resolve(__dirname, '..');
 const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).split('\0').filter(Boolean);
+const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).split('\0').filter(Boolean);
 const environmentFiles = ['backend/.env', '.env.local', 'frontend/.env', 'frontend/.env.local'];
 const secrets = [];
 const configuration = [];
@@ -44,7 +45,7 @@ const rules = [
 const matches = [];
 let scanned = 0;
 const skipped = [];
-for (const file of new Set([...tracked, ...publicFiles])) {
+for (const file of new Set([...tracked, ...untracked, ...publicFiles])) {
     if (!/\.(?:js|jsx|mjs|cjs|json|md|sql|txt|ya?ml|html|css|env|example)$/.test(file)) continue;
     const absolute = path.join(root, file);
     let stat;
@@ -69,7 +70,7 @@ for (const file of new Set([...tracked, ...publicFiles])) {
     }
 }
 const report = { generatedAt: new Date().toISOString(), scanned, configuration, matches, skipped,
-    scope: 'Archivos actuales versionados y dist/frontend/dist; patrones y comparación con valores locales >=16 caracteres. No revisa historial Git ni prueba validez de claves. Los matches requieren revisión; anon/publishable pueden ser públicos.', redacted: true };
+    scope: 'Archivos actuales versionados, archivos nuevos no ignorados y dist/frontend/dist; patrones y comparación con valores locales >=16 caracteres. No revisa historial Git ni prueba validez de claves. Los matches requieren revisión; anon/publishable pueden ser públicos.', redacted: true };
 const directory = path.join(root, 'output', 'auditoria-codigo', 'secretos');
 fs.mkdirSync(directory, { recursive: true });
 fs.writeFileSync(path.join(directory, 'resultados.json'), JSON.stringify(report, null, 2));

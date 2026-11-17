@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict');
-const {createChatCredits,exempt,pricing,tokenUsage,tokenCost,publicState}=require('../backend/services/chat-credits');
+const {createChatCredits,pricing,tokenUsage,tokenCost,publicState}=require('../backend/services/chat-credits');
 const {withChatCredits,chatMeter}=require('../backend/lib/chat-credit-context');
 const {GeminiProvider}=require('../backend/ai/providers/gemini-provider');
 const {createChatCreditStore}=require('../backend/services/chat-credit-store');
@@ -22,8 +22,12 @@ function memoryStore(limit){
 }
 const counted=async()=>({totalTokens:1000});
 (async()=>{
-    assert(exempt({role:'admin',email:'admin@vall.com'}));
-    for(const account of [user,{role:'user',email:'admin@vall.com'},{role:'admin',email:'other@vall.com'},{role:'admin',email:'admin@vall.com.evil'}])assert(!exempt(account));
+    const policy=createChatCredits({store:{state:async()=>{throw Error('El chat no debe consultar el saldo');}}});
+    for(const account of [user,{role:'admin',email:'admin@vall.com'},{role:'admin',email:'other@vall.com'}]){
+        const state=await policy.status(account);
+        assert.equal(state.enabled,false);assert.equal(state.exempt,true);assert.equal(state.blocked,false);assert.deepEqual(state.windows,[]);
+        let admitted=false;policy.admission({user:account},{},()=>{assert.equal(chatMeter(),undefined);admitted=true;});assert(admitted);
+    }
     assert.equal(pricing('gemini-3.8-flash',0,Date.parse('2026-10-22')).input,.75);
     assert.equal(pricing('gemini-3.8-flash',0,Date.parse('2027-01-01')).input,1.5);
     assert.equal(pricing('gemini-2.5-pro',200001).output,15);
@@ -57,7 +61,7 @@ const counted=async()=>({totalTokens:1000});
     assert.equal(publicState(denied).resetsAt,'2026-11-01T06:00:00Z','Wait until all blocked windows are replenished');
     let reads=0;const unavailable=createChatCredits({store:{state:async()=>{reads++;throw Object.assign(Error('Unavailable'),{code:'CHAT_CREDITS_UNAVAILABLE',status:503});}}});
     assert.equal((await unavailable.status({role:'admin',email:'admin@vall.com'})).exempt,true);assert.equal(reads,0);
-    await assert.rejects(unavailable.status(user),{status:503});
+    assert.equal((await unavailable.status(user)).exempt,true);assert.equal(reads,0,'Una cuenta normal tampoco depende del almacén de créditos');
     assert.equal(chatMeter(),undefined);
     await withChatCredits(credits.meter(user),async()=>{await Promise.resolve();assert(chatMeter());});
     assert.equal(chatMeter(),undefined,'Report work outside chat context remains unmetered');

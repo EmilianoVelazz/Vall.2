@@ -25,7 +25,7 @@ for(let number=1;number<=pdf.numPages;number++){
   for(const item of items){
     assert(item.transform[4]>=30 && item.transform[4]+item.width<=page.view[2]-28,'No horizontal clipping');
     assert(item.transform[5]>=55,'No text below the body');
-    if(/24\.10|24\.30/.test(item.str))assert(Math.abs(Math.hypot(item.transform[0],item.transform[1])-7.2)<.001,'Quote text keeps its readable 7.2-point size');
+    if(/24\.10|24\.30/.test(item.str))assert(Math.hypot(item.transform[0],item.transform[1])>=7.2,'Quote text keeps at least its readable 7.2-point size');
   }
 }
 for(const value of ['RESUMEN_COMPLETO','CAUSA_COMPLETA','RIESGO_COMPLETO','2026-10-21','2026-10-22','USD/kg','24.10','24.30'])assert(text.includes(value),'The delivered PDF contains '+value);

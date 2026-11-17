@@ -40,7 +40,7 @@ const normalized=normalizeReport(report);assert(normalized.tables.some(table=>ta
 const csv=reportCsv(normalized);
 assert(csv.includes('"Serie A","2026-10-10","110"'));assert(csv.includes('"Negativo","-5","unidades de prueba"'),'Los números negativos siguen siendo números utilizables');
 assert(csv.includes('"Volumen amplio","1234567.1234"'));assert(csv.includes('Método y alcance'));assert(csv.includes('Lectura cuantitativa'));
-assert(reportCsv({...report,summary:'=HYPERLINK("malicioso")'}).includes("'=HYPERLINK"),'Proteger fórmulas sin alterar columnas numéricas');
+assert(reportCsv({...report,title:'=HYPERLINK("malicioso")'}).includes("'=HYPERLINK"),'Proteger fórmulas en celdas exportadas sin alterar columnas numéricas');
 const cleaned=reportLineSeries({series:[{label:'Dato',points:[...short,point('2026-02-31',9),point('2026-10-12',' '),point('2026-10-10',10)]}]});
 assert.equal(cleaned.series[0].points.length,2,'Gráfica y CSV descartan entradas inválidas y duplicadas');
 const [yieldResults]=reportSeriesResults(reportLineSeries(yieldVisual).series,'%');

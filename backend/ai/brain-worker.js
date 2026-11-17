@@ -2,7 +2,9 @@
 
 // Este worker produce propuestas de mejora. Ninguna propuesta altera prompts ni
 // reglas activas hasta que una persona la revise y la publique explícitamente.
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env'), quiet: true });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local'), quiet: true });
+require('../lib/tls-trust').configureSystemTrust();
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');

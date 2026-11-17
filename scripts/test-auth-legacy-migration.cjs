@@ -1,4 +1,5 @@
 'use strict';
+process.env.NODE_ENV='test';
 // Solo credenciales ficticias y un .env en memoria: no toca el archivo local,
 // Supabase, proveedores de IA ni correo.
 const assert = require('node:assert/strict');
@@ -14,7 +15,9 @@ process.env.USER_PASSWORD = bcrypt.hashSync('startup-fixture', 4);
 delete process.env.VALL_AUTH_EMAIL;
 delete process.env.VALL_AUTH_PASSWORD;
 delete process.env.VERCEL;
-profiles.upsertAdmin = async email => ({ id: 'fixture-admin', email, role: 'admin', active: true });
+const localProfiles=new Map();
+profiles.upsertAdmin=async email=>{const profile={id:'fixture-admin',email,role:'admin',active:true,credentialVersion:0};localProfiles.set(profile.id,profile);return profile;};
+profiles.findById=async id=>localProfiles.get(id) || null;
 profiles.markLogin = async () => {};
 const { router } = require('../backend/routes/auth');
 const envPath = path.resolve(__dirname, '../backend/.env');

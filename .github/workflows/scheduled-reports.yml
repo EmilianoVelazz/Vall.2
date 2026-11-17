@@ -1,0 +1,31 @@
+name: Friday Afternoon Report Dispatch
+
+on:
+  schedule:
+    # Viernes 20:05 UTC (14:05 America/Mexico_City) — 5 min después del corte de Mercados en Vercel
+    - cron: '5 20 * * 5'
+  workflow_dispatch:
+
+jobs:
+  dispatch-friday-markets:
+    if: ${{ vars.VALL_PRODUCTION_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger scheduled report email dispatch
+        env:
+          PRODUCTION_URL: ${{ vars.VALL_PRODUCTION_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not configured in GitHub Secrets."
+            exit 1
+          fi
+          TARGET="${PRODUCTION_URL%/}/api/report-email-schedules/run"
+          STATUS=$(curl -sS -o /tmp/dispatch.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$TARGET")
+          cat /tmp/dispatch.json
+          echo ""
+          [ "$STATUS" = "200" ]

@@ -2,9 +2,7 @@
 const crypto=require('node:crypto');
 const prices=require('../../shared/chat-credit-pricing.json');
 const {chatCreditStore}=require('./chat-credit-store');
-const {withChatCredits}=require('../lib/chat-credit-context');
 const count=value=>Number.isSafeInteger(value) && value>=0 ? value : 0;
-const exempt=user=>user?.role==='admin' && String(user.email || '').trim().toLowerCase()==='admin@vall.com';
 function pricing(model,inputTokens=0,now=Date.now()) {
     const name=String(model).replace(/^models\//,''),key=Object.keys(prices.models).find(key=>name===key || name.startsWith(key+'-20'));
     if(!key)throw Object.assign(Error('Este modelo todavía no tiene una tarifa de créditos configurada.'),{code:'CHAT_MODEL_PRICE_MISSING',status:503});
@@ -33,7 +31,11 @@ function quotaError(state,code='CHAT_CREDITS_EXHAUSTED') {
     return Object.assign(Error(pending ? 'Tienes una consulta en curso con saldo reservado. Espera a que termine para volver a enviar.' : `No tienes créditos de chat disponibles para esta consulta.${date ? ' Tu cupo se recarga el '+date+' (hora de Ciudad de México).' : ''} Los informes siguen disponibles.`),{code:pending ? 'CHAT_CREDITS_RESERVED' : code,status:pending ? 409 : 429,usage:current,resetsAt:reset});
 }
 function createChatCredits({store=chatCreditStore,now=Date.now,onDiagnostic=code=>console.warn('[chat-credits]',code)}={}) {
-    async function status(user){if(exempt(user))return {exempt:true,blocked:false,currency:'MXN',windows:[],realtimeVoice:true};return publicState(await store.state(user.sub));}
+    // El chat no aplica cupos de créditos a ninguna cuenta. La autenticación,
+    // los límites de solicitudes y el presupuesto por respuesta viven aparte.
+    async function status(){return {enabled:false,exempt:true,blocked:false,currency:'MXN',windows:[],realtimeVoice:true};}
+    // Conservar el adaptador para las herramientas de auditoría histórica;
+    // ninguna ruta del chat instala este contador ni consulta el saldo.
     function meter(user){
         return {async reserve(model,{countTokens,maxOutputTokens=4096,hasTools=false,audio=false}){
             let state=await store.state(user.sub),rate=pricing(model,0,now());
@@ -58,14 +60,7 @@ function createChatCredits({store=chatCreditStore,now=Date.now,onDiagnostic=code
             return {maxOutputTokens:outputLimit,finish,fail:error=>finish(null,{release:['AI_AUTH','AI_NOT_CONFIGURED','AI_RATE_LIMIT','CHAT_MODEL_PRICE_MISSING'].includes(error.code) || [400,401,403,404,429].includes(error.providerStatus)})};
         }};
     }
-    async function admission(req,res,next){
-        try {
-            if(exempt(req.user))return next();
-            const state=await store.state(req.user.sub);
-            if(state.windows.some(window=>window.remainingMicros<=0))throw quotaError(state);
-            return withChatCredits(meter(req.user),()=>next());
-        }catch(error){const known=error.code?.startsWith('CHAT_');res.status(known ? error.status || 503 : 503).json({success:false,error:known ? error.message : 'No pudimos comprobar tu saldo de chat. Intenta nuevamente en unos momentos.',code:known ? error.code : 'CHAT_CREDITS_UNAVAILABLE',usage:error.usage,resetsAt:error.resetsAt});}
-    }
+    function admission(_req,_res,next){return next();}
     return {status,admission,meter};
 }
-module.exports={createChatCredits,chatCredits:createChatCredits(),exempt,pricing,tokenUsage,tokenCost,publicState};
+module.exports={createChatCredits,chatCredits:createChatCredits(),pricing,tokenUsage,tokenCost,publicState};

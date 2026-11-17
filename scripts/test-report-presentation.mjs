@@ -3,7 +3,7 @@ import {createRequire} from 'node:module';
 import {getDocument} from '../frontend/node_modules/pdfjs-dist/legacy/build/pdf.mjs';
 import {reportPresentation,withoutSourcesText} from '../frontend/src/lib/reportPresentation.js';
 const require=createRequire(import.meta.url),backend=require('../backend/lib/report-presentation');
-process.env.JWT_SECRET='report-presentation-fixture';delete process.env.USER_PASSWORD;
+process.env.JWT_SECRET='report-presentation-fixture-at-least-32-bytes';delete process.env.USER_PASSWORD;
 const {_test}=require('../backend/routes/export');
 const rules=require('../shared/report-presentation.json');
 for(const heading of rules.hiddenSectionHeadings) {

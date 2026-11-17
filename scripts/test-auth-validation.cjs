@@ -1,4 +1,5 @@
 'use strict';
+process.env.NODE_ENV='test';
 const assert = require('node:assert/strict');
 const express = require('express');
 const cookieParser = require('cookie-parser');

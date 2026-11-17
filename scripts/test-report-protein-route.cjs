@@ -1,7 +1,7 @@
 'use strict';
 // Exercise the actual route and enrichment with isolated authentication and
 // storage. Never changes the live session, database, schedule or cache.
-process.env.NODE_ENV='test';process.env.JWT_SECRET='protein-route-fixture';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='protein-route-fixture-fixture-only-testing-32bytes';
 const assert=require('node:assert/strict'),fs=require('node:fs'),express=require('express');
 const auth=require.resolve('../backend/routes/auth');
 require.cache[auth]={id:auth,filename:auth,loaded:true,exports:{verifyToken:(req,res,next)=>next()}};

@@ -1,5 +1,5 @@
 'use strict';
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-protein-prices-test';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-protein-prices-test-fixture-only-testing-32bytes';
 const assert=require('node:assert/strict');
 const loader=require('../backend/lib/report-protein-prices');
 const {sourceUrl,parseProteinPrices,loadProteinPrices,proteinPricesDue}=loader;

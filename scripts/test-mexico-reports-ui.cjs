@@ -1,4 +1,5 @@
 'use strict';
+process.env.NODE_ENV='test';
 /* global document, window */
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
@@ -7,7 +8,7 @@ const path=require('node:path');
 const express=require('express');
 const jwt=require('jsonwebtoken');
 const {chromium}=require('playwright');
-process.env.JWT_SECRET='mexico-report-ui-secret';delete process.env.USER_PASSWORD;
+process.env.JWT_SECRET='mexico-report-ui-secret-fixture-only-testing-32bytes';delete process.env.USER_PASSWORD;
 const {input,time}=require('./lib/mexico-report-fixture.cjs');
 const {buildMexicoReports}=require('../backend/services/mexico-executive-reports');
 const {createMexicoReportsRouter}=require('../backend/routes/mexico-reports');

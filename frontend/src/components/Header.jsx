@@ -173,18 +173,15 @@ export default function Header() {
   }, [pathname]);
 
   // ── Cerrar sesión ───────────────────────────────────────────────────────────
-  /* El backend ya tenía POST /api/logout (borra la cookie httpOnly `vn_token`) y
-     el contexto ya tenía logout(), pero no había un solo sitio en la interfaz
-     desde donde llamarlos: la única forma de salir era cerrar el navegador.
-     Hay que hacer las DOS cosas: logout() solo limpia sessionStorage, que es lo
-     que mira ProtectedRoute, y dejaría la cookie viva hasta que caducara. */
+  /* Confirmar la revocación del servidor antes de limpiar el contexto local.
+     Si falla, conservar la sesión y mostrar una opción de reintento. */
   const [saliendo, setSaliendo] = useState(false);
+  const [logoutError,setLogoutError]=useState('');
   const cerrarSesion = useCallback(async () => {
     if (saliendo) return;
     setSaliendo(true);
-    // Si la red falla se sale igual: quedarse dentro porque el servidor no
-    // contesta es peor que dejar una cookie que caduca sola en 8 h.
-    try { await apiPost('/api/logout', {}); } catch { /* sin conexión */ }
+    setLogoutError('');
+    try {const result=await apiPost('/api/logout',{});if(!result.ok || !result.data?.success)throw Error('No se pudo confirmar el cierre de sesión. Reintenta.');}catch(error){setLogoutError(error.message);setSaliendo(false);return;}
     logout();
     navigate('/', { replace: true });
   }, [saliendo, logout, navigate]);
@@ -573,6 +570,7 @@ export default function Header() {
         </div>
       </nav>
       </header>
+      {logoutError && <p role="alert" style={{padding:'10px 16px',margin:0,background:'#472b32',color:'#fff'}}>{logoutError}</p>}
 
       {paletaOpen && (
         <div

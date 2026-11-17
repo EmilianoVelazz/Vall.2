@@ -80,6 +80,32 @@ export function cargarCadaVez(src, marca, {onLoad,onError}={}) {
   return () => el.remove();
 }
 
+// Download first, then execute synchronously only while this page is current.
+// Inline classic scripts retain the global bindings required by the legacy bridge.
+export async function mountPageScripts(entries,{signal,fetcher=fetch}={}) {
+  const removers=[];
+  const removeAll=()=>removers.splice(0).forEach(remove=>remove());
+  signal?.addEventListener('abort',removeAll,{once:true});
+  try {
+    for(const [src,mark] of entries) {
+      signal?.throwIfAborted();
+      const url=new URL(src,window.location.href);
+      if(url.origin!==window.location.origin || !url.pathname.startsWith('/assets/js/') || !url.pathname.endsWith('.js'))throw Error('La página sólo puede cargar sus scripts del sitio.');
+      const deadline=AbortSignal.timeout(20000),requestSignal=signal?AbortSignal.any([signal,deadline]):deadline;
+      const response=await fetcher(url.href,{signal:requestSignal,credentials:'same-origin',redirect:'error'});
+      if(!response.ok || !/javascript/i.test(response.headers.get('Content-Type') || ''))throw Error('No se pudo cargar '+src);
+      const source=await response.text();
+      requestSignal.throwIfAborted();
+      const script=document.createElement('script');
+      script.dataset.vnPageJs=mark;
+      script.text=source+'\n//# sourceURL='+url.href;
+      removers.push(()=>script.remove());
+      document.body.appendChild(script);
+    }
+  } catch(error) { removeAll();signal?.removeEventListener('abort',removeAll);throw error; }
+  return ()=>{signal?.removeEventListener('abort',removeAll);removeAll();};
+}
+
 /**
  * Lee una global declarada por un script clásico del sitio (VDS, VAPI, Chart…).
  *
@@ -95,8 +121,10 @@ export function cargarCadaVez(src, marca, {onLoad,onError}={}) {
  * ve ese binding.
  */
 export function globalLegado(nombre) {
+  if (typeof nombre !== 'string' || !/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(nombre)) {
+    return undefined;
+  }
   try {
-     
     return new Function(`return typeof ${nombre} !== 'undefined' ? ${nombre} : undefined`)();
   } catch {
     return undefined;

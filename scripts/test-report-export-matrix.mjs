@@ -12,7 +12,7 @@ import {requestReportFile} from '../frontend/src/lib/reportPdf.js';
 import {reportCsv} from '../frontend/src/lib/reportCsv.js';
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';process.env.JWT_SECRET='export-matrix-fixture-only';
+process.env.NODE_ENV='test';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';process.env.JWT_SECRET='export-matrix-fixture-only-at-least-32-bytes';
 for(const key of ['SUPABASE_URL','VITE_SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_ANON_KEY','SUPABASE_DATABASE_URL','DATABASE_URL','SUPABASE_PASSWORD','GEMINI_API_KEY','GMAIL_USER','GMAIL_PASS'])process.env[key]='';
 const express=require('express'),jwt=require('jsonwebtoken'),JSZip=require('jszip');
 require('../backend/services/user-profile-store').findById=async id=>id.startsWith('export-fixture-') ? {id,active:true,email:id+'@example.invalid',credentialVersion:0} : null;
@@ -29,7 +29,8 @@ const annual=Object.values(JSON.parse(await fs.readFile('backend/cache/annual-re
 const weekly=daily.filter(report=>report.collection==='markets' && report.key!=='market_news').map(report=>({...report,analysisPeriod:'weekly'}));
 const custom=createReportDraft('finance',daily.find(report=>report.collection==='finance' && report.key==='fx')).report;
 custom.title='Tesorería para el comité';custom.personalization={...custom.personalization,customTitle:custom.title};
-const reports=process.argv.includes('--custom-only') ? [custom] : [...daily,...weekly,...annual,custom],folder=path.resolve('output/exportaciones-20261105');await fs.mkdir(folder,{recursive:true});
+const selection=process.argv.includes('--custom-only') ? [custom] : process.argv.includes('--current-only') ? [...daily,...weekly,custom] : [...daily,...weekly,...annual,custom];
+const reports=process.argv.includes('--panoramas-only') ? selection.filter(report=>['overview','mx_overview'].includes(report.key)) : selection,folder=path.resolve(process.env.REPORT_EXPORT_OUTPUT || 'output/exportaciones-20261105');await fs.mkdir(folder,{recursive:true});
 const server=await new Promise(resolve=>{const listening=app.listen(0,'127.0.0.1',()=>resolve(listening));});
 const base='http://127.0.0.1:'+server.address().port,results=[],unavailable=[],names=new Set();
 const identity=index=>{const id='export-fixture-'+index;return {owner:id+'@example.invalid',authorization:'Bearer '+jwt.sign({sub:id,email:id+'@example.invalid',role:'user',credentialVersion:0},process.env.JWT_SECRET,{expiresIn:'1h'})};};
@@ -43,7 +44,7 @@ try {
    const response=await fetch(base+'/api/report-export',{method:'POST',headers:{'Content-Type':'application/json',Authorization:authorization},body:JSON.stringify({executiveReport:report,title:report.title,format:'pdf',response:'file',expectedOwner:owner})});
    assert.equal(response.status,422);assert.equal((await response.json()).code,'REPORT_DATA_UNAVAILABLE');unavailable.push(key);continue;
   }
-  const formats=['pdf','csv',...((report.baseReport?.key || report.key)==='grains' ? ['xlsx'] : [])];
+  const formats=process.argv.includes('--all-formats') ? ['pdf','csv','xlsx'] : ['pdf','csv',...((report.baseReport?.key || report.key)==='grains' ? ['xlsx'] : [])];
   for(const format of formats){
    const started=Date.now();let headers;
    const blob=await requestReportFile(report,report.title,'',format,async(route,options)=>{
@@ -56,7 +57,7 @@ try {
    if(format==='pdf'){
     const task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,isEvalSupported:false}),pdf=await task.promise;
     try{
-     const max=model.panorama ? 200 : model.bondExecutive ? 5 : model.commodityExecutive?.key==='proteins' ? 6 : 3;
+     const max=model.panorama ? 200 : model.bondExecutive ? 5 : model.equityExecutive ? 4 : model.commodityExecutive?.key==='proteins' ? 6 : 3;
      assert(pdf.numPages>0 && pdf.numPages<=max,key+' page limit');
      const metadata=await pdf.getMetadata();assert.equal(metadata.info.Title,reportDocumentTitle(report,{title:report.title}));assert.equal((await pdf.getViewerPreferences()).get('DisplayDocTitle'),true);
      for(let n=1;n<=pdf.numPages;n++){const text=(await(await pdf.getPage(n)).getTextContent()).items.map(item=>item.str).join(' ');assert(text.trim(),key+' has no empty pages');assert(!/\b(?:NaN|Infinity)\b/.test(text));}

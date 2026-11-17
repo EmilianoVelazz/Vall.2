@@ -6,7 +6,7 @@ import {marketPeriods,compactMarketPoints,validMarketPoints,focusedEvidence,safe
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
 import {reportAnnex} from '../frontend/src/lib/reportLibrary.js';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='offline-market-report-check';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='offline-market-report-check-fixture-only-testing-32bytes';
 const {makeReportWorkbook}=require('../backend/lib/report-workbook');
 const {_test}=require('../backend/routes/export');
 const cutoff='2026-10-23T14:00:00Z',points=[];

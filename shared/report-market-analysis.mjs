@@ -65,7 +65,7 @@ export function marketPeriods(points,cadence='daily'){
   const at=(target,days=tolerance)=>compare(before(points,target,days),last);
   const historyBase=points.find(item=>item.date>='2020-01-01'),base2020=points.find(item=>item.date.startsWith('2020-'));
   return {day:cadence==='daily' ? compare(points.at(-2) && Date.parse(last.date)-Date.parse(points.at(-2).date)<=7*DAY ? points.at(-2) : null,last) : null,
-    week:['daily','weekly'].includes(cadence) ? at(new Date(Date.parse(last.date)-7*DAY).toISOString().slice(0,10)) : null,
+    week:['daily','weekly'].includes(cadence) ? at(new Date(Date.parse(last.date)-7*DAY).toISOString().slice(0,10),cadence==='weekly' ? 3 : 4) : null,
     month:cadence==='annual' ? null : at(monthBefore(last.date,1)),quarter:cadence==='annual' ? null : at(monthBefore(last.date,3)),semester:cadence==='annual' ? null : at(monthBefore(last.date,6)),year:at(monthBefore(last.date,12)),ytd:cadence==='annual' ? null : at((Number(last.date.slice(0,4))-1)+'-12-31'),
     since2020:compare(base2020,last),history:compare(historyBase,last)};
 }
@@ -179,6 +179,7 @@ export function focusedMarketReport(report,model,{t:labels=value=>value}={}){
   if(report.periodType==='annual')return {...model,metrics:[],blocks:model.blocks.filter(block=>!['results','indicators'].includes(block.key))};
   if(!model.sessionReport)return {...model,metrics:[]};
   const key=report.baseReport?.key || report.key,area=report.baseReport?.collection || report.collection;
+  if(area==='mexico')return model;
   if(key==='bonds' && (!area || area==='finance'))return bondExecutiveReport(report,model,{t});
   if(key==='fx' && (!area || area==='finance'))return fxExecutiveReport(report,model,{t});
   const protein=key==='proteins' && (!area || area==='markets'),equity=key==='equities',fx=key==='fx',commodity=['grains','energy_metals','proteins'].includes(key),weekly=report.analysisPeriod==='weekly';

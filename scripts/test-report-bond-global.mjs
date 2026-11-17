@@ -6,7 +6,7 @@ import {bondSessionReport} from '../shared/report-bond-session.mjs';
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
 import {reportCsv} from '../frontend/src/lib/reportCsv.js';
 const require=createRequire(import.meta.url);
-process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-global-bond-test';
+process.env.NODE_ENV='test';process.env.JWT_SECRET='isolated-global-bond-test-fixture-only-testing-32bytes';
 const {countries,parseGlobalCsv,loadGlobalBondMarkets,csvRows}=require('../backend/lib/report-bond-global');
 const {config}=require('../backend/lib/report-bond-markets');
 const {normalizeReport}=require('../backend/services/user-report-store');

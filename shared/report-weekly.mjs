@@ -1,4 +1,5 @@
 import {commodityExecutiveReport} from './report-commodity-executive.mjs';
+import {editorialModel} from './report-editorial-format.mjs';
 import {mexicoExecutiveReport} from './report-mexico-executive.mjs';
 import {isMarketNews,marketNewsReport} from './report-market-news.mjs';
 // Daily composition shared by reading, PDF and text exports. Histories stay internal.
@@ -13,6 +14,7 @@ import {focusedMarketReport} from './report-market-analysis.mjs';
 import {scopeUsProteinReport} from './report-protein-scope.mjs';
 import {isPanorama,panoramaReport} from './report-panorama.mjs';
 import {isFinancialNews,financialNewsReport} from './report-financial-news.mjs';
+import {withDecisionSummary} from './report-decision-summary.mjs';
 const finite=value=>typeof value==='number' && Number.isFinite(value);
 const defaultNumber=value=>finite(value) ? value.toLocaleString('es-MX',{maximumFractionDigits:5}) : 'Sin dato';
 const heading=value=>String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -76,7 +78,8 @@ export function weeklyReport(report,options={}){
   }
   // Las ediciones especializadas y anuales pasan por la misma limpieza. La
   // nota completa se conserva para restaurarla cuando se filtran las tablas.
-  return {...model,results:uniqueTableNotes(model.results)};
+  const presentation={...model,results:uniqueTableNotes(model.results)};
+  return report.periodType==='annual' ? editorialModel(report,presentation,options) : options.equitySession===false ? presentation : withDecisionSummary(report,presentation,options);
 }
 function baseWeeklyReport(report,{t=value=>value,source=value=>value,number=defaultNumber,equitySession=true}={}) {
   if(isAnnualReport(report))return annualReport(report,{t});

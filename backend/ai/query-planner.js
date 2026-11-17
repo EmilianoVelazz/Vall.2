@@ -172,6 +172,7 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     // Una consulta corta puede requerir razonamiento profundo si compara varios
     // frentes o pide una decisión. No usamos sólo longitud como señal.
     const recommendedTier = needsTradeResearch || asksAnalysis || asksExecutiveBrief || complexity >= 2 || mode === 'executive' || mode === 'technical' ? 'pro' : 'flash';
+    const needsExecutiveReport = /\b(?:informes?\s+ejecutivos?|nuestros?\s+informes|los\s+informes|informe\s+(?:de\s+)?(?:finanzas|mercados|mexico|bonos|divisas|fx|acciones|proteinas|granos|energia|bolsa|noticias|produccion)|panorama\s+(?:ejecutivo|nacional|financiero|de\s+mercados)|(?:el|los)\s+reportes?\s+(?:de\s+)?(?:finanzas|mercados|mexico)|report\s*reader)\b/i.test(text);
 
     const plan = {
         locationClarification: proteinPhysicalPrice && !protein.mexicoCities.length ? ambiguousMexicoCities(message)[0] || null : null,
@@ -214,11 +215,12 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
         followsThread,
         activeAnchor,
         providedInputsOnly,
+        needsExecutiveReport,
         historyTurns: Array.isArray(history) ? history.length : 0,
         inheritedTopics: inheritsTopic ? historyTopics.filter(topic => !currentTopics.includes(topic)) : [],
     };
     if (providedInputsOnly) {
-        for (const flag of ['asksCurrentData', 'localPhysicalPrice', 'requiresWebResearch', 'needsLiveQuote', 'needsFxQuote', 'needsIssuerResearch', 'needsLiveNews', 'needsProteinPrices', 'needsProteinResearch', 'needsMercolleida', 'needsRabobank', 'needsTradeResearch', 'usesVerifiedRepository', 'needsSources']) plan[flag] = false;
+        for (const flag of ['asksCurrentData', 'localPhysicalPrice', 'requiresWebResearch', 'needsLiveQuote', 'needsFxQuote', 'needsIssuerResearch', 'needsLiveNews', 'needsProteinPrices', 'needsProteinResearch', 'needsMercolleida', 'needsRabobank', 'needsTradeResearch', 'usesVerifiedRepository', 'needsSources', 'needsExecutiveReport']) plan[flag] = false;
     }
     return plan;
 }
@@ -265,6 +267,9 @@ function planContext(plan) {
     if (plan.usesVerifiedRepository) {
         obligations.push('Para indicadores, series e históricos usa primero la evidencia verificada de VALL. No mezcles periodos, unidades ni fuentes sin explicarlo.');
     }
+    if (plan.needsExecutiveReport) {
+        obligations.push('Cuando el usuario pregunte por nuestros informes ejecutivos o panóramas publicados, usa exclusivamente las cifras, cortes, fuentes y alertas de [LECTURA DE INFORMES EJECUTIVOS · REPORT READER]. Si un dato solicitado no aparece en el corte del informe, dilo explícitamente.');
+    }
     if (plan.needsSources) {
         obligations.push('Toda cifra material debe indicar fuente y periodo/corte. Si haces una inferencia, etiquétala como inferencia y explica el supuesto.');
     }
@@ -303,10 +308,10 @@ function mergeEvidence(evidence, live = null) {
         rabobankRecords: live.rabobankRecords || evidence.rabobankRecords || [],
         proteinPrices: live.proteinPrices || evidence.proteinPrices || null,
         proteinPriceRecords: live.proteinPriceRecords || evidence.proteinPriceRecords || [],
-        marketQuotes: live.marketQuotes || [],
-        quotesAvailable: live.quotesAvailable,
-        newsAvailable: live.newsAvailable,
-        issuerDocuments: live.issuerDocuments || [],
+        marketQuotes: live.marketQuotes || evidence.marketQuotes || [],
+        quotesAvailable: live.quotesAvailable ?? evidence.quotesAvailable,
+        newsAvailable: live.newsAvailable ?? evidence.newsAvailable,
+        issuerDocuments: live.issuerDocuments || evidence.issuerDocuments || [],
     };
 }
 

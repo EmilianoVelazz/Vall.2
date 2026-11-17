@@ -5,10 +5,16 @@ const rateLimit = require('express-rate-limit');
 const fs = require('node:fs');
 const path = require('node:path');
 const PDFDocument = require('pdfkit');
-const { reportMailStatus, mailTransport, mailFailure, mailAutomationEnabled } = require('../services/report-mailer');
+// Branded previews share the original compressed images in the final PDF.
+// PDFKit otherwise decodes the 5000px logos for every temporary chapter.
+class PreviewPdfDocument extends PDFDocument {
+    constructor(...args){super(...args);this._vallDeferBrandAssets=true;}
+}
+const { reportMailStatus, mailTransport, mailFailure, mailAutomationEnabled, mailSender } = require('../services/report-mailer');
 const JSZip = require('jszip');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, AlignmentType } = require('docx');
 const { verifyToken } = require('./auth');
+const { hasBearerSecret } = require('../lib/request-security');
 const { reportOwnerBinding } = require('../lib/report-session-owner');
 const { accountKey, createWorkGate, boundedJson } = require('../lib/resource-limits');
 const {createReportEmailLimits}=require('../lib/report-email-limits');
@@ -25,22 +31,24 @@ const {normalizeEquityEvidence}=require('../lib/report-equity-quality');
 const reportEmailSchedules = require('../services/report-email-schedule-store');
 const {normalizeScheduleSelection}=require('../lib/report-schedule-selection');
 const { reportFileStore } = require('../services/report-file-store');
-const { normalizePreferences, personalizeExecutiveReport } = require('../lib/executive-report-preferences');
+const { normalizePreferences, personalizeExecutiveReport, changed:reportPreferencesChanged } = require('../lib/executive-report-preferences');
 const { userReportAgent } = require('../ai/user-report-agent');
 const { createScheduledReportDelivery, normalizeAiCustomization } = require('../services/report-scheduled-delivery');
 const {reportLearning}=require('../services/report-learning');
 const { normalizeRecipient } = require('../lib/report-email-recipient');
-const { buildReportEmail } = require('../services/report-email-template');
+const { buildReportEmail, reportEmailAttachments } = require('../services/report-email-template');
 const {reportTranslator}=require('../services/report-translation');
 const {reportLabels,requestReportLanguage}=require('../lib/report-language');
 const {makeLocalizedReportPdf}=require('../lib/report-localized-pdf');
 const {reportExportContent}=require('../lib/report-export-content');
 const {reportPresentation,withoutSourcesText}=require('../lib/report-presentation');
 const {reportDownloadName,reportDocumentTitle}=require('../../shared/report-download-name.mjs');
+const {reportBrandHeader,reportBrandFooter,reportBrandWatermark,finishReportBranding}=require('../lib/report-branding');
+const {reportPdfCache}=require('../lib/report-pdf-cache');
+const {createReportBundleSender}=require('../services/report-email-bundle');
 
 const router = express.Router();
 const REPORT_TEMPLATE_PATH = path.join(__dirname, '..', '..', 'assets', 'templates', 'vallnews-reports-template.docx');
-const REPORT_WATERMARK_PATH = path.join(__dirname, '..', '..', 'assets', 'templates', 'vallnews-report-watermark.png');
 function isEquityLayout(report) {
     const layout=reportLayout(report);
     return layout?.collection==='finance' && layout.key==='equities';
@@ -73,7 +81,7 @@ function safeHtml(value) {
 
 async function deliverExecutiveEmail({ recipient, title, executive, language='es', owner='',beforeSend }) {
     recipient=normalizeRecipient(recipient);
-    const sender = clean(process.env.GMAIL_USER, 240);
+    const sender = clean(mailSender(), 240);
     const transport = mailTransport();
     if (!transport || !sender) throw mailFailure();
     try {
@@ -86,7 +94,7 @@ async function deliverExecutiveEmail({ recipient, title, executive, language='es
         from: `VALLNEWS <${sender}>`, to: recipient,
         headers:{'Content-Language':language},
         ...buildReportEmail({title:localized.title,executive:localized.report,attachmentName,language}),
-        attachments: [{ filename: attachmentName, content: buffer, contentType: 'application/pdf' }],
+        attachments: [{ filename: attachmentName, content: buffer, contentType: 'application/pdf' },...reportEmailAttachments()],
     });
         const accepted=receipt?.accepted?.some(value=>String(value).trim().toLowerCase()===recipient.toLowerCase())&&!receipt?.rejected?.some(value=>String(value).trim().toLowerCase()===recipient.toLowerCase());
         if(!accepted) throw Object.assign(Error('El servidor SMTP no confirmó al destinatario.'),{code:'EENVELOPE'});
@@ -95,12 +103,13 @@ async function deliverExecutiveEmail({ recipient, title, executive, language='es
     } finally {try{transport.close?.();}catch{console.warn('[report-email] No se confirmó el cierre del transporte SMTP.');}}
 }
 
+const reportBundleSender=createReportBundleSender({render:makeExecutivePdf,localize:(input,options)=>reportTranslator.localize(input,options),cache:reportPdfCache});
 const runScheduledReportEmails = createScheduledReportDelivery({
     enabled: mailAutomationEnabled,
     store: reportEmailSchedules, collections: REPORT_COLLECTIONS,
     loadSnapshot: area => area === 'finance' ? financeReportStore.load() : area === 'mexico' ? mexicoReports.get() : marketReportStore.load(),
     generate: async (request,{ownerEmail}) => userReportAgent.generate(request,{userContext:await reportLearning.load({email:ownerEmail})}), personalize: personalizeExecutiveReport,
-    prepare: executivePayload, deliver: deliverExecutiveEmail,
+    prepare: executivePayload, deliver: deliverExecutiveEmail,deliverBundle:reportBundleSender.deliver,
 });
 
 function docxParagraphs(content) {
@@ -243,6 +252,7 @@ function executivePayload(input) {
         evidenceNote: 'Síntesis determinista construida con los indicadores y fuentes verificables ya incluidos en este informe; no es una respuesta generada por IA.',
     };
     const executiveBrief = briefInput ? {
+        generated:briefInput.generated===true,model:text(briefInput.model,160),generatedAt:text(briefInput.generatedAt,40),evidenceHash:/^[a-f0-9]{64}$/.test(briefInput.evidenceHash || '') ? briefInput.evidenceHash : '',
         mode: briefInput.mode === 'ai' ? 'ai' : 'deterministic', agent: text(briefInput.agent || 'VALL Executive Desk', 80), headline: text(briefInput.headline, 140), context: text(briefInput.context, 360), thesis: text(briefInput.thesis, 500),
         drivers: Array.isArray(briefInput.drivers) ? briefInput.drivers.slice(0, 3).map(item => text(item, 300)).filter(Boolean) : [],
         risks: Array.isArray(briefInput.risks) ? briefInput.risks.slice(0, 3).map(item => text(item, 300)).filter(Boolean) : [],
@@ -250,7 +260,14 @@ function executivePayload(input) {
     } : null;
     const personalizationInput = input.personalization && typeof input.personalization === 'object' ? input.personalization : {};
     const personalization = {
-        customized: Object.keys(personalizationInput).length > 0,
+        // Reader preferences decorate the existing report. Only an authored
+        // decision guide selects the personalized narrative compositor.
+        customized: Boolean(input.decisionGuide) && reportPreferencesChanged({
+            audience:personalizationInput.audienceKey || personalizationInput.audience,
+            depth:personalizationInput.depth,
+            objective:personalizationInput.objective,
+            decisionHorizon:personalizationInput.decisionHorizon,
+        }),
         sections: normalizePreferences(personalizationInput).sections,
         audience: ({general:'Comité directivo',finance:'Finanzas y tesorería',purchasing:'Compras y abastecimiento',operations:'Operaciones',commercial:'Dirección comercial'})[personalizationInput.audience] || text(personalizationInput.audienceLabel || personalizationInput.audience, 80),
         depth: ['brief', 'standard', 'detailed'].includes(personalizationInput.depth) ? personalizationInput.depth : 'standard',
@@ -357,62 +374,23 @@ function pdfResetFlow(document, y = document.y) {
     document.y = Math.max(document.page.margins.top, y);
 }
 
-function pdfVallnewsWatermark(document, opacity = 1) {
-    if (!fs.existsSync(REPORT_WATERMARK_PATH)) return;
-    const image = document.openImage(REPORT_WATERMARK_PATH);
-    // La plantilla Word ancla el archivo original a 6 pulgadas de ancho en el
-    // centro de la página. Conservamos esa misma medida en PDF y sólo usamos
-    // opacidad para que funcione como marca de agua, no como decoración tenue.
-    const width = Math.min(432, document.page.width - 54);
-    const height = width * (image.height / image.width);
-    document.save();
-    document.opacity(opacity);
-    document.image(REPORT_WATERMARK_PATH, (document.page.width - width) / 2, (document.page.height - height) / 2, { width, height });
-    document.restore();
-}
-
 function pdfVallnewsWatermarksOnTop(document, { skipFirstPage = false, skipLastPage = false } = {}) {
-    // Las tarjetas y las gráficas dibujan fondos blancos opacos. Si la marca
-    // se coloca al abrir una página queda técnicamente incluida, pero termina
-    // cubierta por esos fondos. Con bufferPages podemos aplicarla al final de
-    // cada hoja: conserva el mismo PNG, tamaño y transparencia de Word, y se
-    // mantiene legible sin ocultar el contenido.
-    if (!fs.existsSync(REPORT_WATERMARK_PATH) || typeof document.bufferedPageRange !== 'function') return;
+    if (typeof document.bufferedPageRange !== 'function') return;
     const { start, count } = document.bufferedPageRange();
     for (let offset = 0; offset < count; offset += 1) {
         if (skipFirstPage && offset === 0) continue;
         if (skipLastPage && offset === count - 1) continue;
         document.switchToPage(start + offset);
-        pdfVallnewsWatermark(document);
+        reportBrandWatermark(document);
     }
 }
 
 function pdfPageHeader(document, label = 'INFORME EJECUTIVO') {
-    const x = document.page.margins.left;
-    const y = document.page.margins.top;
-    const contentWidth = document.page.width - document.page.margins.left - document.page.margins.right;
-    const pageNumber = String(document._vallPdfPageNumber || 2).padStart(2, '0');
-    // La cabecera conserva orientación de sección y página para que cada
-    // hoja pueda circular por separado sin perder el contexto del informe.
-    const personalization = document._vallPdfPersonalization || {};
-    const owner = personalization.organization || personalization.recipientName || 'VALLNEWS';
-    document.fillColor('#6B7280').font('Helvetica-Bold').fontSize(6.4).text(`${owner.toUpperCase()} · HOJA ${pageNumber}`, x, y, { width: contentWidth * .52, characterSpacing: .45, ellipsis: true });
-    document.fillColor(PDF_COLORS.muted).font('Helvetica-Bold').fontSize(6.7).text(label, x, y, { width: contentWidth, align: 'right', characterSpacing: .45 });
-    document.strokeColor(PDF_COLORS.line).lineWidth(.7).moveTo(x, y + 17).lineTo(x + contentWidth, y + 17).stroke();
-    pdfResetFlow(document, y + 29);
+    reportBrandHeader(document,label);
 }
 
 function pdfExecutiveFooter(document, page) {
-    const x = document.page.margins.left;
-    const width = document.page.width - document.page.margins.left - document.page.margins.right;
-    const y = document.page.height - document.page.margins.bottom - 18;
-    document.strokeColor('#D1D5DB').lineWidth(.45).moveTo(x, y - 6).lineTo(x + width, y - 6).stroke();
-    const personalization = document._vallPdfPersonalization || {};
-    const classification = personalization.confidentialityLabel || 'Uso interno';
-    const owner = personalization.organization || personalization.recipientName || 'VALLNEWS';
-    document.fillColor('#6B7280').font('Helvetica').fontSize(5.55).text(`${classification.toUpperCase()} · ${owner}${document._vallPdfDataOnly ? '' : ' · Documento informativo. Confirme fecha, unidad y fuente primaria.'}`, x, y, { width: width - 54, ellipsis: true });
-    document.fillColor('#4B5563').font('Helvetica-Bold').fontSize(5.7).text(`PAGINA ${page}`, x + width - 50, y, { width: 50, align: 'right' });
-    pdfResetFlow(document, document.page.margins.top + 29);
+    reportBrandFooter(document,page);
 }
 
 function pdfExecutiveChapter(document, index, heading, caption = '') {
@@ -1340,18 +1318,20 @@ function pdfFullTables(document,tables) {
 async function makeDashboardPdf(title,report,layout) {
     report=require('../lib/report-daily-evidence').withDailyEvidence(report);
     const daily=(await import('../../shared/report-weekly.mjs')).weeklyReport(report);
-    const weekly=layout.composition==='weekly-sheet' ? daily : null;
+    const weekly=layout.composition==='weekly-sheet' || daily.annualReport || (!report.aiEdition && !report.editionId && daily.results?.length) ? daily : null;
     const chapterFooter=report.panoramaMember ? ()=>{} : pdfExecutiveFooter;
     const chartGeometry=await import('../../shared/report-chart-geometry.mjs');
-    if(weekly?.panorama)return require('../lib/report-panorama-pdf').makePanoramaPdf(title,report,{weekly,chartGeometry,PDFDocument,pdfPersonalization,pdfPageHeader,pdfExecutiveFooter:chapterFooter,renderPart:makeExecutivePdf});
-    const helpers={layout,chartGeometry,PDFDocument,pdfPersonalization,pdfPageHeader,pdfExecutiveFooter:chapterFooter,pdfSection,pdfWatermark:report.panoramaMember || weekly?.commodityExecutive || weekly?.mexicoExecutive ? ()=>{} : pdfVallnewsWatermarksOnTop};
-    const renderCompact=async edition=>{const {compactChartReadings}=await import('../../shared/report-chart-layout.mjs'),charts=compactChartReadings(edition.visuals || []),model={...edition,visuals:charts.visuals,chartNotes:charts.notes};return makeCompanyDashboardPdf(title,{...report,metrics:model.metrics,visuals:model.visuals,tables:model.tables},{...helpers,weekly:model,causes:daily.causes});};
+    // Chapters are intermediate PDFs: metadata and the final watermark belong
+    // to the assembled document, so do that work once after merging.
+    if(weekly?.panorama)return require('../lib/report-panorama-pdf').makePanoramaPdf(title,report,{weekly,chartGeometry,PDFDocument:PreviewPdfDocument,pdfPersonalization,pdfPageHeader,pdfExecutiveFooter:chapterFooter,renderPart:renderExecutivePdf});
+    const helpers={layout,chartGeometry,PDFDocument:PreviewPdfDocument,pdfPersonalization,pdfPageHeader,pdfExecutiveFooter:chapterFooter,pdfSection,pdfWatermark:report.panoramaMember || (!report.userEdition && (weekly?.commodityExecutive || weekly?.mexicoExecutive)) ? ()=>{} : pdfVallnewsWatermarksOnTop};
+    const renderCompact=async edition=>{const {compactChartReadings}=await import('../../shared/report-chart-layout.mjs'),charts=compactChartReadings(edition.visuals || []),model={...edition,visuals:charts.visuals,chartNotes:charts.notes};const metrics=(model.metrics?.length ? model.metrics : daily.metrics) || report.metrics,extraTables=report.userEdition && !report.baseReport ? (report.tables || []).filter(t=>!model.results?.some(r=>r.title===t.title)) : [],tables=model.results?.length ? [...model.results,...extraTables] : (model.tables?.length ? model.tables : report.tables);return makeCompanyDashboardPdf(title,{...report,metrics,visuals:model.visuals,tables},{...helpers,weekly:model,causes:daily.causes});};
     const render=edition=>{
         const specialized={...helpers,weekly:edition};
         if(edition?.newsExecutive)return require('../lib/report-financial-news-pdf').makeFinancialNewsPdf(title,report,specialized);
-        if(edition?.equityExecutive)return require('../lib/report-equity-executive-pdf').makeEquityExecutivePdf(title,report,specialized);
-        if(edition?.bondExecutive)return require('../lib/report-bond-executive-pdf').makeBondExecutivePdf(title,report,specialized);
-        if(edition?.fxExecutive)return require('../lib/report-fx-executive-pdf').makeFxExecutivePdf(title,report,specialized);
+        if(edition?.equityExecutive && !report.personalization?.customized)return require('../lib/report-equity-executive-pdf').makeEquityExecutivePdf(title,report,specialized);
+        if(edition?.bondExecutive && !report.personalization?.customized)return require('../lib/report-bond-executive-pdf').makeBondExecutivePdf(title,report,specialized);
+        if(edition?.fxExecutive && !report.personalization?.customized)return require('../lib/report-fx-executive-pdf').makeFxExecutivePdf(title,report,specialized);
         return renderCompact(edition);
     };
     if(weekly)return require('../lib/report-pdf-page-limit').renderIndividualReportPdf({report,model:weekly,render,renderCompact,completeFirst:Boolean(weekly.newsExecutive || weekly.equityExecutive || weekly.bondExecutive || weekly.fxExecutive || report.panoramaMember)});
@@ -1388,6 +1368,7 @@ async function makeExecutivePdf(title,report,localization){
     const document=await ExportDocument.load(bytes,{updateMetadata:false});
     document.setTitle(reportDocumentTitle(report,{language:localization?.language || 'es',title:report.title || title}),{showInWindowTitleBar:true});
     document.setAuthor('VALLNEWS');
+    await finishReportBranding(document);
     const result=Buffer.from(await document.save());
     Object.defineProperty(result,'reportPageCount',{value:document.getPageCount()});
     return result;
@@ -1397,7 +1378,9 @@ function renderExecutivePdf(title, report,localization) {
     if(localization?.language && localization.language!=='es') return makeLocalizedReportPdf(title,report,localization,pdfVallnewsWatermarksOnTop);
     // Los informes base y las ediciones de Bolsa comparten el tablero.
     // La composición se identifica por el origen, aunque el usuario lo renombre.
-    const layout=reportLayout(report);
+    // An explicit decision guide contains authored analysis. Keep that content
+    // in the narrative compositor; plain reader preferences retain the base template.
+    const layout=report.personalization?.customized && report.decisionGuide ? null : reportLayout(report);
     if (['company-dashboard','weekly-sheet'].includes(layout?.composition)) return makeDashboardPdf(title,report,layout);
     if (report?.userEdition) return makeUserEditionPdf(title,report);
     return new Promise((resolve, reject) => {
@@ -1684,14 +1667,17 @@ router.post('/report-export', verifyToken, limiter, boundedJson({ limit: '7mb' }
         if(format==='xlsx' && !executive)return res.status(400).json({success:false,error:'El informe no contiene datos estructurados para Excel.'});
         const localized=await reportTranslator.localize({report:executive,title,content:executive ? '' : content,language},{owner:req.user.email});
         title=localized.title;executive=localized.report;
-        if(executive)content=await reportExportContent(executive,localized.t,localized.source);
+        if(executive && format!=='pdf')content=await reportExportContent(executive,localized.t,localized.source);
         else if(language!=='es')content=localized.content;
         res.setHeader('Content-Language',language);
         const images = imagesFrom(req.body);
         if(!executive && language!=='es') localized.images=images;
         let buffer, mime, extension;
         if (format === 'docx') { buffer = await makeDocx(title, content, images,localized); mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; extension = 'docx'; }
-        else if (format === 'pdf') { buffer = executive ? await makeExecutivePdf(title, executive,localized) : language==='es' ? await makePdf(title, content, images) : await makeExecutivePdf(title,{title,generatedAt:new Date().toISOString(),summary:'',sections:[{heading:localized.t('Análisis'),text:content}],metrics:[],visuals:[],tables:[],takeaways:[],watchlist:[],sources:[],sourceLinks:[],personalization:{}},localized); mime = 'application/pdf'; extension = 'pdf'; }
+        else if (format === 'pdf') {
+            buffer=await reportPdfCache.getOrCreate({owner:req.user.email,language,title,report:executive,images:executive ? [] : [content,...images]},()=>executive ? makeExecutivePdf(title,executive,localized) : language==='es' ? makePdf(title,content,images) : makeExecutivePdf(title,{title,generatedAt:new Date().toISOString(),summary:'',sections:[{heading:localized.t('Análisis'),text:content}],metrics:[],visuals:[],tables:[],takeaways:[],watchlist:[],sources:[],sourceLinks:[],personalization:{}},localized));
+            mime='application/pdf';extension='pdf';
+        }
         else if (format === 'csv') {const {reportCsv}=await import('../../frontend/src/lib/reportCsv.js');buffer=Buffer.from(reportCsv(executive,localized));mime='text/csv; charset=utf-8';extension='csv';}
         else if(format==='xlsx'){const {makeReportWorkbook,REPORT_WORKBOOK_MIME}=require('../lib/report-workbook');buffer=await makeReportWorkbook(executive,localized);mime=REPORT_WORKBOOK_MIME;extension='xlsx';}
         else if (format === 'html') { buffer = htmlReport(title, content, images,language); mime = 'text/html; charset=utf-8'; extension = 'html'; }
@@ -1812,7 +1798,7 @@ router.post('/report-email-schedules/cancel', verifyToken, express.json({ limit:
 
 router.get('/report-email-schedules/run', async (req, res) => {
     const expected = process.env.CRON_SECRET || process.env.REFRESH_SECRET;
-    if (!expected || String(req.headers.authorization || '') !== `Bearer ${expected}`) return res.status(401).json({ success: false, error: 'No autorizado.' });
+    if (!hasBearerSecret(req, expected)) return res.status(401).json({ success: false, error: 'No autorizado.' });
     try { res.json({ success: true, ...(await runScheduledReportEmails()) }); }
     catch (error) { console.error('/api/report-email-schedules/run:', error.message); res.status(500).json({ success: false, error: 'No se pudieron procesar los envíos programados.' }); }
 });
@@ -1848,4 +1834,4 @@ router.get('/report-download/:token', verifyToken, async (req, res) => {
 
 module.exports = router;
 module.exports.runScheduledReportEmails = runScheduledReportEmails;
-module.exports._test = { makeDocx, makePdf, makeExecutivePdf, makeEquityWeeklyPdf, executivePayload, htmlReport, plain, safeHtml, runScheduledReportEmails,deliverExecutiveEmail };
+module.exports._test = { makeDocx, makePdf, makeExecutivePdf, makeEquityWeeklyPdf, executivePayload, htmlReport, plain, safeHtml, runScheduledReportEmails,deliverExecutiveEmail,reportBundleSender };

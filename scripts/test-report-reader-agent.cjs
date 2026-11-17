@@ -218,7 +218,25 @@ async function main() {
     assert(capturedPrompt.includes('4.25%'));
     assert(orionResult.response.meta.toolExecution.tools.some(t => t.tool === 'report_reader' && t.status === 'completed'));
 
-    console.log('ReportReaderAgent: OK · catálogo, lectura determinista, guardia anti-alucinación, IA, auth, aislamiento y ORION MCP verificados.');
+    // 6. Integración con ORION streaming (SSE) + cancelación por AbortSignal
+    let streamedChunks = 0;
+    capturedPrompt = '';
+    const streamResult = await orchestrator.stream({
+        message: 'Lee el informe de bonos de finanzas',
+        onText: () => { streamedChunks++; },
+    });
+    assert(capturedPrompt.includes('[LECTURA DE INFORMES EJECUTIVOS · REPORT READER]'));
+    assert(streamedChunks >= 1);
+    assert(streamResult.response.meta.toolExecution.tools.some(t => t.tool === 'report_reader' && t.status === 'completed'));
+
+    const abortController = new AbortController();
+    abortController.abort();
+    await assert.rejects(() => orchestrator.stream({
+        message: 'Lee el informe de bonos de finanzas',
+        signal: abortController.signal,
+    }));
+
+    console.log('ReportReaderAgent: OK · catálogo, lectura determinista, guardia anti-alucinación, IA, auth, aislamiento y ORION MCP (structured + stream + abort) verificados.');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });

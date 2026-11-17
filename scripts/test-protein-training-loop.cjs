@@ -32,6 +32,7 @@ const context = {
         };
         if (name === './providers/gemini-provider') return { GeminiProvider: FakeProvider };
         if (name === './protein-training-sources') return { gatherProteinEvidence: async () => structuredClone(evidence) };
+        if (name.startsWith('.')) return require(path.resolve(path.dirname(filename), name));
         return require(name);
     },
 };

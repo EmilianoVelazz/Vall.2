@@ -141,7 +141,27 @@ async function main() {
         const afterPending = await (await call('/admin/loopus-proposals?status=pending_human_review', null, adminCookie)).json();
         assert.equal(afterPending.proposals.length, 0);
 
-        console.log('AdminLoopus RBAC: OK · 401 anónimo, 403 no-admin, validación 400/404 y revisión 200 verificados.');
+        // 5. Verificar Loopus Knowledge (inyección en Chat ORION e Informes + filtro sin números)
+        const { getChatReasoningContext, getReportReasoningContext, stripNumbersForReportRule } = require('../backend/ai/loopus-knowledge');
+        const { criticFilterProposals, TRAINING_CURRICULUM } = require('../backend/ai/ml-training-loop');
+
+        assert(TRAINING_CURRICULUM.length >= 30, 'Currículum de al menos 30 módulos');
+        const chatCtx = getChatReasoningContext({ message: '¿Cómo afecta el tipo de cambio USD/MXN al costo del maíz importado y el margen?' });
+        assert(chatCtx.includes('[GUÍA DE RACIOCINIO ANALÍTICO · PROYECTO LOOPUS]'));
+        assert(chatCtx.includes('Cadena lógica:'));
+
+        const reportCtx = getReportReasoningContext({ area: 'Mercados', key: 'proteins', audience: 'purchasing', instructions: 'Compras de proteína' });
+        assert(reportCtx.includes('CRITERIOS DE RAZONAMIENTO EDITORIAL'));
+        assert(!/\d/.test(stripNumbersForReportRule('Regla con 45.2% y 1200 toneladas')), 'stripNumbersForReportRule elimina dígitos para no interferir con numericTokens');
+
+        const filtered = criticFilterProposals([
+            { domain: 'chat', audience: 'purchasing', condition_trigger: 'Consulta de maíz y tipo de cambio en compras', learned_rule: 'Cruzar la variación cambiaria USD/MXN con la base física antes de estimar el costo en planta.', reasoning_chain: 'Paridad -> Base -> Costo -> Decisión', confidence_score: 0.91 },
+            { condition_trigger: 'corta', learned_rule: 'muy corta', confidence_score: 50 },
+        ]);
+        assert.equal(filtered.length, 1);
+        assert.equal(filtered[0].confidence_score, 91);
+
+        console.log('AdminLoopus RBAC & Loopus Knowledge: OK · 401/403/400/404/200, currículum 30+ módulos, raciocinio Chat e Informes verificados.');
     } finally {
         server.closeAllConnections();
         await new Promise(resolve => server.close(resolve));

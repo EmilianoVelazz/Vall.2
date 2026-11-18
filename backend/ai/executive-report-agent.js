@@ -9,6 +9,7 @@ const { enrichSectorReport } = require('../lib/report-sector-format');
 const {numericTokens}=require('../lib/report-evidence-numbers');
 const {reportDeadline}=require('../lib/report-deadline');
 const {editorialFacts,editorialFingerprint}=require('../lib/report-editorial-evidence');
+const { getReportReasoningContext } = require('./loopus-knowledge');
 
 function cleanText(value, limit) {
     return String(value ?? '')
@@ -108,7 +109,7 @@ class ExecutiveReportAgent {
         if (!this.provider.isConfigured()) return fallbackReports;
         const facts = sectorReports.map(factsFor);
         const promptFacts = facts.map(compactFactsForPrompt);
-        const systemInstruction = `Eres el agente editorial de informes ejecutivos de VALLNEWS. Entregas una lectura de nivel editorial para comité directivo: un titular sobrio, contexto, tesis verificable, señales que la sostienen, riesgos que podrían invalidarla y una pregunta de seguimiento. No imitas ni atribuyes el resultado a publicaciones, analistas o plataformas externas.
+        let systemInstruction = `Eres el agente editorial de informes ejecutivos de VALLNEWS. Entregas una lectura de nivel editorial para comité directivo: un titular sobrio, contexto, tesis verificable, señales que la sostienen, riesgos que podrían invalidarla y una pregunta de seguimiento. No imitas ni atribuyes el resultado a publicaciones, analistas o plataformas externas.
 
 Reglas no negociables:
 1. Usa únicamente los hechos incluidos en DATOS VERIFICADOS.
@@ -118,6 +119,8 @@ Reglas no negociables:
 5. Si faltan hechos, dilo de forma explícita y breve.
 Las preguntas e información a solicitar de la guía sectorial son criterios de análisis, no datos observados. Úsalas para precisar qué debe validarse; no afirmes que esa evidencia o exposición ya existe.
 6. Devuelve JSON válido, sin Markdown ni texto adicional. Sintetiza dentro de los límites de cada campo; todas las frases deben quedar completas y cerrar con puntuación. No copies todas las filas de las tablas.`;
+        const loopusGuidance = getReportReasoningContext({ area, key: fallbackReports.map(r => r.key).join(' ') });
+        if (loopusGuidance) systemInstruction += `\n\n${loopusGuidance}`;
         const buildAreaPrompt = (selectedFacts, repairNote = '') => `Área: ${area}. Para cada informe, devuelve exactamente este esquema:
 {"reports":[{"key":"","headline":"máximo 120 caracteres; describe el hecho sin sensacionalismo","context":"máximo 320 caracteres; explica por qué el corte merece atención usando sólo los datos dados","thesis":"máximo 420 caracteres; hecho y lectura condicional","drivers":["máximo 3, 240 caracteres c/u; señal observable y por qué importa"],"risks":["máximo 3, 240 caracteres c/u; condición que hay que contrastar"],"committeeQuestion":"máximo 260 caracteres"}]}
 

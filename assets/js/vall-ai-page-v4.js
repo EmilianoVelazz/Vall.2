@@ -581,7 +581,11 @@
                 const tbody = document.createElement('tbody'); (block.rows || []).forEach((row) => { const tr = document.createElement('tr'); row.forEach((value) => { const td = document.createElement('td'); td.innerHTML = inlineMarkdown(value); tr.appendChild(td); }); tbody.appendChild(tr); });
                 table.appendChild(tbody); node.appendChild(table);
             } else if (block.type === 'alert') {
-                node = document.createElement('div'); node.className = 'vai-alert'; node.innerHTML = `${block.title ? `<strong>${escapeHtml(block.title)}</strong>` : ''}${markdown(block.content)}`;
+                const severity = ['warning', 'error', 'success'].includes(block.severity) ? block.severity : 'info';
+                const icon = severity === 'error' ? 'fa-circle-exclamation' : severity === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-info';
+                node = document.createElement('div');
+                node.className = `vai-alert vai-alert--${severity}`;
+                node.innerHTML = `${block.title ? `<strong class="vai-alert-title"><i class="fas ${icon}" aria-hidden="true"></i> ${escapeHtml(block.title)}</strong>` : ''}<div class="vai-alert-body">${markdown(block.content)}</div>`;
             } else if (block.type === 'quote') {
                 node = document.createElement('div'); node.className = 'vai-quote'; node.textContent = block.content;
             } else if (block.type === 'steps' || block.type === 'checklist') {
@@ -1059,15 +1063,27 @@
         const list = document.createElement('ol');
         const coverage = message.rich?.meta?.evidenceCoverage;
         if (coverage && Number.isInteger(coverage.total) && coverage.total > 0) {
+            const covWrap = document.createElement('div');
+            covWrap.className = 'vai-evidence-coverage-box';
+            const chips = document.createElement('div');
+            chips.className = 'vai-coverage-chips';
+            const period = coverage.period;
+            const addChip = (icon, label, val, tone = '') => {
+                const chip = document.createElement('span');
+                chip.className = `vai-cov-chip${tone ? ` is-${tone}` : ''}`;
+                chip.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i> ${escapeHtml(label)}: <strong>${escapeHtml(val)}</strong>`;
+                chips.appendChild(chip);
+            };
+            if (period) addChip('fa-calendar-range', 'Periodo', `${String(period.start).slice(0, 10)} → ${String(period.end).slice(0, 10)}`);
+            addChip('fa-calendar-check', 'Fechas confirmadas', `${Number(coverage.dated) || 0}/${coverage.total}`, (Number(coverage.dated) || 0) > 0 ? 'ok' : '');
+            if (period) addChip('fa-bullseye', 'En rango / Antecedentes', `${Number(coverage.inPeriod) || 0} / ${Number(coverage.outsidePeriod) || 0}`);
+            if (coverage.undated) addChip('fa-clock', 'Sin fecha', String(Number(coverage.undated)), 'warn');
+            covWrap.appendChild(chips);
             const note = document.createElement('p');
             note.className = 'vai-evidence-coverage';
-            const period = coverage.period;
-            note.textContent = [period ? `Periodo revisado: ${String(period.start).slice(0, 10)} a ${String(period.end).slice(0, 10)}.` : '',
-                `${Number(coverage.dated) || 0} referencias con fecha confirmada de ${coverage.total}.`,
-                period ? `${Number(coverage.inPeriod) || 0} dentro del periodo; ${Number(coverage.outsidePeriod) || 0} antecedentes.` : '',
-                coverage.undated ? `${Number(coverage.undated) || 0} sin fecha de publicación o corte confirmada.` : '',
-                'La lista puede ser parcial; los enlaces no verifican automáticamente todas las afirmaciones.'].filter(Boolean).join(' ');
-            panel.appendChild(note);
+            note.textContent = 'Cobertura informativa: los enlaces muestran las fuentes consultadas y sus cortes de fecha.';
+            covWrap.appendChild(note);
+            panel.appendChild(covWrap);
         }
         citations.forEach((citation, index) => {
             const item = document.createElement('li');
@@ -1096,7 +1112,8 @@
         const brief=message.rich?.meta?.decisionBrief;
         if(!brief || typeof brief.effect!=='string' || typeof brief.verification!=='string') return null;
         const panel=document.createElement('details');panel.className='vai-decision-brief';
-        const summary=document.createElement('summary');summary.textContent='Para tu decisión';
+        const summary=document.createElement('summary');
+        summary.innerHTML='<span><i class="fas fa-compass" aria-hidden="true"></i> Para tu decisión</span><i class="fas fa-chevron-down" aria-hidden="true"></i>';
         const list=document.createElement('dl');
         const row=(title,copy)=>{const label=document.createElement('dt');label.textContent=title;const value=document.createElement('dd');value.textContent=String(copy || '').slice(0,1800);list.append(label,value);return value;};
         const facts=Array.isArray(brief.facts)?brief.facts.slice(0,3):[];
@@ -1130,6 +1147,26 @@
         overview.innerHTML = `<span><i class="fas ${presentation.icon}"></i>${presentation.label}</span><small><i class="far fa-clock"></i>${minutes} min de lectura</small>`;
         content.prepend(overview);
 
+        const metaObj = message.rich?.meta || {};
+        const validations = [];
+        const citationsArr = Array.isArray(message.citations) ? message.citations : (Array.isArray(metaObj.citations) ? metaObj.citations : []);
+        if (metaObj.statisticalModel?.available) validations.push({ tone: 'ok', icon: 'fa-square-poll-vertical', text: 'Regresión OLS verificada' });
+        if (metaObj.forecastAnalysis?.available) validations.push({ tone: 'ok', icon: 'fa-chart-line', text: 'Pronóstico con backtesting' });
+        if (metaObj.evidenceCoverage?.dated > 0) validations.push({ tone: 'ok', icon: 'fa-calendar-check', text: `${metaObj.evidenceCoverage.dated} ${metaObj.evidenceCoverage.dated === 1 ? 'fuente fechada' : 'fuentes fechadas'}` });
+        else if (citationsArr.length > 0) validations.push({ tone: 'ok', icon: 'fa-shield-halved', text: `${citationsArr.length} ${citationsArr.length === 1 ? 'referencia trazable' : 'referencias trazables'}` });
+        if (Array.isArray(metaObj.warnings) && metaObj.warnings.length) {
+            validations.push({ tone: 'warn', icon: 'fa-triangle-exclamation', text: metaObj.warnings[0] });
+        }
+        if (validations.length) {
+            const strip = document.createElement('div');
+            strip.className = 'vai-validation-strip';
+            strip.setAttribute('aria-label', 'Validaciones de evidencia y datos');
+            strip.innerHTML = validations
+                .map(v => `<span class="vai-val-pill is-${v.tone}"><i class="fas ${v.icon}" aria-hidden="true"></i>${escapeHtml(v.text)}</span>`)
+                .join('');
+            overview.after(strip);
+        }
+
         const lead = Array.from(content.querySelectorAll('p')).find(node => !node.closest('.vai-rich-summary') && node.textContent.trim().length > 35);
         if (lead && !content.querySelector('.vai-rich-summary')) lead.classList.add('vai-answer-lead');
 
@@ -1149,7 +1186,8 @@
                 button.addEventListener('click', () => heading.scrollIntoView({ behavior: 'smooth', block: 'center' }));
                 nav.appendChild(button);
             });
-            overview.after(nav);
+            const anchor = content.querySelector('.vai-validation-strip') || overview;
+            anchor.after(nav);
         }
 
         const meta = bubble.querySelector(':scope > .vai-message-meta');

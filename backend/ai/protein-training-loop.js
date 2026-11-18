@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const { GeminiProvider } = require('./providers/gemini-provider');
 const { gatherProteinEvidence } = require('./protein-training-sources');
+const { persistProteinTrainingRun, persistProteinSnapshots, persistProteinProposals } = require('./ml-persistence');
 
 const DEFAULT_MINUTES = 40;
 const INTERVAL_MS = 4 * 60 * 1000;
@@ -131,6 +132,21 @@ async function runProteinTrainingLoop() {
                 }));
                 allSnapshots.push(...evidence.snapshots.map(snapshot => ({ ...snapshot, training_run_id: runId })));
                 writeJson(SNAPSHOTS_FILE, allSnapshots.slice(-500));
+                try {
+                    await persistProteinTrainingRun({
+                        training_run_id: runId,
+                        status: 'running',
+                        started_at: new Date(startedAt).toISOString(),
+                        duration_minutes: Math.round(durationMs() / 60000),
+                        attempts,
+                        failures,
+                        proposals_created: savedCount,
+                        evidence_sources: [...new Set(evidence.snapshots.map(item => item.source_id))],
+                    });
+                    await persistProteinSnapshots(evidence.snapshots, runId);
+                } catch (err) {
+                    console.warn('[Protein-Training] No se pudieron sincronizar snapshots en Supabase:', err.message);
+                }
             }
             const response = await ai.generate({
                 prompt: `FOCO: ${topic.species}. ${topic.focus}\n\nEVIDENCIA VERSIONADA:\n${JSON.stringify(evidenceForPrompt(evidence))}`,
@@ -143,6 +159,21 @@ async function runProteinTrainingLoop() {
             allProposals.push(...proposals);
             writeJson(PROPOSALS_FILE, allProposals.slice(-500));
             savedCount += proposals.length;
+            try {
+                await persistProteinProposals(proposals, runId);
+                await persistProteinTrainingRun({
+                    training_run_id: runId,
+                    status: 'running',
+                    started_at: new Date(startedAt).toISOString(),
+                    duration_minutes: Math.round(durationMs() / 60000),
+                    attempts,
+                    failures,
+                    proposals_created: savedCount,
+                    evidence_sources: [...new Set((evidence?.snapshots || []).map(item => item.source_id))],
+                });
+            } catch (err) {
+                console.warn('[Protein-Training] No se pudieron guardar propuestas en Supabase:', err.message);
+            }
             console.log(`[Protein-Training] ${topic.species}: ${proposals.length} propuestas con evidencia.`);
         } catch (error) {
             failures += 1;
@@ -159,6 +190,8 @@ async function runProteinTrainingLoop() {
         notice: 'Las propuestas requieren revisión humana; las observaciones conservan fuente, fecha y tipo de dato.',
     };
     writeJson(SUMMARY_FILE, summary);
+    try { await persistProteinTrainingRun(summary); }
+    catch (err) { console.warn('[Protein-Training] No se pudo cerrar la corrida en Supabase:', err.message); }
     console.log(`[Protein-Training] Completado. Intentos: ${attempts}; propuestas: ${savedCount}; fallos: ${failures}.`);
     return summary;
 }

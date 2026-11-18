@@ -37,11 +37,11 @@ const HOJAS = [
   '/assets/css/header.css?v=9',
   '/assets/css/responsive.css',
   '/assets/css/vall-ai-page.css?v=14',
-  '/assets/css/vall-ai-redesign.css?v=46',
+  '/assets/css/vall-ai-redesign.css?v=47',
 ];
 
 const DEPENDENCIAS = ['/assets/js/data-service.js?v=23', '/assets/js/report-artifacts.js?v=2'];
-const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=71';
+const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=72';
 
 const SUGERENCIAS = [
   { prompt: 'Soy distribuidor mundial de res, cerdo, huevo y pollo. ¿Qué noticias, restricciones sanitarias y riesgos logísticos de los últimos siete días pueden afectar mis compras, ventas y margen? Da fechas y fuentes; separa hechos de escenarios.', icono: 'fa-truck', titulo: 'Compra y venta de proteínas', nota: 'Abasto, rutas y margen comercial' },

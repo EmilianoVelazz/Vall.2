@@ -141,11 +141,20 @@ class GeminiProvider {
     }
 
     requestConfig({ systemInstruction, tier, model, modelProfile, json = false, tools, maxOutputTokens, signal, timeoutMs }) {
-        const thinkingConfig = thinkingFor(model, tier, modelProfile);
+        let thinkingConfig = thinkingFor(model, tier, modelProfile);
+        if (Array.isArray(tools) && tools.length && (modelProfile === 'cirius' || modelProfile === 'pulsar') && ['medium', 'high'].includes(thinkingConfig?.thinkingLevel)) {
+            thinkingConfig = { thinkingLevel: 'low' };
+        }
+        const resolvedMaxTokens = maxOutputTokens || (tier === 'report' ? 32768 : tier === 'pro' ? 12288 : 4096);
+        // En la familia 2.5, thinkingBudget consume del mismo tope maxOutputTokens;
+        // si iguala o supera el límite, el modelo agota MAX_TOKENS con 0 texto.
+        const adjustedMaxTokens = thinkingConfig?.thinkingBudget > 0
+            ? Math.max(resolvedMaxTokens, thinkingConfig.thinkingBudget + 1024)
+            : resolvedMaxTokens;
         return {
             systemInstruction,
             ...(/^gemini-4-/i.test(model) ? {} : {temperature: json ? 0.18 : 0.3, topP: 0.86}),
-            maxOutputTokens: maxOutputTokens || (tier === 'report' ? 32768 : tier === 'pro' ? 12288 : 4096),
+            maxOutputTokens: adjustedMaxTokens,
             ...(thinkingConfig ? { thinkingConfig } : {}),
             ...(json ? { responseMimeType: 'application/json' } : {}),
             ...(Array.isArray(tools) && tools.length ? { tools } : {}),
@@ -163,7 +172,13 @@ class GeminiProvider {
             if (signal?.aborted) throw timeoutError(true);
             const remaining = deadline - Date.now();
             if (remaining <= 0) throw timeoutError();
-            const attemptMs = Math.min(remaining, 50_000,index===0&&models.length>1 ? Math.max(1,Math.floor(totalBudget*.7)) : remaining);
+            const hasMoreFallbacks = index < models.length - 1;
+            const shareMs = index === 0 && models.length > 1
+                ? Math.max(1, Math.floor(totalBudget * 0.7))
+                : hasMoreFallbacks && totalBudget >= 10_000
+                ? Math.max(1, Math.floor(remaining * 0.65))
+                : remaining;
+            const attemptMs = Math.min(remaining, 45_000, shareMs);
             const attempt = generationAttempt(signal, attemptMs);
             let reservation,responseReceived=false;
             try {
@@ -192,9 +207,9 @@ class GeminiProvider {
         throw lastError;
     }
 
-    async stream({ prompt, systemInstruction, tier = 'flash', modelProfile = null, onText, attachments = [], tools = null, maxOutputTokens = null, signal = null, timeoutMs = 50_000 }) {
+    async stream({ prompt, systemInstruction, tier = 'flash', modelProfile = null, onText, attachments = [], tools = null, maxOutputTokens = null, signal = null, timeoutMs = 120_000 }) {
         if (!this.client) throw Object.assign(new Error('IA no configurada.'), { code: 'AI_NOT_CONFIGURED', status: 503 });
-        const totalBudget=generationTimeout(timeoutMs, 50_000);
+        const totalBudget=generationTimeout(timeoutMs, 120_000);
         const deadline = Date.now() + totalBudget;
         let lastError;
         const models=this.modelsForTier(tier);
@@ -202,7 +217,13 @@ class GeminiProvider {
             if (signal?.aborted) throw timeoutError(true);
             const remaining = deadline - Date.now();
             if (remaining <= 0) throw timeoutError();
-            const attemptMs = Math.min(remaining, 50_000,index===0&&models.length>1 ? Math.max(1,Math.floor(totalBudget*.7)) : remaining);
+            const hasMoreFallbacks = index < models.length - 1;
+            const shareMs = index === 0 && models.length > 1
+                ? Math.max(1, Math.floor(totalBudget * 0.7))
+                : hasMoreFallbacks && totalBudget >= 10_000
+                ? Math.max(1, Math.floor(remaining * 0.65))
+                : remaining;
+            const attemptMs = Math.min(remaining, 45_000, shareMs);
             const attempt = generationAttempt(signal, attemptMs);
             let text = '', grounding = null, finishReason = null;
             let iterator,reservation,usage;
@@ -229,10 +250,15 @@ class GeminiProvider {
             } catch (error) {
                 if(error.code?.startsWith('CHAT_'))throw error;
                 lastError = signal?.aborted ? timeoutError(true) : normalizeProviderError(error);
+                if (lastError.code === 'AI_TIMEOUT' && !signal?.aborted && totalBudget >= 10_000 && text.trim().length >= 280) {
+                    await reservation?.finish(usage);
+                    console.warn(`[Gemini] ${model} agotó plazo al cierre tras generar ${text.trim().length} caracteres; se conserva la respuesta parcial verificable.`);
+                    return { text: text.trim(), model, grounding, finishReason: finishReason || 'STOP', modelProfile, modelFallback: model !== this.modelForTier(tier) };
+                }
                 await reservation?.fail(lastError);
                 if (signal?.aborted) throw lastError;
-                // Nunca concatenar otra respuesta después de entregar texto.
-                if (text || ['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                // Nunca concatenar otra respuesta después de entregar texto visible al cliente.
+                if ((text && onText) || ['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
                 console.warn(`[Gemini] ${model} no inició; se evalúa el respaldo dentro del plazo restante.`);
             } finally {
                 attempt.dispose();

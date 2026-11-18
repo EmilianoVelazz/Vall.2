@@ -5084,3 +5084,114 @@ body.vall-ai-body .vai-sidebar-footer .vai-sidebar-collapse-copy {
     padding: 0;
   }
 }
+
+/* Validaciones, alertas y cobertura de evidencia en ORION */
+body.vall-ai-body .vai-validation-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+body.vall-ai-body .vai-val-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid #4B5563;
+  background: #1F2937;
+  color: #D1D5DB;
+}
+body.vall-ai-body .vai-val-pill.is-ok {
+  border-color: rgba(52, 211, 153, .38);
+  background: rgba(16, 185, 129, .12);
+  color: #86efac;
+}
+body.vall-ai-body .vai-val-pill.is-warn {
+  border-color: rgba(251, 191, 36, .42);
+  background: rgba(245, 158, 11, .12);
+  color: #fde68a;
+}
+body.vall-ai-body .vai-evidence-coverage-box {
+  margin: 0 12px 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid rgba(156, 163, 175, .2);
+}
+body.vall-ai-body .vai-coverage-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+body.vall-ai-body .vai-cov-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: #1F2937;
+  border: 1px solid #374151;
+  color: #CBD5E1;
+  font-size: .66rem;
+}
+body.vall-ai-body .vai-cov-chip.is-ok {
+  border-color: rgba(52, 211, 153, .35);
+  color: #86efac;
+}
+body.vall-ai-body .vai-cov-chip.is-warn {
+  border-color: rgba(251, 191, 36, .4);
+  color: #fde68a;
+}
+body.vall-ai-body .vai-evidence-coverage-box .vai-evidence-coverage {
+  margin: 0;
+  font-size: .68rem;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-decision-brief {
+  margin: 12px 20px 0;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid #4B5563;
+  background: #111827;
+}
+body.vall-ai-body .vai-decision-brief summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 12px;
+  list-style: none;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-decision-brief summary::-webkit-details-marker { display: none; }
+body.vall-ai-body .vai-decision-brief summary span { display: inline-flex; align-items: center; gap: 7px; }
+body.vall-ai-body .vai-decision-brief summary > i:last-child { color: #9CA3AF; transition: transform .2s ease; }
+body.vall-ai-body .vai-decision-brief[open] summary > i:last-child { transform: rotate(180deg); }
+body.vall-ai-body .vai-decision-brief dl { margin: 0; padding: 0 12px 12px; border-top: 1px solid rgba(156, 163, 175, .18); }
+body.vall-ai-body .vai-alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 3px solid #60a5fa;
+}
+body.vall-ai-body .vai-alert--warning {
+  border-left-color: #fbbf24;
+  background: rgba(245, 158, 11, .1);
+}
+body.vall-ai-body .vai-alert--error {
+  border-left-color: #f87171;
+  background: rgba(239, 68, 68, .1);
+}
+body.vall-ai-body .vai-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: .78rem;
+}
+body.vall-ai-body .vai-alert-body p:last-child { margin-bottom: 0; }

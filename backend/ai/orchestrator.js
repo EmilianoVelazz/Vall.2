@@ -26,6 +26,7 @@ const {responseLength}=require('./answer-format');
 const {scenarioRequest,calculateScenarios,scenarioReply,selectScenario}=require('./commercial-scenarios');
 const {fxScenarioRequest,fxScenarioReply,sanitizeFxScenarios}=require('./fx-scenarios');
 const { ReportReaderAgent } = require('./report-reader-agent');
+const { getChatReasoningContext } = require('./loopus-knowledge');
 
 function finalizeAnalysis(response, { message, history, plan, forecastAnalysis }) {
     const check = guardForecastAnswer(plan, toLegacyMarkdown(response));
@@ -462,18 +463,26 @@ class AIOrchestrator {
             const result = await this.provider.generate({ ...request, tier, maxOutputTokens: this.outputBudget(tier, request.maxOutputTokens) });
             return { result, tier: effectiveTier(this.provider, tier, result) };
         } catch (error) {
-            if (tier !== 'pro' || this.provider.name === 'gemini' || error.cancelled || !canFallbackFromPro(error)) throw error;
-            console.warn('[Orchestrator] Gemini Pro no disponible; se usa Flash como respaldo:', error.code);
-            return { result: await this.provider.generate({ ...request, tier: 'flash', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens) }), tier: 'flash' };
+            if (error.cancelled || request.signal?.aborted || !canFallbackFromPro(error)) throw error;
+            if (tier === 'pro' && this.provider.name !== 'gemini') {
+                console.warn('[Orchestrator] Gemini Pro no disponible; se usa Flash como respaldo:', error.code);
+                return { result: await this.provider.generate({ ...request, tier: 'flash', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens) }), tier: 'flash' };
+            }
+            if (Array.isArray(request.tools) && request.tools.length) {
+                console.warn('[Orchestrator] Búsqueda web de Gemini agotó plazo; se responde con evidencia local verificada:', error.code);
+                const fallbackResult = await this.provider.generate({ ...request, tools: null, tier: 'flash', modelProfile: 'nebula', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens) });
+                return { result: { ...fallbackResult, modelFallback: true }, tier: 'flash' };
+            }
+            throw error;
         }
     }
 
     async streamWithFallback(request, tier, onText) {
         let emitted = false;
-        const trackedOnText = (part, full) => {
+        const trackedOnText = onText ? (part, full) => {
             emitted = true;
-            onText?.(part, full);
-        };
+            onText(part, full);
+        } : null;
         try {
             const result = await this.provider.stream({ ...request, tier, maxOutputTokens: this.outputBudget(tier, request.maxOutputTokens), onText: trackedOnText });
             return { result, tier: effectiveTier(this.provider, tier, result) };
@@ -481,9 +490,17 @@ class AIOrchestrator {
             // No cambiamos de modelo tras haber comenzado a transmitir: evitaría
             // repetir texto. Antes del primer fragmento, Flash conserva el chat
             // disponible cuando Pro alcanza cuota o presenta una falla temporal.
-            if (tier !== 'pro' || emitted || this.provider.name === 'gemini' || error.cancelled || !canFallbackFromPro(error)) throw error;
-            console.warn('[Orchestrator] Gemini Pro no inició; se usa Flash como respaldo:', error.code);
-            return { result: await this.provider.stream({ ...request, tier: 'flash', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens), onText: trackedOnText }), tier: 'flash' };
+            if (emitted || error.cancelled || request.signal?.aborted || !canFallbackFromPro(error)) throw error;
+            if (tier === 'pro' && this.provider.name !== 'gemini') {
+                console.warn('[Orchestrator] Gemini Pro no inició; se usa Flash como respaldo:', error.code);
+                return { result: await this.provider.stream({ ...request, tier: 'flash', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens), onText: trackedOnText }), tier: 'flash' };
+            }
+            if (Array.isArray(request.tools) && request.tools.length) {
+                console.warn('[Orchestrator] Streaming con búsqueda web agotó plazo; se usa respaldo rápido con evidencia local:', error.code);
+                const fallbackResult = await this.provider.stream({ ...request, tools: null, tier: 'flash', modelProfile: 'nebula', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens), onText: trackedOnText });
+                return { result: { ...fallbackResult, modelFallback: true }, tier: 'flash' };
+            }
+            throw error;
         }
     }
 
@@ -561,7 +578,7 @@ class AIOrchestrator {
         const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
         let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(mergeEvidence(baseEvidence, liveData), reportEvidence), statisticalModel));
         evidence.toolExecution = execution;
-        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), context].filter(Boolean).join('\n\n');
+        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));
         const built = tradeResponseInstructions(buildPrompt({ message, history, context: enrichedContext, mode, responseFormat: 'markdown', attachments, webGrounding: Boolean(searchTools), plan }), plan);
         built.modelProfile = modelProfile;
@@ -577,7 +594,7 @@ class AIOrchestrator {
         // Los anuncios comerciales se comprueban antes de mostrar texto. Un
         // aviso al final no retira una afirmación falsa ya transmitida.
         const buffered = plan.needsTradeResearch || plan.asksNews || plan.asksForecast || plan.needsProteinPrices || plan.needsLiveQuote || plan.asksDecision || plan.explicitRabobank || plan.topics?.some(topic=>['fx','bonds','equities'].includes(topic)) || /garanti\w*|sin riesgo|certeza/i.test(message);
-        const deliver = buffered ? () => {} : onText;
+        const deliver = buffered ? null : onText;
         let { result, tier: usedTier } = await this.streamWithFallback({ ...built, attachments, tools: searchTools,
             maxOutputTokens: plan.asksAnalysis || plan.asksNews || plan.needsTradeResearch ? 8192 : 4096 }, resolvedTier, deliver);
         if (!result.text) throw Object.assign(new Error('El proveedor devolvió una respuesta vacía.'), { code: 'AI_EMPTY_RESPONSE', status: 502 });
@@ -669,7 +686,7 @@ class AIOrchestrator {
         const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
         let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(mergeEvidence(baseEvidence, liveData), reportEvidence), statisticalModel));
         evidence.toolExecution = execution;
-        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), context].filter(Boolean).join('\n\n');
+        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));
         // Grounding con Search y `responseMimeType: application/json` tarda
         // innecesariamente con algunos proveedores. Para investigaciones se

@@ -330,11 +330,16 @@ async function requireProfileAdmin(req,res,next) {
 
 router.get('/admin/loopus-proposals', verifyToken, requireProfileAdmin, async (req, res) => {
     try {
-        const { listRuleProposals } = require('../ai/ml-persistence');
+        const { listRuleProposals, getLoopusOverviewStats } = require('../ai/ml-persistence');
         const status = typeof req.query?.status === 'string' ? req.query.status : null;
-        const proposals = await listRuleProposals({ status, limit: req.query?.limit });
+        const domain = typeof req.query?.domain === 'string' ? req.query.domain : null;
+        const search = typeof req.query?.q === 'string' ? req.query.q : '';
+        const [proposals, stats] = await Promise.all([
+            listRuleProposals({ status, domain, search, limit: req.query?.limit }),
+            typeof getLoopusOverviewStats === 'function' ? getLoopusOverviewStats() : Promise.resolve(null),
+        ]);
         res.set('Cache-Control', 'private, no-store');
-        res.json({ success: true, proposals });
+        res.json({ success: true, proposals, ...(stats ? { stats } : {}) });
     } catch {
         res.status(503).json({ success: false, error: 'No se pudieron cargar las propuestas de Proyecto Loopus.' });
     }
@@ -342,14 +347,15 @@ router.get('/admin/loopus-proposals', verifyToken, requireProfileAdmin, async (r
 
 router.post('/admin/loopus-proposals/:id/review', verifyToken, requireProfileAdmin, express.json({ limit: '8kb' }), async (req, res) => {
     try {
-        const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ success: false, error: 'Identificador de propuesta inválido.' });
+        const rawId = String(req.params.id || '').trim();
+        const validId = /^(?:[1-9]\d{0,14}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(rawId);
+        if (!validId) return res.status(400).json({ success: false, error: 'Identificador de propuesta inválido.' });
         const status = req.body?.status;
         if (!['approved', 'rejected', 'pending_human_review'].includes(status)) {
             return res.status(400).json({ success: false, error: 'Estado inválido. Usa approved, rejected o pending_human_review.' });
         }
         const { reviewRuleProposal } = require('../ai/ml-persistence');
-        const updated = await reviewRuleProposal(id, { status, reviewNotes: req.body?.reviewNotes });
+        const updated = await reviewRuleProposal(rawId, { status, reviewNotes: req.body?.reviewNotes });
         res.set('Cache-Control', 'private, no-store');
         res.json({ success: true, proposal: updated });
     } catch (error) {

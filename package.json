@@ -46,7 +46,7 @@
     "test:reports:argon": "node scripts/test-report-argon.cjs && node scripts/test-report-editorial-repair.cjs && node scripts/test-report-editorial-projection.mjs",
     "test:load": "node scripts/test-load.cjs",
     "test:performance": "node scripts/test-load.cjs && node scripts/test-report-history-performance.cjs && node scripts/test-web-performance.cjs",
-    "test:resilience": "node scripts/test-frontend-resilience.mjs && node scripts/test-protein-training-loop.cjs && node scripts/test-auth-validation.cjs && node scripts/test-auth-legacy-migration.cjs && node scripts/test-http-resilience.cjs",
+    "test:resilience": "node scripts/test-orion-resilience.cjs && node scripts/test-frontend-resilience.mjs && node scripts/test-protein-training-loop.cjs && node scripts/test-auth-validation.cjs && node scripts/test-auth-legacy-migration.cjs && node scripts/test-http-resilience.cjs",
     "test:news": "node scripts/test-noticias.mjs && node scripts/test-noticias-imagenes.mjs && node scripts/test-noticias-usabilidad.mjs && node scripts/test-daily-news-fallback.cjs && node scripts/test-news-images.cjs",
     "test:news:ui": "node scripts/test-noticias-ui.cjs",
     "test:data": "node scripts/test-daily-news-fallback.cjs && node scripts/test-news-images.cjs && node scripts/test-noticias-imagenes.mjs && node scripts/test-gemini-wholesale-price-service.cjs && node scripts/test-weekly-state-livestock.cjs && node scripts/test-inicio-mercados.mjs && node scripts/test-noticias.mjs",

@@ -9,6 +9,7 @@ const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
 const { GeminiProvider } = require('./providers/gemini-provider');
+const { persistRuleProposals } = require('./ml-persistence');
 
 let pool = null;
 
@@ -64,11 +65,25 @@ async function evaluateQueries() {
                 const response = await ai.generate({ prompt, systemInstruction: SYSTEM_INSTRUCTION, tier: 'flash', json: true });
                 const result = JSON.parse(response.text);
                 if (result.needsRule && result.condition_trigger && result.learned_rule) {
-                    saveRuleProposal({
+                    const proposal = {
                         condition_trigger: String(result.condition_trigger).slice(0, 200),
                         learned_rule: String(result.learned_rule).slice(0, 800),
+                        confidence_score: 85,
                         source_query_id: query.id,
-                    });
+                        source: {
+                            provider: 'brain-worker-feedback',
+                            topic: 'chat_feedback',
+                            domain: 'chat',
+                            source_query_id: query.id,
+                            collected_at: new Date().toISOString(),
+                        },
+                    };
+                    saveRuleProposal(proposal);
+                    try {
+                        await persistRuleProposals([proposal], null);
+                    } catch (err) {
+                        console.warn('[Loopus] No se pudo guardar propuesta de feedback en Supabase:', err.message);
+                    }
                     console.log(`[Loopus] Propuesta guardada para revisión humana: "${result.condition_trigger}"`);
                 }
                 evaluated = true;

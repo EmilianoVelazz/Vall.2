@@ -231,6 +231,23 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
         'Consultar qué reporta un informe existente no debe activar expansión de documento de 1,200 palabras'
     );
 
+    // 8. Validación de que streamWithFallback en modo buffered entrega un onText invocable + allowFallbackBeforeDelivery=true
+    let receivedAllowFallback = null;
+    const callableCallbackOrch = new AIOrchestrator({
+        provider: {
+            name: 'fixture',
+            isConfigured: () => true,
+            stream: async req => {
+                receivedAllowFallback = req.allowFallbackBeforeDelivery;
+                req.onText('Texto de prueba', 'Texto de prueba');
+                return { text: 'Texto de prueba', model: 'fixture' };
+            },
+        },
+    });
+    const bufferedNoCb = await callableCallbackOrch.streamWithFallback({ prompt: 'Hola' }, 'flash', null);
+    assert.equal(bufferedNoCb.result.text, 'Texto de prueba');
+    assert.equal(receivedAllowFallback, true);
+
     console.log('ORION resilience & anti-timeout validations: OK');
 })().catch(error => {
     console.error(error);

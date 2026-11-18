@@ -207,7 +207,7 @@ class GeminiProvider {
         throw lastError;
     }
 
-    async stream({ prompt, systemInstruction, tier = 'flash', modelProfile = null, onText, attachments = [], tools = null, maxOutputTokens = null, signal = null, timeoutMs = 120_000 }) {
+    async stream({ prompt, systemInstruction, tier = 'flash', modelProfile = null, onText, allowFallbackBeforeDelivery = !onText, attachments = [], tools = null, maxOutputTokens = null, signal = null, timeoutMs = 120_000 }) {
         if (!this.client) throw Object.assign(new Error('IA no configurada.'), { code: 'AI_NOT_CONFIGURED', status: 503 });
         const totalBudget=generationTimeout(timeoutMs, 120_000);
         const deadline = Date.now() + totalBudget;
@@ -258,7 +258,7 @@ class GeminiProvider {
                 await reservation?.fail(lastError);
                 if (signal?.aborted) throw lastError;
                 // Nunca concatenar otra respuesta después de entregar texto visible al cliente.
-                if ((text && onText) || ['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                if ((text && !allowFallbackBeforeDelivery) || ['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
                 console.warn(`[Gemini] ${model} no inició; se evalúa el respaldo dentro del plazo restante.`);
             } finally {
                 attempt.dispose();

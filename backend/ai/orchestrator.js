@@ -479,12 +479,15 @@ class AIOrchestrator {
 
     async streamWithFallback(request, tier, onText) {
         let emitted = false;
-        const trackedOnText = onText ? (part, full) => {
-            emitted = true;
-            onText(part, full);
-        } : null;
+        const allowFallbackBeforeDelivery = !onText;
+        const trackedOnText = (part, full) => {
+            if (onText) {
+                emitted = true;
+                onText(part, full);
+            }
+        };
         try {
-            const result = await this.provider.stream({ ...request, tier, maxOutputTokens: this.outputBudget(tier, request.maxOutputTokens), onText: trackedOnText });
+            const result = await this.provider.stream({ ...request, tier, maxOutputTokens: this.outputBudget(tier, request.maxOutputTokens), onText: trackedOnText, allowFallbackBeforeDelivery });
             return { result, tier: effectiveTier(this.provider, tier, result) };
         } catch (error) {
             // No cambiamos de modelo tras haber comenzado a transmitir: evitaría
@@ -493,11 +496,11 @@ class AIOrchestrator {
             if (emitted || error.cancelled || request.signal?.aborted || !canFallbackFromPro(error)) throw error;
             if (tier === 'pro' && this.provider.name !== 'gemini') {
                 console.warn('[Orchestrator] Gemini Pro no inició; se usa Flash como respaldo:', error.code);
-                return { result: await this.provider.stream({ ...request, tier: 'flash', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens), onText: trackedOnText }), tier: 'flash' };
+                return { result: await this.provider.stream({ ...request, tier: 'flash', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens), onText: trackedOnText, allowFallbackBeforeDelivery }), tier: 'flash' };
             }
             if (Array.isArray(request.tools) && request.tools.length) {
                 console.warn('[Orchestrator] Streaming con búsqueda web agotó plazo; se usa respaldo rápido con evidencia local:', error.code);
-                const fallbackResult = await this.provider.stream({ ...request, tools: null, tier: 'flash', modelProfile: 'nebula', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens), onText: trackedOnText });
+                const fallbackResult = await this.provider.stream({ ...request, tools: null, tier: 'flash', modelProfile: 'nebula', maxOutputTokens: this.outputBudget('flash', request.maxOutputTokens), onText: trackedOnText, allowFallbackBeforeDelivery });
                 return { result: { ...fallbackResult, modelFallback: true }, tier: 'flash' };
             }
             throw error;

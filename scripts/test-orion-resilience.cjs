@@ -3,6 +3,8 @@
 const assert = require('node:assert/strict');
 const { GeminiProvider, MODELS, PRO_FALLBACKS, googleSearchTools } = require('../backend/ai/providers/gemini-provider');
 const { AIOrchestrator } = require('../backend/ai/orchestrator');
+const { RagRetriever } = require('../backend/ai/rag-retriever');
+const { detectTaskType } = require('../backend/ai/prompt-builder');
 const { getChatReasoningContext } = require('../backend/ai/loopus-knowledge');
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -194,6 +196,40 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
     });
     assert(loopusContext.includes('PROYECTO LOOPUS'));
     assert(loopusContext.length <= 2000, `El contexto de Loopus para chat debe mantenerse compacto (actual: ${loopusContext.length} chars)`);
+
+    // 6. Validación de circuit-breaker single-flight en RagRetriever cuando MariaDB local está caída
+    let poolCalls = 0;
+    const offlineRetriever = new RagRetriever();
+    offlineRetriever.pool = {
+        execute: async () => {
+            poolCalls += 1;
+            const err = new Error('connect ECONNREFUSED 127.0.0.1:3306');
+            err.code = 'ECONNREFUSED';
+            throw err;
+        },
+    };
+    const origWarn = console.warn;
+    console.warn = () => {};
+    try {
+        await Promise.all([
+            offlineRetriever.safeQuery('SELECT 1'),
+            offlineRetriever.safeQuery('SELECT 2'),
+            offlineRetriever.safeQuery('SELECT 3'),
+            offlineRetriever.safeQuery('SELECT 4'),
+        ]);
+        assert.equal(poolCalls, 1, 'Solo debe ejecutarse un probe de conexión cuando MariaDB local no responde en paralelo');
+        await offlineRetriever.safeQuery('SELECT 5');
+        assert.equal(poolCalls, 1, 'Durante la pausa de 60s no debe reintentar conexiones TCP fallidas');
+    } finally {
+        console.warn = origWarn;
+    }
+
+    // 7. Validación de clasificación rápida cuando el usuario pregunta qué reporta un informe publicado
+    assert.notEqual(
+        detectTaskType('¿Qué reporta el informe ejecutivo de Finanzas sobre divisas USD/MXN y bonos?'),
+        'document',
+        'Consultar qué reporta un informe existente no debe activar expansión de documento de 1,200 palabras'
+    );
 
     console.log('ORION resilience & anti-timeout validations: OK');
 })().catch(error => {

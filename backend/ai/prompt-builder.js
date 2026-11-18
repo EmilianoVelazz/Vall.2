@@ -69,7 +69,7 @@ function detectTaskType(message) {
     // Consultar o resumir una publicación existente no solicita crear otro
     // informe de mil palabras. Los formatos descargables y la creación
     // explícita conservan el tratamiento de documento.
-    const summarizesPublication = /\b(?:resume|resumir|resumen (?:del?|de los|de las)|que dice|que comenta)\b/.test(text)
+    const summarizesPublication = /\b(?:resume|resumir|resumen (?:del?|de los|de las)|que (?:dice|comenta|reporta|publica|muestra|senala|contiene|indica))\b/.test(text)
         && /\b(?:reportes?|informes?|documentos?|investigaciones?)\b/.test(text);
     const createsDocument = /\b(?:pdf|word|docx|exportar|descargar|crea|crear|genera|generar|redacta|redactar|elabora|elaborar|prepara|preparar)\b/.test(text);
     if (summarizesPublication && !createsDocument) return 'general';

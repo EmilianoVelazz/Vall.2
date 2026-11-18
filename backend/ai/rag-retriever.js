@@ -463,6 +463,8 @@ class RagRetriever {
         this.pool = pool;
         this.semanticSearch = semanticSearch;
         this.disabledUntil = 0;
+        this._dbReady = Boolean(pool);
+        this._probePromise = null;
     }
 
     getPool() {
@@ -470,8 +472,38 @@ class RagRetriever {
         return this.pool;
     }
 
+    markDbUnavailable(error) {
+        this._dbReady = false;
+        const firstNotice = Date.now() >= this.disabledUntil;
+        this.disabledUntil = Date.now() + 60_000;
+        if (firstNotice && error?.message) {
+            console.warn('[rag] MariaDB no disponible temporalmente (pausa 60s):', error.message);
+        }
+    }
+
+    async ensureDbAvailable() {
+        if (Date.now() < this.disabledUntil) return false;
+        if (this._dbReady) return true;
+        if (!this._probePromise) {
+            this._probePromise = Promise.resolve()
+                .then(() => this.getPool().execute('SELECT 1'))
+                .then(() => {
+                    this._dbReady = true;
+                    return true;
+                })
+                .catch(error => {
+                    this.markDbUnavailable(error);
+                    return false;
+                })
+                .finally(() => {
+                    this._probePromise = null;
+                });
+        }
+        return this._probePromise;
+    }
+
     async safeQuery(sql, params = []) {
-        if (Date.now() < this.disabledUntil) return [];
+        if (!(await this.ensureDbAvailable())) return [];
         let attempt = 0;
         while (attempt < 2) {
             try {
@@ -480,8 +512,7 @@ class RagRetriever {
             } catch (error) {
                 attempt++;
                 if (attempt >= 2 || !['ECONNRESET', 'PROTOCOL_CONNECTION_LOST', 'ETIMEDOUT'].includes(error.code)) {
-                    this.disabledUntil = Date.now() + 60_000;
-                    console.warn('[rag] MariaDB no disponible temporalmente:', error.message);
+                    this.markDbUnavailable(error);
                     return [];
                 }
                 // Breve pausa antes de reintentar
@@ -958,7 +989,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
     }
 
     async recordQuery(entry) {
-        if (Date.now() < this.disabledUntil) return null;
+        if (!(await this.ensureDbAvailable())) return null;
         try {
             const [result] = await this.getPool().execute(
                 `INSERT INTO ai_queries
@@ -978,13 +1009,13 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             );
             return result.insertId;
         } catch (error) {
-            console.warn('[rag] No se pudo registrar ai_queries:', error.message);
+            this.markDbUnavailable(error);
             return null;
         }
     }
 
     async recordEvidence(queryId, records, responseText = '') {
-        if (!queryId || !Array.isArray(records) || !records.length || Date.now() < this.disabledUntil) return 0;
+        if (!queryId || !Array.isArray(records) || !records.length || !(await this.ensureDbAvailable())) return 0;
         let connection = null;
         try {
             // La auditoría es complementaria: una caída de la conexión local no
@@ -1020,7 +1051,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             return written;
         } catch (error) {
             if (connection) await connection.rollback().catch(() => {});
-            console.warn('[rag] No se pudo registrar retrieval_evidence:', error.message);
+            this.markDbUnavailable(error);
             return 0;
         } finally {
             connection?.release();
@@ -1028,7 +1059,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
     }
 
     async recordFeedback(entry) {
-        if (Date.now() < this.disabledUntil) return false;
+        if (!(await this.ensureDbAvailable())) return false;
         try {
             const [result] = await this.getPool().execute(
                 `INSERT INTO ai_feedback
@@ -1048,7 +1079,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             );
             return result.affectedRows > 0;
         } catch (error) {
-            console.warn('[rag] No se pudo registrar ai_feedback:', error.message);
+            this.markDbUnavailable(error);
             return false;
         }
     }

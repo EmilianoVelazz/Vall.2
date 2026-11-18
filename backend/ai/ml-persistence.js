@@ -301,6 +301,82 @@ async function reviewRuleProposal(id, { status, reviewNotes = '' } = {}) {
     return formatProposalView(data);
 }
 
+async function approveHighConfidenceProposals({ minConfidence = 90, domain = null, limit = 50, reviewNotes = '' } = {}) {
+    const supabase = getSupabase();
+    if (!supabase) throw Object.assign(new Error('Supabase no configurado.'), { status: 503 });
+    const safeMin = Math.min(100, Math.max(50, Number(minConfidence) || 90));
+    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50));
+    const { data: candidates, error: fetchError } = await supabase.from('ml_rule_proposals')
+        .select('*')
+        .eq('status', 'pending_human_review')
+        .order('created_at', { ascending: false })
+        .limit(500);
+    if (fetchError) throw fetchError;
+
+    const matching = (candidates || []).filter(row => {
+        const view = formatProposalView(row);
+        if (!view) return false;
+        if (domain && ['chat', 'reports', 'both'].includes(domain) && view.domain !== domain) return false;
+        return Math.round((view.confidence_score || 0) * 100) >= safeMin;
+    }).slice(0, safeLimit);
+
+    if (!matching.length) return { approvedCount: 0, proposals: [] };
+    const reviewedAt = new Date().toISOString();
+    const notes = cleanText(reviewNotes, 500) || `Aprobación en lote (>= ${safeMin}% confianza)`;
+
+    const updatedRows = await Promise.all(matching.map(async row => {
+        const nextSource = {
+            ...(row.source && typeof row.source === 'object' ? row.source : {}),
+            review_notes: notes,
+            reviewed_at: reviewedAt,
+        };
+        const { data, error } = await supabase.from('ml_rule_proposals')
+            .update({ status: 'approved', source: nextSource })
+            .eq('id', row.id)
+            .select('*')
+            .maybeSingle();
+        if (error) throw error;
+        if (data) {
+            syncLocalProposalStatus({
+                fingerprint: data.fingerprint,
+                condition_trigger: data.condition_trigger,
+                learned_rule: data.learned_rule,
+                status: 'approved',
+                reviewNotes: notes,
+                reviewedAt,
+            });
+        }
+        return formatProposalView(data);
+    }));
+
+    const cleanUpdated = updatedRows.filter(Boolean);
+    return { approvedCount: cleanUpdated.length, proposals: cleanUpdated };
+}
+
+async function listMarketReviews({ limit = 25 } = {}) {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 25));
+    const { data, error } = await supabase.from('ml_market_reviews')
+        .select('id,review_hash,review_status,source_name,source_timestamp,review,created_at')
+        .order('created_at', { ascending: false })
+        .limit(safeLimit);
+    if (error) throw error;
+    return (data || []).map(row => {
+        const rev = row.review && typeof row.review === 'object' ? row.review : {};
+        return {
+            id: row.id,
+            review_status: row.review_status || rev.status || 'unknown',
+            source_name: row.source_name || rev.source?.name || 'Mercado',
+            created_at: row.created_at || rev.createdAt || null,
+            deterministicIssues: Array.isArray(rev.deterministicIssues) ? rev.deterministicIssues : [],
+            modelStatus: rev.model?.status || null,
+            modelSummary: rev.model?.summary || rev.summary || null,
+            metricsCount: Number(rev.metricsCount || rev.seriesChecked || 0) || null,
+        };
+    });
+}
+
 async function persistProteinTrainingRun(summary) {
     const supabase = getSupabase();
     if (!supabase || !summary?.training_run_id) return false;
@@ -376,6 +452,8 @@ module.exports = {
     listRuleProposals,
     getLoopusOverviewStats,
     reviewRuleProposal,
+    approveHighConfidenceProposals,
+    listMarketReviews,
     normalizeProposal,
     formatProposalView,
     fingerprint,

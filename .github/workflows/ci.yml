@@ -45,6 +45,7 @@ jobs:
         run: |
           npm run test:orion:mcp
           npm run test:orion:quality
+          node scripts/test-orion-resilience.cjs
           npm run test:intelligence
           npm run test:forecast
           npm run test:proteins

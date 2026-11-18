@@ -83,6 +83,14 @@ mlPersistence.reviewRuleProposal = async (id, { status, reviewNotes = '' } = {})
     row.reviewed_at = new Date().toISOString();
     return { ...row };
 };
+mlPersistence.approveHighConfidenceProposals = async ({ minConfidence = 90 } = {}) => {
+    const matches = proposals.filter(p => p.status === 'pending_human_review' && Math.round((p.confidence_score || 0) * 100) >= minConfidence);
+    matches.forEach(p => { p.status = 'approved'; p.reviewed_at = new Date().toISOString(); });
+    return { approvedCount: matches.length, proposals: matches };
+};
+mlPersistence.listMarketReviews = async () => ([
+    { id: 'rev-1', review_status: 'clean', source_name: 'SNIIM México', created_at: '2026-11-18T12:00:00Z', deterministicIssues: [], modelStatus: 'verified' },
+]);
 
 const { router: authRouter } = require('../backend/routes/auth');
 
@@ -140,6 +148,30 @@ async function main() {
 
         const afterPending = await (await call('/admin/loopus-proposals?status=pending_human_review', null, adminCookie)).json();
         assert.equal(afterPending.proposals.length, 0);
+
+        // 4b. Aprobación en lote de alta confianza + listado de auditorías de mercado (RBAC + validación)
+        assert.equal((await call('/admin/loopus-proposals/approve-high-confidence', { minConfidence: 90 }, userCookie)).status, 403);
+        assert.equal((await call('/admin/loopus-proposals/approve-high-confidence', { minConfidence: 120 }, adminCookie)).status, 400);
+        proposals.push({
+            id: 3,
+            fingerprint: 'fp-3',
+            condition_trigger: 'soya cbot vs mexico',
+            learned_rule: 'Incluir base fisica y flete.',
+            confidence_score: 0.95,
+            topic: 'granos',
+            status: 'pending_human_review',
+        });
+        const batchRes = await call('/admin/loopus-proposals/approve-high-confidence', { minConfidence: 90 }, adminCookie);
+        assert.equal(batchRes.status, 200);
+        const batchBody = await batchRes.json();
+        assert.equal(batchBody.approvedCount, 1);
+
+        assert.equal((await call('/admin/loopus-reviews', null, userCookie)).status, 403);
+        const reviewsRes = await call('/admin/loopus-reviews', null, adminCookie);
+        assert.equal(reviewsRes.status, 200);
+        const reviewsBody = await reviewsRes.json();
+        assert.equal(reviewsBody.reviews.length, 1);
+        assert.equal(reviewsBody.reviews[0].source_name, 'SNIIM México');
 
         // 5. Verificar Loopus Knowledge (inyección en Chat ORION e Informes + filtro sin números)
         const { getChatReasoningContext, getReportReasoningContext, stripNumbersForReportRule } = require('../backend/ai/loopus-knowledge');

@@ -8,6 +8,15 @@ const STATUS_LABELS = {
   rejected: 'Rechazada',
 };
 
+const REVIEW_STATUS_LABELS = {
+  clean: 'Sin anomalías',
+  ok: 'Validado',
+  approved: 'Validado',
+  flagged: 'Con observaciones',
+  warning: 'Con observaciones',
+  unknown: 'Registrado',
+};
+
 const DOMAIN_LABELS = {
   chat: 'Chat ORION',
   reports: 'Creación de informes',
@@ -39,13 +48,16 @@ const confidencePercent = score => {
 };
 
 export default function AdminLoopus() {
+  const [view, setView] = useState('rules');
   const [rows, setRows] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('pending_human_review');
   const [domainFilter, setDomainFilter] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
+  const [batchApproving, setBatchApproving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [notes, setNotes] = useState({});
@@ -55,6 +67,21 @@ export default function AdminLoopus() {
     const controller = new AbortController();
     setLoading(true);
     setError('');
+    if (view === 'reviews') {
+      apiGet('/api/admin/loopus-reviews?limit=30', { signal: controller.signal })
+        .then(({ ok, data }) => {
+          if (!ok || !data?.success) throw Error(data?.error || 'No se pudieron cargar las auditorías de mercado.');
+          setReviews(data.reviews || []);
+        })
+        .catch(e => {
+          if (!controller.signal.aborted) setError(e.message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+      return () => controller.abort();
+    }
+
     const params = new URLSearchParams({ limit: '80' });
     if (filter) params.set('status', filter);
     if (domainFilter) params.set('domain', domainFilter);
@@ -72,10 +99,10 @@ export default function AdminLoopus() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [filter, domainFilter, search, revision]);
+  }, [view, filter, domainFilter, search, revision]);
 
   async function review(row, nextStatus) {
-    if (savingId !== null) return;
+    if (savingId !== null || batchApproving) return;
     setSavingId(row.id);
     setError('');
     setNotice('');
@@ -95,51 +122,117 @@ export default function AdminLoopus() {
     }
   }
 
+  async function approveHighConfidenceBatch() {
+    if (savingId !== null || batchApproving) return;
+    setBatchApproving(true);
+    setError('');
+    setNotice('');
+    try {
+      const { ok, data } = await apiPost('/api/admin/loopus-proposals/approve-high-confidence', {
+        minConfidence: 90,
+        limit: 50,
+        ...(domainFilter ? { domain: domainFilter } : {}),
+      });
+      if (!ok || !data?.success) throw Error(data?.error || 'No se pudo completar la aprobación en lote.');
+      setNotice(
+        data.approvedCount > 0
+          ? `Se aprobaron ${data.approvedCount} reglas de alta confianza (≥90%) en Supabase.`
+          : 'No había reglas pendientes con confianza ≥90% en este filtro.'
+      );
+      setRevision(v => v + 1);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBatchApproving(false);
+    }
+  }
+
   return (
     <section className="ap-profiles" aria-label="Revisión de Proyecto Loopus">
       <div className="ap-intro">
         <div>
           <h3>Propuestas y Validaciones de Proyecto Loopus</h3>
-          <p>Supervisa el conocimiento almacenado en Supabase para Chat ORION e Informes, inspecciona cadenas causales y valida propuestas.</p>
+          <p>Supervisa el conocimiento almacenado en Supabase para Chat ORION e Informes, inspecciona cadenas causales y valida auditorías de mercado.</p>
+          <div className="ap-loopus-tabs" role="tablist" aria-label="Vistas de Loopus">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'rules'}
+              className={`ap-tab-btn${view === 'rules' ? ' is-active' : ''}`}
+              onClick={() => setView('rules')}
+            >
+              Reglas de raciocinio {stats ? `(${stats.total})` : ''}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'reviews'}
+              className={`ap-tab-btn${view === 'reviews' ? ' is-active' : ''}`}
+              onClick={() => setView('reviews')}
+            >
+              Auditorías de mercado {stats?.reviewsCount != null ? `(${stats.reviewsCount})` : ''}
+            </button>
+          </div>
         </div>
-        <div className="ap-actions">
-          <label className="ac-field">
-            <span>Estado</span>
-            <select value={filter} disabled={loading || savingId !== null} onChange={e => setFilter(e.target.value)}>
-              <option value="pending_human_review">Pendientes</option>
-              <option value="approved">Aprobadas</option>
-              <option value="rejected">Rechazadas</option>
-              <option value="">Todas</option>
-            </select>
-          </label>
-          <label className="ac-field">
-            <span>Dominio</span>
-            <select value={domainFilter} disabled={loading || savingId !== null} onChange={e => setDomainFilter(e.target.value)}>
-              <option value="">Todos</option>
-              <option value="chat">Chat ORION</option>
-              <option value="reports">Creación de informes</option>
-              <option value="both">Chat + Informes</option>
-            </select>
-          </label>
-          <label className="ac-field">
-            <span>Buscar</span>
-            <input
-              type="search"
-              placeholder="Tema, disparador o criterio…"
-              value={search}
-              disabled={savingId !== null}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="ac-btn ac-btn-secondary"
-            disabled={loading || savingId !== null}
-            onClick={() => setRevision(v => v + 1)}
-          >
-            Actualizar
-          </button>
-        </div>
+        {view === 'rules' ? (
+          <div className="ap-actions">
+            <label className="ac-field">
+              <span>Estado</span>
+              <select value={filter} disabled={loading || savingId !== null || batchApproving} onChange={e => setFilter(e.target.value)}>
+                <option value="pending_human_review">Pendientes</option>
+                <option value="approved">Aprobadas</option>
+                <option value="rejected">Rechazadas</option>
+                <option value="">Todas</option>
+              </select>
+            </label>
+            <label className="ac-field">
+              <span>Dominio</span>
+              <select value={domainFilter} disabled={loading || savingId !== null || batchApproving} onChange={e => setDomainFilter(e.target.value)}>
+                <option value="">Todos</option>
+                <option value="chat">Chat ORION</option>
+                <option value="reports">Creación de informes</option>
+                <option value="both">Chat + Informes</option>
+              </select>
+            </label>
+            <label className="ac-field">
+              <span>Buscar</span>
+              <input
+                type="search"
+                placeholder="Tema, disparador o criterio…"
+                value={search}
+                disabled={savingId !== null || batchApproving}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="ac-btn"
+              disabled={loading || savingId !== null || batchApproving}
+              onClick={() => void approveHighConfidenceBatch()}
+            >
+              {batchApproving ? 'Aprobando lote…' : 'Aprobar lote ≥90%'}
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading || savingId !== null || batchApproving}
+              onClick={() => setRevision(v => v + 1)}
+            >
+              Actualizar
+            </button>
+          </div>
+        ) : (
+          <div className="ap-actions">
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading}
+              onClick={() => setRevision(v => v + 1)}
+            >
+              Actualizar auditorías
+            </button>
+          </div>
+        )}
       </div>
 
       {stats && (
@@ -167,14 +260,15 @@ export default function AdminLoopus() {
         </div>
       )}
 
-      {loading && <p role="status">Consultando propuestas de Loopus en Supabase…</p>}
+      {loading && <p role="status">Consultando información de Loopus en Supabase…</p>}
       {error && <p className="ap-error" role="alert">{error}</p>}
       {notice && <p className="ap-notice" role="status">{notice}</p>}
-      {!loading && !rows.length && !error && (
+
+      {view === 'rules' && !loading && !rows.length && !error && (
         <p>No hay propuestas {filter ? `con estado «${STATUS_LABELS[filter] || filter}»` : 'registradas'} con ese filtro.</p>
       )}
 
-      {!!rows.length && (
+      {view === 'rules' && !!rows.length && (
         <div className="ap-table-wrap" tabIndex={0} role="region" aria-label="Tabla de propuestas Loopus">
           <table>
             <caption>Mostrando {rows.length} reglas sincronizadas con Supabase</caption>
@@ -245,14 +339,14 @@ export default function AdminLoopus() {
                           maxLength={500}
                           placeholder="Nota opcional…"
                           value={notes[row.id] ?? row.review_notes ?? ''}
-                          disabled={savingId !== null}
+                          disabled={savingId !== null || batchApproving}
                           onChange={e => setNotes(cur => ({ ...cur, [row.id]: e.target.value }))}
                         />
                         {row.status !== 'approved' && (
                           <button
                             type="button"
                             className="ac-btn"
-                            disabled={savingId !== null}
+                            disabled={savingId !== null || batchApproving}
                             onClick={() => void review(row, 'approved')}
                           >
                             {savingId === row.id ? 'Guardando…' : 'Aprobar'}
@@ -262,13 +356,70 @@ export default function AdminLoopus() {
                           <button
                             type="button"
                             className="ac-btn ac-btn-secondary"
-                            disabled={savingId !== null}
+                            disabled={savingId !== null || batchApproving}
                             onClick={() => void review(row, 'rejected')}
                           >
                             Rechazar
                           </button>
                         )}
                       </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === 'reviews' && !loading && !reviews.length && !error && (
+        <p>No hay auditorías de integridad de mercado registradas aún en Supabase.</p>
+      )}
+
+      {view === 'reviews' && !!reviews.length && (
+        <div className="ap-table-wrap" tabIndex={0} role="region" aria-label="Tabla de auditorías de mercado">
+          <table>
+            <caption>Últimas {reviews.length} auditorías estadísticas (`ml_market_reviews`)</caption>
+            <thead>
+              <tr>
+                <th scope="col">Fuente / Fecha</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Anomalías detectadas (z-score / IQR)</th>
+                <th scope="col">Diagnóstico IA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reviews.map(rev => {
+                const statusKey = String(rev.review_status || 'unknown').toLowerCase();
+                const badgeClass = ['clean', 'ok', 'approved'].includes(statusKey)
+                  ? 'is-approved'
+                  : ['flagged', 'warning'].includes(statusKey)
+                  ? 'is-pending_human_review'
+                  : 'is-rejected';
+                return (
+                  <tr key={rev.id}>
+                    <th scope="row">
+                      <strong>{rev.source_name || 'Mercado'}</strong>
+                      <small>{formatDate(rev.created_at)}</small>
+                    </th>
+                    <td data-label="Estado">
+                      <span className={`ap-status-badge ${badgeClass}`}>
+                        {REVIEW_STATUS_LABELS[statusKey] || rev.review_status}
+                      </span>
+                    </td>
+                    <td data-label="Anomalías">
+                      {rev.deterministicIssues?.length ? (
+                        <ul className="ap-review-issues">
+                          {rev.deterministicIssues.slice(0, 5).map((issue, idx) => (
+                            <li key={idx}>{typeof issue === 'string' ? issue : JSON.stringify(issue)}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="ap-reviewed-at">Sin desviaciones estadísticas fuera de rango.</span>
+                      )}
+                    </td>
+                    <td data-label="Diagnóstico IA">
+                      <div>{rev.modelSummary || (rev.modelStatus ? `Estado modelo: ${rev.modelStatus}` : 'Revisión automática completada')}</div>
                     </td>
                   </tr>
                 );

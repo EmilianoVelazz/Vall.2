@@ -345,6 +345,35 @@ router.get('/admin/loopus-proposals', verifyToken, requireProfileAdmin, async (r
     }
 });
 
+router.post('/admin/loopus-proposals/approve-high-confidence', verifyToken, requireProfileAdmin, express.json({ limit: '4kb' }), async (req, res) => {
+    try {
+        const minConfidence = Number(req.body?.minConfidence ?? 90);
+        if (!Number.isFinite(minConfidence) || minConfidence < 50 || minConfidence > 100) {
+            return res.status(400).json({ success: false, error: 'Umbral de confianza inválido (debe ser entre 50 y 100).' });
+        }
+        const domain = typeof req.body?.domain === 'string' && ['chat', 'reports', 'both'].includes(req.body.domain) ? req.body.domain : null;
+        const limit = Math.min(200, Math.max(1, Number(req.body?.limit) || 50));
+        const { approveHighConfidenceProposals } = require('../ai/ml-persistence');
+        const result = await approveHighConfidenceProposals({ minConfidence, domain, limit, reviewNotes: req.body?.reviewNotes });
+        res.set('Cache-Control', 'private, no-store');
+        res.json({ success: true, ...result });
+    } catch (error) {
+        const code = Number.isInteger(error?.status) ? error.status : 503;
+        res.status(code).json({ success: false, error: error?.message || 'No se pudieron aprobar las propuestas en lote.' });
+    }
+});
+
+router.get('/admin/loopus-reviews', verifyToken, requireProfileAdmin, async (req, res) => {
+    try {
+        const { listMarketReviews } = require('../ai/ml-persistence');
+        const reviews = await listMarketReviews({ limit: req.query?.limit });
+        res.set('Cache-Control', 'private, no-store');
+        res.json({ success: true, reviews });
+    } catch {
+        res.status(503).json({ success: false, error: 'No se pudieron cargar las auditorías de mercado.' });
+    }
+});
+
 router.post('/admin/loopus-proposals/:id/review', verifyToken, requireProfileAdmin, express.json({ limit: '8kb' }), async (req, res) => {
     try {
         const rawId = String(req.params.id || '').trim();

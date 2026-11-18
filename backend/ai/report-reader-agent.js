@@ -247,6 +247,7 @@ class ReportReaderAgent {
         this.provider = provider;
         this.stores = stores;
         this.timeoutMs = timeoutMs;
+        this._queryCache = new Map();
     }
 
     async loadCollectionSnapshot(collection) {
@@ -427,10 +428,23 @@ class ReportReaderAgent {
 
     async forQuery({ message = '', signal } = {}) {
         const targets = ReportReaderAgent.matchTargets(message);
+        const now = Date.now();
         const loaded = await Promise.all(targets.map(async target => {
             try {
+                const cacheKey = `${target.collection}:${target.key}`;
+                const cached = this._queryCache?.get(cacheKey);
+                if (cached && now - cached.ts < 180_000) {
+                    return cached.value;
+                }
                 const res = await this.read({ ...target, analysisPeriod: 'daily', question: '', signal });
-                return res?.hasData ? res : null;
+                const value = res?.hasData ? res : null;
+                if (value && this._queryCache) {
+                    if (this._queryCache.size >= 40) {
+                        this._queryCache.delete(this._queryCache.keys().next().value);
+                    }
+                    this._queryCache.set(cacheKey, { ts: now, value });
+                }
+                return value;
             } catch {
                 return null;
             }

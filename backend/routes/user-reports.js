@@ -15,7 +15,7 @@ function createUserReportsRouter({store=userReportStore,authenticate=verifyToken
     router.use('/user-reports',authenticate,(req,res,next)=>{res.set('Cache-Control','private, no-store');next();});
     const owner=req=>req.user?.email;
     const fail=(error,res)=>res.status(error.status||503).json({success:false,error:error.status ? error.message : 'No se pudo acceder a tus informes. Tu borrador sigue disponible; intenta guardar de nuevo.',...(['REPORT_CREATION_CONFLICT','REPORT_CREATION_REMOVED','REPORT_ACCOUNT_CHANGED'].includes(error.code) ? {code:error.code} : {})});
-    router.get('/user-reports/learning',learningLimiter,async(req,res)=>{res.json({success:true,data:await learning.load(req.user)});});
+    router.get('/user-reports/learning',learningLimiter,async(req,res)=>{try{res.json({success:true,data:await learning.load(req.user)});}catch{res.status(500).json({success:false,error:'No se pudo cargar el perfil de aprendizaje.'});}});
     router.post('/user-reports/learning',learningLimiter,express.json({limit:'2kb'}),async(req,res)=>{
         try {res.json({success:true,data:await learning.update(req.user,req.body||{})});} catch(error) {fail(error,res);}
     });

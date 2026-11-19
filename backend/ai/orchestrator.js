@@ -298,7 +298,7 @@ class AIOrchestrator {
             handlers.knowledge_search = () => this.retriever.retrieve(retrievalQuery, userKeyHash);
         }
         if (plan.needsIssuerResearch || plan.needsProteinPrices || plan.needsRabobank || plan.needsTradeResearch || plan.needsMercolleida || plan.needsLiveQuote || plan.needsLiveNews) {
-            handlers.market_research = ({ signal }) => marketWork ||= Promise.resolve(this.liveDataGrounder(plan, retrievalQuery, { signal })).then(async data=>{
+            handlers.market_research = ({ signal: toolSignal }) => marketWork ||= Promise.resolve(this.liveDataGrounder(plan, retrievalQuery, { signal: signal || toolSignal })).then(async data=>{
                 if (data?.proteinPriceRecords?.length && this.priceArchive) {
                     try { data.proteinHistory={status:'saved',series:await this.priceArchive.observe(data.proteinPriceRecords)}; }
                     catch { data.proteinHistory={status:'unavailable'}; }
@@ -378,7 +378,7 @@ class AIOrchestrator {
             && (Object.keys(prepared.commercialInputs).some(key=>['purchasedKg','buyPricePerKg','sellPricePerKg','shrinkFraction','freight','freightPerKg','insurance','duties','otherCosts'].includes(key)) || !prepared.conversationMemory?.market && /\b(?:mi margen|calcula|recalcula)\b/i.test(input.message))) {
             const session = await createOrionMcpSession({ commercial_margin: () => this.tools.execute('commercial_margin', prepared.commercialInputs) }, { signal: input.signal, timeoutMs: 1500 });
             let calculation;
-            try { calculation = await session.call('commercial_margin'); } finally { await session.close(); }
+            try { calculation = await session.call('commercial_margin'); } finally { await session.close().catch(() => {}); }
             verifiedCalculation=calculation;
             const asksExplanation=/\b(?:por que|explica|riesgos?|recomienda\w*|compara|alternativas?|escenarios?)\b/i.test(input.message.normalize('NFD').replace(/\p{Diacritic}/gu,''));
             if(calculation.available && asksExplanation){
@@ -788,7 +788,7 @@ class AIOrchestrator {
         }
         const expandedAudit=auditResearchAnswer(plan,evidence,toLegacyMarkdown(response));
         if(expandedAudit.needed) {
-            response=markdownToRichResponse(verifiedResearchFallback(expandedAudit.ledger),{mode:built.mode,taskType:built.taskType,provider:this.provider.name,model:result.model,latencyMs:Date.now()-started});
+            response=markdownToRichResponse(verifiedResearchFallback(expandedAudit.ledger),{mode:built.mode,taskType:built.taskType,provider:this.provider.name,model:result.model,latencyMs:Date.now()-started,warnings:response.meta?.warnings || []});
             evidence.researchAudit={...evidence.researchAudit,issues:expandedAudit.issues,fallbackUsed:true};
         }
         response = ensureRequestedChart(response, message);

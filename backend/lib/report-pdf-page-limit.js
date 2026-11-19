@@ -1,6 +1,6 @@
 'use strict';
 const {REPORT_PDF_MAX_PAGES,PROTEIN_PDF_MAX_PAGES,THREE_PAGE_BUDGETS,executivePrintEdition,distributedSelection}=require('../../shared/report-print-edition.mjs');
-const {availablePresentationModel,hasPublishedReportData}=require('../../shared/report-available-data.mjs');
+const {availablePresentationModel,availableReportTables,hasPublishedReportData}=require('../../shared/report-available-data.mjs');
 function derivativePageAllowance(model){
  const rows=(model.results || []).filter(table=>table.derivatives && table.printGroup!=='commodity-cftc').reduce((total,table)=>total+table.rows.length,0);
  return Math.ceil(Math.max(0,rows-12)/14);
@@ -10,7 +10,8 @@ function derivativePageAllowance(model){
 // Complete Panorama chapters bypass individual edition budgets. Saved executive
 // print requests retain their compact behavior for compatibility.
 async function renderIndividualReportPdf({report,model,render,renderCompact=render,completeFirst=false,t=value=>value,source=value=>value}){
- if(!hasPublishedReportData(model))throw Object.assign(Error(t('No hay datos publicados para generar este informe.')),{status:422,code:'REPORT_DATA_UNAVAILABLE'});
+ const archivedTablesOnly=Boolean(model?.mexicoExecutive && !report?.sourceSnapshot && !model?.results?.length && availableReportTables(report?.tables,{t,source}).length);
+ if(!hasPublishedReportData(model) && !archivedTablesOnly)throw Object.assign(Error(t('No hay datos publicados para generar este informe.')),{status:422,code:'REPORT_DATA_UNAVAILABLE'});
  model=availablePresentationModel(model,{t,source});
  if(report.panoramaMember && report.panoramaPrint!=='executive')return render(model);
  const isGlobalProtein=Boolean(model.commodityExecutive?.key==='proteins' && report?.proteinScope!=='US_ONLY');

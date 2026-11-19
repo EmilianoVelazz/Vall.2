@@ -174,17 +174,48 @@ async function main() {
         assert.equal(reviewsBody.reviews[0].source_name, 'SNIIM México');
 
         // 5. Verificar Loopus Knowledge (inyección en Chat ORION e Informes + filtro sin números)
-        const { getChatReasoningContext, getReportReasoningContext, stripNumbersForReportRule } = require('../backend/ai/loopus-knowledge');
+        const {
+            getChatReasoningContext,
+            getReportReasoningContext,
+            stripNumbersForReportRule,
+            invalidateReasoningCache,
+        } = require('../backend/ai/loopus-knowledge');
         const { criticFilterProposals, TRAINING_CURRICULUM } = require('../backend/ai/ml-training-loop');
 
         assert(TRAINING_CURRICULUM.length >= 30, 'Currículum de al menos 30 módulos');
+        invalidateReasoningCache();
         const chatCtx = getChatReasoningContext({ message: '¿Cómo afecta el tipo de cambio USD/MXN al costo del maíz importado y el margen?' });
         assert(chatCtx.includes('[GUÍA DE RACIOCINIO ANALÍTICO · PROYECTO LOOPUS]'));
         assert(chatCtx.includes('Cadena lógica:'));
 
+        // normalizeProposal tolera fechas inválidas sin lanzar RangeError
+        assert.doesNotThrow(() => mlPersistence.normalizeProposal({
+            condition_trigger: 'Condición de prueba válida',
+            learned_rule: 'Regla de prueba suficientemente larga para pasar validación.',
+            created_at: 'fecha-corrupta',
+        }));
+
+        // Verificar en módulo aislado de loopus-knowledge que una regla con status rejected nunca entra al contexto
         const reportCtx = getReportReasoningContext({ area: 'Mercados', key: 'proteins', audience: 'purchasing', instructions: 'Compras de proteína' });
         assert(reportCtx.includes('CRITERIOS DE RAZONAMIENTO EDITORIAL'));
         assert(!/\d/.test(stripNumbersForReportRule('Regla con 45.2% y 1200 toneladas')), 'stripNumbersForReportRule elimina dígitos para no interferir con numericTokens');
+
+        // 6. Verificar allowlists de external.js (/usda/crop-progress y /alphavantage-news)
+        const externalRouter = require('../backend/routes/external');
+        const extApp = express();
+        extApp.use('/api', externalRouter);
+        const extServer = extApp.listen(0, '127.0.0.1');
+        await new Promise(resolve => extServer.once('listening', resolve));
+        try {
+            const extPort = extServer.address().port;
+            const badCrop = await fetch(`http://127.0.0.1:${extPort}/api/usda/crop-progress?commodity=INVALID_CROP`);
+            assert.equal(badCrop.status, 400);
+            const badAv = await fetch(`http://127.0.0.1:${extPort}/api/alphavantage-news?topics=untrusted_topic`);
+            assert.equal(badAv.status, 400);
+        } finally {
+            extServer.closeAllConnections();
+            await new Promise(resolve => extServer.close(resolve));
+        }
 
         const filtered = criticFilterProposals([
             { domain: 'chat', audience: 'purchasing', condition_trigger: 'Consulta de maíz y tipo de cambio en compras', learned_rule: 'Cruzar la variación cambiaria USD/MXN con la base física antes de estimar el costo en planta.', reasoning_chain: 'Paridad -> Base -> Costo -> Decisión', confidence_score: 0.91 },

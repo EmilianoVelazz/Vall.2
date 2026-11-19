@@ -495,8 +495,12 @@
             const index = codeBlocks.push(`<pre><code data-language="${escapeHtml(language || 'text')}">${code}</code></pre>`) - 1;
             return `\n@@VAI_CODE_${index}@@\n`;
         });
+        const links = [];
+        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
+            const index = links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`) - 1;
+            return `@@VAI_LINK_${index}@@`;
+        });
         text = text
-            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
             .replace(/^####\s+(.+)$/gm, '<h4>$1</h4>')
             .replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
             .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
@@ -505,6 +509,7 @@
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
             .replace(/`([^`]+)`/g, '<code>$1</code>');
+        links.forEach((anchor, index) => { text = text.replace(`@@VAI_LINK_${index}@@`, anchor); });
         const lines = text.split('\n');
         let html = '', list = '', listTag = 'ul';
         const flush = () => { if (list) { html += `<${listTag}>${list}</${listTag}>`; list = ''; listTag = 'ul'; } };
@@ -544,11 +549,17 @@
     }
 
     function inlineMarkdown(value) {
-        return escapeHtml(String(value || ''))
-            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        const links = [];
+        let html = escapeHtml(String(value || '')).replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
+            const index = links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`) - 1;
+            return `@@VAI_ILINK_${index}@@`;
+        });
+        html = html
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
             .replace(/`([^`]+)`/g, '<code>$1</code>');
+        links.forEach((anchor, index) => { html = html.replace(`@@VAI_ILINK_${index}@@`, anchor); });
+        return html;
     }
 
     function renderRich(container, response, fallback) {
@@ -564,6 +575,7 @@
             container.appendChild(summary);
         }
         response.blocks.forEach((block) => {
+            if (!block || typeof block !== 'object') return;
             let node;
             if (block.type === 'heading') {
                 node = document.createElement(block.level >= 4 ? 'h4' : block.level === 3 ? 'h3' : 'h2');
@@ -578,7 +590,7 @@
                 table.className = 'vai-data-table';
                 const head = document.createElement('tr'); (block.headers || []).forEach((value) => { const th = document.createElement('th'); th.textContent = value; head.appendChild(th); });
                 const thead = document.createElement('thead'); thead.appendChild(head); table.appendChild(thead);
-                const tbody = document.createElement('tbody'); (block.rows || []).forEach((row) => { const tr = document.createElement('tr'); row.forEach((value) => { const td = document.createElement('td'); td.innerHTML = inlineMarkdown(value); tr.appendChild(td); }); tbody.appendChild(tr); });
+                const tbody = document.createElement('tbody'); (Array.isArray(block.rows) ? block.rows : []).forEach((row) => { if (!Array.isArray(row)) return; const tr = document.createElement('tr'); row.forEach((value) => { const td = document.createElement('td'); td.innerHTML = inlineMarkdown(value); tr.appendChild(td); }); tbody.appendChild(tr); });
                 table.appendChild(tbody); node.appendChild(table);
             } else if (block.type === 'alert') {
                 const severity = ['warning', 'error', 'success'].includes(block.severity) ? block.severity : 'info';
@@ -590,10 +602,11 @@
                 node = document.createElement('div'); node.className = 'vai-quote'; node.textContent = block.content;
             } else if (block.type === 'steps' || block.type === 'checklist') {
                 node = document.createElement(block.type === 'steps' ? 'ol' : 'ul');
-                (block.items || []).forEach((item) => {
+                (Array.isArray(block.items) ? block.items : []).forEach((item) => {
                     const li = document.createElement('li');
-                    const marker = block.type === 'checklist' ? (item.checked ? '✓ ' : '○ ') : '';
-                    li.innerHTML = `${marker}${inlineMarkdown(item.text)}`;
+                    const isObj = item && typeof item === 'object';
+                    const marker = block.type === 'checklist' ? (isObj && item.checked ? '✓ ' : '○ ') : '';
+                    li.innerHTML = `${marker}${inlineMarkdown(isObj ? item.text : item)}`;
                     node.appendChild(li);
                 });
             } else if (block.type === 'diagram') {
@@ -668,7 +681,11 @@
             const mermaid = await mermaidReady;
             mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' });
             await mermaid.run({ nodes: [node] });
-        } catch { node.classList.remove('mermaid'); node.innerHTML = `<pre><code>${escapeHtml(node.textContent)}</code></pre>`; }
+        } catch {
+            if (!window.mermaid) mermaidReady = null;
+            node.classList.remove('mermaid');
+            node.innerHTML = `<pre><code>${escapeHtml(node.textContent)}</code></pre>`;
+        }
     }
 
     function normalizeChartSpec(raw) {
@@ -1412,7 +1429,7 @@
             expandButton.title = expanded ? 'Cerrar vista amplia' : 'Vista amplia';
             expandButton.innerHTML = `<i class="fas fa-${expanded ? 'compress' : 'expand'}" aria-hidden="true"></i><span>${expanded ? 'Cerrar vista' : 'Vista amplia'}</span>`;
         };
-        document.addEventListener('fullscreenchange', updateExpandedControl);
+        escucharGlobal(document, 'fullscreenchange', updateExpandedControl);
         expandButton?.addEventListener('click', async () => {
             try {
                 if (document.fullscreenElement === artifact) await document.exitFullscreen();
@@ -1599,21 +1616,19 @@
         }
         const reader = response.body.getReader(); const decoder = new TextDecoder();
         let buffer = '', full = '', rich = null, route = null;
-        while (true) {
-            const chunk = await reader.read(); if (chunk.done) break;
-            buffer += decoder.decode(chunk.value, { stream: true });
+        const processEvents = (flushRemaining = false) => {
+            buffer = buffer.replace(/\r\n/g, '\n');
             let split;
             while ((split = buffer.indexOf('\n\n')) >= 0) {
                 const event = buffer.slice(0, split); buffer = buffer.slice(split + 2);
-                const line = event.split('\n').find((item) => item.startsWith('data:')); if (!line) continue;
-                let data; try { data = JSON.parse(line.slice(5).trim()); } catch { continue; }
+                const payloadText = event.split('\n').filter((item) => item.startsWith('data:')).map((item) => item.slice(5).trim()).join('\n');
+                if (!payloadText) continue;
+                let data; try { data = JSON.parse(payloadText); } catch { continue; }
                 if (data.status) onStatus?.(data.status);
                 if (data.error) {
-                    // El servidor puede fallar al cerrar la auditoría después de
-                    // haber transmitido el análisis. No descartamos ese texto.
                     if (full) {
                         console.warn('ORION: cierre de streaming con texto recibido.', data.error);
-                        return { text: full, rich, route };
+                        return { doneEarly: true };
                     }
                     throw new Error(data.error);
                 }
@@ -1628,6 +1643,22 @@
                     };
                 }
             }
+            if (flushRemaining && buffer.trim()) {
+                buffer += '\n\n';
+                return processEvents(false);
+            }
+            return null;
+        };
+        while (true) {
+            const chunk = await reader.read();
+            if (chunk.done) {
+                buffer += decoder.decode();
+                processEvents(true);
+                break;
+            }
+            buffer += decoder.decode(chunk.value, { stream: true });
+            const early = processEvents(false);
+            if (early?.doneEarly) return { text: full, rich, route };
         }
         if (!full && rich?.markdown) full = rich.markdown;
         if (!full) throw new Error('ORION no devolvió contenido. Intenta formular la pregunta nuevamente.');
@@ -1712,12 +1743,13 @@
         renderPendingFiles();
     }
 
-    async function uploadFiles(files) {
+    async function uploadFiles(files, signal = null) {
         const uploaded = [];
         for (const item of files) {
             const response = await fetch('/api/chat-attachments', {
                 method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: item.file.name, type: item.type, dataUrl: await fileToDataUrl(item.file) }),
+                ...(signal ? { signal } : {}),
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok || !data.attachment?.id) throw new Error(data.error || `No se pudo subir ${item.file.name}.`);
@@ -1752,18 +1784,25 @@
         const requestedModelProfile = ['nebula', 'cirius', 'pulsar'].includes(selectedModel) ? selectedModel : 'cirius';
         setBusy(true);
         let uploaded = suppliedMessage && Array.isArray(suppliedMessage.attachments) ? suppliedMessage.attachments : [];
-        try { if (!suppliedMessage) uploaded = await uploadFiles(fileSnapshot); }
-        catch (error) { 
-            setBusy(false); 
+        try {
+            if (!suppliedMessage && fileSnapshot.length) {
+                controller = new AbortController();
+                uploaded = await uploadFiles(fileSnapshot, controller.signal);
+                controller = null;
+            }
+        } catch (error) {
+            controller = null;
+            setBusy(false);
             if (els.form) delete els.form.dataset.orionSending;
-            window.alert(error.message); 
+            if (error?.name !== 'AbortError' && session.current) window.alert(error.message);
             if (continuousVoiceMode && els.voiceOverlay) {
                 els.voiceOverlay.hidden = true;
                 setFaceState(els.voiceOrb, 'idle');
                 continuousVoiceMode = false;
             }
-            return; 
+            return;
         }
+        if (!session.current) return;
         if (!suppliedMessage) {
             fileSnapshot.forEach(item => URL.revokeObjectURL(item.url)); pendingFiles = []; renderPendingFiles();
         }
@@ -1846,7 +1885,6 @@
             }
             const result = guaranteeRequestedChart(streamed, clean, historicalChart);
             const pendingIsVisible = els.messages.contains(pending.row);
-            renderStreamingText(pending, streamed.text, true);
             pending.row.classList.remove('is-thinking', 'is-streaming');
             renderRich(pending.bubble, result.rich, result.text);
             animateFaceSpeech(pending.avatar, 980, result.text);
@@ -2457,7 +2495,7 @@
         };
 
         const saveLiveTurn = ({ userText, modelText, audioMissing = false }) => {
-            if (!userText && !modelText) return;
+            if (!session.current || (!userText && !modelText)) return;
             const conversation = ensureConversation();
             els.welcome.hidden = true;
             if (els.welcome.parentNode === els.messages) els.welcome.remove();
@@ -2709,7 +2747,7 @@
                 stopRecording();
                 if (els.voiceOverlay) els.voiceOverlay.hidden = true;
                 setFaceState(els.voiceOrb, 'idle');
-                if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+                if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
             });
         }
 
@@ -2720,7 +2758,7 @@
                     stopRecording();
                     if (els.voiceOverlay) els.voiceOverlay.hidden = true;
                     setFaceState(els.voiceOrb, 'idle');
-                    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+                    if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
                 } else {
                     continuousVoiceMode = true;
                     startRecording();
@@ -2744,6 +2782,7 @@
         liveVoiceController = null;
         try { legacyVoiceStop?.(); } catch { /* ya terminó */ }
         try { if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); } catch { /* sin voz */ }
+        pendingFiles.splice(0).forEach(item => { try { URL.revokeObjectURL(item.url); } catch {} });
         if (els.form) delete els.form.dataset.orionSending;
         if (window.VNVallAi?.desmontar === desmontar) delete window.VNVallAi;
     }

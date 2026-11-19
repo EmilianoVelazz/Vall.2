@@ -39,11 +39,16 @@ function cleanText(value, max) {
     return String(value || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 }
 
+function toIsoDate(value) {
+    const ms = value == null ? Date.now() : new Date(value).getTime();
+    return new Date(Number.isFinite(ms) ? ms : Date.now()).toISOString();
+}
+
 function normalizeProposal(proposal, trainingRunId) {
     const source = proposal?.source && typeof proposal.source === 'object' ? proposal.source : {};
     const condition = cleanText(proposal?.condition_trigger, 200);
     const rule = cleanText(proposal?.learned_rule, 400);
-    const createdAt = new Date(proposal?.created_at || Date.now()).toISOString();
+    const createdAt = toIsoDate(proposal?.created_at);
     return {
         training_run_id: trainingRunId || null,
         fingerprint: fingerprint({ condition, rule, source }),
@@ -59,7 +64,7 @@ function normalizeProposal(proposal, trainingRunId) {
 async function createTrainingRun({ runKey, startedAt, metadata = {} }) {
     const supabase = getSupabase();
     if (!supabase) return null;
-    const row = { run_key: runKey, status: 'running', started_at: new Date(startedAt).toISOString(), metadata };
+    const row = { run_key: runKey, status: 'running', started_at: toIsoDate(startedAt), metadata };
     const { data, error } = await supabase.from('ml_training_runs').upsert(row, { onConflict: 'run_key' }).select('id').single();
     if (error) throw error;
     return data.id;
@@ -68,7 +73,8 @@ async function createTrainingRun({ runKey, startedAt, metadata = {} }) {
 async function updateTrainingRunProgress(runId, { startedAt, attempts, proposalCount, errorCount }) {
     const supabase = getSupabase();
     if (!supabase || !runId) return;
-    const durationSeconds = Math.max(0, Math.round((Date.now() - new Date(startedAt)) / 1000));
+    const startMs = new Date(startedAt).getTime();
+    const durationSeconds = Number.isFinite(startMs) ? Math.max(0, Math.round((Date.now() - startMs) / 1000)) : 0;
     const { error } = await supabase.from('ml_training_runs').update({
         status: 'running',
         duration_seconds: durationSeconds,
@@ -83,9 +89,11 @@ async function updateTrainingRunProgress(runId, { startedAt, attempts, proposalC
 async function finishTrainingRun(runId, { status = 'completed', startedAt, endedAt, attempts, proposalCount, errorCount }) {
     const supabase = getSupabase();
     if (!supabase || !runId) return;
-    const durationSeconds = Math.max(0, Math.round((new Date(endedAt) - new Date(startedAt)) / 1000));
+    const startMs = new Date(startedAt).getTime();
+    const endMs = new Date(endedAt).getTime();
+    const durationSeconds = Number.isFinite(startMs) && Number.isFinite(endMs) ? Math.max(0, Math.round((endMs - startMs) / 1000)) : 0;
     const { error } = await supabase.from('ml_training_runs').update({
-        status, ended_at: new Date(endedAt).toISOString(), duration_seconds: durationSeconds,
+        status, ended_at: toIsoDate(endedAt), duration_seconds: durationSeconds,
         attempts, proposal_count: proposalCount, error_count: errorCount, updated_at: new Date().toISOString(),
     }).eq('id', runId);
     if (error) throw error;
@@ -116,8 +124,8 @@ async function persistTrainingEvent(event, trainingRunId) {
         evidence: event.evidence && typeof event.evidence === 'object' ? event.evidence : {},
         output: event.output && typeof event.output === 'object' ? event.output : null,
         error_code: cleanText(event.error_code, 120) || null,
-        started_at: new Date(event.started_at || Date.now()).toISOString(),
-        ended_at: new Date(event.ended_at || Date.now()).toISOString(),
+        started_at: toIsoDate(event.started_at),
+        ended_at: toIsoDate(event.ended_at),
     };
     const { error } = await supabase.from('ml_training_events').upsert(row, { onConflict: 'event_key' });
     if (error) throw error;
@@ -131,7 +139,7 @@ async function persistMarketReview(review) {
         review_hash: fingerprint(review), review, review_status: cleanText(review.status, 50) || 'unknown',
         source_name: cleanText(review.source?.name, 120) || null,
         source_timestamp: Number.isFinite(Number(review.sourceTimestamp)) ? Number(review.sourceTimestamp) : null,
-        created_at: new Date(review.createdAt || Date.now()).toISOString(),
+        created_at: toIsoDate(review.createdAt),
     };
     const { error } = await supabase.from('ml_market_reviews').upsert(row, { onConflict: 'review_hash', ignoreDuplicates: true });
     if (error) throw error;
@@ -165,31 +173,40 @@ function formatProposalView(row) {
     };
 }
 
-function syncLocalProposalStatus({ fingerprint: fp, condition_trigger: cond, learned_rule: rule, status, reviewNotes, reviewedAt }) {
+function syncLocalProposalStatus(patches) {
+    const list = Array.isArray(patches) ? patches : [patches];
+    if (!list.length) return;
     try {
         if (!fs.existsSync(PROPOSALS_CACHE_FILE)) return;
         const parsed = JSON.parse(fs.readFileSync(PROPOSALS_CACHE_FILE, 'utf8'));
         if (!Array.isArray(parsed)) return;
         let changed = false;
         const updated = parsed.map(item => {
-            const matchFp = fp && item.fingerprint && item.fingerprint === fp;
-            const matchText = cond && rule && item.condition_trigger === cond && item.learned_rule === rule;
-            if (!matchFp && !matchText) return item;
+            const match = list.find(p =>
+                (p.fingerprint && item.fingerprint && item.fingerprint === p.fingerprint) ||
+                (p.condition_trigger && p.learned_rule && item.condition_trigger === p.condition_trigger && item.learned_rule === p.learned_rule)
+            );
+            if (!match) return item;
             changed = true;
             return {
                 ...item,
-                status,
-                review_notes: reviewNotes || null,
-                reviewed_at: reviewedAt,
+                status: match.status,
+                review_notes: match.reviewNotes || null,
+                reviewed_at: match.reviewedAt,
                 source: item.source && typeof item.source === 'object'
-                    ? { ...item.source, review_notes: reviewNotes || null, reviewed_at: reviewedAt }
+                    ? { ...item.source, review_notes: match.reviewNotes || null, reviewed_at: match.reviewedAt }
                     : item.source,
             };
         });
         if (changed) {
-            fs.writeFileSync(PROPOSALS_CACHE_FILE, JSON.stringify(updated, null, 2), 'utf8');
+            const tmpFile = `${PROPOSALS_CACHE_FILE}.${process.pid}.${Date.now()}.tmp`;
+            fs.writeFileSync(tmpFile, JSON.stringify(updated, null, 2), 'utf8');
+            fs.renameSync(tmpFile, PROPOSALS_CACHE_FILE);
         }
     } catch { /* caché local opcional */ }
+    try {
+        require('./loopus-knowledge').invalidateReasoningCache?.();
+    } catch { /* evitar ciclo si aún no carga */ }
 }
 
 async function getLoopusOverviewStats() {
@@ -333,23 +350,24 @@ async function approveHighConfidenceProposals({ minConfidence = 90, domain = nul
         const { data, error } = await supabase.from('ml_rule_proposals')
             .update({ status: 'approved', source: nextSource })
             .eq('id', row.id)
+            .eq('status', 'pending_human_review')
             .select('*')
             .maybeSingle();
         if (error) throw error;
-        if (data) {
-            syncLocalProposalStatus({
-                fingerprint: data.fingerprint,
-                condition_trigger: data.condition_trigger,
-                learned_rule: data.learned_rule,
-                status: 'approved',
-                reviewNotes: notes,
-                reviewedAt,
-            });
-        }
-        return formatProposalView(data);
+        return data || null;
     }));
 
-    const cleanUpdated = updatedRows.filter(Boolean);
+    const patches = updatedRows.filter(Boolean).map(data => ({
+        fingerprint: data.fingerprint,
+        condition_trigger: data.condition_trigger,
+        learned_rule: data.learned_rule,
+        status: 'approved',
+        reviewNotes: notes,
+        reviewedAt,
+    }));
+    if (patches.length) syncLocalProposalStatus(patches);
+
+    const cleanUpdated = updatedRows.map(formatProposalView).filter(Boolean);
     return { approvedCount: cleanUpdated.length, proposals: cleanUpdated };
 }
 
@@ -383,8 +401,8 @@ async function persistProteinTrainingRun(summary) {
     const row = {
         id: String(summary.training_run_id),
         status: summary.status || 'running',
-        started_at: new Date(summary.started_at || Date.now()).toISOString(),
-        ended_at: summary.ended_at ? new Date(summary.ended_at).toISOString() : new Date().toISOString(),
+        started_at: toIsoDate(summary.started_at),
+        ended_at: toIsoDate(summary.ended_at),
         duration_minutes: Number(summary.duration_minutes) || 40,
         attempts: Number(summary.attempts) || 0,
         failures: Number(summary.failures) || 0,
@@ -409,7 +427,7 @@ async function persistProteinSnapshots(snapshots, runId) {
         data_type: cleanText(item.data_type, 80),
         is_forecast: Boolean(item.is_forecast),
         data_vintage: item.data_vintage ? cleanText(item.data_vintage, 80) : null,
-        retrieved_at: new Date(item.retrieved_at || Date.now()).toISOString(),
+        retrieved_at: toIsoDate(item.retrieved_at),
         payload: item.payload && typeof item.payload === 'object' ? item.payload : {},
     })).filter(r => r.source_id);
     if (!rows.length) return 0;
@@ -431,7 +449,7 @@ async function persistProteinProposals(proposals, runId) {
         evidence_snapshot_hashes: Array.isArray(item.evidence_snapshot_hashes) ? item.evidence_snapshot_hashes : [],
         confidence_score: Math.min(100, Math.max(0, Number(item.confidence_score) || 0)),
         status: ['pending_human_review', 'approved', 'rejected'].includes(item.status) ? item.status : 'pending_human_review',
-        created_at: new Date(item.created_at || Date.now()).toISOString(),
+        created_at: toIsoDate(item.created_at),
     })).filter(r => r.species && r.title && r.insight);
     if (!rows.length) return 0;
     const { error } = await supabase.from('protein_research_proposals').upsert(rows, { onConflict: 'proposal_hash', ignoreDuplicates: true });

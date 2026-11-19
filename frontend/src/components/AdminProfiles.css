@@ -12,7 +12,12 @@
 .ap-table-wrap .ac-btn { white-space: nowrap; font-size: .8rem; }
 .ap-reset { display: grid; gap: 1rem; padding: 1.4rem; border: 1px solid #6683a0; background: #182b3e; border-radius: 14px; }
 .ap-reset p { margin: 0; overflow-wrap: anywhere; }
-.ap-actions { display: flex; flex-wrap: wrap; gap: .8rem; }
+.ap-actions { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; }
+.ap-profiles input[type="search"],.ap-profiles input[type="text"],.ap-profiles select {
+  padding: .48rem .72rem; border-radius: 8px; border: 1px solid #354c64; background: #0f1d2b;
+  color: #e2edf7; font-size: .85rem; min-width: 0;
+}
+.ap-profiles input::placeholder { color: #7e97b0; }
 .ap-error,.ap-notice { padding: 1rem; border: 1px solid #91a9bd; border-radius: 10px; line-height: 1.5; }
 .ap-error { border-color: #bf9296; color: #f0c6c9; }
 .ap-notice { background: #22394b; color: #d0e1ec; }

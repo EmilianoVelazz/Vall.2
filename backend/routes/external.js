@@ -1,5 +1,6 @@
 'use strict';
 const express      = require('express');
+const rateLimit    = require('express-rate-limit');
 const JSZip        = require('jszip');
 
 const { externalGet, gdeltFetch, yahooFetch, YF_UA } = require('../lib/http');
@@ -10,6 +11,30 @@ const { BoundedCache, createSingleFlight } = require('../lib/bounded-cache');
 
 const router = express.Router();
 const externalFlight = createSingleFlight(32);
+const avNewsLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 45,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Demasiadas consultas de noticias. Espera unos minutos.' },
+});
+const ALLOWED_AV_TOPICS = new Set([
+    'blockchain', 'earnings', 'ipo', 'mergers_and_acquisitions', 'financial_markets',
+    'economy_fiscal', 'economy_monetary', 'economy_macro', 'energy_transportation',
+    'finance', 'life_sciences', 'manufacturing', 'real_estate', 'retail_wholesale',
+    'technology', 'commodities',
+]);
+
+function sanitizeBoldHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/&lt;(\/?)b&gt;/gi, '<$1b>')
+        .slice(0, 12000);
+}
 
 
 // Utilidad FIFO: limita el tamaño de los Map de caché
@@ -143,9 +168,13 @@ router.get('/banxico/:serie', async (req, res) => {
 const _usdaCache = new Map();
 const USDA_TTL = 12 * 60 * 60 * 1000;
 const USDA_NASS_KEY = process.env.USDA_NASS_KEY || '';
+const ALLOWED_USDA_COMMODITIES = new Set(['CORN', 'SOYBEANS', 'WHEAT', 'COTTON', 'SORGHUM', 'RICE']);
 
 router.get('/usda/crop-progress', async (req, res) => {
-    const commodity = String(req.query.commodity || 'CORN').toUpperCase();
+    const commodity = String(req.query.commodity || 'CORN').trim().toUpperCase();
+    if (!ALLOWED_USDA_COMMODITIES.has(commodity)) {
+        return res.status(400).json({ error: 'Cultivo USDA no permitido.' });
+    }
     const cacheKey = `usda_cp_${commodity}`;
     const hit = _usdaCache.get(cacheKey);
     
@@ -154,7 +183,7 @@ router.get('/usda/crop-progress', async (req, res) => {
 
     try {
         const year = new Date().getFullYear();
-        const url = `https://quickstats.nass.usda.gov/api/api_GET/?key=${USDA_NASS_KEY}&commodity_desc=${commodity}&statisticcat_desc=CONDITION&year=${year}&freq_desc=WEEKLY&reference_period_desc=WEEK%20ENDING&format=JSON`;
+        const url = `https://quickstats.nass.usda.gov/api/api_GET/?key=${encodeURIComponent(USDA_NASS_KEY)}&commodity_desc=${encodeURIComponent(commodity)}&statisticcat_desc=CONDITION&year=${year}&freq_desc=WEEKLY&reference_period_desc=WEEK%20ENDING&format=JSON`;
         const response = await externalGet(url, {}, 15000);
         const payload = await response.json();
         
@@ -1175,10 +1204,14 @@ const AV_CUOTA_MS = 60 * 60 * 1000;
 let _avBloqueadoHasta = 0;
 const _esCuota = (msg) => /rate limit|higher api call|premium|per day|thank you for using/i.test(msg || '');
 
-router.get('/alphavantage-news', async (req, res) => {
-    const topics = String(req.query.topics || 'financial_markets').slice(0, 120);
+router.get('/alphavantage-news', avNewsLimiter, async (req, res) => {
+    const rawTopics = String(req.query.topics || 'financial_markets').slice(0, 120);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
-    if (!/^[a-z_,]+$/i.test(topics)) return res.status(400).json({ error: 'Temas inválidos.' });
+    const topicList = rawTopics.split(',').map(t => t.trim().toLowerCase()).filter(Boolean).slice(0, 6);
+    if (!topicList.length || topicList.some(t => !ALLOWED_AV_TOPICS.has(t))) {
+        return res.status(400).json({ error: 'Temas inválidos.' });
+    }
+    const topics = topicList.join(',');
 
     const clave = `${topics}|${limit}`;
     const fresco = _avNewsCache.get(clave);
@@ -1549,7 +1582,7 @@ ENFOQUE: Detectar oportunidades de rentabilidad, exportación o presiones inflac
             taskType: 'decision'
         });
 
-        const insight = String(result.text || '').slice(0, 12000);
+        const insight = sanitizeBoldHtml(result.text);
         
         _aiInsightCache.set(cacheKey, { ts: Date.now(), insight });
         res.json({ insight });

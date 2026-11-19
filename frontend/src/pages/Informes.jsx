@@ -2,6 +2,7 @@ import useIdioma from '../lib/idioma.js';
 import {reportText} from '../lib/reportLocale.jsx';
 import {useAuth} from '../context/AuthContext.jsx';
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 
@@ -25,9 +26,17 @@ export default function Informes() {
   const dailyHours=refreshPolicy.dailyHours.map(hour=>String(hour).padStart(2,'0')+':00').join(' · '),weekday=new Intl.DateTimeFormat(t.locale,{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(2023,0,1+refreshPolicy.markets.weekday))),years=reportLibrary.years.toSorted((a,b)=>a-b);
   const auth=useAuth();
   const accountEmail=typeof auth?.user==='string' ? auth.user.trim().toLowerCase() : '';
-  const [section,setSection]=useState(()=>{const value=new URLSearchParams(window.location.search).get('seccion');return ['libreria','anexos','historial'].includes(value) ? value : 'diarios';});
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawSection = searchParams.get('seccion');
+  const section = ['libreria', 'anexos', 'historial'].includes(rawSection) ? rawSection : 'diarios';
   const [visited,setVisited]=useState(()=>new Set([section])),[annexReport,setAnnexReport]=useState(null),[annexOwner,setAnnexOwner]=useState(''),[libraryYear,setLibraryYear]=useState(null);
-  const selectSection=value=>{setSection(value);setVisited(current=>new Set([...current,value]));const url=new URL(window.location.href);if(value==='diarios')url.searchParams.delete('seccion');else url.searchParams.set('seccion',value);window.history.replaceState(window.history.state,'',url);};
+  const selectSection=value=>{
+    setVisited(current=>new Set([...current,value]));
+    const next=new URLSearchParams(searchParams);
+    if(value==='diarios')next.delete('seccion');else next.set('seccion',value);
+    setSearchParams(next,{replace:true});
+  };
+  useEffect(()=>{setVisited(current=>current.has(section)?current:new Set([...current,section]));},[section]);
   const showAnnex=report=>{setAnnexOwner(accountEmail);setAnnexReport({...report,collection:report.baseReport?.collection || report.collection});selectSection('anexos');};
 
   useEffect(() => {

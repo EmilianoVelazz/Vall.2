@@ -41,7 +41,7 @@ const HOJAS = [
 ];
 
 const DEPENDENCIAS = ['/assets/js/data-service.js?v=23', '/assets/js/report-artifacts.js?v=2'];
-const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=72';
+const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=73';
 
 const SUGERENCIAS = [
   { prompt: 'Soy distribuidor mundial de res, cerdo, huevo y pollo. ¿Qué noticias, restricciones sanitarias y riesgos logísticos de los últimos siete días pueden afectar mis compras, ventas y margen? Da fechas y fuentes; separa hechos de escenarios.', icono: 'fa-truck', titulo: 'Compra y venta de proteínas', nota: 'Abasto, rutas y margen comercial' },
@@ -222,7 +222,7 @@ function OrionWorkspace({user}) {
                 <div className="vai-compose-actions">
                   <span className="vai-compose-shortcut"><kbd>Enter</kbd> enviar</span>
                   <OrionModelSelector />
-                  <button className="vai-stop" id="vaiStop" type="button" hidden><i className="fas fa-stop" /></button>
+                  <button className="vai-stop" id="vaiStop" type="button" hidden aria-label="Detener generación"><i className="fas fa-stop" /></button>
                   <button className="vai-send" id="vaiSend" type="submit" disabled={!ready} aria-label="Enviar mensaje"><i className="fas fa-arrow-up" /></button>
                 </div>
               </div>

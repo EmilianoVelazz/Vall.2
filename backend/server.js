@@ -97,6 +97,7 @@ app.use('/api', externalRouter);
 // Los documentos tienen su propio límite antes del parser global pequeño.
 app.use('/api', require('./routes/user-reports'));
 app.use('/api', require('./routes/report-reader').router);
+app.use('/api/profile', express.json({ limit: '16kb' }));
 app.use(express.json({ limit: '10kb' }));
 
 // ── Puentes hacia la SPA ──────────────────────────────────────────────────────

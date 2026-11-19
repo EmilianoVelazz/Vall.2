@@ -31,9 +31,12 @@ const AUDIENCE_LABELS = {
   commercial: 'Comercial',
 };
 
-const formatDate = value => value
-  ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-  : 'Sin fecha';
+const formatDate = value => {
+  if (!value) return 'Sin fecha';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Sin fecha';
+  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+};
 
 const splitChainSteps = chain => String(chain || '')
   .split(/\s*(?:->|→)\s*/)
@@ -55,6 +58,7 @@ export default function AdminLoopus() {
   const [filter, setFilter] = useState('pending_human_review');
   const [domainFilter, setDomainFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [batchApproving, setBatchApproving] = useState(false);
@@ -62,6 +66,11 @@ export default function AdminLoopus() {
   const [notice, setNotice] = useState('');
   const [notes, setNotes] = useState({});
   const [revision, setRevision] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 280);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,7 +94,7 @@ export default function AdminLoopus() {
     const params = new URLSearchParams({ limit: '80' });
     if (filter) params.set('status', filter);
     if (domainFilter) params.set('domain', domainFilter);
-    if (search.trim()) params.set('q', search.trim());
+    if (debouncedSearch) params.set('q', debouncedSearch);
     apiGet(`/api/admin/loopus-proposals?${params.toString()}`, { signal: controller.signal })
       .then(({ ok, data }) => {
         if (!ok || !data?.success) throw Error(data?.error || 'No se pudieron cargar las propuestas de Proyecto Loopus.');
@@ -99,7 +108,7 @@ export default function AdminLoopus() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [view, filter, domainFilter, search, revision]);
+  }, [view, filter, domainFilter, debouncedSearch, revision]);
 
   async function review(row, nextStatus) {
     if (savingId !== null || batchApproving) return;
@@ -113,6 +122,12 @@ export default function AdminLoopus() {
         reviewNotes,
       });
       if (!ok || !data?.success) throw Error(data?.error || 'No se pudo guardar la revisión.');
+      setNotes(cur => {
+        if (!(row.id in cur)) return cur;
+        const next = { ...cur };
+        delete next[row.id];
+        return next;
+      });
       setNotice(`Propuesta #${String(row.id).slice(0, 8)} marcada como "${STATUS_LABELS[nextStatus] || nextStatus}".`);
       setRevision(v => v + 1);
     } catch (e) {
@@ -331,7 +346,7 @@ export default function AdminLoopus() {
                       </span>
                       {row.reviewed_at && <small className="ap-reviewed-at">{formatDate(row.reviewed_at)}</small>}
                     </td>
-                    <td data-label="Acciones">
+                    <td data-label="Revisión">
                       <div className="ap-actions">
                         <input
                           type="text"

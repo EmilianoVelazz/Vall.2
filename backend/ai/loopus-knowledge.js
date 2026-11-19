@@ -90,10 +90,15 @@ const BASELINE_REASONING_RULES = Object.freeze([
 let cachedCustomRules = null;
 let cachedAt = 0;
 let remoteRulesCache = [];
+let remoteRejectedKeys = new Set();
 let remoteFetchedAt = 0;
 let remoteInFlight = null;
 const CACHE_TTL_MS = 20_000;
 const REMOTE_TTL_MS = 45_000;
+
+function ruleKey(conditionTrigger, learnedRule) {
+    return `${fold(conditionTrigger)}|${fold(learnedRule)}`;
+}
 
 function triggerRemoteSupabaseHydration() {
     if (process.env.NODE_ENV === 'test') return;
@@ -102,11 +107,29 @@ function triggerRemoteSupabaseHydration() {
     remoteFetchedAt = now;
     try {
         const { listRuleProposals } = require('./ml-persistence');
-        remoteInFlight = listRuleProposals({ limit: 150 })
-            .then(rows => {
-                if (!Array.isArray(rows) || !rows.length) return;
+        remoteInFlight = Promise.all([
+            listRuleProposals({ status: 'approved', limit: 200 }),
+            listRuleProposals({ status: 'pending_human_review', limit: 150 }),
+            listRuleProposals({ status: 'rejected', limit: 200 }),
+        ])
+            .then(([approvedRows, pendingRows, rejectedRows]) => {
+                remoteRejectedKeys = new Set(
+                    (Array.isArray(rejectedRows) ? rejectedRows : [])
+                        .filter(item => item?.condition_trigger && item?.learned_rule)
+                        .map(item => ruleKey(item.condition_trigger, item.learned_rule))
+                );
+                const rows = [
+                    ...(Array.isArray(approvedRows) ? approvedRows : []),
+                    ...(Array.isArray(pendingRows) ? pendingRows : []),
+                ];
+                if (!rows.length && !remoteRejectedKeys.size) return;
                 remoteRulesCache = rows
-                    .filter(item => item?.condition_trigger && item?.learned_rule && (item.status === 'approved' || Number(item.confidence_score) >= 0.82))
+                    .filter(item => {
+                        if (!item?.condition_trigger || !item?.learned_rule) return false;
+                        if (item.status === 'rejected') return false;
+                        if (remoteRejectedKeys.has(ruleKey(item.condition_trigger, item.learned_rule))) return false;
+                        return item.status === 'approved' || Number(item.confidence_score) >= 0.82;
+                    })
                     .map(item => ({
                         id: item.id || item.fingerprint || `sb-${fold(item.condition_trigger).slice(0, 32)}`,
                         domain: item.domain || item.source?.domain || 'both',
@@ -158,8 +181,16 @@ function loadApprovedAndPlaybookRules() {
     const brain = readJsonArray(BRAIN_PROPOSALS_FILE);
     const playbook = readJsonArray(PLAYBOOK_FILE);
 
+    const rejectedKeys = new Set(remoteRejectedKeys);
+    for (const item of [...proposals, ...brain, ...playbook]) {
+        if (item?.status === 'rejected' && item?.condition_trigger && item?.learned_rule) {
+            rejectedKeys.add(ruleKey(item.condition_trigger, item.learned_rule));
+        }
+    }
+
     const approved = [...proposals, ...brain]
         .filter(item => item?.status === 'approved' && item?.condition_trigger && item?.learned_rule)
+        .filter(item => !rejectedKeys.has(ruleKey(item.condition_trigger, item.learned_rule)))
         .map(item => {
             const src = item.source && typeof item.source === 'object' ? item.source : {};
             return {
@@ -175,7 +206,8 @@ function loadApprovedAndPlaybookRules() {
         });
 
     const playbookRules = playbook
-        .filter(item => item?.condition_trigger && item?.learned_rule && Number(item?.confidence_score || 0) >= 82)
+        .filter(item => item?.status !== 'rejected' && item?.condition_trigger && item?.learned_rule && Number(item?.confidence_score || 0) >= 82)
+        .filter(item => !rejectedKeys.has(ruleKey(item.condition_trigger, item.learned_rule)))
         .map(item => ({
             id: item.id || `playbook-${fold(item.condition_trigger).slice(0, 32)}`,
             domain: item.domain || 'both',
@@ -190,8 +222,8 @@ function loadApprovedAndPlaybookRules() {
     const seen = new Set();
     const merged = [];
     for (const rule of [...approved, ...remoteRulesCache, ...playbookRules, ...BASELINE_REASONING_RULES]) {
-        const key = `${fold(rule.condition_trigger)}|${fold(rule.learned_rule)}`;
-        if (seen.has(key)) continue;
+        const key = ruleKey(rule.condition_trigger, rule.learned_rule);
+        if (rejectedKeys.has(key) || seen.has(key)) continue;
         seen.add(key);
         merged.push(rule);
     }
@@ -202,12 +234,14 @@ function loadApprovedAndPlaybookRules() {
 
 function scoreRule(rule, queryText, targetDomain) {
     if (targetDomain && rule.domain !== 'both' && rule.domain !== targetDomain) return -1;
+    let hits = 0;
+    for (const kw of rule.keywords || []) {
+        if (kw && queryText.includes(kw)) hits++;
+    }
+    if (rule.status && rule.status !== 'baseline' && queryText.trim().length >= 8 && hits === 0) return -1;
     let score = rule.status === 'approved' ? 4 : rule.status === 'playbook' ? 2 : 1;
     if (rule.domain === targetDomain) score += 2;
-    for (const kw of rule.keywords || []) {
-        if (kw && queryText.includes(kw)) score += 3;
-    }
-    return score;
+    return score + hits * 3;
 }
 
 function getChatReasoningContext({ message = '', plan = {}, limit = 3 } = {}) {
@@ -303,27 +337,13 @@ function updateReasoningPlaybook(newEntries = []) {
         entries: finalEntries,
     }, null, 2), 'utf8');
     cachedCustomRules = null;
-    if (process.env.NODE_ENV !== 'test') {
-        try {
-            const { persistRuleProposals } = require('./ml-persistence');
-            const toPersist = finalEntries.slice(-20).map(item => ({
-                condition_trigger: item.condition_trigger,
-                learned_rule: item.learned_rule,
-                confidence_score: item.confidence_score,
-                status: 'pending_human_review',
-                source: {
-                    provider: 'loopus-reasoning-playbook',
-                    topic: item.topic,
-                    domain: item.domain,
-                    reasoning_chain: item.reasoning_chain || null,
-                    collected_at: item.updated_at,
-                },
-                created_at: item.updated_at,
-            }));
-            void persistRuleProposals(toPersist, null).catch(() => {});
-        } catch { /* opcional */ }
-    }
     return added;
+}
+
+function invalidateReasoningCache() {
+    cachedCustomRules = null;
+    cachedAt = 0;
+    remoteFetchedAt = 0;
 }
 
 module.exports = {
@@ -333,4 +353,5 @@ module.exports = {
     updateReasoningPlaybook,
     loadApprovedAndPlaybookRules,
     stripNumbersForReportRule,
+    invalidateReasoningCache,
 };

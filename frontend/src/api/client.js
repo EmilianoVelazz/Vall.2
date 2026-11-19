@@ -26,7 +26,9 @@ async function request(path, method, body, opts) {
       const data = await res.json();
       return { ok: res.ok, status: res.status, data };
     } catch {
-      if (controller.signal.aborted) throw controller.signal.reason;
+      if (controller.signal.aborted) {
+        throw controller.signal.reason || new DOMException('Petición cancelada.', 'AbortError');
+      }
       // Una página HTML de error con HTTP 200 no es una respuesta API válida.
       return { ok: false, status: res.status, data: { success: false, error: 'El servidor devolvió una respuesta inválida.' } };
     }
@@ -43,7 +45,7 @@ export function apiPost(path, body, opts = {}) {
 }
 
 export function apiGet(path, opts = {}) {
-  if (opts.signal || opts.cache === 'no-store') {
+  if (opts.signal || opts.cache === 'no-store' || opts.headers || opts.timeoutMs != null) {
     return request(path, 'GET', undefined, opts);
   }
   const existing = inflightGets.get(path);

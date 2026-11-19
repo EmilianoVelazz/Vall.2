@@ -169,7 +169,10 @@ async function hydratedInput(body, user) {
         let timer;
         try {
             const profile = await Promise.race([profileStore.findById(user.sub), new Promise(resolve=>{ timer=setTimeout(()=>resolve(null),1500); })]);
-            input.businessProfile = profile?.preferences?.businessProfile || null;
+            if (profile) {
+                input._profile = profile;
+                input.businessProfile = profile.preferences?.businessProfile || null;
+            }
         } catch { /* El perfil opcional no debe impedir responder. */ }
         finally { clearTimeout(timer); }
     }
@@ -185,8 +188,10 @@ function hashUser(user) {
 
 async function persistTrainingTurn(user, input, result) {
     if (!user?.sub || user.trainingOptIn === false || !input?.message || !result?.text) return;
-    try{const current=await profileStore.findById(user.sub);if(!current?.active || current.trainingOptIn!==true)return;}
-    catch{return;}
+    try {
+        const current = input._profile || await profileStore.findById(user.sub);
+        if (!current?.active || current.trainingOptIn !== true) return;
+    } catch { return; }
     await profileStore.recordTrainingQuery(user.sub, {
         conversationId: input.conversationId,
         query: input.message,
@@ -316,21 +321,32 @@ router.post('/orion-live-turn', verifyToken, liveTurnLimiter, chatJson, async (r
     res.json({ success: true });
 });
 
+function withRequestAbort(res, fn) {
+    const controller = new AbortController();
+    const cancel = () => { if (!res.writableEnded) controller.abort(); };
+    res.once('close', cancel);
+    return Promise.resolve(fn(controller.signal)).finally(() => res.off?.('close', cancel));
+}
+
 router.post('/chat', verifyToken, aiLimiter, chatJson, aiWork(async (req, res) => {
     const message = (req.body?.message || '').toString().trim().slice(0, 12000);
     if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
     if (!orchestrator.isConfigured()) return res.status(503).json({ error: 'IA no configurada.' });
 
     try {
-        const input = { ...await hydratedInput(req.body, req.user), message };
-        const result = await orchestrator.generateStructured(input);
-        await persistOrionTurn(req.user, input, result);
-        await persistTrainingTurn(req.user, input, result);
-        res.json({ success: true, reply: result.text, response: result.response, tier: result.tier,
-            modelProfile: input.modelProfile, modelFallback: !!result.modelFallback,
-            mode: result.mode, queryId: result.queryId, evidenceCount: result.evidenceCount,
-            citations: result.citations, retrievalStrategy: result.retrievalStrategy });
+        await withRequestAbort(res, async (signal) => {
+            const input = { ...await hydratedInput(req.body, req.user), message, signal };
+            const result = await orchestrator.generateStructured(input);
+            if (signal.aborted || res.writableEnded) return;
+            await persistOrionTurn(req.user, input, result);
+            await persistTrainingTurn(req.user, input, result);
+            res.json({ success: true, reply: result.text, response: result.response, tier: result.tier,
+                modelProfile: input.modelProfile, modelFallback: !!result.modelFallback,
+                mode: result.mode, queryId: result.queryId, evidenceCount: result.evidenceCount,
+                citations: result.citations, retrievalStrategy: result.retrievalStrategy });
+        });
     } catch (err) {
+        if (err?.name === 'AbortError' || res.writableEnded) return;
         console.error('/api/chat error:', err.message);
         const safe = publicAiError(err);
         res.status(safe.status).json({ success: false, error: safe.message,...safe.details });
@@ -343,11 +359,16 @@ router.post('/ai-rich', verifyToken, aiLimiter, chatJson, aiWork(async (req, res
     if (!input.message) return res.status(400).json({ success: false, error: 'Mensaje vacío.' });
     if (!orchestrator.isConfigured()) return res.status(503).json({ success: false, error: 'IA no configurada.' });
     try {
-        const result = await orchestrator.generateStructured(input);
-        await persistOrionTurn(req.user, input, result);
-        await persistTrainingTurn(req.user, input, result);
-        res.json({ success: true, ...result });
+        await withRequestAbort(res, async (signal) => {
+            const reqInput = { ...input, signal };
+            const result = await orchestrator.generateStructured(reqInput);
+            if (signal.aborted || res.writableEnded) return;
+            await persistOrionTurn(req.user, reqInput, result);
+            await persistTrainingTurn(req.user, reqInput, result);
+            res.json({ success: true, ...result });
+        });
     } catch (err) {
+        if (err?.name === 'AbortError' || res.writableEnded) return;
         console.error('/api/ai-rich error:', err.message);
         const safe = publicAiError(err);
         res.status(safe.status).json({ success: false, error: safe.message,...safe.details });
@@ -427,11 +448,16 @@ router.post('/ai-insight', verifyToken, aiLimiter, chatJson, aiWork(async (req, 
     if (!orchestrator.isConfigured()) return res.status(503).json({ error: 'IA no configurada.' });
 
     try {
-        const result = await orchestrator.generateStructured(input);
-        await persistOrionTurn(req.user, input, result);
-        await persistTrainingTurn(req.user, input, result);
-        res.json({ reply: result.text, response: result.response, tier: result.tier });
+        await withRequestAbort(res, async (signal) => {
+            const reqInput = { ...input, signal };
+            const result = await orchestrator.generateStructured(reqInput);
+            if (signal.aborted || res.writableEnded) return;
+            await persistOrionTurn(req.user, reqInput, result);
+            await persistTrainingTurn(req.user, reqInput, result);
+            res.json({ reply: result.text, response: result.response, tier: result.tier });
+        });
     } catch (err) {
+        if (err?.name === 'AbortError' || res.writableEnded) return;
         console.error('/api/ai-insight error:', err.message);
         const safe = publicAiError(err);
         res.status(safe.status).json({ error: safe.message,...safe.details });

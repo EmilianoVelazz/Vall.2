@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
@@ -164,7 +164,8 @@ async function calcular(VDS) {
 
   const precioPuebla = (key) => {
     const item = wholesalePrices?.prices?.[key];
-    return item?.available && Number.isFinite(Number(item.price)) ? item : null;
+    const parsedPrice = Number(item?.price);
+    return item?.available && Number.isFinite(parsedPrice) ? { ...item, price: parsedPrice } : null;
   };
   const puebla = {
     cerdo: precioPuebla('pork'),
@@ -221,7 +222,7 @@ async function calcular(VDS) {
         fuente: (a.source || a.domain || (i < gdProt.length ? 'GDELT' : 'FINNHUB')).toUpperCase(),
       };
     }
-    return { ...base, ...sintetica[especie], fuente: especie === 'pollo' ? 'VALL · VALIDACIÓN LOCAL' : (hogs ? 'ALPHA VANTAGE' : 'CME REF.') };
+    return { ...base, ...sintetica[especie], fuente: especie === 'pollo' ? 'VALL · VALIDACIÓN LOCAL' : ((especie === 'cerdo' ? hogs : cattle) ? 'ALPHA VANTAGE' : 'CME REF.') };
   });
 
   const ratio = puebla.cerdo && puebla.pollo ? (puebla.cerdo.price / puebla.pollo.price).toFixed(2) : null;
@@ -306,22 +307,15 @@ export default function MercadoProteinas() {
   const [analisisIA, setAnalisisIA] = useState('');
   const [evidenciaFuentes, setEvidenciaFuentes] = useState(null);
   const [estadoEvidencia, setEstadoEvidencia] = useState('idle');
+  const evidenciaAbortRef = useRef(null);
 
   useEffect(() => {
     let vivo = true;
     let reloj = null;
 
-    const ejecutar = async (VDS) => {
-      const d = await calcular(VDS);
-      if (!vivo) return;
-      VDS.save(CLAVE_CACHE, d);
-      setDatos(d);
-
-      // El análisis de Gemini llega después y sólo interpreta las cotizaciones
-      // locales ya validadas; no puede convertir un futuro internacional en
-      // un supuesto precio de Puebla.
+    const actualizarInsight = async (VDS, d) => {
       try {
-        const cotizacionesPuebla = Object.entries(d.wholesalePrices?.prices || {})
+        const cotizacionesPuebla = Object.entries(d?.wholesalePrices?.prices || {})
           .filter(([, precio]) => precio?.available)
           .map(([especie, precio]) => `${especie}: $${precio.price} ${precio.unit}; ${precio.market}; fecha ${precio.date}; base ${precio.note}`)
           .join('\n');
@@ -334,6 +328,14 @@ export default function MercadoProteinas() {
         const texto = await VDS.geminiChat(prompt, SISTEMA_IA);
         if (vivo && texto) setAnalisisIA(texto);
       } catch { /* se queda el análisis calculado localmente */ }
+    };
+
+    const ejecutar = async (VDS) => {
+      const d = await calcular(VDS);
+      if (!vivo) return;
+      VDS.save(CLAVE_CACHE, d);
+      setDatos(d);
+      await actualizarInsight(VDS, d);
     };
 
     (async () => {
@@ -355,11 +357,16 @@ export default function MercadoProteinas() {
       const guardado = VDS.load(CLAVE_CACHE, true);
       if (guardado?.noticias?.length) {
         setDatos(guardado);
-        if (!VDS.isExpired(CLAVE_CACHE)) return;
+        if (!VDS.isExpired(CLAVE_CACHE)) {
+          void actualizarInsight(VDS, guardado);
+          reloj = setInterval(() => ejecutar(VDS).catch(() => {}), MS_REFRESCO);
+          return;
+        }
         VDS.clear(CLAVE_CACHE);
       }
 
       await ejecutar(VDS).catch((e) => console.error('Proteínas:', e));
+      if (!vivo) return;
 
       // Antes este intervalo no se cancelaba nunca.
       reloj = setInterval(() => ejecutar(VDS).catch(() => {}), MS_REFRESCO);
@@ -368,6 +375,7 @@ export default function MercadoProteinas() {
     return () => {
       vivo = false;
       if (reloj) clearInterval(reloj);
+      evidenciaAbortRef.current?.abort();
     };
   }, []);
 
@@ -379,17 +387,23 @@ export default function MercadoProteinas() {
   const cargarEvidenciaFuentes = (event) => {
     if (!event.currentTarget.open || estadoEvidencia === 'loading' || estadoEvidencia === 'ready') return;
     setEstadoEvidencia('loading');
+    evidenciaAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    evidenciaAbortRef.current = ctrl;
     Promise.allSettled([
-      fetch('/api/proteinas/evidencia/usda-ams').then((response) => (response.ok ? response.json() : null)),
-      fetch('/api/proteinas/evidencia/fao-fpma').then((response) => (response.ok ? response.json() : null)),
+      fetch('/api/proteinas/evidencia/usda-ams', { signal: ctrl.signal }).then((response) => (response.ok ? response.json() : null)),
+      fetch('/api/proteinas/evidencia/fao-fpma', { signal: ctrl.signal }).then((response) => (response.ok ? response.json() : null)),
     ]).then(([ams, fpma]) => {
+      if (ctrl.signal.aborted) return;
       const next = {
         ams: ams.status === 'fulfilled' ? ams.value : null,
         fpma: fpma.status === 'fulfilled' ? fpma.value : null,
       };
       setEvidenciaFuentes(next);
       setEstadoEvidencia(next.ams || next.fpma ? 'ready' : 'failed');
-    }).catch(() => setEstadoEvidencia('failed'));
+    }).catch(() => {
+      if (!ctrl.signal.aborted) setEstadoEvidencia('failed');
+    });
   };
 
   return (
@@ -510,14 +524,14 @@ export default function MercadoProteinas() {
                   {estadoEvidencia === 'loading' && <p className="mp-evidence-loading">Cargando último corte de datos estructurados…</p>}
                   {estadoEvidencia === 'ready' && (
                     <div className="mp-evidence-grid" aria-label="Último corte de datos estructurados">
-                      {evidenciaFuentes?.ams?.payload && (
+                      {Number.isFinite(Number(evidenciaFuentes?.ams?.payload?.negotiated_sales_usd_per_cwt?.pork_carcass?.value)) && (
                         <div className="mp-evidence-card">
                           <span>USDA AMS · cerdo FOB planta</span>
-                          <strong>USD {Number(evidenciaFuentes.ams.payload.negotiated_sales_usd_per_cwt?.pork_carcass?.value).toFixed(2)}/cwt</strong>
+                          <strong>USD {Number(evidenciaFuentes.ams.payload.negotiated_sales_usd_per_cwt.pork_carcass.value).toFixed(2)}/cwt</strong>
                           <small>{evidenciaFuentes.ams.data_vintage} · ventas negociadas nacionales</small>
                         </div>
                       )}
-                      {evidenciaFuentes?.fpma?.payload && (
+                      {Number.isFinite(Number(evidenciaFuentes?.fpma?.payload?.value)) && (
                         <div className="mp-evidence-card">
                           <span>FAO FPMA · maíz blanco, Culiacán</span>
                           <strong>MXN {Number(evidenciaFuentes.fpma.payload.value).toFixed(2)}/kg</strong>

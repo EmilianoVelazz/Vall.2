@@ -263,11 +263,13 @@ function buildMarketCharts(rows, year = null) {
     if (series.length === 1) {
         const item = series[0];
         const values = item.points.map(point => num(point.average_value));
+        const finiteValues = values.filter(Number.isFinite);
+        if (!finiteValues.length) return [];
         return [{
             type: 'line',
             title: `${item.name}: promedio mensual`,
-            subtitle: `${periodText}; ${item.points.reduce((sum, point) => sum + Number(point.observations), 0)} observaciones`,
-            insight: `Promedio mensual mínimo ${Math.min(...values).toFixed(4)} y máximo ${Math.max(...values).toFixed(4)}.`,
+            subtitle: `${periodText}; ${item.points.reduce((sum, point) => sum + (Number(point.observations) || 0), 0)} observaciones`,
+            insight: `Promedio mensual mínimo ${Math.min(...finiteValues).toFixed(4)} y máximo ${Math.max(...finiteValues).toFixed(4)}.`,
             unit: item.unit,
             source: `${item.source}, histórico almacenado por VALLNews`,
             beginAtZero: false,
@@ -448,13 +450,27 @@ ${descriptions.join('\n')}
 La gráfica ya fue construida con datos verificados. Si usa índice base 100, la normalización resuelve las diferencias de escala nominal entre monedas y hace válida la comparación en un solo eje. No afirmes que faltan datos de una serie incluida arriba ni que la gráfica es metodológicamente inviable. Explica brevemente cómo leer el índice y comenta el resultado; el sistema insertará la visualización automáticamente.`;
 }
 
+const DB_CONN_ERROR_CODES = new Set([
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'PROTOCOL_CONNECTION_LOST',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    'EHOSTUNREACH',
+    'ER_ACCESS_DENIED_ERROR',
+    'ER_CON_COUNT_ERROR',
+]);
+
 class RagRetriever {
     getSupabase() {
         if (!this.supabase) {
-            const supabaseUrl = process.env.VITE_SUPABASE_URL;
-            const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+            const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
             if (supabaseUrl && supabaseKey) {
-                this.supabase = createClient(supabaseUrl, supabaseKey);
+                this.supabase = createClient(supabaseUrl, supabaseKey, {
+                    auth: { persistSession: false, autoRefreshToken: false },
+                    global: { fetch: (resource, options = {}) => fetch(resource, { ...options, signal: options.signal || AbortSignal.timeout(10000) }) },
+                });
             }
         }
         return this.supabase;
@@ -841,7 +857,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
         }
         if (arguments[0].liveNews && arguments[0].liveNews.length) {
             sections.push('[NOTICIAS WEB EN TIEMPO REAL (ÚLTIMA HORA)]\n' + arguments[0].liveNews.map((news, index) => 
-                `[W${index + 1}] ${news.title}\nFuente: ${news.source.name} | Fecha: ${news.publishedAt} | URL: ${news.url}\nResumen: ${news.description}`
+                `[W${index + 1}] ${news?.title || ''}\nFuente: ${news?.source?.name || news?.source || 'Web'} | Fecha: ${news?.publishedAt || ''} | URL: ${news?.url || ''}\nResumen: ${news?.description || ''}`
             ).join('\n\n'));
         }
         return sections.join('\n\n').slice(0, 14000);
@@ -851,24 +867,22 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
         if (!process.env.NEWSAPI_KEY) return [];
         const terms = expandedSearchTerms(message);
         if (!terms || terms.length < 4) return [];
-        
+
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 2200);
         try {
             // Encode the top search term
             const query = encodeURIComponent(terms.split(' ').slice(0, 2).join(' '));
             const url = `https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&language=es&pageSize=3&apiKey=${process.env.NEWSAPI_KEY}`;
-            
-            const abortController = new AbortController();
-            const timeoutId = setTimeout(() => abortController.abort(), 2200);
-            
             const response = await fetch(url, { signal: abortController.signal });
-            clearTimeout(timeoutId);
-            
             if (!response.ok) return [];
             const data = await response.json();
             return data.articles && Array.isArray(data.articles) ? data.articles : [];
         } catch (error) {
             console.warn('[Agente Web] Fallo en búsqueda en vivo:', error.message);
             return [];
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 
@@ -1009,7 +1023,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             );
             return result.insertId;
         } catch (error) {
-            this.markDbUnavailable(error);
+            if (DB_CONN_ERROR_CODES.has(error?.code)) this.markDbUnavailable(error);
             return null;
         }
     }
@@ -1051,7 +1065,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             return written;
         } catch (error) {
             if (connection) await connection.rollback().catch(() => {});
-            this.markDbUnavailable(error);
+            if (DB_CONN_ERROR_CODES.has(error?.code)) this.markDbUnavailable(error);
             return 0;
         } finally {
             connection?.release();
@@ -1079,7 +1093,7 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
             );
             return result.affectedRows > 0;
         } catch (error) {
-            this.markDbUnavailable(error);
+            if (DB_CONN_ERROR_CODES.has(error?.code)) this.markDbUnavailable(error);
             return false;
         }
     }

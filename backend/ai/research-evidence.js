@@ -26,14 +26,17 @@ function researchInstructions(plan,evidence) {
     if (!plan.needsTradeResearch&&!plan.asksNews&&!plan.explicitRabobank) return '';
     const ledger=researchLedger(plan,evidence);
     return ['[EVIDENCIA LEÍDA Y FECHADA POR AFIRMACIÓN]',JSON.stringify(ledger),
-        'Para cada hallazgo importante escribe fecha ISO y enlace específico en el mismo párrafo o fila. Sólo atribuye al documento lo respaldado por el extracto. No cites una portada para demostrar un acuerdo específico.',
-        'Separa hechos de inferencias y escenarios. No presentes una recomendación de aranceles como una medida vigente, ni compromiso como compra realizada. Si una cifra, producto, fecha de aplicación o alcance no aparece en los extractos, no lo completes de memoria.',
-        'Un documento fuera de la ventana sólo puede usarse bajo el rótulo Antecedente. Si el respaldo es un resumen público, limita la atribución a ese resumen. No simules haber leído el PDF completo.'].join('\n');
+        'REGLA DE PROVENIENCIA POR BLOQUE: todo párrafo, Conclusión o viñeta que mencione acuerdos, anuncios, aranceles, compras, volúmenes o precios debe incluir EN ESE MISMO PÁRRAFO O FILA la fecha exacta YYYY-MM-DD y el enlace Markdown [Título](url) tomado del registro. No separes el enlace al final. Sólo atribuye al documento lo respaldado por el extracto.',
+        'Conserva las cifras literales y unidades exactas del extracto sin abreviar ni cambiar formato (p. ej. 1200 toneladas, no 1,200 t). Separa encabezados con doble salto de línea.',
+        'Separa hechos de inferencias y escenarios (inicia escenarios con «Escenario:» o «Si »). No presentes una recomendación de aranceles como una medida vigente, ni compromiso como compra realizada. Si una cifra, producto, fecha de aplicación o alcance no aparece en los extractos, no lo completes de memoria ni agregues números externos.',
+        'Un documento fuera de la ventana sólo puede usarse bajo el rótulo Antecedente en esa misma línea o párrafo. Si el respaldo es un resumen público, limita la atribución a ese resumen. No simules haber leído el PDF completo.'].join('\n');
 }
 function claimText(value) {
     return String(value || '').replace(/<[^>]*>/g, ' ')
         .replace(/^[ \t]*(?:#{1,6}\s*|>\s*)+/gm, '')
-        .replace(/\*\*|__/g, '').trim();
+        .replace(/\*\*|__/g, '')
+        .replace(/(^|\s)\*([^\s*][^*\n]*?)\*(?=\s|[.,:;!?)]|$)/g, '$1$2')
+        .trim();
 }
 function numberKey(raw) {
     // A lone separator followed by three digits is locale-dependent. Keep its
@@ -53,35 +56,72 @@ function numericClaims(text) {
     return [...withoutLinks.matchAll(/(?<![\p{L}\p{N}])([+\-−]?\d+(?:[.,]\d+)*)(?:[ \t]*(%|por ciento|percent))?(?![\p{L}\p{N}])/gu)]
         .map(match => numberKey(match[1].replace('−', '-')) + (match[2] ? ':percent' : ':number'));
 }
+const FACTUAL_CLAIM_VERB = /\b(?:acord[oó]|anunci[oó]|firm[oó]|aprob[oó]|aprobado|vigente|entr[oó]\s+en\s+vigor|public[oó]|compr[oó]|recibi[oó]|recomend[oó]|propus[oó]|report[oó]|inform[oó]|indic[oó]|señal[oó]|document[oó]|confirm[oó]|estableci[oó]|reduj[oó])\b/i;
+
 function materialClaim(part) {
     const value = claimText(part);
-    // A structural label such as «Informes revisados» is not itself a claim.
-    // A headline asserting an approval, percentage or price is still audited.
-    if (/^\s*(?:#{1,6}\s|<h[1-6]\b)/i.test(part)
-        && !/\b(?:\d|acord|anunci|firm|aprob|arancel|compr|export|import|ventas|margen|producci|demanda|oferta|precio)/i.test(value)) return null;
-    return value&&!/^\|[\s|:-]+\|$/.test(value)
-        && /\b(?:\d|acord|anunci|firm|aprobo|aprobó|arancel|compr|export|import|ventas|margen|informe|public|producci|demanda|oferta|precio)/i.test(value)
-        && !/^\s*(?:si\b|inferencia\b|escenario\b|implicaci[oó]n\b|qu[eé] verificar\b|no (?:se |puedo |pude |hay ))/i.test(value)
+    const plainBody = value.replace(/\[([^\]]+)\]\(https?:\/\/[^\s)]+\)/g, '$1').trim();
+    const isStandaloneBoldHeading = /^\s*(?:[-*•]\s*|\d+[.)]\s*)?(?:\*\*[^*\n]{2,80}\*\*|__[^_\n]{2,80}__)\s*$/.test(part);
+    const isColonLeadIn = !/\d/.test(plainBody) && !FACTUAL_CLAIM_VERB.test(plainBody) && /:\s*$/.test(plainBody) && !/\.\s*$/.test(plainBody);
+    if ((/^\s*(?:#{1,6}\s|<h[1-6]\b)/i.test(part) || isStandaloneBoldHeading || isColonLeadIn)
+        && !/\d/.test(plainBody)
+        && !FACTUAL_CLAIM_VERB.test(plainBody)
+        && (isStandaloneBoldHeading || isColonLeadIn || !/\b(?:acord|anunci|firm|aprob|arancel|compr|export|import|ventas|margen|producci|demanda|oferta|precio)/i.test(plainBody))) {
+        return null;
+    }
+    const listStripped = plainBody.replace(/^(?:[-*•]|\d+[.)])\s+/, '').trim();
+    const strippedBody = listStripped
+        .replace(/^(?:conclusi[oó]n|resumen)\s*[:.\n]\s*/i, '')
+        .trim();
+    const isNonClaimPreface = /^(?:si\b|inferencia\b|escenario\b|implicaci[oó]n\b|riesgo\b[^\n]{0,30}(?:y\s+señal)?\b|qu[eé]\s+verificar\b|ausencia\s+de\b|falta\s+de\b|evita\s+(?:ajustar|trasladar)\b|para\s+(?:efectos\s+de|evaluar|fines\s+de|operar)\b|no\s+(?:se\b|es\s+posible\b|puedo\b|pude\b|hay\b)|no\s+existe(?:n)?\s+evidencia\b.{0,90}\b(?:registr|document|simula|aportad))/i.test(strippedBody);
+    const isAnalyticalMechanism = !/\d/.test(strippedBody)
+        && !FACTUAL_CLAIM_VERB.test(strippedBody)
+        && /\b(?:si\b|depende\s+de|no\s+depende|podr[ií]a|invalidar[ií]a|equivale\s+a|constituye\s+un|en\s+el\s+an[aá]lisis\s+de|cualquier\s+alteraci[oó]n|al\s+no\s+disponer|representa\s+[uú]nicamente|factor\s+a\s+(?:monitorear|vigilar)|se\s+requiere\s+conocer)\b/i.test(strippedBody);
+    return value && !/^\|[\s|:-]+\|$/.test(value)
+        && /\b(?:\d|acord|anunci|firm|aprobo|aprobó|arancel|compr|export|import|ventas|margen|informe|public|producci|demanda|oferta|precio)/i.test(plainBody)
+        && !isNonClaimPreface
+        && !isAnalyticalMechanism
         && !/^\|\s*(?:fecha|producto|medida|fuente|hecho|estado|mercado|anuncio)\b/i.test(value) ? value : null;
+}
+function isSupportedNumericClaim(token, supportedNumbers, supportingText) {
+    if (supportedNumbers.has(token)) return true;
+    const commaMatch = String(token || '').match(/^literal:([+-]?\d{1,3}(?:,\d{3})+):(number|percent)$/);
+    if (commaMatch) {
+        const normalized = commaMatch[1].replace(/,/g, '') + ':' + commaMatch[2];
+        if (supportedNumbers.has(normalized) && !/\b\d+[.,]\d{1,2}\b/.test(supportingText)) return true;
+    }
+    return false;
 }
 function auditResearchAnswer(plan,evidence,text,now) {
     const ledger=researchLedger(plan,evidence,now);
     if ((!plan.needsTradeResearch&&!plan.asksNews&&!plan.explicitRabobank)||!ledger.records.length) return { needed:false, issues:[],ledger };
-    const material=String(text || '').split(/\n\s*\n|\n(?=\s*(?:[-*]|\d+[.)]|\||#{1,6}\s|>))/).map(materialClaim).filter(Boolean);
+    const chunks=String(text || '').split(/\n\s*\n|\n(?=\s*(?:[-*]|\d+[.)]|\||#{1,6}\s|>))/);
+    const datedUrlsInAnswer=new Set();
+    for(const rawChunk of chunks.slice(0,40)) {
+        const chunkLinks=[...rawChunk.matchAll(/\]\((https:\/\/[^\s)]+)\)/g)].map(match=>canonicalUrl(match[1]));
+        for(const record of ledger.records) {
+            if(chunkLinks.includes(record.url) && rawChunk.includes(record.date)) datedUrlsInAnswer.add(record.url);
+        }
+    }
+    const material=chunks.map(materialClaim).filter(Boolean);
     const issues=material.length>40 ? ['claim_limit_exceeded'] : [];
     for(const part of material.slice(0,40)) {
         if(ledger.period && part===`Periodo revisado: ${ledger.period.start} a ${ledger.period.end}.`) continue;
         const links=[...part.matchAll(/\]\((https:\/\/[^\s)]+)\)/g)].map(match=>canonicalUrl(match[1]));
         const supporting=ledger.records.filter(record=>links.includes(record.url));
         if(!supporting.length) { issues.push('material_claim_without_read_source'); continue; }
-        if(!supporting.some(record=>part.includes(record.date))) issues.push('claim_without_publication_date');
+        if(!supporting.some(record=>part.includes(record.date)) && !supporting.some(record=>datedUrlsInAnswer.has(record.url))) {
+            issues.push('claim_without_publication_date');
+        }
         if(supporting.every(record=>!record.inPeriod)&&!/antecedente|hist[oó]rico|fuera del periodo/i.test(part)) issues.push('background_presented_as_current');
         // Numeric claims must at least occur in the cited excerpt/date/title.
         // This is a provenance check, not a semantic truth classifier.
         const numbers=numericClaims(part);
-        const support=supporting.map(record=>record.text+' '+record.title).join(' ');
+        const support=supporting.map(record=>record.text+' '+record.title+' '+record.date.slice(0,4)).join(' ');
         const supportedNumbers=new Set(numericClaims(support));
-        if(numbers.some(number=>!supportedNumbers.has(number))) issues.push('number_absent_from_cited_excerpt');
+        if(ledger.period?.start) supportedNumbers.add(ledger.period.start.slice(0,4)+':number');
+        if(ledger.period?.end) supportedNumbers.add(ledger.period.end.slice(0,4)+':number');
+        if(numbers.some(number=>!isSupportedNumericClaim(number, supportedNumbers, support))) issues.push('number_absent_from_cited_excerpt');
         const dates=[...part.replace(/https?:\/\/[^\s)]+/g,'').matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)].map(match=>match[0]);
         if(dates.some(date=>!supporting.some(record=>record.date===date)&&!support.includes(date))) issues.push('date_absent_from_cited_excerpt');
     }

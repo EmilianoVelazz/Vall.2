@@ -99,6 +99,68 @@ async function main() {
         const forbidden=await chat[method]({message:'Escribe un programa Python para calcular mi margen. '+exercise,history:[]});
         check(()=>assert.equal(forbidden.response.meta.taskType,'domain_redirect'));
     }
+    const { detectTaskType } = require('../backend/ai/prompt-builder');
+    const { buildDataInventoryContext } = require('../backend/ai/data-inventory');
+    const { createProteinPriceClient, proteinProfile } = require('../backend/services/protein-market-intelligence');
+    const globalProteinHistory = [
+        { role: 'user', content: 'Compara los últimos precios verificables de cerdo, pollo, huevo y res alrededor del mundo' },
+        { role: 'assistant', content: 'Cerdo US 95.15 USD/100 lb y Res US 321.85 USD/100 lb.' },
+    ];
+    const coveragePlan = planQuery({ message: 'por que solo me diste de estados unidos', history: globalProteinHistory });
+    check(()=>assert.equal(coveragePlan.asksCoverageExplanation, true));
+    check(()=>assert.equal(coveragePlan.needsDataInventory, true));
+    check(()=>assert.equal(coveragePlan.needsProteinPrices, false));
+    check(()=>assert.equal(coveragePlan.needsProteinResearch, false));
+    check(()=>assert.equal(guardProteinPrices(coveragePlan, empty, 'La API de la UE DG AGRI dio HTTP 500 y USDA LMPR cubre cutout de cerdo y res en EE. UU.').blocked, false));
+    const inventoryPlan = planQuery({ message: 'dime que datos tienes ahorita mismo', history: globalProteinHistory });
+    check(()=>assert.equal(inventoryPlan.asksDataInventory, true));
+    check(()=>assert.equal(inventoryPlan.needsDataInventory, true));
+    check(()=>assert.equal(inventoryPlan.needsProteinPrices, false));
+    check(()=>assert.equal(detectTaskType('dime que datos tienes ahorita mismo'), 'general'));
+    const invText = buildDataInventoryContext({ plan: coveragePlan });
+    check(()=>assert.match(invText, /INVENTARIO Y COBERTURA EN VIVO/));
+    check(()=>assert.match(invText, /DG AGRI/));
+    const { buildAnswerStrategy } = require('../backend/ai/answer-strategy');
+    check(()=>assert.equal(buildAnswerStrategy({ message: 'dime que datos tienes ahorita mismo', plan: inventoryPlan }).intent, 'inventory'));
+    check(()=>assert.equal(buildAnswerStrategy({ message: 'por que solo me diste de estados unidos', plan: coveragePlan }).intent, 'coverage'));
+    check(()=>assert.match(buildAnswerStrategy({ message: 'dime que datos tienes ahorita mismo', plan: inventoryPlan }).followUps[0].label, /prote[ií]nas/i));
+    const snapClient = createProteinPriceClient({
+        fetchPage: async () => { throw new Error('offline'); },
+        now: () => Date.parse('2026-11-19T12:00:00Z'),
+        mexicoClient: { getDetailed: async () => ({ records: [], coverage: [] }) },
+        porciculturaClient: { getDetailed: async () => ({ records: [], coverage: [] }) },
+        enableReportSnapshot: true,
+    });
+    const globalRecovery = await snapClient.get(proteinProfile('Compara los últimos precios verificables de cerdo, pollo, huevo y res alrededor del mundo'));
+    check(()=>assert(globalRecovery.records.some(r => r.countryCode === 'BR')));
+    check(()=>assert(globalRecovery.records.some(r => r.countryCode === 'FR')));
+    check(()=>assert(globalRecovery.records.some(r => r.countryCode === 'MX')));
+    check(()=>assert(globalRecovery.records.some(r => r.countryCode === 'US' && r.productId === 'poultry')));
+    for (const method of ['stream', 'generateStructured']) {
+        const explanation = 'Solo se mostró Estados Unidos en vivo porque DG AGRI UE devolvió HTTP 500 y USDA LMPR cubre cerdo/res.';
+        const provider = { name: 'fixture', isConfigured: () => true, generate: async () => ({ text: explanation, model: 'fixture' }), stream: async req => { req.onText?.(explanation); return { text: explanation, model: 'fixture' }; } };
+        const chat = new AIOrchestrator({ provider, liveDataGrounder: async () => empty, forecastBuilder: async () => null, statisticsBuilder: async () => null, retriever: { retrieve: async () => empty, recordQuery: async () => null, recordEvidence: async () => null } });
+        const metaAns = await chat[method]({ message: 'por que solo me diste de estados unidos', history: globalProteinHistory });
+        check(()=>assert.doesNotMatch(metaAns.text, /No pude validar los precios solicitados/));
+        check(()=>assert.match(metaAns.text, /DG AGRI UE/));
+    }
+    const { buildShowcaseChart, buildForecastRecordChart, buildProteinComparisonChart } = require('../backend/ai/analytical-charts');
+    const cornMlChart = buildShowcaseChart({ message: 'Pronóstico Loopus de ZC=F maiz cbot', plan: { asksForecast: true } });
+    check(()=>assert.equal(cornMlChart?.type, 'line'));
+    check(()=>assert(cornMlChart.datasets.length === 4 && cornMlChart.datasets.every(ds => ds.data.filter(v => v != null).length >= 2)));
+    const mlOverviewChart = buildShowcaseChart({ message: 'Muestra los pronósticos ML activos de Loopus', plan: { asksDataInventory: true } });
+    check(()=>assert.equal(mlOverviewChart?.type, 'bar'));
+    const recChart = buildForecastRecordChart({ available: true, records: [{ available: true, ticker: 'TSN', name: 'Tyson', unit: 'USD', source: 'Yahoo', horizon: 3, cutoff: '2026-11-18', lastValue: 60, recentSeries: [{ date: '2026-11-12', value: 58 }, { date: '2026-11-13', value: 59 }, { date: '2026-11-16', value: 59.5 }, { date: '2026-11-18', value: 60 }], prediction: { value: 61.2, lowerBound: 58.1, upperBound: 64.3 }, evaluation: { improvement: 0.08 } }] });
+    check(()=>assert.equal(recChart?.datasets?.length, 4));
+    check(()=>assert.deepEqual(recChart.datasets[2].borderDash, [5, 4]));
+    const fxFixture = { base: 'USD', rates: { USD: 1, MXN: 20, BRL: 6, EUR: 0.9, CAD: 1.4, CLP: 950, PLN: 4, CNY: 7 }, updatedAt: '2026-11-19', source: 'Fixture' };
+    const proteinBar = buildProteinComparisonChart({ records: globalRecovery.records, fxRates: fxFixture, plan: planQuery({ message: 'Compara los últimos precios verificables de cerdo, pollo, huevo y res alrededor del mundo' }), message: 'Compara' });
+    check(()=>assert.equal(proteinBar?.type, 'bar'));
+    check(()=>assert(proteinBar?.labels?.length >= 4 && proteinBar.datasets.some(d => d.label.includes('Cerdo'))));
+    const singleProteinChart = buildProteinComparisonChart({ records: [record], fxRates: fxFixture, plan: quotePlan, message: 'Precio del huevo en España hoy' });
+    check(()=>assert.equal(singleProteinChart, null));
+    const guardedWithChartFence = guardProteinPrices(quotePlan, evidence, `${valid}\n\n\`\`\`chart\n{"type":"bar","title":"Ref MXN 2026","labels":["A","B"],"datasets":[{"label":"X","data":[10,20]}]}\n\`\`\``);
+    check(()=>assert.equal(guardedWithChartFence.blocked, false));
     const result={generatedAt:new Date().toISOString(),checks,passed:true,scope:'Regresiones locales con proveedores simulados; no certifica exactitud de cotizaciones reales ni predicciones.'};
     const output=path.join(__dirname,'../output/analisis-inteligencia-orion');fs.mkdirSync(output,{recursive:true});fs.writeFileSync(path.join(output,'regresiones.json'),JSON.stringify(result,null,2));
     console.log('ORION intelligence: '+checks+' checks passed');

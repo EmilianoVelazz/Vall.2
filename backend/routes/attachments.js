@@ -6,13 +6,16 @@ const rateLimit = require('express-rate-limit');
 const { verifyToken } = require('./auth');
 const { accountKey, boundedJson } = require('../lib/resource-limits');
 const { AttachmentCache } = require('../lib/attachment-cache');
+const { xlsxToCsv } = require('../lib/xlsx-reader');
 
 const router = express.Router();
 const attachments = new AttachmentCache();
 const MAX_BYTES = 6 * 1024 * 1024;
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const ALLOWED_TYPES = new Set([
     'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf',
     'text/plain', 'text/csv', 'text/markdown', 'application/json',
+    XLSX_MIME,
     'audio/webm', 'audio/mp4', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg', 'audio/aac'
 ]);
 
@@ -33,7 +36,7 @@ function safeName(value) {
     return String(value || 'archivo').replace(/[\u0000-\u001f<>:"/\\|?*]/g, '_').trim().slice(0, 120) || 'archivo';
 }
 
-router.post('/chat-attachments', verifyToken, uploadLimiter, boundedJson({ limit: '9mb' }), (req, res) => {
+router.post('/chat-attachments', verifyToken, uploadLimiter, boundedJson({ limit: '9mb' }), async (req, res) => {
     const name = safeName(req.body?.name);
     const type = String(req.body?.type || '').toLowerCase().split(';')[0];
     const dataUrl = String(req.body?.dataUrl || '');
@@ -49,14 +52,40 @@ router.post('/chat-attachments', verifyToken, uploadLimiter, boundedJson({ limit
     if (!bytes || bytes > MAX_BYTES) {
         return res.status(413).json({ success: false, error: 'El archivo debe pesar menos de 6 MB.' });
     }
+    let storedType = type;
+    let storedBase64 = base64;
+    let storedBytes = bytes;
+    let extra = {};
+    if (type === XLSX_MIME) {
+        try {
+            const converted = await xlsxToCsv(Buffer.from(base64, 'base64'));
+            storedType = 'text/csv';
+            storedBase64 = Buffer.from(converted.csv, 'utf8').toString('base64');
+            storedBytes = Buffer.byteLength(storedBase64, 'base64');
+            if (!storedBytes || storedBytes > MAX_BYTES) {
+                return res.status(413).json({ success: false, error: 'La hoja Excel extraída supera el límite de 6 MB.' });
+            }
+            extra = {
+                convertedFrom: 'xlsx',
+                sheets: converted.sheets,
+                rowCount: converted.rowCount,
+                columnCount: converted.columnCount,
+            };
+        } catch (error) {
+            return res.status(error?.status || 400).json({
+                success: false,
+                error: error?.message || 'No se pudo procesar el archivo Excel (.xlsx).',
+            });
+        }
+    }
     const id = crypto.randomBytes(18).toString('hex');
-    const item = { id, owner: ownerKey(req.user), name, type, size: bytes, base64 };
+    const item = { id, owner: ownerKey(req.user), name, type: storedType, size: storedBytes, base64: storedBase64 };
     const rejected = attachments.put(item);
     if (rejected) {
         res.set('Retry-After', '60');
         return res.status(rejected === 'owner' ? 429 : 503).json({ success: false, error: 'Se alcanzó el límite temporal de adjuntos. Intenta más tarde.' });
     }
-    res.status(201).json({ success: true, attachment: { id, name, type, size: bytes, expiresInMinutes: 30 } });
+    res.status(201).json({ success: true, attachment: { id, name, type: storedType, size: storedBytes, expiresInMinutes: 30, ...extra } });
 });
 
 function getAttachments(ids, user) {

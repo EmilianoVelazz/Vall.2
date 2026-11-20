@@ -56,9 +56,10 @@ function buildAnswerStrategy({ message, history = [], plan = {}, includeFormat=t
     const audience = commercial ? 'merchant' : /productor|porcicultor|avicultor/.test(role || '') ? 'producer'
         : /comprador|abastecimiento/.test(role || '') ? 'buyer' : role ? 'investor' : 'general';
     const forecast = plan.forecast || forecastRequest(message, history);
-    const intent = forecast.requested ? 'forecast' : plan.asksNews ? 'news'
-        : plan.asksComparison ? 'comparison' : plan.asksDecision ? 'decision'
-            : plan.needsProteinPrices || plan.needsLiveQuote ? 'price' : 'analysis';
+    const intent = plan.asksDataInventory ? 'inventory' : plan.asksCoverageExplanation ? 'coverage'
+        : forecast.requested ? 'forecast' : plan.asksNews ? 'news'
+            : plan.asksComparison ? 'comparison' : plan.asksDecision ? 'decision'
+                : plan.needsProteinPrices || plan.needsLiveQuote ? 'price' : 'analysis';
     const length = responseLength(message);
     const proteinContext=Boolean(plan.proteinProfile?.products?.length) || /\b(?:proteinas?|cerdo|porcino|pollo|huevo|res|bovino|ganado|carne)\b/.test(audienceText);
     const currencyContext=plan.topics?.includes('fx') || /\b(?:usd|mxn|dolar|divisas?|forward|tipo de cambio)\b/.test(current);
@@ -113,7 +114,19 @@ function buildAnswerStrategy({ message, history = [], plan = {}, includeFormat=t
         'Explica dos o tres señales de mercado como influencias condicionales, sin recomendar retener o embarcar animales. Cierra con una sola pregunta sobre una variable, preferentemente su costo completo por kg; no pidas región y precio en la misma pregunta.',
     );
     const item = (label, prompt, icon) => ({ label, prompt, icon });
-    const followUps = intent === 'forecast' ? [
+    const followUps = intent === 'inventory' ? [
+        item('Comparar proteínas globales', 'Compara los últimos precios verificables de cerdo, pollo, huevo y res alrededor del mundo con país, unidad, fecha y fuente.', 'fa-magnifying-glass-plus'),
+        item('Pronósticos ML activos', 'Resume los pronósticos cuantitativos walk-forward vigentes en Loopus y qué activos tienen ventaja validada fuera de muestra.', 'fa-chart-line'),
+        item('Panorama de mercados hoy', 'Dame un panorama ejecutivo de los mercados globales y México hoy, con fechas de corte y fuentes.', 'fa-eye'),
+    ] : intent === 'coverage' ? [
+        item('Ver precios disponibles hoy', 'Compara los últimos precios verificables de cerdo, pollo, huevo y res alrededor del mundo disponibles ahorita en los conectores y reportes verificados.', 'fa-magnifying-glass-plus'),
+        item('Precios en México hoy', 'Consulta los precios físicos verificables de cerdo, pollo, huevo y res en México por plaza, unidad y fecha.', 'fa-sliders'),
+        item('Inventario completo en vivo', 'Dime qué datos, informes, fuentes y modelos ML tienes activos ahorita mismo con sus fechas de corte.', 'fa-eye'),
+    ] : intent === 'price' ? [
+        item('Impacto en margen y costos', 'Explica cómo estas diferencias de precio entre plazas, canal y animal vivo afectan el costo puesto en destino y el margen comercial.', 'fa-diagram-project'),
+        item('Riesgos y brechas', 'Señala los riesgos recientes de mercado o sanitarios y las brechas o rezagos de fecha que debo vigilar en esta comparativa.', 'fa-triangle-exclamation'),
+        item('Fuentes y fechas', 'Resume las fuentes oficiales, unidades originales y fechas de corte que respaldan estas cotizaciones.', 'fa-link'),
+    ] : intent === 'forecast' ? [
         item('Qué cambiaría el escenario', 'Sobre el análisis anterior, conserva el activo y horizonte e identifica qué datos o eventos invalidarían el escenario base y cómo vigilarlos.', 'fa-sliders'),
         item('Revisar el pronóstico', 'Revisa el pronóstico anterior: muestra horizonte, corte, error fuera de muestra y comparación con la referencia de último precio. Explica qué no está validado.', 'fa-chart-line'),
         item('Riesgos y señales', 'Sobre el análisis anterior, prioriza tres riesgos y una señal verificable para cada uno. Conserva mi objetivo y perfil expresados.', 'fa-triangle-exclamation'),

@@ -7,30 +7,39 @@ const { researchLedger, verifiedResearchFallback, auditResearchAnswer } = requir
 const { groundingSourcesMarkdown, AIOrchestrator } = require('../backend/ai/orchestrator');
 let rejected = 0;
 const results = dataset.cases.map(item => {
-    const answer = { text: format(item.reference, item) };
-    const result = evaluateAnswer(item, answer, caseContext(item));
     const context = caseContext(item);
-    assert.equal(context.plan.needsTradeResearch, true, item.id + ': recupera medidas y anuncios comerciales');
-    const fallback = verifiedResearchFallback(researchLedger(context.plan, context.evidence, context.now));
-    assert.equal(auditResearchAnswer(context.plan, context.evidence, fallback, context.now).needed, false, item.id + ': el respaldo conserva procedencia');
-    const withSources = fallback + '\n\n' + groundingSourcesMarkdown(context.evidence.citations, context.evidence.tradePeriod);
-    assert.equal(auditResearchAnswer(context.plan, context.evidence, withSources, context.now).needed, false, item.id + ': la bibliografía también identifica antecedentes');
-    if (['commitment-not-execution', 'proposal-not-enacted', 'publication-and-effective-date', 'quantity-with-unit', 'conditional-financial-effect'].includes(item.id)) {
-        assert(evaluateAnswer(item, { text: fallback }, context).automaticPassed, item.id + ': el respaldo conserva la información decisiva');
+    const answer = { text: format(item.reference, item) };
+    const result = evaluateAnswer(item, answer, { ...context, format });
+    if ((item.category || 'trade_research') === 'trade_research') {
+        assert.equal(context.plan.needsTradeResearch, true, item.id + ': recupera medidas y anuncios comerciales');
+        const fallback = verifiedResearchFallback(researchLedger(context.plan, context.evidence, context.now));
+        assert.equal(auditResearchAnswer(context.plan, context.evidence, fallback, context.now).needed, false, item.id + ': el respaldo conserva procedencia');
+        const withSources = fallback + '\n\n' + groundingSourcesMarkdown(context.evidence.citations, context.evidence.tradePeriod);
+        assert.equal(auditResearchAnswer(context.plan, context.evidence, withSources, context.now).needed, false, item.id + ': la bibliografía también identifica antecedentes');
+        if (['commitment-not-execution', 'proposal-not-enacted', 'publication-and-effective-date', 'quantity-with-unit', 'conditional-financial-effect'].includes(item.id)) {
+            assert(evaluateAnswer(item, { text: fallback }, { ...context, format }).automaticPassed, item.id + ': el respaldo conserva la información decisiva');
+        }
     }
     assert(result.automaticPassed, JSON.stringify({ id: item.id, result }));
     assert.equal(result.humanReview.status, 'pending');
     for (const text of item.mutations) {
-        const invalid = evaluateAnswer(item, { text: format(text, item) }, caseContext(item));
+        const invalid = evaluateAnswer(item, { text: format(text, item) }, { ...context, format });
         assert(!invalid.automaticPassed, item.id + ': ' + text); rejected++;
     }
     const review = { answerHash: result.answerHash, reviewer: 'Test reviewer', reviewedAt: '2026-10-15T18:00:00Z', scores: Object.fromEntries(DIMENSIONS.map(key => [key, 2])) };
-    assert.equal(evaluateAnswer(item, answer, { ...caseContext(item), review }).humanReview.status, 'recorded');
-    assert.equal(evaluateAnswer(item, { text: answer.text + ' modified' }, { ...caseContext(item), review }).humanReview.status, 'invalid_or_stale');
-    assert.equal(evaluateAnswer(item, answer, { ...caseContext(item), review: { ...review, scores: { ...review.scores, sourceSupport: 10 } } }).humanReview.status, 'invalid_or_stale');
+    assert.equal(evaluateAnswer(item, answer, { ...context, format, review }).humanReview.status, 'recorded');
+    assert.equal(evaluateAnswer(item, { text: answer.text + ' modified' }, { ...context, format, review }).humanReview.status, 'invalid_or_stale');
+    assert.equal(evaluateAnswer(item, answer, { ...context, format, review: { ...review, scores: { ...review.scores, sourceSupport: 10 } } }).humanReview.status, 'invalid_or_stale');
     return result;
 });
 const summary = summarizeEvaluation(results, { datasetStatus: dataset.status });
+assert.equal(summary.cases, 12);
+assert.equal(summary.automaticPassed, 12);
+assert.ok(summary.byCategory.tabular_attachment?.passed === 1);
+assert.ok(summary.byCategory.comparative_chart?.passed === 1);
+assert.ok(summary.byCategory.report_handoff?.passed === 1);
+assert.ok(summary.byCategory.multisource?.passed === 1);
+assert.ok(summary.byCategory.ml_forecast?.passed === 1);
 assert.equal(summary.humanReviewed, 0); assert.equal(summary.humanScores.sourceSupport, null);
 assert.equal(summary.latency.p95Ms, null, 'No inventar latencia a partir de respuestas de referencia');
 const timed = summarizeEvaluation([10, 50, 100].map(latencyMs => ({ ...results[0], latencyMs })));

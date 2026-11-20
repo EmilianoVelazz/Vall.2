@@ -61,13 +61,16 @@ function guardTradeResearch(plan = {}, evidence = {}, text = '') {
         const denial = /\bno (?:se )?(?:(?:ha|han|habia|habian) )?(?:informado|anunciado|firmado|acordado|reportado|registrado|documentado)\b[^.!?\n]{0,160}\b(?:acuerdos?|tratados?|pactos?|marcos?)\b|\bno (?:hay|hubo|existen?|se conocen)\b[^.!?\n]{0,90}\b(?:acuerdos?|tratados?|pactos?)\b/.test(opening);
         const documents = (evidence.tradeDocuments || []).filter(record => record.verified && record.excerpts?.length
             && (evidence.citations || []).some(citation => citation.type === 'verified_trade_document' && citation.url === record.url && citation.date === record.date));
-        if (!denial || !documents.length) return { text, blocked: false };
+        const inPeriodDocuments = evidence.tradePeriod?.start
+            ? documents.filter(record => record.date >= evidence.tradePeriod.start && (!evidence.tradePeriod.end || record.date <= evidence.tradePeriod.end))
+            : documents;
+        if (!denial || !inPeriodDocuments.length) return { text, blocked: false };
         // Evita transmitir una negación que contradice documentos recuperados.
         // El orquestador intenta una revisión; este texto conserva trazabilidad
         // si el modelo falla o insiste en reducir acuerdos a tratados formales.
         return { blocked: false, needsRevision: true,
             text: 'Identifiqué anuncios y documentos oficiales dentro del periodo solicitado. La evidencia recuperada no permite concluir que no hubo acuerdos por no tratarse de un nuevo tratado estructural.\n\n'
-                + documents.map(record => `- ${record.date} · ${record.source}: ${record.title}.`).join('\n')
+                + documents.map(record => `- ${record.date} · ${record.source}: [${record.title}](${record.url}).`).join('\n')
                 + '\n\nLas fuentes enlazadas distinguen anuncios, recomendaciones, compromisos y aplicación efectiva. Hace falta revisar cada disposición antes de atribuirle un arancel vigente o una compra ejecutada.' };
     }
     const cell = value => String(value ?? '').replace(/[|\r\n]/g, ' ');

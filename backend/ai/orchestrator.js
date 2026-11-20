@@ -14,12 +14,14 @@ const { domainDecision, domainRedirectText } = require('./domain-policy');
 const { ragRetriever } = require('./rag-retriever');
 const { resolveCurrencyConversion, conversionContext, isSimpleCurrencyConversion, conversionAnswer } = require('./currency-converter');
 const { planQuery, planContext, mergeEvidence } = require('./query-planner');
+const { buildDataInventoryContext } = require('./data-inventory');
 const { groundLiveData } = require('./live-data-grounder');
 const { auditResponse, appendDisclosure, guardTradeResearch, scopeTradeEvidence, guardNewsCoverage } = require('./response-quality');
 const { buildStatisticalModel, mergeStatisticalEvidence, attachStatisticalModel, wantsStatisticalAnalysis } = require('./statistical-analysis');
 const { conversationFocus, balancedExcerpt } = require('./conversation-context');
 const { attachAnswerStrategy } = require('./answer-strategy');
 const { buildForecastAnalysis, attachForecastAnalysis, guardForecastAnswer } = require('./forecast-analysis');
+const { buildShowcaseChart, buildProteinComparisonChart } = require('./analytical-charts');
 const { prepareBusinessConversation } = require('./business-memory');
 const { calculateMargin, wantsCommercialCalculation, commercialReply } = require('./commercial-calculator');
 const {responseLength}=require('./answer-format');
@@ -69,6 +71,9 @@ function socialReply(message, history = []) {
     const continuation = hasPreviousAnalysis ? ' Puedes retomar el análisis que llevábamos cuando quieras.' : '';
     if (/^(?:gracias|muchas gracias|te agradezco)/.test(text)) {
         return `Con gusto.${continuation || ' Estoy aquí para ayudarte a entender los mercados con claridad.'}`;
+    }
+    if (/^(?:ayuda(?:me)?)$|(?:(?:que|en que) (?:me )?puedes (?:hacer|ayudar)|como funcionas)/.test(text)) {
+        return `Soy ORION, tu asistente de inteligencia económica de VALLNews. Puedo ayudarte con:\n\n- **Proteínas y agroindustria:** precios verificados por fecha y fuente en México (SNIIM/Porcicultura/PROFECO) y mercados globales (USDA, CEPEA Brasil, RNM Francia, DG AGRI UE, Chile, Canadá, China).\n- **Mercados, FX y pronósticos ML:** análisis de divisas, granos, energía y modelos cuantitativos walk-forward.\n- **Documentos y cálculo comercial:** márgenes, mermas, lectura de PDF/CSV/imágenes y exportación a Word o PDF.${continuation || '\n\nDime qué mercado, especie o cálculo quieres revisar.'}`;
     }
     if (/(?:como te llamas|quien eres|cual es tu nombre)/.test(text)) {
         return `Me llamo ORION. Soy el asistente de inteligencia económica de VALLNews.${continuation || ' Puedo ayudarte con mercados, bolsa, divisas y noticias económicas de México.'}`;
@@ -192,14 +197,13 @@ function groundingSourcesMarkdown(citations = [], period = null) {
 }
 
 function attachEvidence(response, evidence, plan = {}) {
+    let resolvedChartStatus = evidence.chartStatus || 'not_requested';
     if (evidence.chartRequested && evidence.chartStatus !== 'user_supplied') {
         const verifiedCharts = evidence.charts || (evidence.chart ? [evidence.chart] : []);
         const hasLlmChart = response.blocks.some(block => block.type === 'chart');
-        // Una gráfica del motor OLS no es una sugerencia del modelo de lenguaje:
-        // se calculó con la serie verificable. La búsqueda de una gráfica
-        // adicional puede no encontrar datos y antes borraba por accidente ese
-        // resultado estadístico, dejando un PDF de puro texto.
-        const hasStatisticalChart = response.meta?.statisticalModel?.available === true && hasLlmChart;
+        // Una gráfica del motor OLS o de pronóstico/proteínas verificado no es
+        // una sugerencia narrativa: se calculó con series fechadas.
+        const hasStatisticalChart = (response.meta?.statisticalModel?.available === true || response.meta?.verifiedServerChart === true) && hasLlmChart;
         
         if (verifiedCharts.length) {
             // RAG sustituye una gráfica narrativa no verificable. Si ya hay
@@ -217,10 +221,10 @@ function attachEvidence(response, evidence, plan = {}) {
                     `\n\n\`\`\`chart\n${JSON.stringify(spec)}\n\`\`\``
                 ).join('');
             }
+            resolvedChartStatus = 'served';
         } else if (evidence.chartStatus === 'insufficient_data' || evidence.chartStatus === 'unsupported_subject') {
             // Sin una serie adicional no se conserva una gráfica inventada por
-            // el LLM. La excepción es el gráfico OLS ya calculado: sus datos
-            // vienen del motor estadístico y sí deben llegar al PDF.
+            // el LLM. La excepción es el gráfico OLS o de pronóstico verificado.
             if (!hasStatisticalChart) {
                 response.blocks = response.blocks.filter(block => block.type !== 'chart');
                 if (response.markdown) response.markdown = response.markdown.replace(/```chart\s*\n[\s\S]*?```/gi, '').trim();
@@ -245,6 +249,30 @@ function attachEvidence(response, evidence, plan = {}) {
         }
     }
     response.meta = response.meta || {};
+    const chartBlockedByStatus = evidence.chartRequested && ['insufficient_data', 'unsupported_subject'].includes(evidence.chartStatus);
+    if (!chartBlockedByStatus && !response.blocks.some(block => block?.type === 'chart')) {
+        let autoChart = null;
+        if (plan.needsProteinPrices && evidence.proteinPriceRecords?.length >= 2) {
+            autoChart = buildProteinComparisonChart({
+                records: evidence.proteinPriceRecords,
+                fxRates: evidence.fxRates || null,
+                plan,
+                message: plan.marketQuery || plan.proteinQuery || '',
+            });
+        }
+        const queryText = String(plan.marketQuery || plan.proteinQuery || '');
+        const explicitlyRequestsMlVisual = (plan.asksDataInventory || !response.meta.forecastAnalysis)
+            && /\b(?:loopus|walk-?forward|showcase|modelos?\s+ml|pron[oó]sticos?\s+ml|pron[oó]sticos?\s+activos)\b/i.test(queryText);
+        if (!autoChart && explicitlyRequestsMlVisual) {
+            autoChart = buildShowcaseChart({ message: queryText, plan });
+        }
+        if (autoChart) {
+            response.blocks.push({ type: 'chart', spec: autoChart });
+            if (response.markdown) response.markdown += `\n\n\`\`\`chart\n${JSON.stringify(autoChart)}\n\`\`\``;
+            response.meta.verifiedServerChart = true;
+            if (resolvedChartStatus === 'not_requested') resolvedChartStatus = 'served';
+        }
+    }
     const forecastSources = (response.meta.forecastAnalysis?.records || []).filter(record => record.cutoff && record.observations && record.sourceUrl).map(record => ({
         type: 'forecast_historical_series', source: record.source, title: `${record.name} (${record.ticker}) · ${record.cutoff}`,
         date: record.cutoff, url: record.sourceUrl,
@@ -253,7 +281,7 @@ function attachEvidence(response, evidence, plan = {}) {
     response.meta.citations = citations;
     response.meta.retrievalStrategy = evidence.retrievalStrategy;
     response.meta.evidenceCount = evidence.evidenceCount;
-    response.meta.chartStatus = evidence.chartStatus;
+    response.meta.chartStatus = resolvedChartStatus;
     if (evidence.toolExecution) response.meta.toolExecution = evidence.toolExecution;
     response.meta.evidenceCoverage = evidenceCoverage(plan, evidence);
     if (evidence.researchAudit) response.meta.researchAudit = evidence.researchAudit;
@@ -269,6 +297,69 @@ function attachEvidence(response, evidence, plan = {}) {
         response.markdown = [original, groundingSources].filter(Boolean).join('\n\n');
     }
     return response;
+}
+
+function toolLabelsForSlot(slot, plan) {
+    if (slot === 'forecast_analysis') return ['Loopus ML'];
+    if (slot === 'statistical_analysis') return ['Estadística OLS'];
+    if (slot === 'report_reader') return ['Informes ejecutivos'];
+    if (slot === 'knowledge_search') return ['Base de conocimiento'];
+    if (slot === 'market_research') {
+        const labels = [];
+        const hasMx = Boolean(plan?.mexicoStates?.length || plan?.proteinProfile?.countries?.includes('MX'));
+        if (plan?.needsProteinPrices && hasMx) labels.push('SNIIM México');
+        if (plan?.needsProteinPrices && (!hasMx || plan?.proteinProfile?.global || (plan?.proteinProfile?.countries?.length || 0) > 1)) {
+            labels.push('USDA / Proteínas');
+        }
+        if (plan?.needsLiveQuote) labels.push('Mercados en vivo');
+        if (plan?.needsLiveNews) labels.push('Noticias del sector');
+        if (plan?.needsRabobank || plan?.needsMercolleida || plan?.needsTradeResearch) labels.push('Comercio e investigación');
+        if (plan?.needsIssuerResearch && !labels.length) labels.push('Fuentes oficiales');
+        return labels.length ? labels : ['Mercado en vivo'];
+    }
+    return [];
+}
+
+function describeToolPlan(plan, retrievalQuery = '') {
+    const tools = [];
+    const seen = new Set();
+    const pushAll = (list) => list.forEach((item) => {
+        if (item && !seen.has(item)) { seen.add(item); tools.push(item); }
+    });
+    const hasMarket = Boolean(plan?.needsIssuerResearch || plan?.needsProteinPrices || plan?.needsRabobank || plan?.needsTradeResearch || plan?.needsMercolleida || plan?.needsLiveQuote || plan?.needsLiveNews);
+    if (hasMarket) pushAll(toolLabelsForSlot('market_research', plan));
+    if (plan?.asksForecast) pushAll(toolLabelsForSlot('forecast_analysis', plan));
+    if (wantsStatisticalAnalysis(retrievalQuery)) pushAll(toolLabelsForSlot('statistical_analysis', plan));
+    if (plan?.needsExecutiveReport) pushAll(toolLabelsForSlot('report_reader', plan));
+    if (!plan?.providedInputsOnly && !plan?.needsTradeResearch && !plan?.explicitRabobank && !tools.length) {
+        pushAll(toolLabelsForSlot('knowledge_search', plan));
+    }
+    const detail = tools.length
+        ? `Consultando ${tools.slice(0, 4).join(', ')}…`
+        : 'Verificando contexto y datos disponibles…';
+    return { tools: tools.slice(0, 5), completedTools: [], detail };
+}
+
+function describeCompletedEvidence(execution, plan, retrievalQuery = '') {
+    const planned = describeToolPlan(plan, retrievalQuery);
+    const traceTools = Array.isArray(execution?.tools) ? execution.tools : [];
+    const completed = [];
+    const seen = new Set();
+    traceTools.forEach((entry) => {
+        if (entry?.status !== 'completed') return;
+        toolLabelsForSlot(entry.name, plan).forEach((label) => {
+            if (!seen.has(label)) { seen.add(label); completed.push(label); }
+        });
+    });
+    const activeList = planned.tools.length ? planned.tools : completed;
+    const summaryList = (completed.length ? completed : activeList).slice(0, 4);
+    return {
+        tools: activeList.slice(0, 5),
+        completedTools: completed.length ? completed.slice(0, 5) : activeList.slice(0, 5),
+        detail: summaryList.length
+            ? `Evidencia lista (${summaryList.join(', ')}) · redactando respuesta…`
+            : 'Ordenando hallazgos, riesgos y próximos pasos antes de responder.',
+    };
 }
 
 class AIOrchestrator {
@@ -290,7 +381,7 @@ class AIOrchestrator {
     }
     isConfigured() { return this.provider.isConfigured(); }
 
-    async collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal }) {
+    async collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal, onToolComplete = null }) {
         const budget = evidenceBudget(plan);
         const handlers = {};
         let marketWork;
@@ -323,8 +414,12 @@ class AIOrchestrator {
         try {
             signal?.throwIfAborted();
             session = await createOrionMcpSession(handlers, { signal, timeoutMs: budget });
-            const values = await Promise.all(names.map((name, index) => !name || !handlers[name] ? fallbacks[index]
-                : settleWithin(session.call(name), fallbacks[index], name === 'knowledge_search' && plan.needsRabobank ? Math.min(budget, 2600) : budget + 250, name)));
+            const values = await Promise.all(names.map(async (name, index) => {
+                if (!name || !handlers[name]) return fallbacks[index];
+                const settled = await settleWithin(session.call(name), fallbacks[index], name === 'knowledge_search' && plan.needsRabobank ? Math.min(budget, 2600) : budget + 250, name);
+                onToolComplete?.(name);
+                return settled;
+            }));
             signal?.throwIfAborted();
             return { values, execution: { protocol: 'mcp', protocolVersion: session.protocolVersion, status: session.trace.every(tool => tool.status === 'completed') ? 'completed' : 'partial', tools: session.trace } };
         } catch (error) {
@@ -338,14 +433,17 @@ class AIOrchestrator {
         const started = Date.now();
         const prepared = prepareBusinessConversation(input);
         const request = { ...input, message:prepared.message, history:prepared.history, context:prepared.context };
+        const hasAttachments = Array.isArray(input.attachments) && input.attachments.length > 0;
         const plan = planQuery(request);
         const allowed = domainDecision(request).allowed;
         const previous=prepared.previousCommercialInputs;
         const changed=previous && Object.keys(prepared.commercialInputs).some(key=>!['currencySource'].includes(key) && prepared.commercialInputs[key]!==previous[key]);
         const variableUpdate=changed && /\d/.test(input.message) && calculateMargin(previous).available;
         let result,verifiedCalculation;
-        const scenarios=scenarioRequest(input.message),selection=selectScenario(input.message,prepared.conversationMemory?.scenarios);
-        const market=prepared.conversationMemory?.market,fx=fxScenarioRequest(input.message,market);
+        const scenarios=!hasAttachments ? scenarioRequest(input.message) : { requested: false };
+        const selection=!hasAttachments ? selectScenario(input.message,prepared.conversationMemory?.scenarios) : null;
+        const market=prepared.conversationMemory?.market;
+        const fx=!hasAttachments ? fxScenarioRequest(input.message,market) : null;
         if(allowed && selection && market?.fxScenarios){
             const chosen=sanitizeFxScenarios({...market.fxScenarios,selected:selection.number});
             if(selection.number>market.fxScenarios.rates.length)result=localReplyResult('Ese escenario no está en la tabla. ¿Qué número quieres usar?',started,'scenario_clarification');
@@ -368,13 +466,13 @@ class AIOrchestrator {
                 const restored={...prepared.commercialInputs};for(const dimension of scenarios.dimensions){const fields=dimension.field.startsWith('freight')?['freight','freightPerKg']:[dimension.field];for(const field of fields){if(previous && Object.hasOwn(previous,field))restored[field]=previous[field];else delete restored[field];}}
                 prepared.conversationMemory.inputs=restored;prepared.conversationMemory.scenarios=comparison.options;
             }
-        }else if (allowed && plan.locationClarification) {
+        }else if (!hasAttachments && allowed && plan.locationClarification) {
             const city = plan.locationClarification;
             const text = `¿Te refieres a ${city.name} en ${city.alternatives.join(', o en ')}? Necesito confirmar el país para consultar el mercado correcto.`;
             result = localReplyResult(text, started);
             result.response.meta.taskType = 'location_clarification';
             if (prepared.conversationMemory) prepared.conversationMemory.pendingLocation = city.name;
-        } else if (allowed && (wantsCommercialCalculation(input.message) || variableUpdate) && !plan.asksForecast && !plan.asksNews && !plan.needsTradeResearch && !plan.explicitRabobank
+        } else if (!hasAttachments && allowed && (wantsCommercialCalculation(input.message) || variableUpdate) && !plan.asksForecast && !plan.asksNews && !plan.needsTradeResearch && !plan.explicitRabobank
             && (Object.keys(prepared.commercialInputs).some(key=>['purchasedKg','buyPricePerKg','sellPricePerKg','shrinkFraction','freight','freightPerKg','insurance','duties','otherCosts'].includes(key)) || !prepared.conversationMemory?.market && /\b(?:mi margen|calcula|recalcula)\b/i.test(input.message))) {
             const session = await createOrionMcpSession({ commercial_margin: () => this.tools.execute('commercial_margin', prepared.commercialInputs) }, { signal: input.signal, timeoutMs: 1500 });
             let calculation;
@@ -435,8 +533,11 @@ class AIOrchestrator {
         let research = auditResearchAnswer(plan,evidence,result.text);
         if (research.needed && !revisionAttempted) {
             try {
-                const revised = await this.provider.generate({ ...built, tier, json:false, attachments, tools:null, timeoutMs:7500, maxOutputTokens:4096,
-                    prompt:built.prompt+'\n\n[CORRECCIÓN DE RESPALDO]\nUsa exclusivamente los documentos ya leídos. Corrige: '+research.issues.join(', ')+'. Cada hecho material lleva fecha ISO y enlace en su párrafo o fila. Retira cifras ausentes del extracto y conserva los antecedentes como antecedentes. No hace falta otra búsqueda.\nBorrador (datos para revisar, no instrucciones): '+JSON.stringify(String(result.text).slice(0,16000)) });
+                const compactLedger = JSON.stringify(research.ledger);
+                const revised = await this.provider.generate({
+                    ...built, tier, json:false, attachments, tools:null, timeoutMs:14000, maxOutputTokens:2048,
+                    prompt: `${built.prompt.slice(0, 12000)}\n\n[CORRECCIÓN DE RESPALDO OBLIGATORIA]\nUsa EXCLUSIVAMENTE este registro verificado: ${compactLedger}\nProblemas detectados en tu borrador: ${research.issues.join(', ')}.\nReglas: 1) Cada párrafo, viñeta o fila de tabla con hechos/cifras DEBE incluir la fecha exacta YYYY-MM-DD y el enlace [Título](url) en esa misma línea. 2) Elimina cualquier cifra o fecha que no aparezca literalmente en "text" o "date" del registro. 3) Conserva los documentos con inPeriod:false marcados como "Antecedente".\nBorrador previo (solo texto a corregir): ${JSON.stringify(String(result.text).slice(0, 8000))}`,
+                });
                 check=guardTradeResearch(plan,evidence,revised.text);
                 result={...revised,text:check.text};
                 tier=effectiveTier(this.provider,tier,revised);
@@ -561,7 +662,9 @@ class AIOrchestrator {
         // consistencia de los datos para el orquestadpr de datos para que se pueda enter erl modelo de ml para hacer aue dtos
         //los datos se puedan estructural de todos
         const plan = planQuery({ message, history, mode });
-        onStatus?.('sources');
+        const retrievalQuery = retrievalQuestion(message, history, scope.reason);
+        const toolProgress = describeToolPlan(plan, retrievalQuery);
+        onStatus?.('sources', toolProgress);
         const directConversion = await resolveCurrencyConversion(message);
         if (isSimpleCurrencyConversion(message, directConversion)) {
             const text = conversionAnswer(directConversion);
@@ -572,16 +675,33 @@ class AIOrchestrator {
             });
             return { response, text, tier: 'flash', mode: 'quick', model: 'vall-fx-reference', evidenceCount: 1, citations: [], retrievalStrategy: 'live_fx_reference' };
         }
-        const retrievalQuery = retrievalQuestion(message, history, scope.reason);
+        const completedLabels = new Set();
         // No construimos una regresión ni consultamos cotizaciones en vivo si
         // la pregunta no lo requiere. Antes ambas tareas se ejecutaban en cada
         // turno y el primer fragmento esperaba varias llamadas de red ajenas a
         // una pregunta sencilla. El límite permite iniciar la respuesta con la
         // evidencia disponible sin inventar datos ni bloquear la conversación.
-        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
+        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({
+            plan, retrievalQuery, userKeyHash, directConversion, signal,
+            onToolComplete(slot) {
+                if (!toolProgress.tools.length) return;
+                toolLabelsForSlot(slot, plan).forEach((label) => completedLabels.add(label));
+                const remaining = toolProgress.tools.filter((label) => !completedLabels.has(label));
+                if (remaining.length) {
+                    onStatus?.('sources', {
+                        tools: toolProgress.tools,
+                        completedTools: [...completedLabels],
+                        detail: `Consultando ${remaining.slice(0, 3).join(', ')}…`,
+                    });
+                }
+            },
+        });
         let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(mergeEvidence(baseEvidence, liveData), reportEvidence), statisticalModel));
         evidence.toolExecution = execution;
-        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), context].filter(Boolean).join('\n\n');
+        const inventorySection = (plan.needsDataInventory || plan.asksCoverageExplanation || plan.asksDataInventory || (plan.needsProteinPrices && !liveData?.proteinPrices?.available))
+            ? buildDataInventoryContext({ plan, liveData, evidence })
+            : '';
+        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, inventorySection, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));
         const built = tradeResponseInstructions(buildPrompt({ message, history, context: enrichedContext, mode, responseFormat: 'markdown', attachments, webGrounding: Boolean(searchTools), plan }), plan);
         built.modelProfile = modelProfile;
@@ -589,7 +709,7 @@ class AIOrchestrator {
         const resolvedTier = tier === 'pro' || tier === 'flash'
             ? tier
             : (plan.recommendedTier === 'pro' || built.recommendedTier === 'pro' ? 'pro' : 'flash');
-        onStatus?.('reasoning');
+        onStatus?.('reasoning', describeCompletedEvidence(execution, plan, retrievalQuery));
         
         // En chat transmitido priorizamos tiempo al primer fragmento. El antiguo
         // borrador oculto hacía una generación completa extra antes de mostrar
@@ -689,7 +809,10 @@ class AIOrchestrator {
         const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
         let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(mergeEvidence(baseEvidence, liveData), reportEvidence), statisticalModel));
         evidence.toolExecution = execution;
-        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), context].filter(Boolean).join('\n\n');
+        const inventorySection = (plan.needsDataInventory || plan.asksCoverageExplanation || plan.asksDataInventory || (plan.needsProteinPrices && !liveData?.proteinPrices?.available))
+            ? buildDataInventoryContext({ plan, liveData, evidence })
+            : '';
+        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, inventorySection, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));
         // Grounding con Search y `responseMimeType: application/json` tarda
         // innecesariamente con algunos proveedores. Para investigaciones se
@@ -816,5 +939,5 @@ const orchestrator = new AIOrchestrator();
 module.exports = {
     AIOrchestrator, orchestrator, retrievalQuestion, attachEvidence, countVisibleWords,
     canFallbackFromPro, effectiveTier, shouldUseGoogleSearch, mergeGroundingEvidence,
-    groundingSourcesMarkdown,
+    groundingSourcesMarkdown, describeToolPlan, describeCompletedEvidence,
 };

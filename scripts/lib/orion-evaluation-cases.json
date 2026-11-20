@@ -1,10 +1,11 @@
 {
-  "version": "2026-10-15.1",
+  "version": "2026-11-19.2",
   "status": "draft_pending_human_review",
   "notice": "Documentos ficticios para evaluación. No son noticias ni cotizaciones reales.",
   "cases": [
     {
       "id": "commitment-not-execution",
+      "category": "trade_research",
       "question": "SIMULACIÓN: ¿Qué acuerdos comerciales de soya entre China y Estados Unidos aparecen en septiembre de 2026? Distingue compromiso y compra realizada.",
       "date": "2026-09-25",
       "excerpt": "SIMULACIÓN. China y Estados Unidos anunciaron un compromiso de compra de soya. No se informan compras ejecutadas ni volúmenes recibidos.",
@@ -15,6 +16,7 @@
     },
     {
       "id": "proposal-not-enacted",
+      "category": "trade_research",
       "question": "SIMULACIÓN: ¿Está vigente el arancel del acuerdo comercial de septiembre de 2026 entre China y Estados Unidos?",
       "date": "2026-09-25",
       "excerpt": "SIMULACIÓN. Se recomendó reducir el arancel de la soya 10%. La recomendación no entró en vigor y no tiene fecha de aplicación confirmada.",
@@ -25,16 +27,18 @@
     },
     {
       "id": "publication-and-effective-date",
+      "category": "trade_research",
       "question": "SIMULACIÓN: ¿Cuándo se publicó y cuándo se aplica la medida comercial de soya entre China y Estados Unidos anunciada en septiembre de 2026?",
       "date": "2026-09-25",
       "excerpt": "SIMULACIÓN. El documento fue publicado el 2026-09-25. Anuncia una medida sobre soya cuya fecha de aplicación es el 2026-10-01.",
-      "required": [{"id":"publication","pattern":"public.{0,55}2026-09-25|2026-09-25.{0,35}public"},{"id":"application","pattern":"aplica.{0,45}2026-10-01|2026-10-01.{0,35}aplica"}],
+      "required": [{"id":"publication","pattern":"public.{0,55}2026-09-25|2026-09-25.{0,35}public"},{"id":"application","pattern":"aplica.{0,75}2026-10-01|2026-10-01.{0,45}aplica"}],
       "forbidden": [],
       "reference": "El documento se publicó el 2026-09-25 y anuncia una medida sobre soya cuya fecha de aplicación es el 2026-10-01. [Documento]({url}).",
       "mutations": ["La medida se publicó y aplica el 2026-09-25. [Documento]({url})."]
     },
     {
       "id": "background-not-current",
+      "category": "trade_research",
       "question": "SIMULACIÓN: ¿Qué anuncios comerciales de soya entre China y Estados Unidos se documentaron en septiembre de 2026? Sólo se aporta un documento de 2025.",
       "date": "2025-09-25",
       "excerpt": "SIMULACIÓN. En 2025 se publicó un anuncio comercial sobre soya entre China y Estados Unidos. Este documento no informa anuncios de septiembre de 2026.",
@@ -45,6 +49,7 @@
     },
     {
       "id": "quantity-with-unit",
+      "category": "trade_research",
       "question": "SIMULACIÓN: ¿Qué volumen de soya documenta el acuerdo comercial entre China y Estados Unidos de septiembre de 2026? Conserva la unidad.",
       "date": "2026-09-25",
       "excerpt": "SIMULACIÓN. El documento informa un volumen de soya de 1200 toneladas. No es un importe en dólares ni un volumen en kilogramos.",
@@ -55,6 +60,7 @@
     },
     {
       "id": "conditional-financial-effect",
+      "category": "trade_research",
       "question": "SIMULACIÓN: Soy comprador de soya. ¿Cómo afectaría a mi margen el acuerdo comercial entre China y Estados Unidos de septiembre de 2026? No he dado costos de mi negocio.",
       "date": "2026-09-25",
       "excerpt": "SIMULACIÓN. China y Estados Unidos anunciaron un compromiso de compra de soya. No se documentan precios contratados, fecha de entrega ni efectos sobre márgenes de empresas.",
@@ -62,6 +68,246 @@
       "forbidden": [{"id":"guaranteed-profit","pattern":"(?:tu margen|tu ganancia|tu utilidad).{0,35}(?:aumentar[aá]|subir[aá]|garantiz)"}],
       "reference": "El 2026-09-25 se anunció un compromiso de compra de soya, sin precios contratados ni efectos documentados sobre márgenes. [Documento]({url}).\n\nSi cambia tu costo de compra y mantienes el precio de venta, cambiaría tu margen. Verifica el costo puesto en destino y las condiciones contratadas antes de trasladar el anuncio a tu negocio.",
       "mutations": ["Tu margen aumentará 10% por el acuerdo. [Documento]({url}) (2026-09-25)."]
+    },
+    {
+      "id": "tabular-csv-outlier-analysis",
+      "category": "tabular_attachment",
+      "question": "SIMULACIÓN: Analiza el archivo CSV adjunto de mermas por planta (semana 2026-S38), calcula el promedio de merma %, identifica la planta atípica con su costo exacto en MXN/kg y presenta tabla comparativa.",
+      "attachments": [
+        {
+          "name": "mermas-plantas.csv",
+          "type": "text/csv",
+          "content": "Planta,Semana,Merma %,Costo MXN/kg\nNorte,2026-S38,2.1%,64.00\nCentro,2026-S38,2.3%,65.50\nSur,2026-S38,6.8%,74.20\n"
+        }
+      ],
+      "structuralChecks": { "requiresTable": true },
+      "required": [
+        {"id":"avg-shrinkage","pattern":"3[.,]73\\s*%"},
+        {"id":"outlier-sur","pattern":"Sur.{0,95}6[.,]80?\\s*%"},
+        {"id":"sur-cost","pattern":"74[.,]20?\\s*MXN/kg"}
+      ],
+      "forbidden": [
+        {"id":"hallucinated-plant","pattern":"Occidente|Baj[ií]o"},
+        {"id":"wrong-unit","pattern":"6[.,]8\\s*MXN/kg"}
+      ],
+      "reference": "El archivo `mermas-plantas.csv` registra un promedio de merma de **3.73%** entre las tres plantas en `2026-S38`. La planta **Sur** destaca como valor atípico con **6.8%** de merma y un costo de **74.20 MXN/kg**.\n\n| Planta | Semana | Merma % | Costo MXN/kg |\n| :--- | :--- | ---: | ---: |\n| Norte | 2026-S38 | 2.1% | 64.00 |\n| Centro | 2026-S38 | 2.3% | 65.50 |\n| Sur | 2026-S38 | 6.8% | 74.20 |",
+      "mutations": [
+        "La planta Sur tuvo una merma de 6.8 MXN/kg y promedio de 3.73%.",
+        "| Planta | Semana | Merma % | Costo MXN/kg |\n| :--- | :--- | ---: | ---: |\n| Occidente | 2026-S38 | 9.4% | 80.00 |\n\nEl promedio es 3.73% y Sur 6.8% a 74.20 MXN/kg."
+      ]
+    },
+    {
+      "id": "protein-comparison-normalized-chart",
+      "category": "comparative_chart",
+      "question": "SIMULACIÓN: Compara el precio del pollo entero entre México y EE.UU. normalizado a ~MXN/kg e incluye tabla y gráfica comparativa.",
+      "fxRates": { "base": "USD", "date": "2026-09-25", "rates": { "MXN": 19.9 } },
+      "proteinPriceRecords": [
+        {
+          "id": "sim-mx-poultry",
+          "productId": "poultry",
+          "category": "Pollo entero",
+          "countryCode": "MX",
+          "country": "México",
+          "market": "México · SNIIM",
+          "priceBasis": "whole",
+          "commercialStage": "wholesale",
+          "value": 68.5,
+          "currency": "MXN",
+          "unit": "MXN/kg",
+          "date": "2026-09-25",
+          "source": "SNIIM (Simulación)",
+          "sourceCode": "sniim_mexico_protein_prices",
+          "url": "https://example.org/orion-simulation/protein-comparison-normalized-chart-mx",
+          "verified": true
+        },
+        {
+          "id": "sim-us-poultry",
+          "productId": "poultry",
+          "category": "Whole Broiler",
+          "countryCode": "US",
+          "country": "EE.UU.",
+          "market": "EE.UU. · USDA",
+          "priceBasis": "whole",
+          "commercialStage": "wholesale",
+          "value": 1.92,
+          "currency": "USD",
+          "unit": "USD/lb",
+          "date": "2026-09-25",
+          "source": "USDA (Simulación)",
+          "url": "https://example.org/orion-simulation/protein-comparison-normalized-chart-us",
+          "verified": true
+        }
+      ],
+      "chartRequested": true,
+      "charts": [
+        {
+          "type": "bar",
+          "title": "Pollo entero normalizado (~MXN/kg)",
+          "unit": "MXN/kg",
+          "labels": ["México · SNIIM", "EE.UU. · USDA"],
+          "datasets": [{ "label": "Equiv. ~MXN/kg", "data": [68.5, 84.22] }]
+        }
+      ],
+      "structuralChecks": { "requiresTable": true, "requiresChart": true, "minChartLabels": 2 },
+      "required": [
+        {"id":"mx-price","pattern":"68[.,]50?\\s*MXN\\s*/?\\s*kg"},
+        {"id":"us-original","pattern":"1[.,]92\\s*USD\\s*/?\\s*lb"},
+        {"id":"us-equiv","pattern":"84[.,][12][0-9]"}
+      ],
+      "forbidden": [
+        {"id":"swapped-units","pattern":"68[.,]50?\\s*USD/lb|1[.,]92\\s*MXN/kg"}
+      ],
+      "reference": "Comparativa de pollo entero al 2026-09-25 ([SNIIM](https://example.org/orion-simulation/protein-comparison-normalized-chart-mx), [USDA](https://example.org/orion-simulation/protein-comparison-normalized-chart-us)):\n\n| Origen | Precio original | Equiv. ~MXN/kg |\n| :--- | :--- | ---: |\n| México (SNIIM) | 68.50 MXN/kg | 68.50 MXN/kg |\n| EE.UU. (USDA) | 1.92 USD/lb | ~84.22 MXN/kg |\n\n```chart\n{\"type\":\"bar\",\"title\":\"Pollo entero normalizado (~MXN/kg)\",\"unit\":\"MXN/kg\",\"labels\":[\"México · SNIIM\",\"EE.UU. · USDA\"],\"datasets\":[{\"label\":\"Equiv. ~MXN/kg\",\"data\":[68.5,84.22]}]}\n```",
+      "mutations": [
+        "| Origen | Precio original | Equiv. ~MXN/kg |\n| :--- | :--- | ---: |\n| México | 68.50 MXN/kg | 68.50 MXN/kg |\n| EE.UU. | 1.92 USD/lb | ~84.22 MXN/kg |",
+        "| Origen | Precio original |\n| :--- | :--- |\n| México | 68.50 MXN/kg |\n| EE.UU. | 1.92 USD/lb (~84.22 MXN/kg) |\n\n```chart\n{json_roto\n```"
+      ]
+    },
+    {
+      "id": "protein-comparison-stale-gap",
+      "category": "protein_comparison",
+      "question": "SIMULACIÓN: Compara el precio de cerdo en canal entre Jalisco y Yucatán para septiembre de 2026.",
+      "proteinPriceRecords": [
+        {
+          "id": "sim-jal-pork",
+          "productId": "pork",
+          "category": "Cerdo en canal",
+          "countryCode": "MX",
+          "country": "México",
+          "stateCode": "JAL",
+          "market": "Jalisco",
+          "priceBasis": "carcass",
+          "value": 79.2,
+          "currency": "MXN",
+          "unit": "MXN/kg",
+          "date": "2026-09-25",
+          "source": "SNIIM (Simulación)",
+          "sourceCode": "sniim_mexico_protein_prices",
+          "url": "https://example.org/orion-simulation/protein-comparison-stale-gap",
+          "verified": true
+        }
+      ],
+      "required": [
+        {"id":"jalisco-quote","pattern":"Jalisco.{0,75}79[.,]20?\\s*MXN\\s*/?\\s*kg"},
+        {"id":"yucatan-gap","pattern":"(?:no hay|sin|no se dispone).{0,55}Yucat[aá]n|Yucat[aá]n\\s*(?:\\|\\s*)?(?:No disponible|sin dato|no cuenta)"}
+      ],
+      "forbidden": [
+        {"id":"invented-yucatan","pattern":"Yucat[aá]n.{0,35}\\d+(?:[.,]\\d+)?\\s*MXN\\s*/?\\s*kg"}
+      ],
+      "reference": "El 2026-09-25 se registró cerdo en canal en Jalisco a 79.20 MXN/kg; Yucatán no disponible en este corte. [Documento]({url}).",
+      "mutations": [
+        "El 2026-09-25 Jalisco cotizó en 79.20 MXN/kg y Yucatán en 81.50 MXN/kg. [Documento]({url})."
+      ]
+    },
+    {
+      "id": "report-reader-handoff-continuation",
+      "category": "report_handoff",
+      "question": "SIMULACIÓN: Con base en el informe adjunto heredado desde ReportReaderAssistant, analiza el diferencial +525 pb y aclara qué dato no estuvo presente en el corte sin inventarlo.",
+      "attachments": [
+        {
+          "name": "panorama-financiero-contexto.md",
+          "type": "text/markdown",
+          "content": "# Panorama Finanzas · Corte 2026-09-25\n- **Área:** Finanzas\n## Lectura verificada (Lector verificado de informes)\nDiferencial de tasas locales frente a Tesoro EE.UU. estable en +525 pb.\n### Brechas o datos no presentes en el corte\n- Proyección intradía de consenso posterior al cierre\n"
+        }
+      ],
+      "required": [
+        {"id":"spread","pattern":"\\+?525\\s*pb"},
+        {"id":"explicit-gap","pattern":"(?:no (?:est[aá]|estuvo|se present[oó]|aparece)|falta|brecha|ausente|omit).{0,90}(?:proyecci[oó]n|consenso)|(?:proyecci[oó]n|consenso).{0,75}(?:no est[aá]|no estuvo|no disponible|ausente|no aparece)"}
+      ],
+      "forbidden": [
+        {"id":"invented-consensus","pattern":"proyecci[oó]n.{0,40}consenso.{0,30}\\d+[.,]?\\d*\\s*%"}
+      ],
+      "reference": "De acuerdo con el informe adjunto heredado del Lector verificado, el diferencial de tasas locales frente al Tesoro de EE.UU. se mantuvo en **+525 pb**. En ese corte no está disponible la proyección intradía de consenso posterior al cierre, por lo que ese dato debe consultarse por separado antes de fijar cobertura.",
+      "mutations": [
+        "El diferencial de tasas es +525 pb y la proyección de consenso indica 9.25% tras el cierre."
+      ]
+    },
+    {
+      "id": "multisource-trade-protein-cross",
+      "category": "multisource",
+      "question": "SIMULACIÓN: Cruza ambas fuentes comerciales fechadas: ¿qué precio documentó el reporte de exportación EE.UU. para maíz amarillo en septiembre de 2026 y qué cifra registró CONAB Brasil para exportación de soya en septiembre de 2026? Separa cada fuente.",
+      "documents": [
+        {
+          "id": "usda",
+          "date": "2026-09-24",
+          "title": "USDA Export Grain Report",
+          "source": "USDA",
+          "excerpt": "SIMULACIÓN USDA. El 2026-09-24 se publicó que el maíz amarillo FOB Golfo EE.UU. promedió 196 USD/tonelada."
+        },
+        {
+          "id": "conab",
+          "date": "2026-09-25",
+          "title": "CONAB Boletín Exportaciones",
+          "source": "CONAB",
+          "excerpt": "SIMULACIÓN CONAB. El 2026-09-25 se informó que la soya exportación Brasil Paranaguá cotizó en 415 USD/tonelada."
+        }
+      ],
+      "structuralChecks": { "requiredUrls": ["{url_1}", "{url_2}"] },
+      "required": [
+        {"id":"corn-usda","pattern":"196\\s*USD/tonelada.{0,120}(?:2026-09-24|24\\s+de\\s+septiembre\\s+de\\s+2026)|(?:2026-09-24|24\\s+de\\s+septiembre\\s+de\\s+2026).{0,120}196\\s*USD/tonelada"},
+        {"id":"soy-conab","pattern":"415\\s*USD/tonelada.{0,120}(?:2026-09-25|25\\s+de\\s+septiembre\\s+de\\s+2026)|(?:2026-09-25|25\\s+de\\s+septiembre\\s+de\\s+2026).{0,120}415\\s*USD/tonelada"}
+      ],
+      "forbidden": [
+        {"id":"cross-attribution","pattern":"CONAB[^)\\n]{0,40}196\\s*USD|USDA[^)\\n]{0,40}415\\s*USD"}
+      ],
+      "reference": "- Maíz amarillo FOB Golfo EE.UU.: **196 USD/tonelada** el 2026-09-24 según [USDA Export Grain Report]({url_1}).\n- Soya exportación Brasil Paranaguá: **415 USD/tonelada** el 2026-09-25 según [CONAB Boletín Exportaciones]({url_2}).",
+      "mutations": [
+        "El maíz amarillo FOB cotizó en 196 USD/tonelada el 2026-09-24 ([USDA Export Grain Report]({url_1})).",
+        "Según CONAB el maíz amarillo cotizó en 196 USD/tonelada el 2026-09-24 ([USDA Export Grain Report]({url_1})) y según USDA la soya cotizó en 415 USD/tonelada el 2026-09-25 ([CONAB Boletín Exportaciones]({url_2}))."
+      ]
+    },
+    {
+      "id": "ml-forecast-chart-guardrail",
+      "category": "ml_forecast",
+      "question": "SIMULACIÓN: Muestra una gráfica del pronóstico ML a 5 sesiones para el USD/MXN indicando el rango condicional sin prometer rendimiento.",
+      "extraContext": "[PRONÓSTICO SIMULADO USDMXN=X]\nÚltima sesión observada (2026-09-25): 19.85 MXN/USD.\nEstimación Walk-Forward a 5 sesiones: 20.10 MXN/USD.\nRango orientativo fuera de muestra: 19.65–20.55 MXN/USD.",
+      "forecast": {
+        "requested": true,
+        "available": true,
+        "horizon": "5 sesiones",
+        "assumption": false,
+        "records": [
+          {
+            "ticker": "USDMXN=X",
+            "name": "Dólar estadounidense / Peso mexicano",
+            "unit": "MXN/USD",
+            "available": true,
+            "cutoff": "2026-09-25",
+            "horizon": 5,
+            "horizonLabel": "5 sesiones",
+            "lastPrice": 19.85,
+            "observations": 240,
+            "sourceUrl": "https://example.org/orion-simulation/usdmxn",
+            "priceBasis": "cierre diario observado",
+            "prediction": { "value": 20.1, "lowerBound": 19.65, "upperBound": 20.55 },
+            "evaluation": { "modelMae": 0.14, "baselineMae": 0.18, "evaluationPoints": 16 }
+          }
+        ]
+      },
+      "chartRequested": true,
+      "charts": [
+        {
+          "type": "line",
+          "title": "Escenario Walk-Forward USD/MXN (horizonte 5 sesiones)",
+          "unit": "MXN/USD",
+          "labels": ["Obs S0", "S+1", "S+5"],
+          "datasets": [{ "label": "Escenario central", "data": [19.85, 19.95, 20.1] }]
+        }
+      ],
+      "structuralChecks": { "requiresChart": true, "minChartLabels": 2 },
+      "required": [
+        {"id":"forecast-central","pattern":"20[.,]10?"},
+        {"id":"forecast-range","pattern":"19[.,]65.{0,25}20[.,]55"},
+        {"id":"horizon","pattern":"5\\s*sesiones"},
+        {"id":"conditional-caveat","pattern":"condicional|orientativo|supuesto|no garantiza|riesgo"}
+      ],
+      "forbidden": [
+        {"id":"guarantee","pattern":"(?:se garantiza|rendimiento asegurado|subir[aá] sin duda|ganancia segura)"}
+      ],
+      "reference": "Desde la última sesión observada (19.85 MXN/USD), el escenario central Walk-Forward proyecta **20.10 MXN/USD** a un horizonte de **5 sesiones** con un rango orientativo de 19.65–20.55 MXN/USD; no garantiza trayectoria futura.\n\n```chart\n{\"type\":\"line\",\"title\":\"Escenario Walk-Forward USD/MXN (horizonte 5 sesiones)\",\"unit\":\"MXN/USD\",\"labels\":[\"Obs S0\",\"S+1\",\"S+5\"],\"datasets\":[{\"label\":\"Escenario central\",\"data\":[19.85,19.95,20.1]}]}\n```",
+      "mutations": [
+        "El USD/MXN cotizó en 19.85 y se garantiza sin duda que llegará a 20.10 en las próximas jornadas."
+      ]
     }
   ]
 }

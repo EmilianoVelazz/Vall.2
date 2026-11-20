@@ -70,23 +70,28 @@ function detectTaskType(message) {
     // informe de mil palabras. Los formatos descargables y la creación
     // explícita conservan el tratamiento de documento.
     const summarizesPublication = /\b(?:resume|resumir|resumen (?:del?|de los|de las)|que (?:dice|comenta|reporta|publica|muestra|senala|contiene|indica))\b/.test(text)
-        && /\b(?:reportes?|informes?|documentos?|investigaciones?)\b/.test(text);
-    const createsDocument = /\b(?:pdf|word|docx|exportar|descargar|crea|crear|genera|generar|redacta|redactar|elabora|elaborar|prepara|preparar)\b/.test(text);
+        && /\b(?:reportes?|informes?|documentos?|investigaciones?|archivos?)\b/.test(text);
+    const createsDocument = /\b(?:pdf|word|docx|exportar|descargar)\b|\b(?:crea|crear|genera|generar|redacta|redactar|elabora|elaborar|prepara|preparar)\b[^.!?\n]{0,45}\b(?:un|una|el|los|nuevo|este)?\s*(?:reportes?|informes?|documentos?|manual(?:es)?|guias?|propuestas?|especificaciones?)\b/.test(text);
     if (summarizesPublication && !createsDocument) return 'general';
-    // Links to issuer reports are evidence for a comparison, not a request to
-    // write a 1,200-word report (which can also exhaust the chat token budget).
-    const referencesPublication = /\b(?:enlaces?|fuentes?|links?|cita|consulta)\b/.test(text)
-        && /\b(?:reportes?|informes?|documentos?)\b/.test(text);
+    // Links to issuer reports or attached inputs are evidence for analysis, not
+    // an order to draft a 1,200-word downloadable document.
+    const referencesPublication = /\b(?:enlaces?|fuentes?|links?|cita|consulta|analiza|revisa|profundiza|calcula|compara)\b/.test(text)
+        && /\b(?:reportes?|informes?|documentos?|archivos?|csv|tsv|xlsx|excel|json|pdf)\b/.test(text);
+    const refersToAttachedInput = /\b(?:archivos?|csv|tsv|xlsx|excel|json|markdown|pdf|informes?|reportes?|documentos?)\s+(?:adjuntos?|heredados?|subidos?|proporcionados?|anexos?|enviados?)\b|\bcon\s+base\s+en\s+(?:el|este|los|estos)\s+(?:archivo|informe|reporte|documento)\b/.test(text);
     const directlyRequestsDocument = /\b(?:dame|necesito|quiero|solicito|entrega|haz)\s+(?:(?:un|el|los|una|unos|las)\s+)?(?:reporte|informe|documento)\b/.test(text);
-    const asksAboutPublication = referencesPublication || /\b(?:que documentos|que informes|acceso a|informes privados|reportes oficiales|documentos oficiales|(?:con|segun|sobre|en|de|los|estos|esos)\s+(?:los\s+|estos\s+|esos\s+)?(?:documentos|informes|reportes)\b)/.test(text);
-    if (asksAboutPublication && !createsDocument && !directlyRequestsDocument) return /\b(?:compara|comparacion|versus|vs\.?)\b/.test(text) ? 'comparison' : 'general';
+    const asksAboutPublication = referencesPublication || refersToAttachedInput || /\b(?:que documentos|que informes|acceso a|informes privados|reportes oficiales|documentos oficiales|(?:con|segun|sobre|en|de|los|estos|esos)\s+(?:los\s+|estos\s+|esos\s+)?(?:documentos|informes|reportes|archivos)\b)/.test(text);
+    if (asksAboutPublication && !createsDocument && !directlyRequestsDocument) {
+        if (/\b(?:regre[sc]ion(?:es)?|\bols\b|analisis\s+estadistic[oa]|grafica|grafico|chart|visualiza|datos|mermas?|promedio|atipic[oa]s?)\b/.test(text)) return 'data';
+        return /\b(?:compara|comparacion|comparativa|versus|vs\.?)\b/.test(text) ? 'comparison' : 'general';
+    }
     // El formato explícito manda sobre el contenido: «reporte de A vs B» debe
     // activar la validación de documento largo, aunque también compare activos.
-    if (/\b(reportes?|informes?|documentos?|archivos?|pdf|exportar|descargar|propuestas?|manual(?:es)?|guias?|investigaciones?|especificaciones?)\b/.test(text)) return 'document';
+    if (createsDocument || directlyRequestsDocument || /\b(reportes?|informes?|documentos?|propuestas?|manual(?:es)?|guias?|investigaciones?|especificaciones?)\b/.test(text)) return 'document';
     if (forecastRequest(message).requested) return 'general';
     if (/\b(compara|comparacion|versus|vs\.?|diferencias?)\b/.test(text)) return 'comparison';
     if (/\b(pasos?|procedimiento|como (hacer|crear|configurar|instalar))\b/.test(text)) return 'procedure';
-    if (/\b(regre[sc]ion(?:es)?|modelo\s+lineal|minimos\s+cuadrados|\bols\b|analisis\s+estadistic[oa]|grafica|grafico|chart|visualiza|serie|datos|matri[cz](?:es)?|correlacion|covarianza|varianza)\b/.test(text)) return 'data';
+    const isInventoryAsk = /\b(?:(?:qu[eé]|cu[aá]les?)\s+(?:datos?|series?)\b.{0,45}\b(?:tienes|manejas|cuentas|disponibles?|ahorita|ahora\s+mismo|actualmente)|(?:inventario|cat[aá]logo)\s+de\s+(?:datos?|fuentes?|modelos?))\b/.test(text);
+    if (!isInventoryAsk && /\b(regre[sc]ion(?:es)?|modelo\s+lineal|minimos\s+cuadrados|\bols\b|analisis\s+estadistic[oa]|grafica|grafico|chart|visualiza|serie|datos|matri[cz](?:es)?|correlacion|covarianza|varianza)\b/.test(text)) return 'data';
     if (/\b(diagrama|flujo|secuencia|mapa mental)\b/.test(text)) return 'diagram';
     if (/\b(decision|recomendacion|estrategia|riesgo|escenario)\b/.test(text)) return 'decision';
     return 'general';
@@ -215,7 +220,7 @@ function buildPrompt({ message, context = '', history = [], mode = 'auto', respo
     const length = responseLength(userMessage);
     if (/\b(profundiza|amplia|detalla|mas completo|mas informacion|explica mejor)\b/.test(currentIntent)) selectedMode = 'detailed';
     if(length.explicit && length.brief)selectedMode='quick';
-    const taskType = detectTaskType(classificationText);
+    const taskType = (plan?.asksCoverageExplanation || plan?.asksDataInventory) ? 'general' : detectTaskType(classificationText);
     const recent = normalizeHistory(history);
     const sections = [
         buildAnswerStrategy({ message, history, plan,includeFormat:false }).guidance,
@@ -253,6 +258,9 @@ La propiedad summary debe contener la conclusion ejecutiva, no una introduccion.
 - Antes de terminar, comprueba que respondiste el ultimo mensaje y no solo repetiste la respuesta anterior.
 - Si el usuario pide agregar, quitar, comparar, cambiar formato, ampliar o corregir, entrega el resultado ya modificado.`);
     sections.push('Si el turno contiene varias preguntas, responde cada una. Distingue los cálculos con supuestos del usuario de hechos externos y señala cualquier parte que no pueda resolverse; no ocultes una pregunta pendiente detrás de una conclusión general.');
+    if (plan?.asksCoverageExplanation || plan?.asksDataInventory) {
+        sections.push('[INSTRUCCIÓN DE TRANSPARENCIA Y COBERTURA EN VIVO]\nResponde con precisión directa a partir de [INVENTARIO Y COBERTURA EN VIVO DE VALLNEWS / ORION]. Si explicas por qué una consulta anterior mostró cobertura parcial (p. ej. solo Estados Unidos), detalla las limitaciones reales de cada conector en vivo (API DG AGRI UE o alcance LMPR de USDA) e indica qué fuentes internacionales fechadas y modelos ML sí están disponibles.');
+    }
     sections.push('[SOLICITUD ACTUAL DEL USUARIO]\n' + userMessage);
     return { systemInstruction: SYSTEM_PROMPT, prompt: sections.join('\n\n'), mode: selectedMode, taskType, responseLength:length, recommendedTier: selectModelTier({ message: classificationText, mode: selectedMode, taskType, attachments }) };
 }

@@ -107,6 +107,13 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     ])];
     const topic = primaryTopic(topics);
     const asksCurrentData = FRESHNESS.test(text);
+    const asksCoverageExplanation = /\b(?:por\s+qu[eé]|porqu[eé]|why)\b.{0,90}\b(?:(?:solo|s[oó]lo|[uú]nicamente)\s+(?:me\s+)?(?:diste|mostraste|incluiste|salieron|sali[oó]|hablaste|pusiste|tienes|hay|de\s+(?:estados\s+unidos|ee\.?\s*uu\.?|un\s+pa[ií]s|esa?\s+(?:regi[oó]n|especie)))|no\s+(?:me\s+)?(?:diste|incluiste|salieron|sali[oó]|mostraste|aparec(?:e|en|i[oó]|ieron)|encontraste|validaste)|falt(?:a|an|aron|[oó])\s+(?:otros?|pa[ií]ses?|europa|m[eé]xico|brasil|pollo|huevo|datos?|precios?)|sin\s+(?:precios?|cobertura|otros?\s+pa[ií]ses?)|excluyeron|retiraron)\b/i.test(text);
+    const asksDataInventory = (
+        /\b(?:(?:qu[eé]|cu[aá]les?)\s+(?:datos?|fuentes?|informes?|reportes?|modelos?|series?|activos?|cobertura|informaci[oó]n)\b.{0,45}\b(?:tienes|manejas|cuentas|disponibles?|ahorita|ahora\s+mismo|actualmente|cargad[oa]s?|conectad[oa]s?|en\s+(?:vivo|cach[eé]|tu\s+sistema|memoria))|con\s+qu[eé]\s+(?:datos?|fuentes?|informes?|modelos?)\s+(?:cuentas|trabajas|operas)|(?:inventario|cat[aá]logo)\s+de\s+(?:datos?|fuentes?|modelos?))\b/i.test(text)
+    ) && !/\b(?:cu[aá]nto\s+(?:cuesta|vale)|precio\s+de[l]?\s+\w+)\b/i.test(text);
+    const explicitFreshPriceRequest = /\b(?:dame|mu[eé]strame|busca(?:me)?|actualiza(?:me)?|compara(?:me)?|cotiza(?:me)?|cu[aá]nto\s+(?:cuesta|vale)|qu[eé]\s+precios?\s+(?:hay|tienes))\b/i.test(text);
+    const suppressMetaResearch = (asksCoverageExplanation || asksDataInventory) && !explicitFreshPriceRequest;
+    const needsDataInventory = asksCoverageExplanation || asksDataInventory;
     const forecast = forecastRequest(message, history);
     const asksForecast = forecast.requested;
     const asksAnalysis = asksForecast || COMPLEX.test(text) || ANALYSIS_FOLLOW_UP.test(text) || text.length > 420;
@@ -140,9 +147,9 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     const physicalPriceClause = text.split(/[.;!?\n]|\by\b/).some(clause =>
         proteinProfile(clause).products.length && proteinProfile(clause).asksPrices
         && !/\b(?:acciones?|accion|ticker|simbolo|bolsa|tyson|pilgrim|cal[ -]?maine|tsn|ppc|calm|jbs)\b/i.test(clause));
-    const proteinPhysicalPrice = protein.products.length > 0 && protein.asksPrices && !protein.futures
+    const proteinPhysicalPrice = !suppressMetaResearch && protein.products.length > 0 && protein.asksPrices && !protein.futures
         && (!equitySubject || physicalPriceClause);
-    const localPhysicalPrice = proteinPhysicalPrice || topic === 'commodities'
+    const localPhysicalPrice = proteinPhysicalPrice || !suppressMetaResearch && topic === 'commodities'
         && LOCAL_PRICE_SIGNAL.test(text)
         && LOCAL_PRODUCT.test(text)
         && PLACE_SIGNAL.test(text);
@@ -159,16 +166,16 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     const needsLiveQuote = (explicitStockQuote || needsFxQuote || asksQuote && !localPhysicalPrice && !needsMercolleida && !explicitRabobank && !needsTradeResearch
         && (instruments.length > 0 || topic === 'bonds'));
     const needsProteinPrices = proteinPhysicalPrice && (!needsMercolleida || protein.global || explicitRabobank || protein.products.length > 1) && (!explicitRabobank || asksCurrentData);
-    const needsProteinResearch = protein.products.length > 0 && (proteinPhysicalPrice || asksNews || asksAnalysis || asksExecutiveBrief || needsTradeResearch);
+    const needsProteinResearch = !suppressMetaResearch && protein.products.length > 0 && (proteinPhysicalPrice || asksNews || asksAnalysis || asksExecutiveBrief || needsTradeResearch);
     const internationalNews = /\b(?:noticias? internacionales?|noticieros?|reuters|bloomberg|bbc|financial times)\b/i.test(text);
-    const needsLiveNews = (asksNews && (!explicitRabobank || internationalNews || proteinPhysicalPrice)) || (needsProteinResearch && !needsMercolleida && !explicitRabobank && (asksExecutiveBrief || protein.global && proteinPhysicalPrice));
-    const usesVerifiedRepository = ['macro', 'bonds', 'equities', 'commodities'].includes(topic);
+    const needsLiveNews = !suppressMetaResearch && ((asksNews && (!explicitRabobank || internationalNews || proteinPhysicalPrice)) || (needsProteinResearch && !needsMercolleida && !explicitRabobank && (asksExecutiveBrief || protein.global && proteinPhysicalPrice)));
+    const usesVerifiedRepository = !suppressMetaResearch && ['macro', 'bonds', 'equities', 'commodities'].includes(topic);
     // Un panorama o una pregunta sobre implicaciones exige contraste externo,
     // aunque no mencione literalmente la palabra "análisis". Así se evita una
     // respuesta de memoria cuando la persona espera contexto actual y útil.
-    const needsIssuerResearch = proteinIssuers.length > 0 && (asksAnalysis || asksComparison || asksDecision || asksNews || asksExecutiveBrief);
-    const requiresWebResearch = needsIssuerResearch || needsProteinResearch || needsRabobank || needsTradeResearch || localPhysicalPrice || asksAnalysis || asksNews || asksExecutiveBrief;
-    const needsSources = needsRabobank || needsMercolleida || needsLiveQuote || needsLiveNews || requiresWebResearch || ['macro', 'bonds'].includes(topic);
+    const needsIssuerResearch = !suppressMetaResearch && proteinIssuers.length > 0 && (asksAnalysis || asksComparison || asksDecision || asksNews || asksExecutiveBrief);
+    const requiresWebResearch = needsIssuerResearch || needsProteinResearch || needsRabobank || needsTradeResearch || localPhysicalPrice || (!suppressMetaResearch && (asksAnalysis || asksNews || asksExecutiveBrief));
+    const needsSources = !suppressMetaResearch && (needsRabobank || needsMercolleida || needsLiveQuote || needsLiveNews || requiresWebResearch || ['macro', 'bonds'].includes(topic));
     // Una consulta corta puede requerir razonamiento profundo si compara varios
     // frentes o pide una decisión. No usamos sólo longitud como señal.
     const recommendedTier = needsTradeResearch || asksAnalysis || asksExecutiveBrief || complexity >= 2 || mode === 'executive' || mode === 'technical' ? 'pro' : 'flash';
@@ -181,6 +188,9 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
         asksCurrentData,
         asksAnalysis,
         asksForecast,
+        asksCoverageExplanation,
+        asksDataInventory,
+        needsDataInventory,
         forecast,
         asksNews,
         asksComparison,
@@ -220,7 +230,7 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
         inheritedTopics: inheritsTopic ? historyTopics.filter(topic => !currentTopics.includes(topic)) : [],
     };
     if (providedInputsOnly) {
-        for (const flag of ['asksCurrentData', 'localPhysicalPrice', 'requiresWebResearch', 'needsLiveQuote', 'needsFxQuote', 'needsIssuerResearch', 'needsLiveNews', 'needsProteinPrices', 'needsProteinResearch', 'needsMercolleida', 'needsRabobank', 'needsTradeResearch', 'usesVerifiedRepository', 'needsSources', 'needsExecutiveReport']) plan[flag] = false;
+        for (const flag of ['asksCurrentData', 'asksCoverageExplanation', 'asksDataInventory', 'needsDataInventory', 'localPhysicalPrice', 'requiresWebResearch', 'needsLiveQuote', 'needsFxQuote', 'needsIssuerResearch', 'needsLiveNews', 'needsProteinPrices', 'needsProteinResearch', 'needsMercolleida', 'needsRabobank', 'needsTradeResearch', 'usesVerifiedRepository', 'needsSources', 'needsExecutiveReport']) plan[flag] = false;
     }
     return plan;
 }
@@ -231,6 +241,9 @@ function planContext(plan) {
         `Tema principal detectado: ${plan.topic}.`,
         'Responde primero la pregunta concreta; no sustituyas un dato por una explicación general.',
     ];
+    if (plan.asksCoverageExplanation || plan.asksDataInventory) {
+        obligations.push('Usa [INVENTARIO Y COBERTURA EN VIVO DE VALLNEWS / ORION] para explicar con exactitud qué cachés, modelos ML, fechas de corte y conectores están disponibles ahora mismo o por qué una respuesta previa tuvo cobertura parcial. No generes tablas vacías de "Sin precio verificado" ni rechazos genéricos cuando solo se pide explicación o inventario.');
+    }
     if (plan.needsProteinResearch) obligations.push(proteinResearchContext(plan.proteinProfile));
     if (plan.proteinIssuers?.length) obligations.push(issuerContext(plan.proteinIssuers));
     if (plan.needsTradeResearch) {
@@ -308,6 +321,7 @@ function mergeEvidence(evidence, live = null) {
         rabobankRecords: live.rabobankRecords || evidence.rabobankRecords || [],
         proteinPrices: live.proteinPrices || evidence.proteinPrices || null,
         proteinPriceRecords: live.proteinPriceRecords || evidence.proteinPriceRecords || [],
+        fxRates: live.fxRates || evidence.fxRates || null,
         marketQuotes: live.marketQuotes || evidence.marketQuotes || [],
         quotesAvailable: live.quotesAvailable ?? evidence.quotesAvailable,
         newsAvailable: live.newsAvailable ?? evidence.newsAvailable,

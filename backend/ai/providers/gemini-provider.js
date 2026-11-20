@@ -131,9 +131,16 @@ class GeminiProvider {
     }
 
     contents(prompt, attachments = []) {
+        const textMimes = new Set(['text/plain', 'text/csv', 'text/markdown', 'application/json']);
         const parts = [{ text: prompt }];
         for (const file of attachments.slice(0, 5)) {
             if (!file?.base64 || !file?.type) continue;
+            const mime = String(file.type).toLowerCase().split(';')[0].trim();
+            if (textMimes.has(mime)) {
+                const decoded = Buffer.from(file.base64, 'base64').toString('utf8').slice(0, 120_000);
+                parts.push({ text: `\n[ARCHIVO ADJUNTO: ${file.name || 'archivo'} · ${mime}]\n\`\`\`\n${decoded}\n\`\`\`` });
+                continue;
+            }
             parts.push({ text: `\n[ARCHIVO ADJUNTO: ${file.name || 'archivo'} · ${file.type}]` });
             parts.push({ inlineData: { mimeType: file.type, data: file.base64 } });
         }

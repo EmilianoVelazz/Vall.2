@@ -66,6 +66,7 @@ function normalizeChartSpec(value) {
     const datasets = sourceDatasets.slice(0, 6).map((set, index) => ({
         label: cleanString(set?.label || `Serie ${index + 1}`, 80),
         type: CHART_TYPES.has(set?.type) ? set.type : undefined,
+        ...(Array.isArray(set?.borderDash) ? { borderDash: set.borderDash.slice(0, 4).map(Number).filter(n => Number.isFinite(n) && n > 0 && n <= 20) } : {}),
         data: Array.isArray(set?.data)
             ? set.data.slice(0, labels.length || 24).map(parseChartNumber)
             : [],

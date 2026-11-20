@@ -498,15 +498,15 @@ router.post('/ai-insight-stream', verifyToken, aiLimiter, chatJson, aiWork(async
                 result = await orchestrator.stream({
                     ...richInput, signal: generationController.signal,
                     onText(part, full) { sentText = true; send({ text: part, partialLength: full.length }); },
-                    onStatus(status) { send({ status }); },
+                    onStatus(status, meta) { send(meta ? { status, ...meta } : { status }); },
                 });
             } catch (err) {
                 if (richInput.tier === 'pro' && orchestrator.provider?.name !== 'gemini' && err.code === 'AI_RATE_LIMIT' && !sentText) {
-                    send({ status: 'fallback', tier: 'flash' });
+                    send({ status: 'fallback', tier: 'flash', detail: 'Cambiando a ruta rápida para mantener la continuidad…' });
                     result = await orchestrator.stream({
                         ...richInput, tier: 'flash', signal: generationController.signal,
                         onText(part, full) { sentText = true; send({ text: part, partialLength: full.length }); },
-                        onStatus(status) { send({ status }); },
+                        onStatus(status, meta) { send(meta ? { status, ...meta } : { status }); },
                     });
                     result.modelFallback = true;
                 } else throw err;

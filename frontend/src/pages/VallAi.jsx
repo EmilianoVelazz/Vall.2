@@ -7,6 +7,7 @@ import loadScripts, { cargarCadaVez } from '../lib/loadScripts.js';
 import { startGeminiLive, supportsGeminiLive } from '../lib/geminiLive.js';
 import {useAuth} from '../context/AuthContext.jsx';
 import {createOrionSession} from '../lib/orionSession.js';
+import {consumeOrionReportHandoff} from '../lib/orionHandoff.js';
 
 /*
  * VALL AI en React (antes pages/vall-ai.html).
@@ -52,7 +53,7 @@ const SUGERENCIAS = [
   { prompt: 'Resume los análisis públicos disponibles de Rabobank sobre proteínas y granos, con fechas, enlaces y diferencias entre datos y pronósticos', icono: 'fa-book-open', titulo: 'Rabobank', nota: 'Análisis sectorial y perspectivas' },
   { prompt: 'Investiga las noticias internacionales recientes sobre cerdo, pollo, huevo y res, y los acuerdos entre países que afectan su comercio. Contrasta fuentes oficiales, Mercolleida y Rabobank; distingue anuncios, permisos sanitarios y medidas vigentes, con fechas y enlaces.', icono: 'fa-handshake', titulo: 'Proteínas y comercio', nota: 'Noticias, acuerdos y riesgos' },
   { prompt: 'Compara petróleo, gas natural y metales industriales', icono: 'fa-oil-well', titulo: 'Materias primas', nota: 'Comparación estructurada' },
-  { prompt: 'Calcula una regresión lineal del ASX 200 de Australia en el año 2023', icono: 'fa-globe', titulo: 'Mercados mundiales', nota: 'Índices y datos verificables' },
+  { prompt: 'Dime qué datos, informes ejecutivos, fuentes de proteínas y modelos ML tienes activos ahorita mismo en tiempo real', icono: 'fa-database', titulo: 'Datos y modelos activos', nota: 'Inventario en vivo y Loopus' },
   { prompt: 'Dame las noticias financieras globales de hoy, con fuentes y riesgos a vigilar', icono: 'fa-newspaper', titulo: 'Noticias globales', nota: 'Hechos, fuentes y contexto' },
   { prompt: 'Crea un reporte técnico sobre renta fija global', icono: 'fa-file-lines', titulo: 'Reporte técnico', nota: 'Datos, riesgos y conclusión' },
   { prompt: 'Calcula una regresión lineal de USD/MXN para el último año y explica R², pendiente y límites estadísticos', icono: 'fa-square-poll-vertical', titulo: 'Modelo estadístico', nota: 'Regresión OLS verificable' },
@@ -97,11 +98,36 @@ function OrionWorkspace({user}) {
 
   useEffect(() => {
     const bridge = { start: startGeminiLive, isSupported: supportsGeminiLive };
+    const inspectPdf = async (file) => {
+      const [{ getDocument, GlobalWorkerOptions }, { default: workerUrl }] = await Promise.all([
+        import('pdfjs-dist'),
+        import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+      ]);
+      GlobalWorkerOptions.workerSrc = workerUrl;
+      const data = new Uint8Array(await file.arrayBuffer());
+      const pdf = await getDocument({ data }).promise;
+      const pages = Number(pdf.numPages || 0);
+      const chunks = [];
+      for (let pageIndex = 1; pageIndex <= Math.min(pages, 2); pageIndex += 1) {
+        const page = await pdf.getPage(pageIndex);
+        const textContent = await page.getTextContent();
+        const line = (textContent.items || []).map((entry) => entry?.str || '').join(' ').replace(/\s+/g, ' ').trim();
+        if (line) chunks.push(`[Pág. ${pageIndex}] ${line}`);
+        if (chunks.join('\n\n').length >= 900) break;
+      }
+      try { await pdf.destroy(); } catch { /* noop */ }
+      return { pages, excerpt: chunks.join('\n\n').slice(0, 900) };
+    };
+    const consumeHandoff = () => consumeOrionReportHandoff(undefined, { owner: user });
     window.VNGeminiLive = bridge;
+    window.VNInspectPdf = inspectPdf;
+    window.VNConsumeOrionHandoff = consumeHandoff;
     return () => {
       if (window.VNGeminiLive === bridge) delete window.VNGeminiLive;
+      if (window.VNInspectPdf === inspectPdf) delete window.VNInspectPdf;
+      if (window.VNConsumeOrionHandoff === consumeHandoff) delete window.VNConsumeOrionHandoff;
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     let vivo = true;
@@ -149,11 +175,23 @@ function OrionWorkspace({user}) {
             <button className="vai-new" id="vaiNew" type="button" title="Nueva conversación"><i className="fas fa-plus" /><span>Nueva conversación</span></button>
             <button className="vai-sidebar-command" id="vaiQuickSearch" type="button" title="Buscar conversaciones"><i className="fas fa-magnifying-glass" /><span>Buscar chats</span></button>
             <button className="vai-sidebar-command vai-reports-command" id="vaiOpenReportStudio" type="button" title="Abrir editor de reportes"><i className="fas fa-file-pen" aria-hidden="true" /><span>Editor de reportes</span></button>
+            <div className="vai-export-wrap" id="vaiExportWrap">
+              <button className="vai-sidebar-command vai-export-chat" id="vaiExportChat" type="button" title="Exportar conversación completa" aria-haspopup="menu" aria-expanded="false" disabled>
+                <i className="fas fa-download" aria-hidden="true" /><span>Exportar chat</span>
+              </button>
+              <div className="vai-export-menu" id="vaiExportMenu" hidden role="menu" aria-label="Formato de exportación del chat">
+                <button type="button" role="menuitem" data-chat-export="md"><i className="fas fa-file-code" aria-hidden="true" /><span>Markdown (.md)</span></button>
+                <button type="button" role="menuitem" data-chat-export="txt"><i className="far fa-file-lines" aria-hidden="true" /><span>Texto plano (.txt)</span></button>
+                <button type="button" role="menuitem" data-chat-export="pdf"><i className="far fa-file-pdf" aria-hidden="true" /><span>Documento PDF (.pdf)</span></button>
+                <button type="button" role="menuitem" data-chat-export="docx"><i className="far fa-file-word" aria-hidden="true" /><span>Microsoft Word (.docx)</span></button>
+              </div>
+            </div>
           </div>
 
           <label className="vai-search" htmlFor="vaiHistorySearch">
             <i className="fas fa-magnifying-glass" />
             <input id="vaiHistorySearch" type="search" placeholder="Buscar conversaciones…" autoComplete="off" />
+            <button type="button" className="vai-search-clear" id="vaiHistorySearchClear" hidden aria-label="Limpiar búsqueda"><i className="fas fa-xmark" /></button>
           </label>
 
           <div className="vai-history-head">
@@ -196,6 +234,9 @@ function OrionWorkspace({user}) {
               </div>
             </section>
           </div>
+          <button type="button" className="vai-scroll-bottom" id="vaiScrollBottom" hidden aria-label="Ir al último mensaje" title="Ir al último mensaje">
+            <i className="fas fa-arrow-down" aria-hidden="true" />
+          </button>
 
           <footer className="vai-composer-wrap">
             <form className="vai-composer" id="vaiForm" aria-busy={!ready} onSubmit={event=>{if(!ready) event.preventDefault();}}>
@@ -209,18 +250,20 @@ function OrionWorkspace({user}) {
               <div className="vai-dropzone" id="vaiDropzone" hidden>
                 <i className="fas fa-cloud-arrow-up" />
                 <strong>Suelta tus archivos aquí</strong>
-                <span>Imágenes, PDF, texto, CSV, Markdown o JSON</span>
+                <span>Imágenes, PDF, CSV, Excel (.xlsx), TXT, MD o JSON</span>
               </div>
+              <div className="vai-slash-menu" id="vaiSlashMenu" hidden role="listbox" aria-label="Comandos rápidos de ORION" />
               <div className="vai-attachments" id="vaiAttachments" hidden aria-live="polite" />
-              <textarea id="vaiInput" rows={1} maxLength={4000} placeholder={ready ? 'Pregunta a ORION…' : 'Cargando ORION…'} disabled={!ready} aria-label="Mensaje para ORION" />
+              <textarea id="vaiInput" rows={1} maxLength={12000} placeholder={ready ? 'Pregunta a ORION o escribe / para comandos…' : 'Cargando ORION…'} disabled={!ready} aria-label="Mensaje para ORION" />
               <div className="vai-compose-bottom">
                 <div className="vai-compose-context">
                   <button className="vai-attach" id="vaiAttach" type="button" disabled={!ready} title="Adjuntar archivos o imágenes" aria-label="Adjuntar archivos o imágenes"><i className="fas fa-paperclip" /></button>
-                  <input id="vaiFileInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,text/csv,text/markdown,application/json,.md,.csv,.json,.txt,.pdf" />
-                  <span><b>Adjuntar contexto</b><small>PDF, CSV, imágenes o datos</small></span>
+                  <input id="vaiFileInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,text/csv,text/markdown,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.md,.csv,.tsv,.xlsx,.json,.txt,.pdf" />
+                  <span><b>Adjuntar contexto</b><small>CSV, Excel, PDF, JSON o imágenes</small></span>
                 </div>
                 <div className="vai-compose-actions">
-                  <span className="vai-compose-shortcut"><kbd>Enter</kbd> enviar</span>
+                  <span className="vai-char-count" id="vaiCharCount" hidden aria-live="polite" />
+                  <span className="vai-compose-shortcut"><kbd>Enter</kbd> enviar · <kbd>Shift+Enter</kbd> línea</span>
                   <OrionModelSelector />
                   <button className="vai-stop" id="vaiStop" type="button" hidden aria-label="Detener generación"><i className="fas fa-stop" /></button>
                   <button className="vai-send" id="vaiSend" type="submit" disabled={!ready} aria-label="Enviar mensaje"><i className="fas fa-arrow-up" /></button>

@@ -4938,11 +4938,14 @@ body.vall-ai-body .vai-sidebar-primary {
   margin: 0 0 6px;
 }
 body.vall-ai-body .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command) {
+  display: flex;
+  align-items: center;
   width: 100%;
   min-height: 40px;
   margin: 0;
   padding: 0 10px;
   justify-content: flex-start;
+  text-align: left;
   gap: 11px;
   border: 1px solid transparent;
   border-radius: 9px;
@@ -5195,3 +5198,874 @@ body.vall-ai-body .vai-alert-title {
   font-size: .78rem;
 }
 body.vall-ai-body .vai-alert-body p:last-child { margin-bottom: 0; }
+
+/* Chat Box v9 · compositor limpio sin empalmes, cabecera unificada y herramientas de respuesta */
+body.vall-ai-body .vai-workspace {
+  position: relative;
+}
+body.vall-ai-body .vai-composer,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 0 0;
+  border-radius: 22px;
+  overflow: visible;
+}
+body.vall-ai-body .vai-composer::before { display: none !important; }
+body.vall-ai-body .vai-composer textarea,
+body.vall-ai-body .vai-composer textarea:focus,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea:focus,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea:focus {
+  position: static;
+  width: 100%;
+  min-height: 44px;
+  max-height: 220px;
+  margin: 0;
+  padding: 12px 18px 6px;
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  background: transparent;
+  color: #F3F4F6;
+  font-size: .88rem;
+  line-height: 1.5;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+  overflow-wrap: anywhere;
+  box-shadow: none;
+}
+body.vall-ai-body .vai-compose-bottom,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-bottom,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-bottom {
+  position: static !important;
+  inset: auto !important;
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 10px 9px 12px;
+  border-top: 1px solid rgba(148, 163, 184, .1);
+  pointer-events: auto;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-context > span {
+  display: grid;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-context > span small {
+  display: none;
+}
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-shortcut {
+  display: inline-flex;
+  color: #94A3B8;
+  font-size: .64rem;
+}
+body.vall-ai-body .vai-char-count {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, .28);
+  background: rgba(15, 23, 42, .72);
+  color: #CBD5E1;
+  font-size: .65rem;
+  font-variant-numeric: tabular-nums;
+}
+body.vall-ai-body .vai-char-count.is-warn {
+  border-color: rgba(251, 191, 36, .48);
+  color: #FDE68A;
+}
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-composer textarea,
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea {
+    padding: 12px 14px 6px;
+    font-size: .84rem;
+  }
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-context > span,
+  body.vall-ai-body .vai-compose-shortcut {
+    display: none !important;
+  }
+  body.vall-ai-body .vai-compose-bottom,
+  body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-bottom {
+    padding: 4px 8px 8px;
+  }
+}
+
+/* Botón flotante para bajar al final en conversaciones largas */
+body.vall-ai-body .vai-scroll-bottom {
+  position: absolute;
+  right: clamp(18px, 3vw, 40px);
+  bottom: 146px;
+  z-index: 15;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #4B5563;
+  border-radius: 50%;
+  background: rgba(17, 24, 39, .92);
+  color: #E5E7EB;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .38);
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, background-color .16s ease;
+}
+body.vall-ai-body .vai-scroll-bottom:hover {
+  border-color: #9CA3AF;
+  background: #1F2937;
+  transform: translateY(-2px);
+}
+body.vall-ai-body .vai-scroll-bottom[hidden] { display: none !important; }
+
+/* Cabecera unificada del mensaje de ORION */
+body.vall-ai-body .vai-selected-model { display: none !important; }
+body.vall-ai-body .vai-message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+}
+body.vall-ai-body .vai-meta-sender {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
+}
+body.vall-ai-body .vai-model-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, .28);
+  background: rgba(31, 41, 55, .85);
+  color: #CBD5E1;
+  font-size: .64rem;
+  font-weight: 600;
+}
+body.vall-ai-body .vai-model-pill.is-fallback {
+  border-color: rgba(251, 191, 36, .42);
+  color: #FDE68A;
+}
+body.vall-ai-body .vai-meta-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+body.vall-ai-body .vai-read-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #9CA3AF;
+  font-size: .66rem;
+}
+
+/* Barra de acciones legible y botón regenerar / copiar */
+body.vall-ai-body .vai-message.assistant .vai-response-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(75, 85, 99, .35);
+}
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button.vai-action-pill,
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button[data-edit-report],
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button[data-quick-pdf],
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button[data-quick-word],
+body.vall-ai-body .vai-message.assistant .vai-feedback-group .vai-btn-correct {
+  display: inline-flex !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px !important;
+  border: 1px solid rgba(75, 85, 99, .45) !important;
+  border-radius: 8px;
+  background: rgba(31, 41, 55, .55) !important;
+  color: #D1D5DB !important;
+  font-size: .71rem !important;
+  font-weight: 500;
+  cursor: pointer;
+}
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button.vai-action-pill:hover,
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button[data-edit-report]:hover,
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button[data-quick-pdf]:hover,
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button[data-quick-word]:hover,
+body.vall-ai-body .vai-message.assistant .vai-feedback-group .vai-btn-correct:hover {
+  border-color: #9CA3AF !important;
+  background: #374151 !important;
+  color: #FFFFFF !important;
+}
+body.vall-ai-body .vai-message.assistant .vai-response-actions > button i,
+body.vall-ai-body .vai-message.assistant .vai-feedback-group button i {
+  font-size: .74rem;
+}
+
+/* Tablas, bloques de código, reintento y sidebar */
+body.vall-ai-body .vai-table-box,
+body.vall-ai-body .vai-code-block {
+  margin: 12px 0;
+  border: 1px solid rgba(75, 85, 99, .5);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .62);
+  overflow: hidden;
+}
+body.vall-ai-body .vai-table-toolbar,
+body.vall-ai-body .vai-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  background: rgba(31, 41, 55, .82);
+  border-bottom: 1px solid rgba(75, 85, 99, .42);
+  color: #9CA3AF;
+  font-size: .68rem;
+  font-weight: 600;
+}
+body.vall-ai-body .vai-code-block pre {
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+body.vall-ai-body .vai-table-copy,
+body.vall-ai-body .vai-code-copy,
+body.vall-ai-body .vai-inline-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid rgba(148, 163, 184, .32);
+  border-radius: 7px;
+  background: rgba(17, 24, 39, .75);
+  color: #E5E7EB;
+  font-size: .68rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+body.vall-ai-body .vai-table-copy:hover,
+body.vall-ai-body .vai-code-copy:hover,
+body.vall-ai-body .vai-inline-retry:hover {
+  border-color: #9CA3AF;
+  background: #374151;
+}
+body.vall-ai-body .vai-error-actions { margin-top: 10px; }
+body.vall-ai-body .vai-inline-retry { margin-left: 6px; padding: 5px 11px; }
+
+body.vall-ai-body .vai-sidebar .vai-search { position: relative; }
+body.vall-ai-body .vai-search-clear {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #9CA3AF;
+  cursor: pointer;
+}
+body.vall-ai-body .vai-search-clear:hover { color: #EDEDED; background: rgba(255, 255, 255, .08); }
+body.vall-ai-body .vai-search-clear[hidden] { display: none !important; }
+body.vall-ai-body .vai-sidebar:not(.collapsed) .vai-history-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 6px;
+}
+body.vall-ai-body .vai-history-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+body.vall-ai-body .vai-history-rename {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: #9CA3AF;
+  opacity: 0;
+  transition: opacity .16s ease, color .16s ease, background-color .16s ease;
+}
+body.vall-ai-body .vai-history-item:is(:hover, :focus-within) .vai-history-rename {
+  opacity: .78;
+}
+body.vall-ai-body .vai-history-rename:is(:hover, :focus-visible) {
+  background: #374151;
+  color: #EDEDED;
+}
+body.vall-ai-body .vai-history-edit {
+  width: 100%;
+  padding: 2px 6px;
+  border: 1px solid #60A5FA;
+  border-radius: 6px;
+  background: #0F172A;
+  color: #F9FAFB;
+  font: inherit;
+  font-size: .72rem;
+}
+
+/* Paso 3: Comandos slash (/), conversaciones fijadas y exportación completa del chat */
+body.vall-ai-body .vai-export-wrap {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+}
+body.vall-ai-body .vai-sidebar.collapsed .vai-export-wrap {
+  width: auto;
+  justify-items: center;
+}
+body.vall-ai-body .vai-sidebar-primary :is(.vai-new, .vai-sidebar-command)[disabled] {
+  opacity: .42;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+body.vall-ai-body .vai-export-menu {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  background: #111827;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+}
+body.vall-ai-body .vai-export-menu[hidden] { display: none; }
+body.vall-ai-body .vai-export-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #E5E7EB;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .14s ease, color .14s ease;
+}
+body.vall-ai-body .vai-export-menu button:is(:hover, :focus-visible) {
+  background: #1F2937;
+  color: #FFFFFF;
+}
+body.vall-ai-body .vai-export-menu button i {
+  width: 15px;
+  text-align: center;
+  color: #60A5FA;
+}
+
+body.vall-ai-body .vai-history-group-label {
+  margin: 8px 8px 3px;
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-history-pin {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: #9CA3AF;
+  opacity: 0;
+  transition: opacity .16s ease, color .16s ease, background-color .16s ease, transform .16s ease;
+}
+body.vall-ai-body .vai-history-item:is(:hover, :focus-within) .vai-history-pin {
+  opacity: .82;
+}
+body.vall-ai-body .vai-history-pin.is-pinned {
+  opacity: 1;
+  color: #FBBF24;
+}
+body.vall-ai-body .vai-history-pin.is-pinned i {
+  transform: rotate(22deg);
+}
+body.vall-ai-body .vai-history-pin:is(:hover, :focus-visible) {
+  background: #374151;
+  color: #FDE68A;
+}
+@media (hover: none), (pointer: coarse) {
+  body.vall-ai-body .vai-history-pin,
+  body.vall-ai-body .vai-history-rename {
+    opacity: .72;
+  }
+}
+
+body.vall-ai-body .vai-composer {
+  position: relative;
+}
+body.vall-ai-body .vai-slash-menu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  max-height: 290px;
+  overflow-y: auto;
+  z-index: 45;
+  padding: 6px;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  background: #111827;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .48);
+  display: grid;
+  gap: 3px;
+}
+body.vall-ai-body .vai-slash-menu[hidden] { display: none; }
+body.vall-ai-body .vai-slash-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #F3F4F6;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: background-color .12s ease, border-color .12s ease;
+}
+body.vall-ai-body .vai-slash-item:is(:hover, :focus-visible, .is-active) {
+  background: #1F2937;
+  border-color: rgba(96, 165, 250, .35);
+}
+body.vall-ai-body .vai-slash-ico {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, .16);
+  color: #93C5FD;
+  font-size: .82rem;
+}
+body.vall-ai-body .vai-slash-item.is-active .vai-slash-ico {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+body.vall-ai-body .vai-slash-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+body.vall-ai-body .vai-slash-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+body.vall-ai-body .vai-slash-cmd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .74rem;
+  color: #60A5FA;
+}
+body.vall-ai-body .vai-slash-title {
+  font-size: .75rem;
+  font-weight: 700;
+  color: #F9FAFB;
+}
+body.vall-ai-body .vai-slash-hint {
+  font-size: .68rem;
+  color: #9CA3AF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Paso 4: Indicador vivo de herramientas, streaming sin parpadeo y adjuntos enriquecidos */
+body.vall-ai-body .vai-thinking-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-bottom: 8px;
+}
+body.vall-ai-body .vai-thinking-tools[hidden] { display: none; }
+body.vall-ai-body .vai-tool-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: .67rem;
+  font-weight: 600;
+  border: 1px solid #374151;
+  background: rgba(17, 24, 39, .85);
+  color: #CBD5E1;
+}
+body.vall-ai-body .vai-thinking .vai-tool-pill i {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  border-radius: 0;
+  background: transparent;
+  font-size: .68rem;
+  line-height: 1;
+}
+body.vall-ai-body .vai-tool-pill.is-running {
+  border-color: rgba(96, 165, 250, .42);
+  background: rgba(37, 99, 235, .14);
+  color: #BFDBFE;
+}
+body.vall-ai-body .vai-tool-pill.is-done {
+  border-color: rgba(52, 211, 153, .42);
+  background: rgba(16, 185, 129, .14);
+  color: #86EFAC;
+}
+
+body.vall-ai-body .vai-message.assistant.is-streaming .vai-bubble::after {
+  content: none;
+  display: none;
+}
+body.vall-ai-body .vai-stream-body { min-height: 22px; }
+body.vall-ai-body .vai-stream-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(96, 165, 250, .3);
+  background: rgba(37, 99, 235, .12);
+  color: #93C5FD;
+  font-size: .67rem;
+  font-weight: 600;
+}
+body.vall-ai-body .vai-stream-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #60A5FA;
+  animation: vaiPulseDot 1.1s ease-in-out infinite;
+}
+@keyframes vaiPulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.78); }
+}
+body.vall-ai-body .vai-bubble.vai-stream-settled {
+  animation: vaiSettleFade .24s ease-out;
+}
+@keyframes vaiSettleFade {
+  from { opacity: .82; }
+  to { opacity: 1; }
+}
+
+body.vall-ai-body .vai-attachments {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 6px 2px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+body.vall-ai-body #vaiForm .vai-attachments {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: 100%;
+  margin: 0 0 2px;
+}
+body.vall-ai-body .vai-attachment-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  background: rgba(17, 24, 39, .94);
+  color: #F3F4F6;
+}
+body.vall-ai-body .vai-attachment-card button.vai-att-btn {
+  width: auto;
+  height: auto;
+  min-height: 26px;
+}
+body.vall-ai-body .vai-attachment-card button.vai-att-remove {
+  width: 26px;
+  height: 26px;
+}
+body.vall-ai-body .vai-attachment-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+body.vall-ai-body .vai-attachment-head img {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  object-fit: cover;
+  border: 1px solid #374151;
+}
+body.vall-ai-body .vai-attachment-head > i {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, .14);
+  color: #93C5FD;
+  font-size: .86rem;
+  flex: 0 0 30px;
+}
+body.vall-ai-body .vai-attachment-head > :is(i.fa-file-excel, i.fa-table) {
+  background: rgba(16, 185, 129, .15);
+  color: #6EE7B7;
+}
+body.vall-ai-body .vai-attachment-head > i.fa-file-pdf {
+  background: rgba(239, 68, 68, .15);
+  color: #FCA5A5;
+}
+body.vall-ai-body .vai-attachment-info {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+body.vall-ai-body .vai-attachment-info strong {
+  font-size: .74rem;
+  color: #F9FAFB;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.vall-ai-body .vai-attachment-info small {
+  font-size: .66rem;
+  color: #9CA3AF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.vall-ai-body .vai-attachment-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+body.vall-ai-body .vai-att-btn {
+  padding: 4px 8px;
+  border: 1px solid #4B5563;
+  border-radius: 7px;
+  background: #1F2937;
+  color: #E5E7EB;
+  font: inherit;
+  font-size: .66rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .14s ease, border-color .14s ease;
+}
+body.vall-ai-body .vai-att-btn:is(:hover, :focus-visible) {
+  background: #374151;
+  border-color: #6B7280;
+  color: #FFFFFF;
+}
+body.vall-ai-body .vai-att-btn.is-accent {
+  border-color: rgba(96, 165, 250, .45);
+  background: rgba(37, 99, 235, .18);
+  color: #BFDBFE;
+}
+body.vall-ai-body .vai-att-btn.is-accent:is(:hover, :focus-visible) {
+  background: #2563EB;
+  border-color: #60A5FA;
+  color: #FFFFFF;
+}
+body.vall-ai-body .vai-att-btn.is-chart {
+  border-color: rgba(52, 211, 153, .45);
+  background: rgba(16, 185, 129, .16);
+  color: #A7F3D0;
+}
+body.vall-ai-body .vai-att-btn.is-chart:is(:hover, :focus-visible) {
+  background: #059669;
+  border-color: #34D399;
+  color: #FFFFFF;
+}
+body.vall-ai-body .vai-attachment-card select.vai-att-col-select {
+  width: auto;
+  min-width: 0;
+  max-width: 150px;
+  height: 26px;
+  min-height: 26px;
+  padding: 0 7px;
+  border: 1px solid #4B5563;
+  border-radius: 7px;
+  background: #1F2937;
+  color: #E5E7EB;
+  font: inherit;
+  font-size: .66rem !important;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+body.vall-ai-body .vai-attachment-card select.vai-att-col-select:focus-visible {
+  outline: 2px solid rgba(52, 211, 153, .65);
+  outline-offset: 1px;
+}
+body.vall-ai-body .vai-attachment-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+body.vall-ai-body .vai-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, .32);
+  background: rgba(16, 185, 129, .1);
+  color: #A7F3D0;
+  font-size: .64rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+body.vall-ai-body .vai-att-remove {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #9CA3AF;
+  cursor: pointer;
+}
+body.vall-ai-body .vai-att-remove:is(:hover, :focus-visible) {
+  background: rgba(239, 68, 68, .16);
+  color: #FCA5A5;
+}
+body.vall-ai-body .vai-attachment-preview {
+  border-top: 1px solid #374151;
+  padding-top: 8px;
+  display: grid;
+  gap: 5px;
+}
+body.vall-ai-body .vai-attachment-table-wrap {
+  max-height: 150px;
+  overflow: auto;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #0B1220;
+}
+body.vall-ai-body .vai-attachment-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .68rem;
+  color: #E5E7EB;
+}
+body.vall-ai-body .vai-attachment-table-wrap th {
+  position: sticky;
+  top: 0;
+  background: #1F2937;
+  color: #93C5FD;
+  font-weight: 700;
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid #374151;
+  white-space: nowrap;
+}
+body.vall-ai-body .vai-attachment-table-wrap td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(55, 65, 81, .5);
+  white-space: nowrap;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.vall-ai-body .vai-attachment-preview-foot {
+  font-size: .64rem;
+  color: #9CA3AF;
+}
+body.vall-ai-body .vai-attachment-excerpt {
+  margin: 0;
+  max-height: 140px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #0B1220;
+  color: #D1D5DB;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .68rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  body.vall-ai-body .vai-workspace.orion-composer-layout:not(:has(.vai-welcome:not([hidden]))) {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  body.vall-ai-body .vai-workspace.orion-composer-layout:not(:has(.vai-welcome:not([hidden]))) .vai-toolbar {
+    position: static;
+    display: flex !important;
+    align-items: center;
+    width: 100%;
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(55, 65, 81, .5);
+    background: #111827;
+    pointer-events: auto;
+  }
+  body.vall-ai-body .vai-workspace.orion-composer-layout:not(:has(.vai-welcome:not([hidden]))) .vai-history-toggle {
+    width: auto !important;
+    min-width: 0 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 12px;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  body.vall-ai-body .vai-workspace.orion-composer-layout:not(:has(.vai-welcome:not([hidden]))) .vai-history-toggle span {
+    display: inline;
+  }
+  body.vall-ai-body .vai-workspace.orion-composer-layout:not(:has(.vai-welcome:not([hidden]))) .vai-messages {
+    padding-top: 14px !important;
+  }
+  body.vall-ai-body .vai-sidebar.open {
+    left: 0;
+    transform: translateX(0);
+  }
+  body.vall-ai-body .vai-attachment-card {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  body.vall-ai-body .vai-attachment-tools {
+    width: 100%;
+    gap: 4px;
+  }
+  body.vall-ai-body .vai-attachment-card button.vai-att-btn,
+  body.vall-ai-body .vai-attachment-card select.vai-att-col-select {
+    height: 26px;
+    min-height: 26px;
+    max-width: 122px;
+    font-size: .65rem !important;
+  }
+  body.vall-ai-body .vai-attachment-card button.vai-att-btn {
+    padding: 3px 7px;
+    width: auto !important;
+  }
+}

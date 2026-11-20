@@ -45,7 +45,7 @@ body.vall-ai-body .orion-composer-layout #vaiWelcome > .vai-prompts { order:6; f
 
 @media(max-width:760px) {
   body.vall-ai-body .orion-composer-layout #vaiForm { grid-template-columns:44px minmax(0,1fr) auto; min-height:112px; padding:0 8px; }
-  body.vall-ai-body #vaiForm textarea { grid-column:1 / -1; min-height:58px; max-height:180px; padding:16px 8px 12px; font-size:.85rem; }
+  body.vall-ai-body #vaiForm textarea { grid-column:1 / -1; grid-row:2; min-height:58px; max-height:180px; padding:16px 8px 12px; font-size:.85rem; }
   body.vall-ai-body #vaiForm .vai-compose-context { grid-row:3; padding-bottom:8px; }
   body.vall-ai-body #vaiForm .vai-compose-actions { grid-column:2 / -1; grid-row:3; padding-bottom:8px; }
   body.vall-ai-body #vaiForm .om-trigger { font-size:.75rem; padding:8px 11px; }

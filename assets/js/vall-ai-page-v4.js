@@ -27,6 +27,7 @@
     const CONV_KEY = `vn_chat_conversations_v2_${PROFILE_SCOPE}`;
     const ACTIVE_KEY = `vn_chat_active_id_v2_${PROFILE_SCOPE}`;
     const DELETED_CONV_KEY = `vn_chat_deleted_ids_v1_${PROFILE_SCOPE}`;
+    const PINNED_CONV_KEY = `vn_chat_pinned_ids_v1_${PROFILE_SCOPE}`;
     const SIDEBAR_KEY = 'vn_ai_sidebar_collapsed';
     const MAX_CONVERSATIONS = 40;
     const MAX_MESSAGES = 80;
@@ -34,9 +35,10 @@
     const $ = (id) => document.getElementById(id);
     const els = {
         shell: document.querySelector('.vai-shell'), sidebar: $('vaiSidebar'), sidebarCollapse: $('vaiSidebarCollapse'), overlay: $('vaiOverlay'), sideClose: $('vaiSideClose'),
-        historyToggle: $('vaiHistoryToggle'), history: $('vaiHistory'), historySearch: $('vaiHistorySearch'), historyCount: $('vaiHistoryCount'), newChat: $('vaiNew'), quickSearch: $('vaiQuickSearch'),
-        messages: $('vaiMessages'), welcome: $('vaiWelcome'),
-        form: $('vaiForm'), input: $('vaiInput'), send: $('vaiSend'), stop: $('vaiStop'), conversationFace: $('vaiConversationFace'),
+        historyToggle: $('vaiHistoryToggle'), history: $('vaiHistory'), historySearch: $('vaiHistorySearch'), historySearchClear: $('vaiHistorySearchClear'), historyCount: $('vaiHistoryCount'), newChat: $('vaiNew'), quickSearch: $('vaiQuickSearch'),
+        exportWrap: $('vaiExportWrap'), exportChat: $('vaiExportChat'), exportMenu: $('vaiExportMenu'),
+        messages: $('vaiMessages'), scrollBottom: $('vaiScrollBottom'), welcome: $('vaiWelcome'),
+        form: $('vaiForm'), slashMenu: $('vaiSlashMenu'), input: $('vaiInput'), send: $('vaiSend'), stop: $('vaiStop'), conversationFace: $('vaiConversationFace'), charCount: $('vaiCharCount'),
         attach: $('vaiAttach'), fileInput: $('vaiFileInput'), attachments: $('vaiAttachments'), dropzone: $('vaiDropzone'),
         reportStudio: $('vaiReportStudio'), reportTitle: $('vaiReportTitle'), reportScope: $('vaiReportScope'),
         reportFormat: $('vaiReportFormat'), reportZoom: $('vaiReportZoom'), reportEditor: $('vaiReportEditor'), reportSource: $('vaiReportSource'), reportPreview: $('vaiReportPreview'),
@@ -65,6 +67,12 @@
     const pendingPdfFiles = new WeakMap();
     const remoteSaveQueues = new Map();
     const deletedConversationIds = loadDeletedConversationIds();
+    const pinnedConversationIds = loadPinnedConversationIds();
+    let slashVisibleItems = [];
+    let slashActiveIndex = 0;
+    let slashDismissedValue = '';
+    let exportBusy = false;
+    let exportFeedbackTimer = null;
 
     function escapeHtml(value) {
         return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
@@ -160,15 +168,84 @@
         setFaceState(els.conversationFace, state);
     }
 
-    function setThinkingStage(pending, stage = 'understand') {
+    function renderThinkingTools(pending, meta) {
+        const container = pending?.bubble?.querySelector('[data-vai-thinking-tools]');
+        if (!container) return;
+        const tools = Array.isArray(meta?.tools) ? meta.tools.filter(Boolean) : [];
+        if (!tools.length) {
+            container.hidden = true;
+            container.replaceChildren();
+            return;
+        }
+        const completed = new Set(Array.isArray(meta?.completedTools) ? meta.completedTools : []);
+        container.replaceChildren();
+        tools.slice(0, 5).forEach((toolName) => {
+            const done = completed.has(toolName);
+            const pill = document.createElement('span');
+            pill.className = `vai-tool-pill ${done ? 'is-done' : 'is-running'}`;
+            const icon = document.createElement('i');
+            icon.className = done ? 'fas fa-check' : 'fas fa-circle-notch fa-spin';
+            icon.setAttribute('aria-hidden', 'true');
+            const label = document.createElement('span');
+            label.textContent = toolName;
+            pill.append(icon, label);
+            container.appendChild(pill);
+        });
+        container.hidden = false;
+    }
+
+    function setThinkingStage(pending, stage = 'understand', meta = null) {
         if (!pending?.bubble) return;
         const copy = THINKING_STAGES[stage] || THINKING_STAGES.reasoning;
+        if (meta && (meta.detail || (Array.isArray(meta.tools) && meta.tools.length))) {
+            pending._hasServerStatus = true;
+        }
         const title = pending.bubble.querySelector('[data-vai-thinking-title]');
         const detail = pending.bubble.querySelector('[data-vai-thinking-detail]');
         if (title) title.textContent = copy.title;
-        if (detail) detail.textContent = copy.detail;
+        if (detail) detail.textContent = meta?.detail || copy.detail;
+        if (meta && Array.isArray(meta.tools)) renderThinkingTools(pending, meta);
         setFaceState(pending.avatar, 'thinking');
         setConversationFaceState('thinking');
+    }
+
+    function cancelStreamingRender(pending) {
+        if (!pending) return;
+        if (pending._streamFrame) cancelAnimationFrame(pending._streamFrame);
+        clearTimeout(pending._streamTimer);
+        pending._streamFrame = null;
+        pending._streamTimer = null;
+    }
+
+    function sanitizeStreamingMarkdown(text) {
+        const raw = String(text || '');
+        const lastOpen = raw.lastIndexOf('```');
+        if (lastOpen < 0) return raw;
+        const afterOpen = raw.slice(lastOpen + 3);
+        const fenceMatch = afterOpen.match(/^(chart|mermaid)\b[^\n]*\n([\s\S]*)$/i);
+        if (!fenceMatch) return raw;
+        const kind = fenceMatch[1].toLowerCase();
+        const notice = kind === 'chart'
+            ? '\n\n> **Visualización interactiva:** preparando datos y escalas de la gráfica…\n'
+            : '\n\n> **Diagrama estructural:** trazando nodos de la respuesta…\n';
+        return raw.slice(0, lastOpen).trimEnd() + notice;
+    }
+
+    function ensureStreamingContainers(pending) {
+        if (pending._streamBody && pending._streamBody.parentNode === pending.bubble) {
+            return pending._streamBody;
+        }
+        pending.bubble.replaceChildren();
+        const body = document.createElement('div');
+        body.className = 'vai-stream-body';
+        const live = document.createElement('div');
+        live.className = 'vai-stream-live-pill';
+        live.setAttribute('aria-live', 'off');
+        live.innerHTML = '<span class="vai-stream-dot" aria-hidden="true"></span><span>Generando respuesta en vivo…</span>';
+        pending.bubble.append(body, live);
+        pending._streamBody = body;
+        pending._streamLive = live;
+        return body;
     }
 
     function renderStreamingText(pending, value, flush = false) {
@@ -178,12 +255,13 @@
             pending._streamFrame = null;
             pending._streamTimer = null;
             if (!pending.row?.isConnected) return;
+            if (!flush && !pending.row.classList.contains('is-streaming')) return;
             pending._lastStreamPaint = Date.now();
-            pending.bubble.innerHTML = markdown(pending._streamText);
+            const body = ensureStreamingContainers(pending);
+            body.innerHTML = markdown(sanitizeStreamingMarkdown(pending._streamText));
         };
         if (flush) {
-            if (pending._streamFrame) cancelAnimationFrame(pending._streamFrame);
-            clearTimeout(pending._streamTimer);
+            cancelStreamingRender(pending);
             paint();
             return;
         }
@@ -257,9 +335,24 @@
         } catch { return []; }
     }
 
+    function isConversationPinned(id) {
+        return pinnedConversationIds.has(String(id || ''));
+    }
+
+    function sortConversationsList(list) {
+        return [...(Array.isArray(list) ? list : [])].sort((a, b) => {
+            const pinDiff = Number(isConversationPinned(b?.id)) - Number(isConversationPinned(a?.id));
+            if (pinDiff !== 0) return pinDiff;
+            return Number(b?.updatedAt || 0) - Number(a?.updatedAt || 0);
+        });
+    }
+
     function saveConversations() {
-        conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-        conversations = conversations.slice(0, MAX_CONVERSATIONS);
+        const ordered = sortConversationsList(conversations);
+        const pinned = ordered.filter(item => isConversationPinned(item?.id));
+        const unpinned = ordered.filter(item => !isConversationPinned(item?.id));
+        const unpinnedLimit = Math.max(0, MAX_CONVERSATIONS - Math.min(pinned.length, MAX_CONVERSATIONS - 5));
+        conversations = [...pinned, ...unpinned.slice(0, unpinnedLimit)];
         localStorage.setItem(CONV_KEY, JSON.stringify(conversations));
     }
 
@@ -277,6 +370,27 @@
 
     function saveDeletedConversationIds() {
         localStorage.setItem(DELETED_CONV_KEY, JSON.stringify([...deletedConversationIds].slice(-200)));
+    }
+
+    function loadPinnedConversationIds() {
+        try {
+            const value = JSON.parse(localStorage.getItem(PINNED_CONV_KEY) || '[]');
+            return new Set(Array.isArray(value) ? value.filter(Boolean).map(String).slice(-MAX_CONVERSATIONS) : []);
+        } catch { return new Set(); }
+    }
+
+    function savePinnedConversationIds() {
+        localStorage.setItem(PINNED_CONV_KEY, JSON.stringify([...pinnedConversationIds].slice(-MAX_CONVERSATIONS)));
+    }
+
+    function toggleConversationPin(id) {
+        const conversationId = String(id || '');
+        if (!conversationId) return;
+        if (pinnedConversationIds.has(conversationId)) pinnedConversationIds.delete(conversationId);
+        else pinnedConversationIds.add(conversationId);
+        savePinnedConversationIds();
+        saveConversations();
+        renderHistory();
     }
 
     function queueRemoteConversationRequest(conversationId, request) {
@@ -350,9 +464,7 @@
                     return Number(local.updatedAt || 0) >= Number(server.updatedAt || 0) ? local : server;
                 }).filter(Boolean);
                 if (activeBeforeSync && conversations.some(item => item.id === activeBeforeSync)) activeId = activeBeforeSync;
-                else activeId = conversations
-                    .filter(hasConversationMessages)
-                    .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))[0]?.id || '';
+                else activeId = sortConversationsList(conversations.filter(hasConversationMessages))[0]?.id || '';
                 saveConversations();
                 if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
                 // Mientras ORION genera, el mensaje de espera existe solo en
@@ -412,12 +524,79 @@
         return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
     }
 
+    function renameConversation(id, row) {
+        const conversation = conversations.find((item) => item.id === id);
+        const titleNode = row?.querySelector('.vai-history-copy strong');
+        if (!conversation || !titleNode || row.querySelector('.vai-history-edit')) return;
+        const editor = document.createElement('input');
+        editor.type = 'text';
+        editor.className = 'vai-history-edit';
+        editor.maxLength = 80;
+        editor.value = conversation.title || '';
+        editor.setAttribute('aria-label', 'Nuevo título de conversación');
+        titleNode.hidden = true;
+        titleNode.after(editor);
+        let settled = false;
+        const finish = (commit) => {
+            if (settled) return;
+            settled = true;
+            const nextTitle = editor.value.trim();
+            editor.remove();
+            titleNode.hidden = false;
+            if (commit && nextTitle && nextTitle !== conversation.title) {
+                conversation.title = nextTitle.slice(0, 80);
+                persistConversation(conversation);
+            }
+            renderHistory();
+        };
+        editor.addEventListener('click', (event) => event.stopPropagation());
+        editor.addEventListener('keydown', (event) => {
+            event.stopPropagation();
+            if (event.key === 'Enter') { event.preventDefault(); finish(true); }
+            else if (event.key === 'Escape') { event.preventDefault(); finish(false); }
+        });
+        editor.addEventListener('blur', () => finish(true));
+        editor.focus();
+        editor.select();
+    }
+
+    function createHistoryRow(conversation) {
+        const pinned = isConversationPinned(conversation.id);
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'vai-history-item' + (conversation.id === activeId ? ' active' : '') + (pinned ? ' is-pinned' : '');
+        row.dataset.id = conversation.id;
+        row.title = `${conversation.title} · ${formatDate(conversation.updatedAt)}`;
+        row.innerHTML = `<span class="vai-history-icon"><i class="far fa-message"></i></span><span class="vai-history-copy"><strong>${escapeHtml(conversation.title)}</strong><small>${escapeHtml(formatDate(conversation.updatedAt))}</small></span><span class="vai-history-actions"><span class="vai-history-pin${pinned ? ' is-pinned' : ''}" role="button" tabindex="0" aria-label="${pinned ? 'Desfijar conversación' : 'Fijar conversación'}" aria-pressed="${pinned ? 'true' : 'false'}" title="${pinned ? 'Desfijar' : 'Fijar'}"><i class="fas fa-thumbtack"></i></span><span class="vai-history-rename" role="button" aria-label="Renombrar conversación" title="Renombrar"><i class="fas fa-pen"></i></span><span class="vai-history-remove" role="button" aria-label="Eliminar conversación" title="Eliminar"><i class="fas fa-xmark"></i></span></span>`;
+        row.addEventListener('click', (event) => {
+            if (event.target.closest('.vai-history-remove')) { event.stopPropagation(); deleteConversation(conversation.id); return; }
+            if (event.target.closest('.vai-history-rename')) { event.stopPropagation(); renameConversation(conversation.id, row); return; }
+            if (event.target.closest('.vai-history-pin')) { event.stopPropagation(); toggleConversationPin(conversation.id); return; }
+            activeId = conversation.id;
+            localStorage.setItem(ACTIVE_KEY, activeId);
+            renderConversation();
+            renderHistory();
+            closeSidebar();
+        });
+        row.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const pinButton = event.target.closest('.vai-history-pin');
+            if (!pinButton) return;
+            event.preventDefault();
+            event.stopPropagation();
+            toggleConversationPin(conversation.id);
+        });
+        return row;
+    }
+
     function renderHistory() {
         const query = els.historySearch.value.trim().toLowerCase();
+        if (els.historySearchClear) els.historySearchClear.hidden = !els.historySearch.value.length;
+        syncExportChatAvailability();
         // "Nueva conversación" es un borrador de composición, no parte del
         // historial. Solo se vuelve un hilo al enviar el primer mensaje.
-        const visible = conversations.filter((item) => hasConversationMessages(item))
-            .filter((item) => !query || item.title.toLowerCase().includes(query) || item.messages.some((message) => String(message.text || '').toLowerCase().includes(query)));
+        const visible = sortConversationsList(conversations.filter((item) => hasConversationMessages(item))
+            .filter((item) => !query || item.title.toLowerCase().includes(query) || item.messages.some((message) => String(message.text || '').toLowerCase().includes(query))));
         els.historyCount.textContent = String(visible.length);
         els.history.replaceChildren();
         if (!visible.length) {
@@ -427,23 +606,24 @@
             els.history.appendChild(empty);
             return;
         }
-        visible.forEach((conversation) => {
-            const row = document.createElement('button');
-            row.type = 'button';
-            row.className = 'vai-history-item' + (conversation.id === activeId ? ' active' : '');
-            row.dataset.id = conversation.id;
-            row.title = conversation.title;
-            row.innerHTML = `<span class="vai-history-icon"><i class="far fa-message"></i></span><span class="vai-history-copy"><strong>${escapeHtml(conversation.title)}</strong><small>${escapeHtml(formatDate(conversation.updatedAt))}</small></span><span class="vai-history-remove" role="button" aria-label="Eliminar conversación" title="Eliminar conversación"><i class="fas fa-xmark"></i></span>`;
-            row.addEventListener('click', (event) => {
-                if (event.target.closest('.vai-history-remove')) { event.stopPropagation(); deleteConversation(conversation.id); return; }
-                activeId = conversation.id;
-                localStorage.setItem(ACTIVE_KEY, activeId);
-                renderConversation();
-                renderHistory();
-                closeSidebar();
-            });
-            els.history.appendChild(row);
-        });
+        const pinnedVisible = visible.filter((item) => isConversationPinned(item.id));
+        const unpinnedVisible = visible.filter((item) => !isConversationPinned(item.id));
+        const appendGroup = (items, label) => {
+            if (!items.length) return;
+            if (label) {
+                const heading = document.createElement('div');
+                heading.className = 'vai-history-group-label';
+                heading.textContent = label;
+                els.history.appendChild(heading);
+            }
+            items.forEach((conversation) => els.history.appendChild(createHistoryRow(conversation)));
+        };
+        if (pinnedVisible.length) {
+            appendGroup(pinnedVisible, 'Fijados');
+            appendGroup(unpinnedVisible, unpinnedVisible.length ? 'Recientes' : '');
+        } else {
+            appendGroup(unpinnedVisible, '');
+        }
     }
 
     function deleteConversation(id) {
@@ -453,6 +633,7 @@
         // borrado no vuelva a mostrar el hilo mientras la petición termina.
         deletedConversationIds.add(conversationId);
         saveDeletedConversationIds();
+        if (pinnedConversationIds.delete(conversationId)) savePinnedConversationIds();
         conversations = conversations.filter((item) => item.id !== conversationId);
         saveConversations();
         // El borrado se encola después de cualquier guardado ya iniciado para
@@ -470,6 +651,8 @@
 
     function startNewConversation() {
         if (busy) return;
+        closeSlashMenu();
+        closeExportMenu();
         activeId = newId();
         const conversation = { id: activeId, title: 'Nueva conversación', messages: [], updatedAt: Date.now() };
         conversations.unshift(conversation);
@@ -492,7 +675,8 @@
         let text = escapeHtml(normalized);
         const codeBlocks = [];
         text = text.replace(/```([\w+-]*)\n([\s\S]*?)```/g, (_, language, code) => {
-            const index = codeBlocks.push(`<pre><code data-language="${escapeHtml(language || 'text')}">${code}</code></pre>`) - 1;
+            const langLabel = escapeHtml(language || 'código');
+            const index = codeBlocks.push(`<div class="vai-code-block"><div class="vai-code-head"><span class="vai-code-lang">${langLabel}</span><button type="button" class="vai-code-copy"><i class="far fa-copy"></i><span>Copiar código</span></button></div><pre><code data-language="${escapeHtml(language || 'text')}">${code}</code></pre></div>`) - 1;
             return `\n@@VAI_CODE_${index}@@\n`;
         });
         const links = [];
@@ -527,7 +711,7 @@
                     rows.push(cells(lines[index])); index += 1;
                 }
                 index -= 1;
-                html += `<div class="vai-table-scroll" style="overflow-x:auto"><table class="vai-data-table"><thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+                html += `<div class="vai-table-box"><div class="vai-table-toolbar"><span>Tabla comparativa</span><button type="button" class="vai-table-copy"><i class="far fa-copy"></i><span>Copiar tabla</span></button></div><div class="vai-table-scroll" style="overflow-x:auto"><table class="vai-data-table"><thead><tr>${headers.map((cell) => `<th>${cell}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
                 continue;
             }
             const bullet = line.match(/^\s*[-•]\s+(.+)/);
@@ -585,13 +769,16 @@
             } else if (block.type === 'code') {
                 node = document.createElement('pre'); const code = document.createElement('code'); code.textContent = block.content; node.appendChild(code);
             } else if (block.type === 'table') {
-                node = document.createElement('div'); node.className = 'vai-table-scroll'; node.style.overflowX = 'auto';
+                node = document.createElement('div'); node.className = 'vai-table-box';
+                const toolbar = document.createElement('div'); toolbar.className = 'vai-table-toolbar';
+                toolbar.innerHTML = '<span>Tabla comparativa</span><button type="button" class="vai-table-copy"><i class="far fa-copy"></i><span>Copiar tabla</span></button>';
+                const scrollWrap = document.createElement('div'); scrollWrap.className = 'vai-table-scroll'; scrollWrap.style.overflowX = 'auto';
                 const table = document.createElement('table');
                 table.className = 'vai-data-table';
                 const head = document.createElement('tr'); (block.headers || []).forEach((value) => { const th = document.createElement('th'); th.textContent = value; head.appendChild(th); });
                 const thead = document.createElement('thead'); thead.appendChild(head); table.appendChild(thead);
                 const tbody = document.createElement('tbody'); (Array.isArray(block.rows) ? block.rows : []).forEach((row) => { if (!Array.isArray(row)) return; const tr = document.createElement('tr'); row.forEach((value) => { const td = document.createElement('td'); td.innerHTML = inlineMarkdown(value); tr.appendChild(td); }); tbody.appendChild(tr); });
-                table.appendChild(tbody); node.appendChild(table);
+                table.appendChild(tbody); scrollWrap.appendChild(table); node.append(toolbar, scrollWrap);
             } else if (block.type === 'alert') {
                 const severity = ['warning', 'error', 'success'].includes(block.severity) ? block.severity : 'info';
                 const icon = severity === 'error' ? 'fa-circle-exclamation' : severity === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-info';
@@ -708,6 +895,7 @@
         const datasets = sourceDatasets.slice(0, 8).map((dataset, index) => ({
             label: String(dataset?.label || `Serie ${index + 1}`).slice(0, 80),
             type: allowed.has(dataset?.type) ? dataset.type : undefined,
+            ...(Array.isArray(dataset?.borderDash) ? { borderDash: dataset.borderDash.slice(0, 4).map(Number).filter(n => Number.isFinite(n) && n > 0 && n <= 20) } : {}),
             data: Array.isArray(dataset?.data) ? dataset.data.slice(0, labels.length || 36).map(parseNumber) : [],
         })).filter((dataset) => dataset.data.filter(value => value != null).length >= 2);
         const explicitView = views.has(source.view) ? source.view : null;
@@ -826,23 +1014,30 @@
             setFaceState(avatar, options.thinking ? 'thinking' : 'idle');
         }
         const bubble = document.createElement('div'); bubble.className = 'vai-bubble';
-        if (options.thinking) bubble.innerHTML = '<span class="vai-thinking"><span class="vai-thinking-orbit" aria-hidden="true"><i></i><i></i><i></i></span><span class="vai-thinking-copy"><strong data-vai-thinking-title>Entendiendo tu pregunta</strong><small data-vai-thinking-detail>Identifico tema, país, periodo y objetivo.</small></span></span>';
+        if (options.thinking) bubble.innerHTML = '<span class="vai-thinking"><span class="vai-thinking-orbit" aria-hidden="true"><i></i><i></i><i></i></span><span class="vai-thinking-copy"><strong data-vai-thinking-title>Entendiendo tu pregunta</strong><small data-vai-thinking-detail>Identifico tema, país, periodo y objetivo.</small><span class="vai-thinking-tools" data-vai-thinking-tools hidden></span></span></span>';
         else renderRich(bubble, message.rich, message.text || '');
         decorateMessage(bubble, message, options);
         if (!options.thinking && Array.isArray(message.attachments) && message.attachments.length) {
             const files = document.createElement('div'); files.className = 'vai-message-files';
             message.attachments.forEach((file) => {
                 const chip = document.createElement('span');
-                const icon = String(file.type).startsWith('image/') ? 'fa-image' : file.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-lines';
+                const lowerName = String(file.name || '').toLowerCase();
+                const icon = String(file.type).startsWith('image/') ? 'fa-image'
+                    : file.type === 'application/pdf' ? 'fa-file-pdf'
+                    : lowerName.endsWith('.xlsx') ? 'fa-file-excel'
+                    : (file.type === 'text/csv' || /\.(?:csv|tsv)$/i.test(lowerName)) ? 'fa-table'
+                    : (file.type === 'application/json' || lowerName.endsWith('.json')) ? 'fa-file-code'
+                    : 'fa-file-lines';
                 chip.innerHTML = `<i class="fas ${icon}"></i>${escapeHtml(file.name)}`;
                 files.appendChild(chip);
             });
             bubble.appendChild(files);
         }
         if (!options.thinking && message.role !== 'user' && message.text) {
+            attachContentCopyActions(bubble);
+            attachReportActions(bubble, message);
             if (shouldShowAssistantControls(message)) {
                 attachFollowUpActions(bubble, message);
-                attachReportActions(bubble, message);
                 enhanceAssistantResponse(bubble, message);
             }
             if (message.pdfPreview?.downloadUrl) presentPdfDocument(message, bubble, message.pdfPreview);
@@ -852,18 +1047,51 @@
         return { row, bubble, avatar };
     }
 
+    function attachContentCopyActions(bubble) {
+        if (!bubble) return;
+        bubble.querySelectorAll('.vai-code-copy').forEach((btn) => {
+            if (btn.dataset.boundCopy) return;
+            btn.dataset.boundCopy = '1';
+            btn.addEventListener('click', async () => {
+                const codeText = btn.closest('.vai-code-block')?.querySelector('pre code')?.textContent || '';
+                if (!codeText) return;
+                try {
+                    await navigator.clipboard.writeText(codeText);
+                    btn.innerHTML = '<i class="fas fa-check"></i><span>Copiado</span>';
+                    setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i><span>Copiar código</span>'; }, 1600);
+                } catch { window.prompt('Copia el código:', codeText); }
+            });
+        });
+        bubble.querySelectorAll('.vai-table-copy').forEach((btn) => {
+            if (btn.dataset.boundCopy) return;
+            btn.dataset.boundCopy = '1';
+            btn.addEventListener('click', async () => {
+                const table = btn.closest('.vai-table-box')?.querySelector('table');
+                if (!table) return;
+                const tsv = Array.from(table.querySelectorAll('tr'))
+                    .map(tr => Array.from(tr.children).map(cell => cell.textContent.replace(/\s+/g, ' ').trim()).join('\t'))
+                    .join('\n');
+                try {
+                    await navigator.clipboard.writeText(tsv);
+                    btn.innerHTML = '<i class="fas fa-check"></i><span>Copiada</span>';
+                    setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i><span>Copiar tabla</span>'; }, 1600);
+                } catch { window.prompt('Copia la tabla:', tsv); }
+            });
+        });
+    }
+
     function decorateMessage(bubble, message, options = {}) {
-        const modelNames = { nebula: 'Nebula', cirius: 'Cirius', pulsar: 'ORION Pulsar' };
-        if (message.role === 'model' && modelNames[message.modelProfile] && !bubble.querySelector(':scope > .vai-selected-model')) {
-            const modelLabel = document.createElement('small');
-            modelLabel.className = 'vai-selected-model';
-            modelLabel.textContent = `Modelo solicitado: ${modelNames[message.modelProfile]}${message.modelFallback ? ' · Se utilizó un modelo de respaldo' : ''}`;
-            bubble.prepend(modelLabel);
-        }
+        bubble.querySelector(':scope > .vai-selected-model')?.remove();
         if (bubble.querySelector(':scope > .vai-message-meta')) return;
         const meta = document.createElement('div'); meta.className = 'vai-message-meta';
         const label = message.role === 'user' ? 'Tú' : 'ORION';
         const time = new Date(message.ts || Date.now()).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+        const modelNames = { nebula: 'Nebula', cirius: 'Cirius', pulsar: 'Pulsar' };
+        const modelLabel = message.role === 'model' && modelNames[message.modelProfile]
+            ? `<span class="vai-model-pill${message.modelFallback ? ' is-fallback' : ''}" title="${message.modelFallback ? 'Se utilizó respaldo automático para completar dentro del plazo' : 'Modelo activo en este turno'}">${escapeHtml(modelNames[message.modelProfile])}${message.modelFallback ? ' · respaldo' : ''}</span>`
+            : '';
+        const words = message.role === 'model' ? String(message.text || '').trim().split(/\s+/).filter(Boolean).length : 0;
+        const readBadge = words >= 120 ? `<span class="vai-read-time"><i class="far fa-clock"></i>${Math.max(1, Math.ceil(words / 190))} min</span>` : '';
         const citations = Array.isArray(message.citations) ? message.citations : (Array.isArray(message.rich?.meta?.citations) ? message.rich.meta.citations : []);
         const evidenceCount = new Set(citations.map(item => {
             try { return new URL(item.url).hostname.replace(/^www\./, ''); }
@@ -873,7 +1101,7 @@
             ? `<span class="vai-evidence-chip" title="${escapeHtml(citations.slice(0, 3).map(item => item.source || item.title || '').filter(Boolean).join(' · ') || 'Evidencia consultada')}"><i class="fas fa-shield-halved"></i>${evidenceCount} ${evidenceCount === 1 ? 'fuente' : 'fuentes'}</span>`
             : '';
         const edited = message.role === 'user' && message.editedAt ? ' <em>editado</em>' : '';
-        meta.innerHTML = `<span><i class="fas ${message.role === 'user' ? 'fa-user' : 'fa-wand-magic-sparkles'}"></i>${label}</span><small>${options.thinking ? 'Preparando análisis' : time}${edited}</small>${evidence}`;
+        meta.innerHTML = `<span class="vai-meta-sender"><i class="fas ${message.role === 'user' ? 'fa-user' : 'fa-wand-magic-sparkles'}"></i>${label}${modelLabel}</span><span class="vai-meta-right">${readBadge}<small>${options.thinking ? 'Preparando análisis' : time}${edited}</small>${evidence}</span>`;
         bubble.prepend(meta);
     }
 
@@ -978,6 +1206,27 @@
         await sendMessage(revisedText, { userMessage: editedMessage });
     }
 
+    async function regenerateAssistantMessage(assistantMessage) {
+        if (busy) return;
+        const conversation = activeConversation();
+        if (!conversation) return;
+        const index = conversation.messages.findIndex(item => item === assistantMessage || (item.id && item.id === assistantMessage.id));
+        if (index < 0) return;
+        let userIndex = index - 1;
+        while (userIndex >= 0 && conversation.messages[userIndex]?.role !== 'user') userIndex -= 1;
+        if (userIndex < 0) return;
+        const sourceUser = conversation.messages[userIndex];
+        const replayUser = ensureMessageIdentity({
+            ...sourceUser,
+            role: 'user',
+            ts: Date.now(),
+            revision: Number(sourceUser.revision || 0) + 1,
+        });
+        conversation.messages = conversation.messages.slice(0, userIndex);
+        renderConversation();
+        await sendMessage(replayUser.text, { userMessage: replayUser });
+    }
+
     async function handleFeedback(queryId, type, button, prefilledCorrection = null) {
         if (!queryId) return;
         let payload = { queryId };
@@ -1012,7 +1261,7 @@
         // informe con barras de acciones. Reservamos la interfaz analítica
         // para respuestas que realmente tienen información para profundizar.
         if (/^(?:local_conversation|live_fx_reference|fast_start|vall-domain-guard)/.test(strategy)) return false;
-        if (message.rich?.meta?.followUps?.length && /^(forecast|news|comparison|price)$/.test(message.rich?.meta?.answerStrategy?.intent || '')) return true;
+        if (message.rich?.meta?.followUps?.length && /^(forecast|news|comparison|price|coverage|inventory|decision|analysis)$/.test(message.rich?.meta?.answerStrategy?.intent || '')) return true;
         const words = String(message.text || '').trim().split(/\s+/).filter(Boolean).length;
         const blocks = Array.isArray(message.rich?.blocks) ? message.rich.blocks : [];
         return words >= 45 || blocks.some(block => ['chart', 'table', 'document', 'diagram'].includes(block?.type));
@@ -1098,7 +1347,16 @@
             covWrap.appendChild(chips);
             const note = document.createElement('p');
             note.className = 'vai-evidence-coverage';
-            note.textContent = 'Cobertura informativa: los enlaces muestran las fuentes consultadas y sus cortes de fecha.';
+            const summaryParts = [];
+            if (period) {
+                summaryParts.push(`Periodo revisado: ${String(period.start).slice(0, 10)} → ${String(period.end).slice(0, 10)} (${Number(coverage.inPeriod) || 0} dentro del periodo; ${Number(coverage.outsidePeriod) || 0} antecedentes)`);
+            }
+            if (Number(coverage.undated) > 0) {
+                summaryParts.push(`${Number(coverage.undated)} sin fecha`);
+            }
+            note.textContent = summaryParts.length
+                ? `${summaryParts.join(' · ')}. ${coverage.notice || 'Cobertura informativa: los enlaces muestran las fuentes consultadas y sus cortes de fecha.'}`
+                : (coverage.notice || 'Cobertura informativa: los enlaces muestran las fuentes consultadas y sus cortes de fecha.');
             covWrap.appendChild(note);
             panel.appendChild(covWrap);
         }
@@ -1156,14 +1414,6 @@
         content.className = 'vai-answer-content';
         contentNodes.forEach(node => content.appendChild(node));
 
-        const words = String(message.text || '').trim().split(/\s+/).filter(Boolean).length;
-        const minutes = Math.max(1, Math.ceil(words / 190));
-        const presentation = responsePresentation(message);
-        const overview = document.createElement('div');
-        overview.className = 'vai-answer-overview';
-        overview.innerHTML = `<span><i class="fas ${presentation.icon}"></i>${presentation.label}</span><small><i class="far fa-clock"></i>${minutes} min de lectura</small>`;
-        content.prepend(overview);
-
         const metaObj = message.rich?.meta || {};
         const validations = [];
         const citationsArr = Array.isArray(message.citations) ? message.citations : (Array.isArray(metaObj.citations) ? metaObj.citations : []);
@@ -1174,6 +1424,7 @@
         if (Array.isArray(metaObj.warnings) && metaObj.warnings.length) {
             validations.push({ tone: 'warn', icon: 'fa-triangle-exclamation', text: metaObj.warnings[0] });
         }
+        let stripAnchor = null;
         if (validations.length) {
             const strip = document.createElement('div');
             strip.className = 'vai-validation-strip';
@@ -1181,7 +1432,8 @@
             strip.innerHTML = validations
                 .map(v => `<span class="vai-val-pill is-${v.tone}"><i class="fas ${v.icon}" aria-hidden="true"></i>${escapeHtml(v.text)}</span>`)
                 .join('');
-            overview.after(strip);
+            content.prepend(strip);
+            stripAnchor = strip;
         }
 
         const lead = Array.from(content.querySelectorAll('p')).find(node => !node.closest('.vai-rich-summary') && node.textContent.trim().length > 35);
@@ -1203,8 +1455,8 @@
                 button.addEventListener('click', () => heading.scrollIntoView({ behavior: 'smooth', block: 'center' }));
                 nav.appendChild(button);
             });
-            const anchor = content.querySelector('.vai-validation-strip') || overview;
-            anchor.after(nav);
+            if (stripAnchor) stripAnchor.after(nav);
+            else content.prepend(nav);
         }
 
         const meta = bubble.querySelector(':scope > .vai-message-meta');
@@ -1222,33 +1474,35 @@
     }
 
     function attachReportActions(bubble, message) {
-        if (!shouldShowAssistantControls(message)) return;
+        if (!message?.text) return;
         if (bubble.querySelector('.vai-response-actions')) return;
+        const includeExports = shouldShowAssistantControls(message);
         const actions = document.createElement('div'); actions.className = 'vai-response-actions';
-        let html = '<span class="vai-actions-label">Usar respuesta</span><button type="button" data-copy-answer title="Copiar respuesta" aria-label="Copiar respuesta"><i class="far fa-copy"></i><span>Copiar</span></button><button type="button" data-edit-report title="Crear reporte" aria-label="Crear reporte a partir de esta respuesta"><i class="fas fa-file-pen"></i><span>Crear reporte</span></button><button type="button" data-quick-pdf title="Preparar PDF descargable" aria-label="Preparar PDF descargable"><i class="fas fa-file-pdf"></i><span>PDF</span></button><button type="button" data-quick-word title="Exportar a Word" aria-label="Exportar respuesta a Word"><i class="fas fa-file-word"></i><span>Word</span></button>';
-        
-        if (message.queryId) {
-            html += `<span class="vai-feedback-group" style="margin-left:auto; display:flex; gap:0.25rem;">
-                <button type="button" data-speak title="Leer en voz alta"><i class="fas fa-volume-up"></i></button>
-                <button type="button" data-feedback="up" title="Útil"><i class="fas fa-thumbs-up"></i></button>
-                <button type="button" data-feedback="down" title="No útil"><i class="fas fa-thumbs-down"></i></button>
-                <button type="button" data-feedback="correct" title="Enseñar/Corregir" class="vai-btn-correct"><i class="fas fa-pen-to-square"></i> Corregir</button>
-            </span>`;
+        let html = '<span class="vai-actions-label">Acciones</span><button type="button" class="vai-action-pill" data-copy-answer title="Copiar respuesta" aria-label="Copiar respuesta"><i class="far fa-copy"></i><span>Copiar</span></button><button type="button" class="vai-action-pill" data-regenerate-answer title="Regenerar esta respuesta" aria-label="Regenerar esta respuesta"><i class="fas fa-rotate-right"></i><span>Regenerar</span></button>';
+        if (includeExports) {
+            html += '<button type="button" data-edit-report title="Abrir en Editor de reportes" aria-label="Crear reporte a partir de esta respuesta"><i class="fas fa-file-pen"></i><span>Crear reporte</span></button><button type="button" data-quick-pdf title="Preparar PDF descargable" aria-label="Preparar PDF descargable"><i class="fas fa-file-pdf"></i><span>PDF</span></button><button type="button" data-quick-word title="Exportar a Word" aria-label="Exportar respuesta a Word"><i class="fas fa-file-word"></i><span>Word</span></button>';
         }
-        
+        html += `<span class="vai-feedback-group" style="margin-left:auto; display:flex; gap:0.25rem;">
+            <button type="button" data-speak title="Leer en voz alta" aria-label="Leer en voz alta"><i class="fas fa-volume-up"></i></button>
+            ${message.queryId ? '<button type="button" data-feedback="up" title="Útil" aria-label="Marcar respuesta útil"><i class="fas fa-thumbs-up"></i></button><button type="button" data-feedback="down" title="No útil" aria-label="Marcar respuesta mejorable"><i class="fas fa-thumbs-down"></i></button><button type="button" data-feedback="correct" title="Enseñar/Corregir" aria-label="Corregir respuesta" class="vai-btn-correct"><i class="fas fa-pen-to-square"></i><span>Corregir</span></button>' : ''}
+        </span>`;
+
         actions.innerHTML = html;
-        actions.querySelector('[data-copy-answer]').addEventListener('click', async (event) => {
+        actions.querySelector('[data-copy-answer]')?.addEventListener('click', async (event) => {
             const button = event.currentTarget;
             try {
                 await navigator.clipboard.writeText(String(message.text || ''));
-                button.innerHTML = '<i class="fas fa-check"></i> Copiado';
-                setTimeout(() => { button.innerHTML = '<i class="far fa-copy"></i> Copiar'; }, 1600);
+                button.innerHTML = '<i class="fas fa-check"></i><span>Copiado</span>';
+                setTimeout(() => { button.innerHTML = '<i class="far fa-copy"></i><span>Copiar</span>'; }, 1600);
             } catch {
                 window.prompt('Copia la respuesta:', String(message.text || ''));
             }
         });
-        actions.querySelector('[data-edit-report]').addEventListener('click', () => openReportStudio(message));
-        actions.querySelector('[data-quick-pdf]').addEventListener('click', async (event) => {
+        actions.querySelector('[data-regenerate-answer]')?.addEventListener('click', () => {
+            if (!busy) void regenerateAssistantMessage(message);
+        });
+        actions.querySelector('[data-edit-report]')?.addEventListener('click', () => openReportStudio(message));
+        actions.querySelector('[data-quick-pdf]')?.addEventListener('click', async (event) => {
             const btn = event.currentTarget;
             try {
                 btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Preparando PDF</span>';
@@ -1261,60 +1515,61 @@
                 btn.title = error.message || 'No se pudo preparar el PDF. Intenta de nuevo.';
             } finally { btn.disabled = false; }
         });
-        actions.querySelector('[data-quick-word]').addEventListener('click', async (event) => {
+        actions.querySelector('[data-quick-word]')?.addEventListener('click', async (event) => {
             const btn = event.currentTarget; btn.disabled = true;
             try {
                 const report = reportContextFor(message);
                 await requestServerExport(report.title, report.content, 'docx', bubble);
             } finally { btn.disabled = false; }
         });
-        
-        if (message.queryId) {
-            const speakBtn = actions.querySelector('[data-speak]');
-            speakBtn?.addEventListener('click', () => {
-                const replyFace = bubble.closest('.vai-message')?.querySelector('.vai-assistant-face');
-                if (window.speechSynthesis.speaking) {
-                    window.speechSynthesis.cancel();
+
+        const speakBtn = actions.querySelector('[data-speak]');
+        speakBtn?.addEventListener('click', () => {
+            const replyFace = bubble.closest('.vai-message')?.querySelector('.vai-assistant-face');
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                setFaceState(replyFace, 'idle');
+                setConversationFaceState('idle');
+            } else {
+                const utterance = new SpeechSynthesisUtterance(message.text.replace(/[#*`_]/g, ''));
+                utterance.lang = 'es-MX';
+                utterance.rate = .97;
+                utterance.pitch = 1.02;
+                const spanishVoices = window.speechSynthesis.getVoices().filter(voice => /^es(?:-|_)/i.test(voice.lang));
+                utterance.voice = spanishVoices.find(voice => /natural|online|google|microsoft/i.test(voice.name)) || spanishVoices[0] || null;
+                utterance.onstart = () => {
+                    setFaceState(replyFace, 'speaking');
+                    setConversationFaceState('speaking');
+                    setFaceExpression(replyFace, expressionForText(message.text));
+                    setFaceExpression(els.conversationFace, expressionForText(message.text));
+                };
+                utterance.onboundary = (event) => {
+                    cueFaceBoundary(replyFace, message.text, event);
+                    cueFaceBoundary(els.conversationFace, message.text, event);
+                };
+                utterance.onend = () => {
                     speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
                     setFaceState(replyFace, 'idle');
                     setConversationFaceState('idle');
-                } else {
-                    const utterance = new SpeechSynthesisUtterance(message.text.replace(/[#*`_]/g, ''));
-                    utterance.lang = 'es-MX';
-                    utterance.rate = .97;
-                    utterance.pitch = 1.02;
-                    const spanishVoices = window.speechSynthesis.getVoices().filter(voice => /^es(?:-|_)/i.test(voice.lang));
-                    utterance.voice = spanishVoices.find(voice => /natural|online|google|microsoft/i.test(voice.name)) || spanishVoices[0] || null;
-                    utterance.onstart = () => {
-                        setFaceState(replyFace, 'speaking');
-                        setConversationFaceState('speaking');
-                        setFaceExpression(replyFace, expressionForText(message.text));
-                        setFaceExpression(els.conversationFace, expressionForText(message.text));
-                    };
-                    utterance.onboundary = (event) => {
-                        cueFaceBoundary(replyFace, message.text, event);
-                        cueFaceBoundary(els.conversationFace, message.text, event);
-                    };
-                    utterance.onend = () => {
-                        speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                        setFaceState(replyFace, 'idle');
-                        setConversationFaceState('idle');
-                        if (continuousVoiceMode && autoListenCallback) setTimeout(autoListenCallback, 200);
-                    };
-                    utterance.onerror = () => {
-                        speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                        setFaceState(replyFace, 'idle');
-                        setConversationFaceState('idle');
-                    };
-                    speakBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
-                    window.speechSynthesis.speak(utterance);
-                }
-            });
+                    if (continuousVoiceMode && autoListenCallback) setTimeout(autoListenCallback, 200);
+                };
+                utterance.onerror = () => {
+                    speakBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    setFaceState(replyFace, 'idle');
+                    setConversationFaceState('idle');
+                };
+                speakBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                window.speechSynthesis.speak(utterance);
+            }
+        });
+
+        if (message.queryId) {
             actions.querySelectorAll('[data-feedback]').forEach(btn => {
                 btn.addEventListener('click', (e) => handleFeedback(message.queryId, e.currentTarget.dataset.feedback, e.currentTarget));
             });
         }
-        
+
         bubble.appendChild(actions);
     }
 
@@ -1505,11 +1760,13 @@
             requestAnimationFrame(() => {
                 if (latestAssistantRow) scrollMessageToStart(latestAssistantRow);
                 else els.messages.scrollTop = els.messages.scrollHeight;
+                updateScrollBottomButton();
             });
         }
         // La respuesta más reciente abre por su inicio. Así una respuesta larga
         // nunca aparece cortada por la mitad ni obliga a buscar dónde comenzó.
-        if (!messages.length) requestAnimationFrame(() => { els.messages.scrollTop = 0; });
+        if (!messages.length) requestAnimationFrame(() => { els.messages.scrollTop = 0; updateScrollBottomButton(); });
+        syncExportChatAvailability();
     }
 
     function setBusy(value) {
@@ -1518,7 +1775,8 @@
         if (modelSelect) modelSelect.disabled = value;
         const modelTrigger = $('vaiModelTrigger');
         if (modelTrigger) modelTrigger.disabled = value;
-        els.messages?.querySelectorAll('.vai-followup-action').forEach(button => { button.disabled = value; });
+        els.messages?.querySelectorAll('.vai-followup-action, [data-regenerate-answer], .vai-inline-retry').forEach(button => { button.disabled = value; });
+        syncExportChatAvailability();
         setConversationFaceState(value ? 'thinking' : (els.input.value.trim() ? 'listening' : 'idle'));
     }
 
@@ -1624,7 +1882,11 @@
                 const payloadText = event.split('\n').filter((item) => item.startsWith('data:')).map((item) => item.slice(5).trim()).join('\n');
                 if (!payloadText) continue;
                 let data; try { data = JSON.parse(payloadText); } catch { continue; }
-                if (data.status) onStatus?.(data.status);
+                if (data.status) onStatus?.(data.status, {
+                    detail: data.detail || '',
+                    tools: Array.isArray(data.tools) ? data.tools : [],
+                    completedTools: Array.isArray(data.completedTools) ? data.completedTools : [],
+                });
                 if (data.error) {
                     if (full) {
                         console.warn('ORION: cierre de streaming con texto recibido.', data.error);
@@ -1697,10 +1959,19 @@
         return changed;
     }
 
+    const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
     function normalizedFileType(file) {
-        if (file.type) return file.type.toLowerCase().split(';')[0].trim();
-        const extension = String(file.name).split('.').pop().toLowerCase();
-        return ({ txt: 'text/plain', csv: 'text/csv', md: 'text/markdown', json: 'application/json', pdf: 'application/pdf' })[extension] || '';
+        const extension = String(file?.name || '').split('.').pop().toLowerCase();
+        const raw = String(file?.type || '').toLowerCase().split(';')[0].trim();
+        if (extension === 'csv' || extension === 'tsv') return 'text/csv';
+        if (extension === 'xlsx') return XLSX_MIME;
+        if (extension === 'md' || extension === 'markdown') return 'text/markdown';
+        if (extension === 'json') return 'application/json';
+        if (extension === 'txt') return 'text/plain';
+        if (extension === 'pdf') return 'application/pdf';
+        if (raw && raw !== 'application/vnd.ms-excel' && raw !== 'text/tab-separated-values') return raw;
+        return '';
     }
 
     function fileToDataUrl(file) {
@@ -1712,33 +1983,481 @@
         });
     }
 
+    function splitDelimitedLine(line, delimiter = ',') {
+        const cells = [];
+        let current = '';
+        let inQuotes = false;
+        const raw = String(line || '');
+        for (let i = 0; i < raw.length; i++) {
+            const ch = raw[i];
+            if (inQuotes) {
+                if (ch === '"' && raw[i + 1] === '"') { current += '"'; i += 1; }
+                else if (ch === '"') inQuotes = false;
+                else current += ch;
+            } else if (ch === '"') {
+                inQuotes = true;
+            } else if (ch === delimiter) {
+                cells.push(current.trim());
+                current = '';
+            } else {
+                current += ch;
+            }
+        }
+        cells.push(current.trim());
+        return cells;
+    }
+
+    function detectCsvDelimiter(sampleText, isTsv = false) {
+        if (isTsv) return '\t';
+        const firstLine = String(sampleText || '').split(/\r?\n/).find((line) => line.trim()) || '';
+        const countChar = (target) => {
+            let count = 0; let quoted = false;
+            for (const ch of firstLine) {
+                if (ch === '"') quoted = !quoted;
+                else if (!quoted && ch === target) count += 1;
+            }
+            return count;
+        };
+        const tabs = countChar('\t');
+        const semis = countChar(';');
+        const commas = countChar(',');
+        if (tabs > commas && tabs > semis) return '\t';
+        if (semis > commas) return ';';
+        return ',';
+    }
+
+    function parseAttachmentNumber(raw) {
+        const str = String(raw ?? '').trim();
+        if (!str || /^\d{4}-\d{2}-\d{2}/.test(str) || /^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(str)) return null;
+        const isPercent = str.includes('%');
+        let clean = str.replace(/[%\s$€£]/g, '').replace(/\b(?:mxn|usd|eur|brl|cad)\b/gi, '').trim();
+        if (!clean || !/^[+-]?[\d.,]+$/.test(clean)) return null;
+        const comma = clean.lastIndexOf(','), dot = clean.lastIndexOf('.');
+        if (comma >= 0 && dot >= 0) clean = comma > dot ? clean.replace(/\./g, '').replace(',', '.') : clean.replace(/,/g, '');
+        else if (comma >= 0) clean = clean.length - comma - 1 <= 2 ? clean.replace(',', '.') : clean.replace(/,/g, '');
+        const num = Number(clean);
+        return Number.isFinite(num) ? { value: num, isPercent } : null;
+    }
+
+    function uniformSampleIndices(length, maxPoints = 36) {
+        if (length <= maxPoints) return Array.from({ length }, (_, idx) => idx);
+        const step = (length - 1) / (maxPoints - 1);
+        return Array.from({ length: maxPoints }, (_, idx) => Math.round(idx * step));
+    }
+
+    function formatStatNumber(value) {
+        if (!Number.isFinite(value)) return '—';
+        return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(value);
+    }
+
+    function analyzeTabularStats(headers, parsedRows) {
+        const sampleRows = (Array.isArray(parsedRows) ? parsedRows : []).slice(0, 300);
+        if (!headers?.length || sampleRows.length < 2) return [];
+        const colCount = Math.min(headers.length, 12);
+        const colAnalysis = Array.from({ length: colCount }, (_, colIndex) => {
+            let nonEmpty = 0;
+            const parsedEntries = [];
+            sampleRows.forEach((row, rowIdx) => {
+                const rawCell = row[colIndex];
+                if (rawCell == null || String(rawCell).trim() === '') return;
+                nonEmpty += 1;
+                const parsed = parseAttachmentNumber(rawCell);
+                if (parsed) parsedEntries.push({ rowIdx, ...parsed });
+            });
+            const isNumeric = parsedEntries.length >= 2 && nonEmpty > 0 && (parsedEntries.length / nonEmpty) >= 0.6;
+            return { colIndex, name: String(headers[colIndex] || `Columna ${colIndex + 1}`).trim(), parsedEntries, isNumeric };
+        });
+
+        const labelCol = colAnalysis.find((c) => !c.isNumeric)?.colIndex ?? -1;
+        return colAnalysis.filter((col) => col.isNumeric && col.colIndex !== labelCol).slice(0, 5).map((col) => {
+            const nums = col.parsedEntries.map((entry) => entry.value);
+            const sum = nums.reduce((acc, n) => acc + n, 0);
+            const min = Math.min(...nums);
+            const max = Math.max(...nums);
+            const avg = sum / nums.length;
+            const sampled = uniformSampleIndices(col.parsedEntries.length, 36);
+            const labels = sampled.map((idx) => {
+                const entry = col.parsedEntries[idx];
+                const rawLabel = labelCol >= 0 ? String(sampleRows[entry.rowIdx]?.[labelCol] || '').trim() : '';
+                return (rawLabel || `Fila ${entry.rowIdx + 1}`).slice(0, 40);
+            });
+            const values = sampled.map((idx) => col.parsedEntries[idx].value);
+            const pctCount = col.parsedEntries.filter((e) => e.isPercent).length;
+            return {
+                colIndex: col.colIndex,
+                name: col.name,
+                count: col.parsedEntries.length,
+                min,
+                max,
+                avg,
+                unit: pctCount > col.parsedEntries.length / 2 ? '%' : '',
+                labels,
+                values,
+            };
+        });
+    }
+
+    function parseDelimitedPreview(text, isTsv = false) {
+        const lines = String(text || '').split(/\r?\n/).filter((line) => line.trim().length > 0);
+        if (!lines.length) return { kind: 'text', summary: 'Archivo vacío', excerpt: '' };
+        const delimiter = detectCsvDelimiter(lines[0], isTsv);
+        const parsedHeaders = splitDelimitedLine(lines[0], delimiter);
+        const maxCols = 8;
+        const headers = parsedHeaders.slice(0, maxCols);
+        const hiddenCols = Math.max(0, parsedHeaders.length - maxCols);
+        const allParsedRows = lines.slice(1, 301).map((line) => splitDelimitedLine(line, delimiter));
+        const rows = allParsedRows.slice(0, 5).map((row) => row.slice(0, maxCols));
+        const totalDataRows = Math.max(0, lines.length - 1);
+        const numericColumns = analyzeTabularStats(parsedHeaders, allParsedRows);
+        return {
+            kind: 'table',
+            headers,
+            rows,
+            hiddenCols,
+            totalRows: totalDataRows,
+            totalCols: parsedHeaders.length,
+            numericColumns,
+            summary: `${parsedHeaders.length} cols · ${totalDataRows} filas`,
+            copyText: lines.slice(0, 12).join('\n'),
+        };
+    }
+
+    function parseJsonPreview(text) {
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+                const count = parsed.length;
+                if (count && parsed[0] && typeof parsed[0] === 'object' && !Array.isArray(parsed[0])) {
+                    const fullKeys = Object.keys(parsed[0]);
+                    const allKeys = fullKeys.slice(0, 8);
+                    const cellStr = (row, k) => {
+                        const val = row?.[k];
+                        return val == null ? '—' : typeof val === 'object' ? JSON.stringify(val) : String(val);
+                    };
+                    const fullRows = parsed.slice(0, 300).map((row) => fullKeys.slice(0, 12).map((k) => cellStr(row, k)));
+                    const rows = parsed.slice(0, 5).map((row) => allKeys.map((k) => cellStr(row, k)));
+                    const numericColumns = analyzeTabularStats(fullKeys.slice(0, 12), fullRows);
+                    return {
+                        kind: 'table',
+                        headers: allKeys,
+                        rows,
+                        hiddenCols: Math.max(0, fullKeys.length - 8),
+                        totalRows: count,
+                        totalCols: fullKeys.length,
+                        numericColumns,
+                        summary: `JSON · ${count} registros`,
+                        copyText: JSON.stringify(parsed.slice(0, 10), null, 2),
+                    };
+                }
+                return {
+                    kind: 'text',
+                    summary: `JSON · Lista (${count} elementos)`,
+                    excerpt: JSON.stringify(parsed.slice(0, 8), null, 2).slice(0, 800),
+                };
+            }
+            if (parsed && typeof parsed === 'object') {
+                const keys = Object.keys(parsed);
+                return {
+                    kind: 'text',
+                    summary: `JSON · ${keys.length} claves`,
+                    excerpt: JSON.stringify(parsed, null, 2).slice(0, 800),
+                };
+            }
+        } catch { /* texto plano si excedió slice o JSON parcial */ }
+        return {
+            kind: 'text',
+            summary: 'JSON · Vista previa parcial',
+            excerpt: String(text || '').slice(0, 600),
+        };
+    }
+
+    async function inspectPendingFile(entry) {
+        const name = String(entry?.file?.name || '').toLowerCase();
+        if (entry.type.startsWith('image/') || entry.type.startsWith('audio/')) return;
+        if (entry.type === 'application/pdf') {
+            entry.preview = { kind: 'pdf', summary: 'PDF listo para lectura multimodal' };
+            if (pendingFiles.includes(entry)) renderPendingFiles();
+            if (typeof window.VNInspectPdf === 'function') {
+                try {
+                    const pdfMeta = await window.VNInspectPdf(entry.file);
+                    if (!pendingFiles.includes(entry)) return;
+                    const pages = Number(pdfMeta?.pages || 0);
+                    const excerpt = String(pdfMeta?.excerpt || '').trim();
+                    if (pages > 0 || excerpt) {
+                        const pageLabel = pages ? `${pages} ${pages === 1 ? 'página' : 'páginas'}` : 'PDF';
+                        entry.preview = {
+                            kind: 'pdf',
+                            pages,
+                            excerpt,
+                            summary: excerpt ? `${pageLabel} · texto extraído` : `${pageLabel} · lectura multimodal/imagen`,
+                        };
+                        renderPendingFiles();
+                    }
+                } catch { /* conserva estado base si el PDF no puede previsualizarse en cliente */ }
+            }
+            return;
+        }
+        if (entry.type === XLSX_MIME || name.endsWith('.xlsx')) {
+            entry.preview = { kind: 'xlsx', summary: 'Excel (.xlsx) → CSV automático al enviar' };
+            if (pendingFiles.includes(entry)) renderPendingFiles();
+            return;
+        }
+        try {
+            const sample = await entry.file.slice(0, 262144).text();
+            if (!pendingFiles.includes(entry)) return;
+            if (entry.type === 'text/csv' || name.endsWith('.csv') || name.endsWith('.tsv')) {
+                entry.preview = parseDelimitedPreview(sample, name.endsWith('.tsv'));
+            } else if (entry.type === 'application/json' || name.endsWith('.json')) {
+                entry.preview = parseJsonPreview(sample);
+            } else {
+                const lineCount = sample ? sample.split(/\r?\n/).length : 0;
+                entry.preview = {
+                    kind: 'text',
+                    summary: `${lineCount} líneas`,
+                    excerpt: sample.slice(0, 750),
+                };
+            }
+            renderPendingFiles();
+        } catch { /* sin vista previa local */ }
+    }
+
+    function plotPendingAttachmentChart(entry, preferredColIndex = null) {
+        const cols = Array.isArray(entry?.preview?.numericColumns) ? entry.preview.numericColumns : [];
+        if (!cols.length || busy) return;
+        const selected = cols.find((c) => c.colIndex === preferredColIndex) || cols[0];
+        const minTxt = formatStatNumber(selected.min);
+        const maxTxt = formatStatNumber(selected.max);
+        const avgTxt = formatStatNumber(selected.avg);
+        const spec = {
+            type: selected.labels.length > 10 ? 'line' : 'bar',
+            title: `${selected.name} — ${entry.file.name}`,
+            unit: selected.unit || '',
+            subtitle: `${entry.file.name} · mín ${minTxt} · máx ${maxTxt} · prom ${avgTxt} (${selected.count} filas)`,
+            insight: `Rango observado entre ${minTxt} y ${maxTxt} con promedio de ${avgTxt} sobre ${selected.count} datos válidos de "${entry.file.name}".`,
+            source: `Archivo adjunto: ${entry.file.name}`,
+            labels: selected.labels,
+            datasets: [{ label: selected.name, data: selected.values }],
+        };
+        const statsRows = cols.map((col) => [
+            col.name,
+            String(col.count),
+            `${formatStatNumber(col.min)}${col.unit}`,
+            `${formatStatNumber(col.max)}${col.unit}`,
+            `${formatStatNumber(col.avg)}${col.unit}`,
+        ]);
+        const statsMd = [
+            '| Columna | Registros | Mínimo | Máximo | Promedio |',
+            '| :--- | ---: | ---: | ---: | ---: |',
+            ...statsRows.map((r) => `| ${r.join(' | ')} |`),
+        ].join('\n');
+        const headingText = `Resumen numérico y gráfica local · ${entry.file.name}`;
+        const modelText = `### ${headingText}\n\n${statsMd}\n\n\`\`\`chart\n${JSON.stringify(spec)}\n\`\`\``;
+        const rich = {
+            version: '1.0',
+            mode: 'quick',
+            taskType: 'local_attachment_chart',
+            markdown: modelText,
+            blocks: [
+                { type: 'heading', level: 3, content: headingText },
+                { type: 'table', headers: ['Columna', 'Registros', 'Mínimo', 'Máximo', 'Promedio'], rows: statsRows },
+                { type: 'chart', spec },
+            ],
+            meta: { modelUsed: 'Análisis local CSV/JSON', chartStatus: 'served' },
+        };
+        const conversation = ensureConversation();
+        els.welcome.hidden = true;
+        if (els.welcome.parentNode === els.messages) els.welcome.remove();
+        const userMsg = ensureMessageIdentity({ role: 'user', text: `Graficar "${selected.name}" del archivo ${entry.file.name}`, ts: Date.now() });
+        const modelMsg = ensureMessageIdentity({ role: 'model', text: modelText, rich, modelProfile: 'local-csv', ts: Date.now() });
+        conversation.messages.push(userMsg, modelMsg);
+        appendMessage(userMsg);
+        const rendered = appendMessage(modelMsg);
+        persistConversation(conversation);
+        syncExportChatAvailability();
+        requestAnimationFrame(() => scrollMessageToStart(rendered.row, 'smooth'));
+    }
+
+    function buildAttachmentPreviewNode(preview) {
+        const box = document.createElement('div');
+        box.className = 'vai-attachment-preview';
+        if (preview.kind === 'table' && Array.isArray(preview.headers) && preview.headers.length) {
+            const wrap = document.createElement('div');
+            wrap.className = 'vai-attachment-table-wrap';
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const headRow = document.createElement('tr');
+            preview.headers.forEach((h) => {
+                const th = document.createElement('th');
+                th.textContent = h || 'col';
+                headRow.appendChild(th);
+            });
+            thead.appendChild(headRow);
+            const tbody = document.createElement('tbody');
+            (preview.rows || []).forEach((row) => {
+                const tr = document.createElement('tr');
+                preview.headers.forEach((_, colIdx) => {
+                    const td = document.createElement('td');
+                    td.textContent = row[colIdx] != null && row[colIdx] !== '' ? row[colIdx] : '—';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.append(thead, tbody);
+            wrap.appendChild(table);
+            box.appendChild(wrap);
+            if (preview.hiddenCols > 0 || preview.totalRows > (preview.rows?.length || 0)) {
+                const foot = document.createElement('div');
+                foot.className = 'vai-attachment-preview-foot';
+                foot.textContent = `Mostrando ${preview.rows?.length || 0} de ${preview.totalRows} filas${preview.hiddenCols > 0 ? ` (+${preview.hiddenCols} columnas)` : ''}.`;
+                box.appendChild(foot);
+            }
+            return box;
+        }
+        if (preview.excerpt) {
+            const pre = document.createElement('pre');
+            pre.className = 'vai-attachment-excerpt';
+            pre.textContent = preview.excerpt;
+            box.appendChild(pre);
+        }
+        return box;
+    }
+
     function renderPendingFiles() {
         els.attachments.replaceChildren();
         els.attachments.hidden = !pendingFiles.length;
         pendingFiles.forEach((item, index) => {
-            const card = document.createElement('div'); card.className = 'vai-attachment-card';
+            const card = document.createElement('div');
+            card.className = 'vai-attachment-card' + (item.previewOpen ? ' has-preview' : '');
+            const header = document.createElement('div');
+            header.className = 'vai-attachment-head';
             if (item.type.startsWith('image/')) {
-                const image = document.createElement('img'); image.src = item.url; image.alt = ''; card.appendChild(image);
+                const image = document.createElement('img'); image.src = item.url; image.alt = ''; header.appendChild(image);
             } else {
-                const icon = document.createElement('i'); icon.className = `fas ${item.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-lines'}`; card.appendChild(icon);
+                const lowerName = String(item.file.name || '').toLowerCase();
+                const iconClass = item.type === 'application/pdf' ? 'fa-file-pdf'
+                    : (item.type === XLSX_MIME || lowerName.endsWith('.xlsx')) ? 'fa-file-excel'
+                    : (item.type === 'text/csv' || /\.(?:csv|tsv)$/i.test(lowerName)) ? 'fa-table'
+                    : (item.type === 'application/json' || lowerName.endsWith('.json')) ? 'fa-file-code'
+                    : 'fa-file-lines';
+                const icon = document.createElement('i'); icon.className = `fas ${iconClass}`; header.appendChild(icon);
             }
             const copy = document.createElement('span');
-            copy.innerHTML = `<strong>${escapeHtml(item.file.name)}</strong><small>${(item.file.size / 1024).toFixed(item.file.size > 1024 * 1024 ? 0 : 1)} KB</small>`;
-            const remove = document.createElement('button'); remove.type = 'button'; remove.setAttribute('aria-label', `Quitar ${item.file.name}`); remove.innerHTML = '<i class="fas fa-xmark"></i>';
+            copy.className = 'vai-attachment-info';
+            const sizeLabel = `${(item.file.size / 1024).toFixed(item.file.size > 1024 * 1024 ? 0 : 1)} KB`;
+            const metaLine = item.preview?.summary ? `${sizeLabel} · ${item.preview.summary}` : sizeLabel;
+            copy.innerHTML = `<strong>${escapeHtml(item.file.name)}</strong><small>${escapeHtml(metaLine)}</small>`;
+            header.appendChild(copy);
+
+            const controls = document.createElement('div');
+            controls.className = 'vai-attachment-tools';
+            const hasExpandable = Boolean(item.preview && ((item.preview.kind === 'table' && item.preview.headers?.length) || item.preview.excerpt));
+            if (hasExpandable) {
+                const toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'vai-att-btn';
+                toggleBtn.textContent = item.previewOpen ? 'Ocultar' : 'Vista previa';
+                toggleBtn.addEventListener('click', () => {
+                    item.previewOpen = !item.previewOpen;
+                    renderPendingFiles();
+                });
+                controls.appendChild(toggleBtn);
+            }
+            if (item.preview?.copyText) {
+                const copyRowsBtn = document.createElement('button');
+                copyRowsBtn.type = 'button';
+                copyRowsBtn.className = 'vai-att-btn';
+                copyRowsBtn.textContent = 'Copiar muestra';
+                copyRowsBtn.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(item.preview.copyText);
+                        copyRowsBtn.textContent = 'Copiado ✓';
+                        setTimeout(() => { copyRowsBtn.textContent = 'Copiar muestra'; }, 1600);
+                    } catch {}
+                });
+                controls.appendChild(copyRowsBtn);
+            }
+            const numericCols = Array.isArray(item.preview?.numericColumns) ? item.preview.numericColumns : [];
+            if (numericCols.length) {
+                let colSelect = null;
+                if (numericCols.length > 1) {
+                    colSelect = document.createElement('select');
+                    colSelect.className = 'vai-att-col-select';
+                    colSelect.setAttribute('aria-label', 'Columna numérica a graficar');
+                    numericCols.forEach((col) => {
+                        const opt = document.createElement('option');
+                        opt.value = String(col.colIndex);
+                        opt.textContent = col.name;
+                        colSelect.appendChild(opt);
+                    });
+                    controls.appendChild(colSelect);
+                }
+                const plotBtn = document.createElement('button');
+                plotBtn.type = 'button';
+                plotBtn.className = 'vai-att-btn is-chart';
+                plotBtn.innerHTML = '<i class="fas fa-chart-column" aria-hidden="true"></i> Graficar';
+                plotBtn.addEventListener('click', () => {
+                    const targetCol = colSelect ? Number(colSelect.value) : numericCols[0].colIndex;
+                    plotPendingAttachmentChart(item, targetCol);
+                });
+                controls.appendChild(plotBtn);
+            }
+            if (!item.type.startsWith('audio/')) {
+                const askBtn = document.createElement('button');
+                askBtn.type = 'button';
+                askBtn.className = 'vai-att-btn is-accent';
+                askBtn.textContent = 'Analizar';
+                askBtn.addEventListener('click', () => {
+                    const promptHint = item.preview?.summary
+                        ? `Analiza "${item.file.name}" (${item.preview.summary}), resume los indicadores principales, detecta valores atípicos y genera una tabla o gráfica comparativa.`
+                        : `Analiza "${item.file.name}" y extrae los hallazgos y métricas clave.`;
+                    if (!els.input.value.trim()) {
+                        els.input.value = promptHint;
+                        resizeInput();
+                        refreshComposerFace();
+                    }
+                    els.input.focus();
+                    els.input.setSelectionRange(els.input.value.length, els.input.value.length);
+                });
+                controls.appendChild(askBtn);
+            }
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'vai-att-remove';
+            remove.setAttribute('aria-label', `Quitar ${item.file.name}`);
+            remove.innerHTML = '<i class="fas fa-xmark"></i>';
             remove.addEventListener('click', () => { URL.revokeObjectURL(item.url); pendingFiles.splice(index, 1); renderPendingFiles(); });
-            card.append(copy, remove); els.attachments.appendChild(card);
+            controls.appendChild(remove);
+            header.appendChild(controls);
+            card.appendChild(header);
+            if (numericCols.length) {
+                const statsBar = document.createElement('div');
+                statsBar.className = 'vai-attachment-stats';
+                numericCols.slice(0, 3).forEach((col) => {
+                    const pill = document.createElement('span');
+                    pill.className = 'vai-stat-chip';
+                    pill.textContent = `${col.name}: mín ${formatStatNumber(col.min)}${col.unit} · máx ${formatStatNumber(col.max)}${col.unit} · prom ${formatStatNumber(col.avg)}${col.unit}`;
+                    statsBar.appendChild(pill);
+                });
+                card.appendChild(statsBar);
+            }
+            if (item.previewOpen && hasExpandable) {
+                card.appendChild(buildAttachmentPreviewNode(item.preview));
+            }
+            els.attachments.appendChild(card);
         });
     }
 
     function addFiles(fileList) {
-        const allowed = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf', 'text/plain', 'text/csv', 'text/markdown', 'application/json', 'audio/webm', 'audio/mp4', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg', 'audio/aac', 'audio/webm;codecs=opus']);
+        const allowed = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf', 'text/plain', 'text/csv', 'text/markdown', 'application/json', XLSX_MIME, 'audio/webm', 'audio/mp4', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg', 'audio/aac', 'audio/webm;codecs=opus']);
         const incoming = Array.from(fileList || []);
         for (const file of incoming) {
             const type = normalizedFileType(file);
             if (!allowed.has(type)) { window.alert(`${file.name}: tipo de archivo no compatible.`); continue; }
             if (file.size > 6 * 1024 * 1024) { window.alert(`${file.name}: el límite es 6 MB por archivo.`); continue; }
             if (pendingFiles.length >= 5) { window.alert('Puedes adjuntar hasta 5 archivos por mensaje.'); break; }
-            pendingFiles.push({ file, type, url: URL.createObjectURL(file) });
+            const entry = { file, type, url: URL.createObjectURL(file), preview: null, previewOpen: false };
+            pendingFiles.push(entry);
+            void inspectPendingFile(entry);
         }
         renderPendingFiles();
     }
@@ -1746,9 +2465,13 @@
     async function uploadFiles(files, signal = null) {
         const uploaded = [];
         for (const item of files) {
+            let dataUrl = await fileToDataUrl(item.file);
+            if (dataUrl.startsWith('data:')) {
+                dataUrl = dataUrl.replace(/^data:[^;,]*;base64,/i, `data:${item.type};base64,`);
+            }
             const response = await fetch('/api/chat-attachments', {
                 method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: item.file.name, type: item.type, dataUrl: await fileToDataUrl(item.file) }),
+                body: JSON.stringify({ name: item.file.name, type: item.type, dataUrl }),
                 ...(signal ? { signal } : {}),
             });
             const data = await response.json().catch(() => ({}));
@@ -1829,9 +2552,9 @@
         // eventos SSE siguen teniendo prioridad, pero este recorrido evita la
         // sensación de pantalla detenida entre el envío y el primer fragmento.
         const thinkingTimers = [
-            setTimeout(() => setThinkingStage(pending, 'sources'), 480),
-            setTimeout(() => setThinkingStage(pending, 'reasoning'), 1500),
-            setTimeout(() => setThinkingStage(pending, 'fallback'), 4300),
+            setTimeout(() => { if (!pending._hasServerStatus) setThinkingStage(pending, 'sources'); }, 480),
+            setTimeout(() => { if (!pending._hasServerStatus) setThinkingStage(pending, 'reasoning'); }, 1800),
+            setTimeout(() => { if (!pending._hasServerStatus) setThinkingStage(pending, 'fallback'); }, 5200),
         ];
         const clearThinkingTimers = () => thinkingTimers.forEach(timer => clearTimeout(timer));
         els.messages.scrollTop = els.messages.scrollHeight;
@@ -1857,7 +2580,10 @@
                 setConversationFaceState('speaking');
                 renderStreamingText(pending, partial);
                 if (firstChunk) requestAnimationFrame(() => scrollMessageToStart(pending.row, 'smooth'));
-            }, '', null, (status) => setThinkingStage(pending, status === 'fallback' ? 'fallback' : status === 'sources' ? 'sources' : 'reasoning'), requestedModelProfile);
+            }, '', null, (status, meta) => {
+                const stage = status === 'fallback' ? 'fallback' : status === 'sources' ? 'sources' : 'reasoning';
+                setThinkingStage(pending, stage, meta);
+            }, requestedModelProfile);
             // La gráfica es un complemento visual. Esperamos solo un instante
             // al finalizar el texto, nunca antes de que ORION empiece a hablar.
             const historicalChart = await Promise.race([
@@ -1885,7 +2611,13 @@
             }
             const result = guaranteeRequestedChart(streamed, clean, historicalChart);
             const pendingIsVisible = els.messages.contains(pending.row);
+            const rowOffsetBeforeSwap = pendingIsVisible ? (pending.row.offsetTop - els.messages.scrollTop) : null;
+            cancelStreamingRender(pending);
+            pending._streamBody = null;
+            pending._streamLive = null;
             pending.row.classList.remove('is-thinking', 'is-streaming');
+            pending.bubble.classList.add('vai-stream-settled');
+            setTimeout(() => pending.bubble?.classList.remove('vai-stream-settled'), 320);
             renderRich(pending.bubble, result.rich, result.text);
             animateFaceSpeech(pending.avatar, 980, result.text);
             const modelMessage = {
@@ -1903,21 +2635,52 @@
                 renderConversation();
             } else {
                 decorateMessage(pending.bubble, modelMessage);
+                attachContentCopyActions(pending.bubble);
+                attachReportActions(pending.bubble, modelMessage);
                 if (shouldShowAssistantControls(modelMessage)) {
                     attachFollowUpActions(pending.bubble, modelMessage);
-                    attachReportActions(pending.bubble, modelMessage);
                     enhanceAssistantResponse(pending.bubble, modelMessage);
                 }
                 // Una solicitud explícita de PDF no termina en pasos manuales:
                 // el informe queda listo como archivo en la propia respuesta.
                 if (wantsPdfExport(clean, conversation.messages)) void prepareRequestedPdf(modelMessage, pending.bubble);
                 if (!streamStarted) requestAnimationFrame(() => scrollMessageToStart(pending.row, 'smooth'));
+                else if (rowOffsetBeforeSwap !== null) {
+                    const nextTop = pending.row.offsetTop - rowOffsetBeforeSwap;
+                    if (Math.abs(nextTop - els.messages.scrollTop) > 12) els.messages.scrollTop = Math.max(0, nextTop);
+                }
             }
         } catch (error) {
+            cancelStreamingRender(pending);
+            pending._streamBody = null;
+            pending._streamLive = null;
             pending.row.classList.remove('is-thinking', 'is-streaming');
             setFaceState(pending.avatar, 'idle');
-            if (error.name === 'AbortError') pending.bubble.innerHTML = '<div class="vai-alert">Generación detenida.</div>';
-            else pending.bubble.innerHTML = `<div class="vai-error"><strong>No pude completar la respuesta.</strong><br>${escapeHtml(error.message)}</div>`;
+            const bindRetry = () => {
+                const retryBtn = pending.bubble.querySelector('[data-vai-retry]');
+                retryBtn?.addEventListener('click', () => {
+                    if (busy) return;
+                    void regenerateFromMessage(userMessage, userMessage.text);
+                });
+            };
+            if (error.name === 'AbortError') {
+                const partial = String(pending._streamText || '').trim();
+                if (partial) {
+                    renderLegacyContent(pending.bubble, partial);
+                    attachContentCopyActions(pending.bubble);
+                    const stopped = document.createElement('div');
+                    stopped.className = 'vai-alert vai-alert--warning';
+                    stopped.innerHTML = '<div class="vai-alert-body"><strong>Generación detenida.</strong> Se conservó el texto recibido hasta el momento. <button type="button" class="vai-inline-retry" data-vai-retry><i class="fas fa-rotate-right"></i><span>Reintentar</span></button></div>';
+                    pending.bubble.appendChild(stopped);
+                    attachReportActions(pending.bubble, { role: 'model', text: partial, ts: Date.now() });
+                } else {
+                    pending.bubble.innerHTML = '<div class="vai-alert">Generación detenida. <button type="button" class="vai-inline-retry" data-vai-retry><i class="fas fa-rotate-right"></i><span>Reintentar</span></button></div>';
+                }
+                bindRetry();
+            } else {
+                pending.bubble.innerHTML = `<div class="vai-error"><strong>No pude completar la respuesta.</strong><br>${escapeHtml(error.message)}<div class="vai-error-actions"><button type="button" class="vai-inline-retry" data-vai-retry><i class="fas fa-rotate-right"></i><span>Reintentar consulta</span></button></div></div>`;
+                bindRetry();
+            }
             requestAnimationFrame(() => scrollMessageToStart(pending.row, 'smooth'));
         } finally {
             clearThinkingTimers();
@@ -1966,6 +2729,7 @@
             if (!fragment.trim()) return;
             const holder = document.createElement('div');
             holder.innerHTML = markdown(fragment);
+            holder.querySelectorAll('.vai-table-toolbar, .vai-code-head').forEach((node) => node.remove());
             while (holder.firstChild) els.reportEditor.appendChild(holder.firstChild);
         };
         while ((match = chartFence.exec(source))) {
@@ -2007,6 +2771,7 @@
     function editorBlockMarkdown(node) {
         if (node.nodeType === Node.TEXT_NODE) return String(node.nodeValue || '').trim();
         if (node.nodeType !== Node.ELEMENT_NODE) return '';
+        if (node.classList.contains('vai-table-toolbar') || node.classList.contains('vai-code-head')) return '';
         if (node.classList.contains('vai-editor-chart')) {
             const serialized = node.dataset.chartSpec || '{}';
             return `\`\`\`chart\n${serialized}\n\`\`\``;
@@ -2187,6 +2952,7 @@
         meta.innerHTML = `<span><i class="fas fa-calendar"></i>${escapeHtml(new Date().toLocaleDateString('es-MX', { dateStyle: 'long' }))}</span><span><i class="fas fa-wand-magic-sparkles"></i>Preparado con ORION</span><span><i class="fas fa-file-lines"></i>${words} palabras</span>`;
         const cleanContent = content.replace(/^#\s+(.+)\n+/, (match, firstTitle) => firstTitle.trim().toLowerCase() === reportTitle.toLowerCase() ? '' : match);
         const body = document.createElement('div'); body.className = 'vai-paper-content'; renderLegacyContent(body, cleanContent);
+        body.querySelectorAll('.vai-table-toolbar, .vai-code-head').forEach((node) => node.remove());
         const footer = document.createElement('footer'); footer.className = 'vai-paper-footer'; footer.innerHTML = '<span>VALLNews · Documento informativo</span><span>Generado para revisión y edición</span>';
         els.reportPreview.append(masthead, title, meta, body, footer);
         els.reportPreview.style.zoom = `${Number(els.reportZoom?.value) || 100}%`;
@@ -2331,14 +3097,29 @@
         } finally { els.reportExport.disabled = false; }
     }
 
+    function updateScrollBottomButton() {
+        if (!els.scrollBottom || !els.messages) return;
+        const hasThread = !els.welcome?.parentNode || els.welcome.hidden;
+        const distanceFromBottom = els.messages.scrollHeight - els.messages.scrollTop - els.messages.clientHeight;
+        els.scrollBottom.hidden = !hasThread || distanceFromBottom < 140;
+    }
+
     function resizeInput() {
         els.input.style.height = '0px';
         const compactViewport = window.matchMedia('(max-width: 760px)').matches;
-        const maxHeight = compactViewport ? 180 : 224;
-        const height = Math.min(Math.max(els.input.scrollHeight, 58), maxHeight);
+        const maxHeight = compactViewport ? 180 : 220;
+        const height = Math.min(Math.max(els.input.scrollHeight, 44), maxHeight);
         els.input.style.height = `${height}px`;
         els.input.style.overflowY = els.input.scrollHeight > maxHeight ? 'auto' : 'hidden';
-        els.form.classList.toggle('is-expanded', height > 64);
+        els.form.classList.toggle('is-expanded', height > 60);
+        if (els.charCount) {
+            const len = els.input.value.length;
+            els.charCount.hidden = len < 3000;
+            if (len >= 3000) {
+                els.charCount.textContent = `${len.toLocaleString('es-MX')} / 12,000`;
+                els.charCount.classList.toggle('is-warn', len >= 10500);
+            }
+        }
     }
     function isMobileSidebar() { return window.matchMedia('(max-width: 760px)').matches; }
     function setSidebarCollapsed(collapsed, persist = true) {
@@ -2380,24 +3161,318 @@
         els.historyToggle?.setAttribute('aria-expanded', 'false');
     }
 
+    const SLASH_COMMANDS = [
+        { command: '/proteinas', title: 'Comparar proteínas', hint: 'Pollo, cerdo, res y huevo (kg/USD)', icon: 'fa-drumstick-bite', keywords: 'pollo res cerdo huevo carne kilogramo usd mxn', template: 'Compara los precios vigentes por kilogramo (y equivalente USD/kg) de pollo, cerdo, res y huevo en ' },
+        { command: '/mexico', title: 'Mercados de México', hint: 'SNIIM, USDA y precios nacionales', icon: 'fa-pepper-hot', keywords: 'mexico sniim nacional cdmx guadalajara monterrey maiz', template: 'Analiza los precios más recientes en México de pollo, res, cerdo, huevo y granos (SNIIM / USDA) con fuentes fechadas', suffixTemplate: ' enfocándote en ' },
+        { command: '/pronostico', title: 'Pronóstico ML + IC 90%', hint: 'Proyección cuantitativa con intervalos', icon: 'fa-chart-line', keywords: 'ml prediccion futuro semanas bandas tendencia modelo', template: 'Proyecta un pronóstico ML a 12 semanas con intervalos de confianza del 90% y gráfica interactiva para ' },
+        { command: '/loopus', title: 'Modelos Loopus', hint: 'Inteligencia cuantitativa interna', icon: 'fa-microchip', keywords: 'loopus benchmark regresion elasticidad variables', template: 'Resume los últimos análisis y modelos cuantitativos de Loopus disponibles en la plataforma sobre ' },
+        { command: '/margen', title: 'Cálculo de margen', hint: 'Costo unitario, margen neto y equilibrio', icon: 'fa-calculator', keywords: 'costo ganancia utilidad equilibrio negocio finanzas', template: 'Calcula costo unitario, margen bruto/neto y punto de equilibrio con los siguientes supuestos: ' },
+        { command: '/grafica', title: 'Tabla + Gráfica', hint: 'Comparativa visual interactiva', icon: 'fa-chart-column', keywords: 'chart visual comparativa barras lineas', template: 'Genera una tabla comparativa verificada y una gráfica interactiva actualizada de ' },
+        { command: '/reporte', title: 'Abrir Editor de reportes', hint: 'Acción · redactar y exportar informe', icon: 'fa-file-pen', keywords: 'estudio studio documento informe pdf word', action: () => { closeSidebar(); openReportStudio(); } },
+        { command: '/exportar', title: 'Exportar este chat', hint: 'Acción · descarga .md, .txt, .pdf o .docx', icon: 'fa-download', keywords: 'descargar markdown txt pdf word historial', action: (args) => exportActiveConversation(normalizeConversationExportFormat(args || 'md')) },
+    ];
+
+    function normalizeConversationExportFormat(raw) {
+        const value = String(raw || '').trim().toLowerCase().replace(/^\./, '');
+        if (value === 'txt' || value === 'texto' || value === 'text') return 'txt';
+        if (value === 'pdf') return 'pdf';
+        if (value === 'docx' || value === 'doc' || value === 'word') return 'docx';
+        return 'md';
+    }
+
+    function closeExportMenu() {
+        if (els.exportMenu) els.exportMenu.hidden = true;
+        els.exportChat?.setAttribute('aria-expanded', 'false');
+    }
+
+    function syncExportChatAvailability() {
+        if (!els.exportChat) return;
+        const canExport = hasConversationMessages(activeConversation()) && !busy && !exportBusy;
+        els.exportChat.disabled = !canExport;
+        if (!canExport) closeExportMenu();
+    }
+
+    function setExportFeedback(label, restoreAfterMs = 0) {
+        clearTimeout(exportFeedbackTimer);
+        const span = els.exportChat?.querySelector('span');
+        if (span) span.textContent = label;
+        if (restoreAfterMs > 0) {
+            exportFeedbackTimer = setTimeout(() => {
+                const currentSpan = els.exportChat?.querySelector('span');
+                if (currentSpan && !exportBusy) currentSpan.textContent = 'Exportar chat';
+            }, restoreAfterMs);
+        }
+    }
+
+    function toggleExportMenu() {
+        if (!els.exportChat || !els.exportMenu || els.exportChat.disabled) return;
+        if (els.sidebar.classList.contains('collapsed') && !isMobileSidebar()) setSidebarCollapsed(false);
+        const nextHidden = !els.exportMenu.hidden;
+        els.exportMenu.hidden = nextHidden;
+        els.exportChat.setAttribute('aria-expanded', String(!nextHidden));
+    }
+
+    function buildConversationTranscriptMarkdown(conversation) {
+        if (!conversation) return '';
+        const visible = (Array.isArray(conversation.messages) ? conversation.messages : []).filter((m) => !m?._hidden);
+        if (!visible.length) return '';
+        const title = String(conversation.title || 'Conversación ORION').trim();
+        const exportedAt = new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+        const lines = [
+            `# ${title}`,
+            '',
+            `_Exportado desde VALLNews ORION · ${exportedAt} · ${visible.length} mensajes${isConversationPinned(conversation.id) ? ' · Fijado' : ''}_`,
+            '',
+            '---',
+            '',
+        ];
+        visible.forEach((message, idx) => {
+            const isUser = message.role === 'user';
+            const modelName = !isUser ? (message.rich?.modelUsed || message.model || '') : '';
+            const speaker = isUser ? 'Usuario' : (modelName ? `ORION (${modelName})` : 'ORION');
+            const stamp = message.createdAt ? ` · ${new Date(message.createdAt).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}` : '';
+            lines.push(`## ${idx + 1}. ${speaker}${stamp}`, '');
+            if (Array.isArray(message.files) && message.files.length) {
+                lines.push(`_Adjuntos: ${message.files.map((f) => f?.name || 'archivo').join(', ')}_`, '');
+            }
+            const body = String(message.text || '').trim();
+            if (body) lines.push(body, '');
+            const sources = Array.isArray(message.rich?.sources) ? message.rich.sources.filter((s) => s?.url) : [];
+            if (sources.length) {
+                const seen = new Set();
+                const unique = sources.filter((s) => {
+                    if (seen.has(s.url)) return false;
+                    seen.add(s.url);
+                    return true;
+                });
+                lines.push('**Fuentes consultadas:**');
+                unique.slice(0, 12).forEach((s) => {
+                    const label = String(s.title || s.source || s.url).replace(/[[\]]/g, '').trim();
+                    lines.push(`- [${label}](${s.url})${s.source ? ` (${s.source})` : ''}`);
+                });
+                lines.push('');
+            }
+            lines.push('---', '');
+        });
+        return lines.join('\n').trim() + '\n';
+    }
+
+    function markdownToPlainTranscript(md) {
+        return String(md || '')
+            .replace(/```chart[\s\S]*?```/gi, '[Gráfica interactiva incluida en la versión web/PDF]')
+            .replace(/```[\w+-]*\n([\s\S]*?)```/g, '$1')
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1 ($2)')
+            .replace(/^#{1,6}\s+/gm, '')
+            .replace(/^---$/gm, '========================================')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/_(.*?)_/g, '$1')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim() + '\n';
+    }
+
+    function downloadTextBlob(fileName, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => { try { URL.revokeObjectURL(url); } catch {} }, 1000);
+    }
+
+    async function exportActiveConversation(formatInput = 'md') {
+        closeExportMenu();
+        const conversation = activeConversation();
+        if (!hasConversationMessages(conversation) || exportBusy) return;
+        const format = normalizeConversationExportFormat(formatInput);
+        const title = String(conversation.title || 'Conversación ORION').trim();
+        const baseName = `${sanitizeFilename(title)}.${format}`;
+        const transcriptMd = buildConversationTranscriptMarkdown(conversation);
+        if (!transcriptMd) return;
+        if (format === 'md' || format === 'txt') {
+            const payload = format === 'txt' ? markdownToPlainTranscript(transcriptMd) : transcriptMd;
+            const mime = format === 'txt' ? 'text/plain; charset=utf-8' : 'text/markdown; charset=utf-8';
+            downloadTextBlob(baseName, payload, mime);
+            setExportFeedback('Exportado ✓', 2200);
+            return;
+        }
+        exportBusy = true;
+        syncExportChatAvailability();
+        setExportFeedback('Exportando…');
+        try {
+            await requestServerExport(title, transcriptMd, format, els.messages);
+            exportBusy = false;
+            syncExportChatAvailability();
+            setExportFeedback('Exportado ✓', 2400);
+        } catch {
+            exportBusy = false;
+            syncExportChatAvailability();
+            setExportFeedback('Error al exportar', 2800);
+        }
+    }
+
+    function parseSlashQuery(value) {
+        const raw = String(value || '');
+        if (!raw.startsWith('/') || /\s/.test(raw)) return null;
+        return raw.slice(1).toLowerCase();
+    }
+
+    function filterSlashCommands(query) {
+        const q = String(query || '').trim().toLowerCase();
+        if (!q) return SLASH_COMMANDS;
+        return SLASH_COMMANDS.filter((item) => {
+            const slug = item.command.slice(1).toLowerCase();
+            return slug.includes(q) || item.title.toLowerCase().includes(q) || item.keywords.includes(q);
+        });
+    }
+
+    function closeSlashMenu() {
+        slashVisibleItems = [];
+        slashActiveIndex = 0;
+        if (!els.slashMenu) return;
+        els.slashMenu.hidden = true;
+        els.slashMenu.replaceChildren();
+    }
+
+    function highlightSlashItem(index) {
+        if (!els.slashMenu || !slashVisibleItems.length) return;
+        slashActiveIndex = ((index % slashVisibleItems.length) + slashVisibleItems.length) % slashVisibleItems.length;
+        Array.from(els.slashMenu.children).forEach((node, idx) => {
+            const active = idx === slashActiveIndex;
+            node.classList.toggle('is-active', active);
+            node.setAttribute('aria-selected', String(active));
+            if (active) node.scrollIntoView({ block: 'nearest' });
+        });
+    }
+
+    function applySlashCommand(item) {
+        if (!item) return;
+        closeSlashMenu();
+        slashDismissedValue = '';
+        if (typeof item.action === 'function') {
+            els.input.value = '';
+            resizeInput();
+            refreshComposerFace();
+            item.action('');
+            return;
+        }
+        els.input.value = item.template;
+        resizeInput();
+        refreshComposerFace();
+        els.input.focus();
+        els.input.setSelectionRange(els.input.value.length, els.input.value.length);
+    }
+
+    function renderSlashMenu() {
+        if (!els.slashMenu) return;
+        const raw = els.input.value;
+        if (slashDismissedValue && raw === slashDismissedValue) { closeSlashMenu(); return; }
+        slashDismissedValue = '';
+        const query = parseSlashQuery(raw);
+        if (query === null) { closeSlashMenu(); return; }
+        const matches = filterSlashCommands(query);
+        if (!matches.length) { closeSlashMenu(); return; }
+        slashVisibleItems = matches;
+        if (slashActiveIndex >= matches.length) slashActiveIndex = 0;
+        els.slashMenu.replaceChildren();
+        matches.forEach((item, idx) => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'vai-slash-item' + (idx === slashActiveIndex ? ' is-active' : '');
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', String(idx === slashActiveIndex));
+            option.innerHTML = `<span class="vai-slash-ico"><i class="fas ${escapeHtml(item.icon)}" aria-hidden="true"></i></span><span class="vai-slash-copy"><span class="vai-slash-top"><strong class="vai-slash-cmd">${escapeHtml(item.command)}</strong><span class="vai-slash-title">${escapeHtml(item.title)}</span></span><small class="vai-slash-hint">${escapeHtml(item.hint)}</small></span>`;
+            option.addEventListener('mousedown', (event) => event.preventDefault());
+            option.addEventListener('click', () => applySlashCommand(item));
+            els.slashMenu.appendChild(option);
+        });
+        els.slashMenu.hidden = false;
+    }
+
+    function resolveSlashSubmission(rawValue) {
+        const text = String(rawValue || '').trim();
+        const match = text.match(/^(\/[a-z0-9_-]+)(?:\s+([\s\S]+))?$/i);
+        if (!match) return { handled: false, text };
+        const cmdName = match[1].toLowerCase();
+        const args = String(match[2] || '').trim();
+        const found = SLASH_COMMANDS.find((item) => item.command === cmdName);
+        if (!found) return { handled: false, text };
+        if (typeof found.action === 'function') {
+            els.input.value = '';
+            closeSlashMenu();
+            resizeInput();
+            found.action(args);
+            return { handled: true, text: '' };
+        }
+        const prompt = found.suffixTemplate
+            ? (args ? `${found.template}${found.suffixTemplate}${args}` : `${found.template}.`)
+            : (args ? `${found.template}${args}` : found.template);
+        return { handled: false, text: prompt.trim() };
+    }
+
     const refreshComposerFace = () => {
         if (!busy) setConversationFaceState(els.input.value.trim() || document.activeElement === els.input ? 'listening' : 'idle');
     };
-    els.form.addEventListener('submit', (event) => { event.preventDefault(); sendMessage(els.input.value); });
-    els.input.addEventListener('input', () => { resizeInput(); refreshComposerFace(); });
+    els.form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        closeSlashMenu();
+        const resolved = resolveSlashSubmission(els.input.value);
+        if (resolved.handled) return;
+        sendMessage(resolved.text);
+    });
+    els.input.addEventListener('input', () => { resizeInput(); refreshComposerFace(); renderSlashMenu(); });
     els.input.addEventListener('focus', refreshComposerFace);
     els.input.addEventListener('blur', refreshComposerFace);
     els.attach.addEventListener('click', () => els.fileInput.click());
     els.fileInput.addEventListener('change', () => { addFiles(els.fileInput.files); els.fileInput.value = ''; });
     els.input.addEventListener('paste', (event) => {
-        const files = Array.from(event.clipboardData?.files || []).filter(file => file.type.startsWith('image/'));
+        const files = Array.from(event.clipboardData?.files || []).filter(file => file.type.startsWith('image/') || normalizedFileType(file));
         if (files.length) addFiles(files);
     });
     ['dragenter', 'dragover'].forEach(type => els.form.addEventListener(type, (event) => { event.preventDefault(); els.dropzone.hidden = false; }));
     els.form.addEventListener('dragleave', (event) => { if (!els.form.contains(event.relatedTarget)) els.dropzone.hidden = true; });
     els.form.addEventListener('drop', (event) => { event.preventDefault(); els.dropzone.hidden = true; addFiles(event.dataTransfer?.files); });
-    els.input.addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); els.form.requestSubmit(); } });
+    els.input.addEventListener('keydown', (event) => {
+        if (event.isComposing || event.keyCode === 229) return;
+        if (els.slashMenu && !els.slashMenu.hidden && slashVisibleItems.length) {
+            if (event.key === 'ArrowDown') { event.preventDefault(); highlightSlashItem(slashActiveIndex + 1); return; }
+            if (event.key === 'ArrowUp') { event.preventDefault(); highlightSlashItem(slashActiveIndex - 1); return; }
+            if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
+                event.preventDefault();
+                applySlashCommand(slashVisibleItems[slashActiveIndex]);
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                slashDismissedValue = els.input.value;
+                closeSlashMenu();
+                return;
+            }
+        }
+        if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); els.form.requestSubmit(); return; }
+        if (event.key === 'ArrowUp' && !els.input.value.trim()) {
+            const lastUser = [...(activeConversation()?.messages || [])].reverse().find(m => m.role === 'user' && m.text);
+            if (lastUser) {
+                event.preventDefault();
+                els.input.value = lastUser.text;
+                resizeInput();
+                els.input.setSelectionRange(els.input.value.length, els.input.value.length);
+            }
+        }
+    });
+    els.messages?.addEventListener('scroll', updateScrollBottomButton, { passive: true });
+    els.scrollBottom?.addEventListener('click', () => {
+        els.messages?.scrollTo({ top: els.messages.scrollHeight, behavior: 'smooth' });
+    });
     els.historySearch.addEventListener('input', renderHistory);
+    els.historySearchClear?.addEventListener('click', () => {
+        els.historySearch.value = '';
+        renderHistory();
+        els.historySearch.focus();
+    });
     els.historySearch.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
         els.historySearch.value = '';
@@ -2408,6 +3483,18 @@
     els.newChat.addEventListener('click', startNewConversation);
     els.quickSearch?.addEventListener('click', focusHistorySearch);
     $('vaiOpenReportStudio')?.addEventListener('click', () => { closeSidebar(); openReportStudio(); });
+    els.exportChat?.addEventListener('click', (event) => { event.stopPropagation(); toggleExportMenu(); });
+    els.exportMenu?.querySelectorAll('[data-chat-export]').forEach((button) => {
+        button.addEventListener('click', () => exportActiveConversation(button.dataset.chatExport));
+    });
+    escucharGlobal(document, 'click', (event) => {
+        if (els.exportMenu && !els.exportMenu.hidden && els.exportWrap && !els.exportWrap.contains(event.target)) {
+            closeExportMenu();
+        }
+        if (els.slashMenu && !els.slashMenu.hidden && els.form && !els.form.contains(event.target)) {
+            closeSlashMenu();
+        }
+    });
     els.historyToggle?.addEventListener('click', () => els.sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
     els.stop.addEventListener('click', () => controller?.abort());
     els.sidebarCollapse.addEventListener('click', toggleSidebar); els.sideClose.addEventListener('click', closeSidebar); els.overlay.addEventListener('click', closeSidebar);
@@ -2431,12 +3518,14 @@
         document.execCommand('insertText', false, event.clipboardData?.getData('text/plain') || '');
     });
     escucharGlobal(document, 'keydown', (event) => {
+        if (event.key === 'Escape' && els.exportMenu && !els.exportMenu.hidden) { closeExportMenu(); els.exportChat?.focus(); }
         if (event.key === 'Escape' && !els.reportStudio.hidden) closeReportStudio();
         if (event.key === 'Escape' && els.sidebar.classList.contains('open')) {
             closeSidebar();
             els.historyToggle?.focus();
         }
         if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'h') { event.preventDefault(); if (isMobileSidebar()) openSidebar(); else toggleSidebar(); }
+        if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') { event.preventDefault(); startNewConversation(); }
     });
     document.querySelectorAll('[data-prompt]').forEach((button) => button.addEventListener('click', () => sendMessage(button.dataset.prompt)));
     escucharGlobal(window, 'resize', () => {
@@ -2776,6 +3865,7 @@
         try { controller?.abort(); } catch { /* ya terminó */ }
         controller = null;
         clearTimeout(reportRenderTimer);
+        clearTimeout(exportFeedbackTimer);
         liveVoiceStart += 1;
         continuousVoiceMode = false;
         try { liveVoiceController?.stop?.(); } catch { /* ya terminó */ }
@@ -2787,6 +3877,32 @@
         if (window.VNVallAi?.desmontar === desmontar) delete window.VNVallAi;
     }
 
+    function applyReportHandoffIfPresent() {
+        const params = new URLSearchParams(window.location.search || '');
+        const hasQueryFlag = params.get('from') === 'report';
+        const handoff = typeof window.VNConsumeOrionHandoff === 'function' ? window.VNConsumeOrionHandoff() : null;
+        if (hasQueryFlag) {
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('from');
+                window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+            } catch {}
+        }
+        if (!handoff) return;
+        startNewConversation();
+        if (handoff.markdown && typeof File !== 'undefined') {
+            const file = new File([handoff.markdown], handoff.fileName || 'contexto-informe.md', { type: 'text/markdown' });
+            addFiles([file]);
+        }
+        if (handoff.prompt && els.input) {
+            els.input.value = handoff.prompt;
+            resizeInput();
+            if (!busy) setConversationFaceState('listening');
+            els.input.focus();
+            els.input.setSelectionRange(els.input.value.length, els.input.value.length);
+        }
+    }
+
     window.VNVallAi = { desmontar };
     escucharGlobal(session.signal,'abort',()=>{desmontar();els.messages?.replaceChildren();els.history?.replaceChildren();if(els.input)els.input.value='';});
 
@@ -2794,5 +3910,6 @@
     if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
     setSidebarCollapsed(localStorage.getItem(SIDEBAR_KEY) === '1', false);
     renderConversation(); renderHistory(); resizeInput();
+    applyReportHandoffIfPresent();
     syncProfileConversations();
 })();

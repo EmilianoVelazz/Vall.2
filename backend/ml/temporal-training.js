@@ -1,19 +1,28 @@
 'use strict';
-const { fitAutoregressive, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
+const { fitAutoregressive, fitDampedHolt, fitLogReturnReversion, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
 const VERSION = '3.0.0';
 const GRID = Object.freeze([
     { key: 'last_value', window: null, targetMode: 'baseline', ridge: null },
     ...['level', 'change'].flatMap(targetMode => [null, 60].flatMap(window => [.05, .35, 2].map(ridge => ({
         key: `${targetMode}_${window || 'all'}_ridge${ridge}`, window, targetMode, ridge,
     })))),
+    { key: 'damped_holt', window: null, targetMode: 'holt', ridge: null },
+    { key: 'log_ou_all_ridge1', window: null, targetMode: 'log_ou', ridge: 1.0 },
+    { key: 'log_ou_120_ridge1.5', window: 120, targetMode: 'log_ou', ridge: 1.5 },
+    { key: 'log_ou_direct_ridge2.5', window: null, targetMode: 'log_ou_direct', ridge: 2.5 },
+    { key: 'change_weighted_120', window: 120, targetMode: 'change', ridge: 0.75, decay: 0.985 },
 ]);
 const mean = values => values.reduce((sum, value) => sum + value, 0) / values.length;
-function fit(values, config) {
+function fit(values, config, horizon = 1) {
     if (config.targetMode === 'baseline') return null;
-    return fitAutoregressive(config.window ? values.slice(-config.window) : values, config);
+    const slice = config.window ? values.slice(-config.window) : values;
+    if (config.targetMode === 'holt') return fitDampedHolt(slice, { horizon });
+    if (config.targetMode === 'log_ou') return fitLogReturnReversion(slice, { ridge: config.ridge });
+    if (config.targetMode === 'log_ou_direct') return fitLogReturnReversion(slice, { ridge: config.ridge, horizon, direct: true });
+    return fitAutoregressive(slice, { targetMode: config.targetMode, ridge: config.ridge, decay: config.decay || 1 });
 }
 function predict(values, config, horizon) {
-    return config.targetMode === 'baseline' ? values.at(-1) : fit(values, config)?.predictSteps(horizon);
+    return config.targetMode === 'baseline' ? values.at(-1) : fit(values, config, horizon)?.predictSteps(horizon);
 }
 function trainingPoints(points, now = Date.now()) {
     if (!Array.isArray(points)) throw new TypeError('La serie debe ser una lista de observaciones.');
@@ -72,7 +81,7 @@ function trainTemporalModel(points, { horizon = 1, now = Date.now() } = {}) {
     const errorRange = sorted[Math.ceil(sorted.length * .9) - 1];
     const eligible = selected.config.targetMode !== 'baseline' && improvement >= MIN_IMPROVEMENT
         && modelMae <= previousModelMae;
-    const model = fit(values, selected.config), value = predict(values, selected.config, horizon);
+    const model = fit(values, selected.config, horizon), value = predict(values, selected.config, horizon);
     const stable = Number.isFinite(value) && value > 0;
     return {
         eligible: eligible && stable, observations: values.length,

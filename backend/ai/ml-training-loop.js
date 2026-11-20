@@ -58,6 +58,14 @@ const TRAINING_CURRICULUM = [
     { topic: 'South American Protein Exports (Brazil IBGE & Argentina)', wikiEs: 'Industria cárnica en Brasil exportación proteína animal', wikiEn: 'Agriculture in Brazil beef poultry pork exports', domain: 'both', collection: 'markets', reportKey: 'proteins', audience: 'commercial' },
     { topic: 'North American Hog & Cattle Cycles (USDA & StatCan)', wikiEs: 'Ciclo ganadero inventario porcino y bovino América del Norte', wikiEn: 'Livestock cycle cattle hog inventory North America', domain: 'both', collection: 'markets', reportKey: 'proteins', audience: 'purchasing' },
     { topic: 'Statistical Trend, Volatility & OLS Regression Interpretation', wikiEs: 'Regresión lineal mínimos cuadrados volatilidad series temporales', wikiEn: 'Ordinary least squares time series volatility', domain: 'chat', collection: 'finance', reportKey: 'equities', audience: 'finance' },
+    { topic: 'Quantitative Walk-Forward Forecasting & Out-of-Sample MAE Validation', wikiEs: 'Pronóstico de series temporales validación cruzada error absoluto medio', wikiEn: 'Time series forecasting walk-forward validation mean absolute error', domain: 'both', collection: 'finance', reportKey: 'overview', audience: 'finance' },
+    { topic: 'Adaptive Ensemble Weighting: Ridge Autoregression vs Damped Drift', wikiEs: 'Aprendizaje en conjunto regularización de Tikhonov autorregresión', wikiEn: 'Ensemble learning ridge regression autoregressive model', domain: 'both', collection: 'markets', reportKey: 'grains', audience: 'purchasing' },
+    { topic: 'FX Parity & Grain Import Cost Transmission to Mexican Livestock', wikiEs: 'Paridad de poder adquisitivo costo de importación maíz tipo de cambio', wikiEn: 'Exchange rate pass-through agricultural commodity import cost', domain: 'both', collection: 'mexico', reportKey: 'mx_proteins', audience: 'purchasing' },
+    { topic: 'Volatility Regimes, Interval Coverage & Structural Break Detection', wikiEs: 'Volatilidad financiera cambio estructural intervalo de predicción', wikiEn: 'Volatility clustering structural break prediction interval', domain: 'both', collection: 'finance', reportKey: 'fx', audience: 'finance' },
+    { topic: 'Yield Curve Inversion, Real Rate Differentials & Currency Pressure', wikiEs: 'Curva de rendimiento diferencial de tasas de interés tipo de cambio', wikiEn: 'Yield curve interest rate parity exchange rate', domain: 'reports', collection: 'finance', reportKey: 'bonds', audience: 'finance' },
+    { topic: 'Feed Conversion Cost Projection (Corn + Soy Meal) & Margin Sensitivity', wikiEs: 'Alimento balanceado costo de producción pecuaria margen bruto', wikiEn: 'Feed conversion ratio livestock feed cost sensitivity analysis', domain: 'both', collection: 'markets', reportKey: 'proteins', audience: 'operations' },
+    { topic: 'Seasonal Livestock & Grain Cycles vs Short-Horizon Mean Reversion', wikiEs: 'Estacionalidad mercados agrícolas reversión a la media', wikiEn: 'Seasonality agricultural commodities mean reversion', domain: 'both', collection: 'markets', reportKey: 'proteins', audience: 'commercial' },
+    { topic: 'Committee Scenario Design Under Forecast Abstention & Uncertainty Bands', wikiEs: 'Planificación de escenarios toma de decisiones bajo incertidumbre', wikiEn: 'Scenario planning decision making under uncertainty', domain: 'reports', collection: 'mexico', reportKey: 'mx_overview', audience: 'general' },
 ];
 
 const TOPICS = TRAINING_CURRICULUM.map(item => item.topic);
@@ -333,16 +341,23 @@ async function gatherTopicCorpus(spec, projectEvidence) {
     const wikipediaText = await getWikipediaText(spec);
     const reportEvidence = extractPublishedReportEvidence(spec.collection, spec.reportKey);
     const marketSnapshots = extractMarketAndProteinSnapshots();
+    let predictiveShowcaseText = '';
+    try {
+        const { getPredictiveContextForQuery } = require('../ml/predictive-showcase');
+        predictiveShowcaseText = getPredictiveContextForQuery(`${spec.topic} ${spec.collection} ${spec.reportKey}`);
+    } catch { /* opcional */ }
     const sourcesUsed = [
         ...(wikipediaText ? ['wikipedia-es-en'] : []),
         ...(reportEvidence ? [`vallnews-report-${spec.collection}-${spec.reportKey}`] : []),
         ...(marketSnapshots ? ['market-protein-commodity-caches'] : []),
+        ...(predictiveShowcaseText ? ['ml-walk-forward-predictions'] : []),
         ...(projectEvidence ? ['local-approved-evidence'] : []),
     ];
     const text = [
         `MÓDULO DE ENTRENAMIENTO: ${spec.topic} | Dominio objetivo: ${spec.domain} | Audiencia principal: ${spec.audience} | Informe asociado: ${spec.collection}/${spec.reportKey}`,
         reportEvidence,
         marketSnapshots,
+        predictiveShowcaseText,
         wikipediaText ? `LITERATURA Y CONTEXTO PÚBLICO (Wikipedia ES/EN):\n${wikipediaText}` : '',
         projectEvidence ? `ARQUITECTURA Y DICTÁMENES PREVIOS:\n${projectEvidence}` : '',
     ].filter(Boolean).join('\n\n');

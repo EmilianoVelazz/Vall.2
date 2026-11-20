@@ -7,6 +7,7 @@ const { marketProfile } = require('../ml/market-profiles');
 const { learningStore: persistentLearningStore } = require('../ml/forecast-learning-store');
 const { requestedInstruments, marketCountryConflict } = require('./statistical-analysis');
 const { normalizeForIntent } = require('./conversation-context');
+const { buildForecastRecordChart } = require('./analytical-charts');
 const { toLegacyMarkdown } = require('./response-schema');
 const { buildPhysicalForecast } = require('./physical-forecast');
 
@@ -79,6 +80,7 @@ async function loadForecast(instrument, horizon, { get = externalGet, now = Date
     const { value, lowerBound, upperBound, changePct } = assessment.forecast;
     if (![value, lowerBound, upperBound].every(Number.isFinite) || value <= 0) return { ...base, available: false, reason: 'El modelo produjo una estimación inestable o no compatible con una serie de precios.', evaluation };
     return { ...base, available: true, observations: rows.length, lastValue: latest.value,
+        recentSeries: rows.slice(-16),
         prediction: { value, lowerBound: Math.max(0, lowerBound), upperBound, changePct, probabilityUp: null,
             rangeMethod: 'errores fuera de muestra al mismo horizonte' }, evaluation, learning };
 }
@@ -185,6 +187,14 @@ function attachForecastAnalysis(response, analysis) {
     const original = toLegacyMarkdown(response);
     response.blocks.push({ type: 'markdown', content });
     response.markdown = [original, content].filter(Boolean).join('\n\n');
+    if (analysis.available && !response.blocks.some(block => block?.type === 'chart')) {
+        const forecastChart = buildForecastRecordChart(analysis);
+        if (forecastChart) {
+            response.blocks.push({ type: 'chart', spec: forecastChart });
+            response.markdown += `\n\n\`\`\`chart\n${JSON.stringify(forecastChart)}\n\`\`\``;
+            response.meta.verifiedServerChart = true;
+        }
+    }
     return response;
 }
 

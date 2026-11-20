@@ -9,6 +9,7 @@ const { tradeResearchEvidence, researchPeriod } = require('../services/trade-res
 const { issuerResearchEvidence } = require('../services/protein-equities');
 const { rabobankEvidence } = require('../services/rabobank-public');
 const { proteinPriceEvidence, proteinNewsQuery, PRODUCTS } = require('../services/protein-market-intelligence');
+const { resolveProteinFxRates, normalizeProteinPriceToKg, formatNormalizedKgText, fxRatesSummaryLine } = require('../services/protein-unit-normalizer');
 
 const BOND_RULES = [
     { re: /\b(?:10 a[nñ]os?|10y|treasury(?!\s*3\s*meses))\b/i, symbol: '^TNX', label: 'Treasury EE. UU. 10 años', unit: '%' },
@@ -262,7 +263,7 @@ function boundedSource(promise, milliseconds) {
     })]).finally(() => clearTimeout(timer));
 }
 
-async function groundLiveData(plan, message, { mercolleidaClient, tradeClient, rabobankClient, proteinPriceClient, issuerClient, marketGrounder = groundMarketData, sourceTimeoutMs = 10_000 } = {}) {
+async function groundLiveData(plan, message, { mercolleidaClient, tradeClient, rabobankClient, proteinPriceClient, issuerClient, fxRatesClient, fxRates: providedFxRates, marketGrounder = groundMarketData, sourceTimeoutMs = 10_000 } = {}) {
     const tasks = [];
     if (plan.needsTradeResearch) tasks.push(tradeResearchEvidence(plan.tradeResearchQuery || message, tradeClient));
     if (plan.needsMercolleida) tasks.push(mercolleidaEvidence(plan.mercolleidaQuery || message, mercolleidaClient)
@@ -273,13 +274,22 @@ async function groundLiveData(plan, message, { mercolleidaClient, tradeClient, r
     if (plan.needsProteinPrices) tasks.push(proteinPriceEvidence(plan.proteinProfile, proteinPriceClient));
     if (plan.needsIssuerResearch) tasks.push(issuerResearchEvidence(plan.proteinIssuers, issuerClient));
     if (!tasks.length) return null;
-    const settled = await Promise.allSettled(tasks.map(task => boundedSource(task, sourceTimeoutMs)));
+    const shouldResolveFx = plan.needsProteinPrices && !plan.proteinProfile?.futures
+        && (!proteinPriceClient || providedFxRates !== undefined || typeof fxRatesClient === 'function');
+    const fxTask = !shouldResolveFx ? Promise.resolve(null)
+        : providedFxRates !== undefined ? Promise.resolve(providedFxRates)
+            : typeof fxRatesClient === 'function' ? boundedSource(fxRatesClient(), Math.min(sourceTimeoutMs, 2200)).catch(() => null)
+                : resolveProteinFxRates({ timeoutMs: Math.min(sourceTimeoutMs, 1800) }).catch(() => null);
+    const [settled, resolvedFx] = await Promise.all([
+        Promise.allSettled(tasks.map(task => boundedSource(task, sourceTimeoutMs))),
+        fxTask,
+    ]);
     const results = settled.filter(item => item.status === 'fulfilled' && item.value).map(item => item.value);
     if (!results.length) return { context: '[FUENTES NO DISPONIBLES]\nNo se pudieron recuperar los proveedores solicitados. No inventes datos ni atribuyas una postura a esas fuentes.',
         citations: [], sourceCodes: [], warnings: ['No se pudieron consultar las fuentes.'], available: false, strategy: 'sources_unavailable' };
     const failed = settled.filter(item => item.status === 'rejected').length;
-    if (results.length === 1 && !failed) return results[0];
-    return { context: results.map(item => item.context).filter(Boolean).join('\n\n') + (failed ? '\n[COBERTURA PARCIAL]\nAlguna fuente falló; usa los registros recuperados y declara la brecha. No atribuyas información al proveedor que no respondió.' : ''),
+    const merged = results.length === 1 && !failed ? { ...results[0] } : {
+        context: results.map(item => item.context).filter(Boolean).join('\n\n') + (failed ? '\n[COBERTURA PARCIAL]\nAlguna fuente falló; usa los registros recuperados y declara la brecha. No atribuyas información al proveedor que no respondió.' : ''),
         citations: results.flatMap(item => item.citations || []), sourceCodes: [...new Set(results.flatMap(item => item.sourceCodes || []))],
         warnings: [...results.flatMap(item => item.warnings || []), ...(failed ? ['Alguna fuente solicitada no respondió.'] : [])], available: results.some(item => item.available),
         strategy: results.map(item => item.strategy).join('+'), tradeDocuments: results.flatMap(item => item.tradeDocuments || []),
@@ -294,6 +304,19 @@ async function groundLiveData(plan, message, { mercolleidaClient, tradeClient, r
         proteinPrices: results.find(item => item.proteinPrices)?.proteinPrices || null,
         proteinPriceRecords: results.flatMap(item => item.proteinPriceRecords || []),
     };
+    if (resolvedFx?.rates && merged.proteinPriceRecords?.length) {
+        merged.fxRates = resolvedFx;
+        const lines = [];
+        for (const r of merged.proteinPriceRecords) {
+            if (r.currency === 'MXN' && /^MXN\/kg$/i.test(String(r.unit || '').trim())) continue;
+            const norm = normalizeProteinPriceToKg(r, resolvedFx);
+            if (norm) lines.push(`- ${r.product} (${r.country}${r.category ? ` · ${r.category}` : ''}): ${r.priceType === 'reported_range' ? `${r.rangeMin}–${r.rangeMax}` : r.value} ${r.unit} => ${formatNormalizedKgText(norm)}`);
+        }
+        if (lines.length) {
+            merged.context = [merged.context, `[EQUIVALENCIAS NORMALIZADAS A KG (FX REFERENCIAL)]\n${fxRatesSummaryLine(resolvedFx, merged.proteinPriceRecords)}\n${lines.slice(0, 28).join('\n')}`].filter(Boolean).join('\n\n');
+        }
+    }
+    return merged;
 }
 
 module.exports = { groundLiveData, groundMarketData, yahooQuote, rulesForMessage, quoteContext, quoteCitations, liveNews, selectNews, newsContext, gdeltDate };

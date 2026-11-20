@@ -374,6 +374,49 @@ router.get('/admin/loopus-reviews', verifyToken, requireProfileAdmin, async (req
     }
 });
 
+router.get('/admin/loopus-predictions', verifyToken, requireProfileAdmin, async (req, res) => {
+    try {
+        const { loadCachedPredictiveShowcase, buildPredictiveShowcase } = require('../ml/predictive-showcase');
+        const showcase = loadCachedPredictiveShowcase() || await buildPredictiveShowcase({ offlineOnly: true });
+        res.set('Cache-Control', 'private, no-store');
+        res.json({ success: true, showcase });
+    } catch {
+        res.status(503).json({ success: false, error: 'No se pudieron cargar las predicciones y demostraciones de Loopus ML.' });
+    }
+});
+
+router.post('/admin/loopus-predictions/train', verifyToken, requireProfileAdmin, express.json({ limit: '4kb' }), async (req, res) => {
+    try {
+        const offlineOnly = req.body?.offlineOnly === true || process.env.NODE_ENV === 'test';
+        const { buildPredictiveShowcase, distillPredictiveRulesFromShowcase } = require('../ml/predictive-showcase');
+        const { updateReasoningPlaybook } = require('../ai/loopus-knowledge');
+        const { persistRuleProposals } = require('../ai/ml-persistence');
+        const showcase = await buildPredictiveShowcase({ offlineOnly, persistSupabase: !offlineOnly });
+        const rules = distillPredictiveRulesFromShowcase(showcase);
+        const playbookAdded = updateReasoningPlaybook(rules);
+        let persistedRules = 0;
+        if (!offlineOnly && rules.length) {
+            try {
+                persistedRules = await persistRuleProposals(rules.map(r => ({
+                    ...r,
+                    source: {
+                        provider: 'loopus-ml-forecaster-v5',
+                        topic: r.topic,
+                        domain: r.domain,
+                        audience: r.audience,
+                        reasoning_chain: r.reasoning_chain,
+                        collected_at: new Date().toISOString(),
+                    },
+                })), null);
+            } catch { /* Supabase opcional */ }
+        }
+        res.set('Cache-Control', 'private, no-store');
+        res.json({ success: true, showcase, rulesDistilled: rules.length, playbookAdded, persistedRules });
+    } catch (error) {
+        res.status(503).json({ success: false, error: error?.message || 'No se pudo completar el re-entrenamiento predictivo.' });
+    }
+});
+
 router.post('/admin/loopus-proposals/:id/review', verifyToken, requireProfileAdmin, express.json({ limit: '8kb' }), async (req, res) => {
     try {
         const rawId = String(req.params.id || '').trim();

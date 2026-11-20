@@ -6,13 +6,15 @@ const { PRODUCTS, COUNTRIES } = require('../services/protein-market-intelligence
 const { mexicoPriceTable, mexicoTableRecords, matchingProteinRecords, proteinPriceTable } = require('./protein-price-table');
 const { requestedMexicoStates, stateFromMarket } = require('../services/mexico-price-scope');
 const {matchesPresentation}=require('../services/local-commercial-prices');
-const CURRENCIES = 'EUR|USD|MXN|SAR|BRL|GBP|CAD|AUD|NZD|CNY|RMB|JPY|INR|KRW|ARS|CLP|COP|PEN|UYU|PYG|BOB|ZAR|AED|VND|IDR|PHP|EGP|TRY|SGD|MYR|THB|ILS|RUB|UAH|NGN|KES|PKR|BDT|TWD|PLN|DKK|SEK|BGN|CZK|HUF|RON';
-const MONEY = new RegExp('(?:\\d[\\d.,]*\\s*(?:\\p{Sc}|(?:'+CURRENCIES+'|pesos?|euros?|d[oó]lares?|reales?|yuanes?|yenes?)\\b)|\\p{Sc}\\s*\\d|\\b(?:'+CURRENCIES+')\\b[^\\n]{0,60}\\d)','iu');
+const { normalizeProteinPriceToKg } = require('../services/protein-unit-normalizer');
+const CURRENCIES = 'EUR|USD|USX|MXN|SAR|BRL|GBP|CAD|AUD|NZD|CNY|RMB|JPY|INR|KRW|ARS|CLP|COP|PEN|UYU|PYG|BOB|ZAR|AED|VND|IDR|PHP|EGP|TRY|SGD|MYR|THB|ILS|RUB|UAH|NGN|KES|PKR|BDT|TWD|PLN|DKK|SEK|BGN|CZK|HUF|RON';
+const MONEY = new RegExp('(?:\\d[\\d.,]*\\s*(?:(?:US\\s*)?\\p{Sc}|(?:'+CURRENCIES+'|pesos?|euros?|d[oó]lares?|reales?|yuanes?|yenes?)\\b)|\\p{Sc}\\s*\\d|\\b(?:'+CURRENCIES+')\\b[^\\n]{0,60}\\d)','iu');
 const DATE = /\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/.]\d{1,2}[/.]\d{4}|\d{1,2}\s+(?:de\s+)?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+(?:de\s+)?\d{4})\b/i;
 const normalize = value => String(value || '').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
-function quoteMatchesRecord(line, record, citations) {
+function quoteMatchesRecord(line, record, citations, fxRates = null) {
     const product = PRODUCTS.find(p=>p.id === record.productId);
-    const normalized = normalize(line);
+    const visibleLine = String(line || '').replace(/\]\((https?:\/\/[^)]+)\)/g, '](fuente)');
+    const normalized = normalize(visibleLine);
     if (!product?.re.test(normalized) || !line.includes(record.date) || !normalized.includes(normalize(record.currency))) return false;
     const countries = COUNTRIES.filter(country=>country.re.test(normalized) || country.code === 'US' && /\bUSA\b/.test(line));
     if (countries.some(country=>country.code !== record.countryCode)) return false;
@@ -42,21 +44,37 @@ function quoteMatchesRecord(line, record, citations) {
     if(record.commercialStage==='wholesale' && /\b(?:menudeo|venta al publico|retail)\b/.test(normalized)) return false;
     if(record.minOrderKg && !new RegExp('desde\\s+'+String(record.minOrderKg).replace('.','\\.')+'\\s*kg','i').test(normalized)) return false;
     // Examina la celda/fragmento monetario, sin confundir fechas con precios.
-    const fragments = line.includes('|') ? line.split('|').filter(part=>MONEY.test(part)) : [line.replace(DATE,'')];
-    const amounts = fragments.flatMap(part=>[...part.matchAll(/\b\d+(?:[.,]\d+)*/g)].map(match=>{
+    const rawFragments = line.includes('|') ? line.split('|').filter(part=>MONEY.test(part)) : [line.replace(DATE,'')];
+    const isApproxKgCell = part => Boolean(fxRates?.rates) && /^\s*~\s*\d/.test(part) && /\b(?:MXN|USD)\/kg\b/i.test(part);
+    const approxParts = line.includes('|') ? rawFragments.filter(isApproxKgCell) : [];
+    const fragments = line.includes('|') ? rawFragments.filter(part => !isApproxKgCell(part)) : rawFragments;
+    const extractAmounts = list => list.flatMap(part=>[...part.matchAll(/\b\d+(?:[.,]\d+)*/g)].map(match=>{
         const value = match[0];
         return Number(value.includes(',') && value.includes('.') ? value.replace(/,/g,'') : value.replace(',','.'));
     }));
+    const amounts = extractAmounts(fragments);
     const expected = record.priceType === 'reported_range' ? [record.rangeMin,record.rangeMax] : [record.value];
     // Unidades como 100 kg/cwt pueden incluir un número adicional, pero no
     // autorizan otra cifra monetaria en la misma celda.
     const unitNumbers = [...String(record.unit).matchAll(/\b\d+\b/g)].map(match=>Number(match[0]));
-    return expected.every(value=>amounts.some(amount=>Math.abs(amount - Number(value)) < 0.005))
+    const originalValid = expected.every(value=>amounts.some(amount=>Math.abs(amount - Number(value)) < 0.005))
         && amounts.every(amount=>[...expected,...unitNumbers].some(value=>Math.abs(amount - Number(value)) < 0.005));
+    if (!originalValid) return false;
+    if (!approxParts.length) return true;
+    const norm = normalizeProteinPriceToKg(record, fxRates);
+    if (!norm) return false;
+    const allowedApprox = [
+        norm.usdPerKg, norm.mxnPerKg,
+        ...(Array.isArray(norm.usdRange) ? norm.usdRange : []),
+        ...(Array.isArray(norm.mxnRange) ? norm.mxnRange : []),
+    ].filter(v => Number.isFinite(v));
+    const approxAmounts = extractAmounts(approxParts);
+    return approxAmounts.length > 0
+        && approxAmounts.every(amount => allowedApprox.some(target => Math.abs(amount - target) < 0.06));
 }
 
 function guardProteinPrices(plan = {}, evidence = {}, text = '') {
-    if (!(plan.needsProteinPrices || plan.needsProteinResearch) || plan.providedInputsOnly || plan.proteinProfile?.futures) return { text, blocked: false };
+    if (!(plan.needsProteinPrices || plan.needsProteinResearch) || plan.providedInputsOnly || plan.proteinProfile?.futures || plan.asksCoverageExplanation || plan.asksDataInventory) return { text, blocked: false };
     const profile = plan.proteinProfile || { products: [], countries: [] };
     const isMexicoLocal = profile.countries.length === 1 && profile.countries[0] === 'MX' && (!profile.specificPrice || profile.priceBasis === 'live'
         || profile.commercialStages?.length || evidence.proteinPrices?.coverage?.some(report=>report.stage)
@@ -67,9 +85,10 @@ function guardProteinPrices(plan = {}, evidence = {}, text = '') {
         && !plan.asksAnalysis && !plan.asksNews && !plan.needsTradeResearch) {
         return {text:proteinPriceTable(plan,evidence),blocked:false,changed:true};
     }
-    const lines = String(text).split('\n');
+    const proseOnly = String(text || '').replace(/```chart\s*\n[\s\S]*?```/gi, '');
+    const lines = proseOnly.split('\n');
     const rows = lines.filter(line => /^\s*\|/.test(line) && MONEY.test(line));
-    const quoted = (rows.length ? rows : String(text).split(/\n\s*\n/).filter(paragraph => MONEY.test(paragraph)))
+    const quoted = (rows.length ? rows : proseOnly.split(/\n\s*\n/).filter(paragraph => MONEY.test(paragraph)))
         .filter(line=>plan.needsProteinPrices || /(?:\/|por\s+)(?:\s*\d+\s*)?(?:kg|kilos?|docenas?|toneladas?|cwt|lbs?|aves?|piezas?|cajas?|cartones?|charolas?)\b/i.test(line));
     if (!quoted.length) return { text, blocked: false };
     const records = (evidence.proteinPriceRecords || []).filter(record => record.verified
@@ -83,7 +102,7 @@ function guardProteinPrices(plan = {}, evidence = {}, text = '') {
         const visible = line.replace(/\]\(https?:\/\/[^)]+\)/g, '](fuente)');
         // Explicit periods, including historical weekly observations, are valid;
         // an unspecified year or a consultation date is not an observation date. if constat() = row excelente
-        return !DATE.test(visible) || !records.some(record=>quoteMatchesRecord(line,record,evidence.citations || []));
+        return !DATE.test(visible) || !records.some(record=>quoteMatchesRecord(line,record,evidence.citations || [], evidence.fxRates || null));
     });
     if (!invalid) return { text, blocked: false };
     return { blocked: true, text: isMexicoLocal ? mexicoPriceTable(plan, evidence) : proteinPriceTable(plan, evidence) };

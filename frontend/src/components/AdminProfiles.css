@@ -52,6 +52,46 @@
 .ap-tab-btn { padding: .42rem .85rem; border-radius: 999px; border: 1px solid #354c64; background: #142332; color: #afc3d7; font-size: .8rem; font-weight: 600; cursor: pointer; }
 .ap-tab-btn.is-active { background: #1e3a56; border-color: #60a5fa; color: #f0f6fb; }
 .ap-review-issues { margin: 0; padding-left: 1.1rem; display: grid; gap: .25rem; font-size: .8rem; color: #e2edf7; }
+.ap-pred-container { display: grid; gap: 1rem; }
+.ap-pred-asset-bar { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ap-asset-pill { display: grid; gap: .12rem; text-align: left; padding: .5rem .8rem; border-radius: 10px; border: 1px solid #33485e; background: #142332; color: #c8daea; cursor: pointer; min-width: 135px; }
+.ap-asset-pill.is-active { border-color: #38bdf8; background: #1b354f; color: #f0f6fb; }
+.ap-asset-pill strong { font-size: .84rem; color: #f0f6fb; }
+.ap-asset-pill span { font-size: .73rem; color: #9cb3c9; }
+.ap-asset-pill small { font-size: .7rem; color: #8da9c4; }
+.ap-asset-pill small.is-win { color: #6ee7b7; font-weight: 600; }
+.ap-pred-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 1rem; align-items: start; }
+.ap-pred-side { display: grid; gap: 1rem; }
+.ap-pred-card { padding: 1.05rem; border: 1px solid #33485e; border-radius: 14px; background: #142332; display: grid; gap: .8rem; }
+.ap-pred-card h4 { margin: 0; font-size: 1rem; color: #f0f6fb; }
+.ap-pred-sub { margin: 0; font-size: .8rem; color: #9cb3c9; line-height: 1.45; }
+.ap-pred-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.ap-horizon-tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
+.ap-horizon-btn { padding: .35rem .65rem; border-radius: 8px; border: 1px solid #354c64; background: #0f1d2b; color: #afc3d7; font-size: .76rem; font-weight: 600; cursor: pointer; }
+.ap-horizon-btn.is-eligible { border-color: rgba(52, 211, 153, .45); color: #6ee7b7; }
+.ap-horizon-btn.is-active { background: #1e3a56; border-color: #38bdf8; color: #fff; }
+.ap-pred-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .7rem; }
+.ap-pred-stat { padding: .75rem .85rem; border-radius: 10px; background: #0f1d2b; border: 1px solid #293e54; display: grid; gap: .22rem; }
+.ap-pred-stat span { font-size: .72rem; color: #8da9c4; text-transform: uppercase; }
+.ap-pred-stat strong { font-size: 1.05rem; color: #f0f6fb; font-variant-numeric: tabular-nums; }
+.ap-pred-stat small { font-size: .73rem; color: #8da9c4; }
+.ap-pred-stat small.is-up { color: #6ee7b7; font-weight: 600; }
+.ap-pred-stat small.is-down { color: #fca5a5; font-weight: 600; }
+.ap-wf-chart-wrap { padding: .8rem; border-radius: 12px; background: #0d1a26; border: 1px solid #263b50; display: grid; gap: .55rem; }
+.ap-wf-chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; font-size: .78rem; color: #d6e4f0; }
+.ap-wf-legend { display: flex; flex-wrap: wrap; gap: .75rem; font-size: .73rem; }
+.ap-wf-leg-actual { color: #34d399; }
+.ap-wf-leg-pred { color: #38bdf8; }
+.ap-wf-leg-band { color: #7dd3fc; }
+.ap-wf-leg-next { color: #fcd34d; }
+.ap-wf-svg { width: 100%; height: auto; max-height: 235px; display: block; }
+.ap-weight-list { display: grid; gap: .6rem; }
+.ap-weight-item { display: grid; gap: .22rem; }
+.ap-weight-row { display: flex; justify-content: space-between; font-size: .78rem; color: #d8e6f3; }
+.ap-weight-item small { font-size: .71rem; color: #8da9c4; }
+.ap-regime-list { margin: 0; padding: 0; list-style: none; display: grid; gap: .45rem; font-size: .8rem; color: #c7d9ea; }
+.ap-regime-list li { display: flex; justify-content: space-between; gap: .5rem; border-bottom: 1px dashed #25394d; padding-bottom: .3rem; }
+@media(max-width:960px) { .ap-pred-grid { grid-template-columns: 1fr; } }
 @media(max-width:900px) {
   .ap-table-wrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .ap-table-wrap table,.ap-table-wrap tbody { display: block; }

@@ -33,11 +33,12 @@ function cleanSymbol(symbol) {
 
 function dateOnly(value) { return new Date(value).toISOString().slice(0, 10); }
 
-function targetDate(latestDate, intervalCode) {
+function targetDate(latestDate, intervalCode, horizon = 1) {
+    const steps = Math.max(1, Number(horizon) || 1);
     const next = new Date(`${latestDate}T00:00:00.000Z`);
-    if (intervalCode === '1mo') next.setUTCMonth(next.getUTCMonth() + 1);
-    else if (intervalCode === '1wk') next.setUTCDate(next.getUTCDate() + 7);
-    else next.setUTCDate(next.getUTCDate() + 1);
+    if (intervalCode === '1mo') next.setUTCMonth(next.getUTCMonth() + steps);
+    else if (intervalCode === '1wk') next.setUTCDate(next.getUTCDate() + 7 * steps);
+    else next.setUTCDate(next.getUTCDate() + steps);
     return dateOnly(next);
 }
 
@@ -121,15 +122,16 @@ async function evaluateDuePredictions(supabase, symbol, intervalCode) {
     return evaluated;
 }
 
-async function trainForSymbol(rawSymbol, { intervalCode = '1d', repository = null, historyLoader = fetchYahooHistory } = {}) {
+async function trainForSymbol(rawSymbol, { intervalCode = '1d', horizon = 1, repository = null, historyLoader = fetchYahooHistory } = {}) {
     const symbol = cleanSymbol(rawSymbol);
     if (!['1d', '1wk', '1mo'].includes(intervalCode)) throw new Error('Intervalo no permitido; usa 1d, 1wk o 1mo.');
+    const safeHorizon = Math.min(20, Math.max(1, Math.trunc(Number(horizon) || 1)));
     const supabase = repository || getSupabase();
     const observations = await historyLoader(symbol, intervalCode);
     if (!observations.length) throw new Error(`Yahoo Finance no devolvió observaciones para ${symbol}.`);
     const persistedObservations = await persistObservations(supabase, symbol, intervalCode, observations);
     const evaluatedPredictions = await evaluateDuePredictions(supabase, symbol, intervalCode);
-    const assessment = trainTemporalModel(observations.map(point => ({ date: point.observed_at, value: point.value })));
+    const assessment = trainTemporalModel(observations.map(point => ({ date: point.observed_at, value: point.value })), { horizon: safeHorizon });
     const parameters = {
         validation: assessment.evaluation || null, selection: assessment.selection || null, observations: assessment.observations,
         publicationGate: 'Selección temporal separada; MAE de validación supera al último valor por al menos 2% y no empeora el modelo anterior.', reason: assessment.reason || null,
@@ -146,32 +148,39 @@ async function trainForSymbol(rawSymbol, { intervalCode = '1d', repository = nul
         status: assessment.eligible ? 'accepted' : 'rejected_baseline',
     }).select('id').single();
     if (runError) throw runError;
-    if (!assessment.eligible) return { symbol, intervalCode, runId: run.id, persistedObservations, evaluatedPredictions, ...assessment };
+    if (!assessment.eligible) return { symbol, intervalCode, horizon: safeHorizon, runId: run.id, persistedObservations, evaluatedPredictions, ...assessment };
     const forecast = assessment.forecast;
     const latest = observations.at(-1);
     const { data: prediction, error: predictionError } = await supabase.from('forecast_predictions').insert({
         forecast_run_id: run.id, symbol, interval_code: intervalCode, generated_at: new Date().toISOString(),
-        target_at: targetDate(latest.observed_at, intervalCode), horizon_code: '1-step',
+        target_at: targetDate(latest.observed_at, intervalCode, safeHorizon), horizon_code: `${safeHorizon}-step`,
         predicted_value: forecast.value, predicted_change_pct: forecast.changePct,
         lower_bound: forecast.lowerBound, upper_bound: forecast.upperBound,
         probability_up: forecast.probabilityUp, confidence_score: forecast.confidenceScore,
-        explanation: `Pronóstico de un paso con ${assessment.observations} observaciones; publicado porque supera al baseline.`,
+        explanation: `Pronóstico de ${safeHorizon} paso(s) con ${assessment.observations} observaciones; publicado porque supera al baseline.`,
         evidence: { latestObservedAt: latest.observed_at, walkForward: assessment.evaluation, rangeMethod: forecast.rangeMethod },
     }).select('id').single();
     if (predictionError) throw predictionError;
-    return { symbol, intervalCode, runId: run.id, predictionId: prediction.id, persistedObservations,
+    return { symbol, intervalCode, horizon: safeHorizon, runId: run.id, predictionId: prediction.id, persistedObservations,
         evaluatedPredictions, observations: assessment.observations, evaluation: assessment.evaluation, forecast };
 }
 
 async function getLatestAcceptedForecast(rawSymbol) {
     const symbol = cleanSymbol(rawSymbol);
-    const supabase = getSupabase();
-    const { data: predictions, error } = await supabase.from('forecast_predictions')
-        .select('*, forecast_runs!inner(model_name, model_version, status, parameters)')
-        .eq('symbol', symbol).eq('forecast_runs.status', 'accepted')
-        .order('generated_at', { ascending: false }).limit(1);
-    if (error) throw error;
-    return predictions?.[0] || null;
+    try {
+        const supabase = getSupabase();
+        const { data: predictions, error } = await supabase.from('forecast_predictions')
+            .select('*, forecast_runs!inner(model_name, model_version, status, parameters)')
+            .eq('symbol', symbol).eq('forecast_runs.status', 'accepted')
+            .order('generated_at', { ascending: false }).limit(1);
+        if (!error && predictions?.[0]) return predictions[0];
+    } catch { /* fallback a showcase walk-forward local */ }
+    try {
+        const { resolveShowcaseForecastForSymbol } = require('./predictive-showcase');
+        return resolveShowcaseForecastForSymbol(symbol).forecast || null;
+    } catch {
+        return null;
+    }
 }
 
 module.exports = { MODEL_NAME, MODEL_VERSION, trainForSymbol, getLatestAcceptedForecast, fetchYahooHistory };

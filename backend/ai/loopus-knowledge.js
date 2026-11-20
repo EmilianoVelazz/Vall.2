@@ -263,17 +263,26 @@ function getChatReasoningContext({ message = '', plan = {}, limit = 3 } = {}) {
         .map(item => item.rule);
 
     if (!rules.length) return '';
+    let predictiveCtx = '';
+    try {
+        const { getPredictiveContextForQuery } = require('../ml/predictive-showcase');
+        predictiveCtx = getPredictiveContextForQuery(queryText, { stripNumbers: false }) || '';
+    } catch { /* showcase opcional */ }
+
+    const ruleLimit = predictiveCtx ? Math.min(limit, 2) : limit;
     const lines = [
         '[GUÍA DE RACIOCINIO ANALÍTICO · PROYECTO LOOPUS]',
-        'Aplica estos criterios metodológicos para estructurar el razonamiento causal, el cruce de variables y los límites de evidencia (nunca sustituyen ni inventan cifras):',
+        'Aplica estos criterios metodológicos para estructurar raciocinio y límites de evidencia (nunca sustituyen cifras):',
     ];
-    for (const r of rules) {
-        const cond = clean(r.condition_trigger, 120);
-        const crit = clean(r.learned_rule, 200);
-        const chain = r.reasoning_chain ? clean(r.reasoning_chain, 140) : '';
+    for (const r of rules.slice(0, ruleLimit)) {
+        const cond = clean(r.condition_trigger, 100);
+        const crit = clean(r.learned_rule, 155);
+        const chain = r.reasoning_chain ? clean(r.reasoning_chain, 90) : '';
         lines.push(`- Cuando: ${cond} -> Criterio: ${crit}${chain ? ` (Cadena lógica: ${chain})` : ''}`);
     }
-    return lines.join('\n').slice(0, 1800);
+    if (predictiveCtx) lines.push('', predictiveCtx.slice(0, 750));
+    const joined = lines.join('\n');
+    return joined.length <= 1980 ? joined : `${joined.slice(0, 1977).replace(/\n[^\n]*$/, '')}...`.slice(0, 1980);
 }
 
 function getReportReasoningContext({ area = '', key = '', audience = 'general', instructions = '', limit = 3 } = {}) {
@@ -297,6 +306,14 @@ function getReportReasoningContext({ area = '', key = '', audience = 'general', 
             lines.push(`- [${safeCondition}]: ${safeRule}${safeChain ? ` | Secuencia: ${safeChain}` : ''}`);
         }
     }
+    try {
+        const { getPredictiveContextForQuery } = require('../ml/predictive-showcase');
+        const predictiveMethodology = getPredictiveContextForQuery(queryText, { stripNumbers: true });
+        if (predictiveMethodology) {
+            const safeMethod = stripNumbersForReportRule(predictiveMethodology);
+            if (safeMethod) lines.push(safeMethod);
+        }
+    } catch { /* showcase opcional */ }
     return lines.join('\n');
 }
 

@@ -182,11 +182,25 @@ async function main() {
         } = require('../backend/ai/loopus-knowledge');
         const { criticFilterProposals, TRAINING_CURRICULUM } = require('../backend/ai/ml-training-loop');
 
-        assert(TRAINING_CURRICULUM.length >= 30, 'Currículum de al menos 30 módulos');
+        assert(TRAINING_CURRICULUM.length >= 38, 'Currículum ampliado de al menos 38 módulos con pronósticos cuantitativos');
         invalidateReasoningCache();
         const chatCtx = getChatReasoningContext({ message: '¿Cómo afecta el tipo de cambio USD/MXN al costo del maíz importado y el margen?' });
         assert(chatCtx.includes('[GUÍA DE RACIOCINIO ANALÍTICO · PROYECTO LOOPUS]'));
         assert(chatCtx.includes('Cadena lógica:'));
+        assert(chatCtx.includes('[DEMOSTRACIÓN CUANTITATIVA Y PREDICCIONES ML · PROYECTO LOOPUS]'), 'Inyecta demostraciones cuantitativas walk-forward en Chat ORION');
+
+        // 5b. Verificar endpoints de Predicciones y Demostraciones ML (/admin/loopus-predictions)
+        assert.equal((await call('/admin/loopus-predictions', null, userCookie)).status, 403);
+        const predRes = await call('/admin/loopus-predictions', null, adminCookie);
+        assert.equal(predRes.status, 200);
+        const predBody = await predRes.json();
+        assert(predBody.success && predBody.showcase?.assets?.length >= 6, 'Devuelve catálogo de activos entrenados con walk-forward');
+        assert(predBody.showcase?.crossAssetDemo?.outputs?.feedCostMxnTonPredicted > 0, 'Calcula transmisión multivariable a costo de ración pecuaria');
+
+        const trainPredRes = await call('/admin/loopus-predictions/train', { offlineOnly: true }, adminCookie);
+        assert.equal(trainPredRes.status, 200);
+        const trainPredBody = await trainPredRes.json();
+        assert(trainPredBody.success && trainPredBody.showcase?.summary?.totalModelsEvaluated > 0);
 
         // normalizeProposal tolera fechas inválidas sin lanzar RangeError
         assert.doesNotThrow(() => mlPersistence.normalizeProposal({

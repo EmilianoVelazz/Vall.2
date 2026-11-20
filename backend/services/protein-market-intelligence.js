@@ -1,11 +1,13 @@
 'use strict';
 
+const fs = require('node:fs');
+const path = require('node:path');
 const { fetchPublicPage } = require('./mercolleida-public');
 const { researchPeriod } = require('./trade-research');
 const { normalizeForIntent } = require('../ai/conversation-context');
 const { createMexicoPriceClient } = require('./mexico-protein-prices');
 const { createPorciculturaClient } = require('./porcicultura-public');
-const { requestedMexicoStates, requestedMexicoCities } = require('./mexico-price-scope');
+const { requestedMexicoStates, requestedMexicoCities, stateFromMarket } = require('./mexico-price-scope');
 const {createLocalCommercialClient,commercialStagesFor}=require('./local-commercial-prices');
 
 const PRODUCTS = Object.freeze([
@@ -233,7 +235,156 @@ function parseUsPrices(payload, product, period, now = Date.now()) {
 
 function dayMonth(iso) { const [year, month, day] = iso.split('-'); return `${day}/${month}/${year}`; }
 
-function createProteinPriceClient({ fetchPage = fetchPublicPage, now = Date.now, mexicoClient = createMexicoPriceClient({ fetchPage, now }), porciculturaClient = createPorciculturaClient({ fetchPage, now }), localCommercialClient = null } = {}) {
+const REPORT_PROTEIN_CACHE = path.resolve(__dirname, '../cache/market_executive_reports.json');
+const GLOBAL_SNAPSHOT_COUNTRIES = ['US', 'MX', 'BR', 'CA', 'CL', 'CN'];
+
+function mapSnapshotProduct(item) {
+    const text = normalizeForIntent(`${item?.cat || item?.category || ''} ${item?.label || ''}`);
+    if (/\bprocesad/.test(text) || /huevo\s+liquido/.test(text)) return null;
+    if (/\b(?:porcino|cerdo|pork|hog|lechon)\b/.test(text)) return PRODUCTS.find(p => p.id === 'pork') || null;
+    if (/\b(?:vacuno|res|boi|beef|cattle|novill)\b/.test(text)) return PRODUCTS.find(p => p.id === 'beef') || null;
+    if (/\b(?:pollo|ave|broiler|poultry|chicken|pechuga)\b/.test(text)) return PRODUCTS.find(p => p.id === 'poultry') || null;
+    if (/\b(?:huevo|egg)\b/.test(text)) return PRODUCTS.find(p => p.id === 'eggs') || null;
+    return null;
+}
+
+function mapSnapshotCountryCode(item) {
+    const rawCode = String(item?.country || '').trim().toUpperCase();
+    if (/^[A-Z]{2}$/.test(rawCode) && COUNTRIES.some(c => c.code === rawCode)) return rawCode;
+    const countryOnly = normalizeForIntent(item?.country || '');
+    if (/\bunion\s+europea\b|\bue-?27\b/.test(countryOnly)) return null;
+    if (countryOnly) {
+        const direct = COUNTRIES.find(c => countryOnly === normalizeForIntent(c.name) || countryOnly.includes(normalizeForIntent(c.name)));
+        if (direct) return direct.code;
+        if (/\b(?:ee\s*uu|usa|united\s+states)\b/.test(countryOnly)) return 'US';
+        if (/\b(?:uk|united\s+kingdom)\b/.test(countryOnly)) return 'GB';
+    }
+    const text = normalizeForIntent(`${item?.market || ''} ${item?.label || ''}`);
+    const aliases = [
+        ['US', /\b(?:estados\s+unidos|ee\s*uu|usa|usda)\b/],
+        ['MX', /\b(?:mexico|sniim|aguascalientes|ciudad\s+de\s+mexico|rayon)\b/],
+        ['BR', /\b(?:brasil|brazil|cepea|sao\s+paulo|bastos|rio\s+grande)\b/],
+        ['FR', /\b(?:francia|france|rungis|franceagrimer|cholet)\b/],
+        ['ES', /\b(?:espana|spain|bellpuig|lleida|zamora|segovia)\b/],
+        ['DE', /\b(?:alemania|germany|vezg|\bami\b)\b/],
+        ['PL', /\b(?:polonia|poland)\b/],
+        ['CA', /\b(?:canada|quebec)\b/],
+        ['CL', /\b(?:chile|odepa|region\s+metropolitana)\b/],
+        ['CN', /\b(?:china|mara|dalian)\b/],
+        ['AR', /\b(?:argentina|canuelas)\b/],
+        ['CO', /\b(?:colombia|bogota|paloquemao|sipsa)\b/],
+        ['PE', /\b(?:peru|lima|midagri)\b/],
+        ['IT', /\b(?:italia|modena)\b/],
+        ['NL', /\b(?:paises\s+bajos|beursprijs)\b/],
+        ['DK', /\b(?:dinamarca|danish\s+crown)\b/],
+        ['BE', /\b(?:belgica|danis)\b/],
+        ['IE', /\b(?:irlanda|ireland)\b/],
+        ['PT', /\b(?:portugal|montijo)\b/],
+        ['GB', /\b(?:reino\s+unido|ahdb)\b/],
+    ];
+    for (const [code, re] of aliases) {
+        if (re.test(text)) return code;
+    }
+    const found = COUNTRIES.find(c => text.includes(normalizeForIntent(c.name)));
+    return found ? found.code : null;
+}
+
+function loadVerifiedSnapshotRecords({ countries, products, existingRecords, window, profile, now }) {
+    try {
+        if (!fs.existsSync(REPORT_PROTEIN_CACHE)) return [];
+        const payload = JSON.parse(fs.readFileSync(REPORT_PROTEIN_CACHE, 'utf8'));
+        const proteinReport = payload?.reports?.find(r => r.key === 'proteins');
+        const items = Array.isArray(proteinReport?.sourceSnapshot?.proteins) ? proteinReport.sourceSnapshot.proteins : [];
+        const today = new Date(now).toISOString().slice(0, 10);
+        const candidates = [];
+        const stateFilter = Array.isArray(profile?.mexicoStates) && profile.mexicoStates.length ? profile.mexicoStates : null;
+        const cityFilter = Array.isArray(profile?.mexicoCities) && profile.mexicoCities.length ? profile.mexicoCities : null;
+
+        for (const item of items) {
+            if (!item || /^(?:HE|LE|GF)=F$|^LH0$|^JD0$/i.test(item.ticker || '') || /\bfuturos?\b/i.test(item.basis || '')) continue;
+            const date = String(item.observedAt || '');
+            const price = Number(item.value);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < window.start || date > window.end || date > today) continue;
+            if (!Number.isFinite(price) || price <= 0 || !item.source || !/^https?:\/\//i.test(String(item.url || ''))) continue;
+
+            const product = mapSnapshotProduct(item);
+            if (!product || !products.some(p => p.id === product.id)) continue;
+            const countryCode = mapSnapshotCountryCode(item);
+            if (!countryCode || !countries.includes(countryCode)) continue;
+            if (existingRecords.some(r => r.countryCode === countryCode && r.productId === product.id)) continue;
+
+            if (countryCode === 'MX' && (stateFilter || cityFilter)) {
+                const hay = normalizeForIntent(`${item.market || ''} ${item.label || ''}`);
+                const matchesPlace = [...(stateFilter || []), ...(cityFilter || [])].some(p => hay.includes(normalizeForIntent(p)));
+                if (!matchesPlace) continue;
+            }
+
+            const labelNorm = normalizeForIntent(`${item.label || ''} ${item.market || ''}`);
+            const unitStr = String(item.unit || item.currency || '');
+            const priceBasis = /\b(?:canal|cutout|carcass)\b/i.test(`${labelNorm} ${unitStr}`) ? 'carcass'
+                : /\b(?:minorista|supermercado|venta\s+al\s+publico|retail)\b/.test(labelNorm) ? 'retail'
+                    : /\b(?:vivo|en\s+pie|gordo|novillo|cebo)\b/.test(labelNorm) ? 'live'
+                        : product.id === 'eggs' && /\b(?:docenas?|cajas?|piezas?|carton(?:es)?|charolas?)\b/i.test(unitStr) ? 'egg_pack'
+                            : 'wholesale';
+            const commercialStage = priceBasis === 'live' ? 'farm' : priceBasis === 'retail' ? 'retail' : 'wholesale';
+            const currency = /^US¢/i.test(unitStr) ? 'US¢' : (item.currency || 'USD');
+            const priority = (/\b(?:lechon|piglet|desvieje|sow|vaca)\b/.test(labelNorm) ? 0 : 10)
+                + (/\b(?:minorista|supermercado)\b/.test(labelNorm) ? 1 : 3);
+            const countryObj = COUNTRIES.find(c => c.code === countryCode);
+            const countryName = countryObj?.name || countryCode;
+            const rawMarket = String(item.market || countryName);
+            const cleanMarket = rawMarket.replace(new RegExp(`^${countryName}\\s*·\\s*`, 'i'), '').trim() || countryName;
+            const cleanCategory = String(item.label || product.name).replace(/,\s*origen\s+[^·]+/i, '').trim();
+            const stateCode = countryCode === 'MX'
+                ? (stateFromMarket(`${item.market || ''} ${cleanCategory}`)?.code || requestedMexicoStates(`${item.market || ''} ${cleanCategory}`)[0] || null)
+                : null;
+            candidates.push({
+                priority,
+                date,
+                record: {
+                    product: product.name,
+                    productId: product.id,
+                    country: countryName,
+                    countryCode,
+                    stateCode,
+                    market: cleanMarket,
+                    category: cleanCategory,
+                    presentation: cleanCategory,
+                    priceBasis,
+                    commercialStage,
+                    value: price,
+                    price,
+                    currency,
+                    unit: unitStr,
+                    periodStart: date,
+                    date,
+                    frequency: /semanal/i.test(item.cadence || '') ? 'weekly' : 'daily',
+                    basis: item.basis || null,
+                    source: `${item.source} (caché verificado)`,
+                    url: item.url,
+                    verified: true,
+                    origin: 'verified_report_snapshot',
+                },
+            });
+        }
+
+        candidates.sort((a, b) => b.priority - a.priority || b.date.localeCompare(a.date));
+        const seenPairs = new Set();
+        const selected = [];
+        for (const entry of candidates) {
+            const key = `${entry.record.countryCode}:${entry.record.productId}`;
+            if (seenPairs.has(key)) continue;
+            seenPairs.add(key);
+            selected.push(entry.record);
+        }
+        return selected;
+    } catch {
+        return [];
+    }
+}
+
+function createProteinPriceClient({ fetchPage = fetchPublicPage, now = Date.now, mexicoClient = createMexicoPriceClient({ fetchPage, now }), porciculturaClient = createPorciculturaClient({ fetchPage, now }), localCommercialClient = null, disableReportSnapshot = false, enableReportSnapshot } = {}) {
+    const useReportSnapshot = disableReportSnapshot ? false : (typeof enableReportSnapshot === 'boolean' ? enableReportSnapshot : fetchPage === fetchPublicPage);
     const cache = new Map();
     const pending = new Map();
     async function read(url) {
@@ -265,7 +416,11 @@ function createProteinPriceClient({ fetchPage = fetchPublicPage, now = Date.now,
             const latestSnapshot=period.start===period.end && /\b(?:hoy|ahora|actual(?:es)?)\b/i.test(profile.query || '') && !/\d{4}-\d{2}-\d{2}/.test(profile.query || '');
             const window = { start: latestSnapshot ? start : period.start > start ? period.start : start, end: period.end };
             const countries = profile.countries.length && !profile.global ? profile.countries
-                : [...new Set([...profile.countries, ...DEFAULT_EU, ...(profile.european ? [] : ['US'])])];
+                : [...new Set([
+                    ...profile.countries,
+                    ...DEFAULT_EU,
+                    ...(profile.european ? [] : (useReportSnapshot && profile.global ? GLOBAL_SNAPSHOT_COUNTRIES : ['US'])),
+                ])];
             const eu = countries.filter(code => EU_CODES.has(code)).slice(0, 12);
             const products = PRODUCTS.filter(item => profile.products.includes(item.id));
             const tasks = [];
@@ -291,6 +446,24 @@ function createProteinPriceClient({ fetchPage = fetchPublicPage, now = Date.now,
             const fulfilled = settled.filter(item=>item.status === 'fulfilled');
             const records = fulfilled.flatMap(item=>Array.isArray(item.value) ? item.value : item.value.records || []);
             const coverage = fulfilled.flatMap(item=>item.value.coverage || []);
+            if (useReportSnapshot && !profile.specificPrice && !profile.futures && window.start <= window.end) {
+                const recovered = loadVerifiedSnapshotRecords({
+                    countries,
+                    products,
+                    existingRecords: records,
+                    window,
+                    profile,
+                    now: now(),
+                });
+                if (recovered.length) {
+                    records.push(...recovered);
+                    coverage.push({
+                        source: 'Caché ejecutivo verificado de proteínas (CEPEA, FranceAgriMer–RNM, DG AGRI, Mercolleida, USDA, SNIIM, ODEPA)',
+                        recoveredCount: recovered.length,
+                        countries: [...new Set(recovered.map(r => r.countryCode))],
+                    });
+                }
+            }
             const missing = countries.flatMap(code => products.filter(product => !records.some(record => record.countryCode === code && record.productId === product.id))
                 .map(product => `${product.name} / ${COUNTRIES.find(item => item.code === code)?.name || code}`));
             return { records, coverage, period: window, fetchedAt: new Date(now()).toISOString(), missing,

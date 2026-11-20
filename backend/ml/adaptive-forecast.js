@@ -1,13 +1,16 @@
 'use strict';
 
-const { fitAutoregressive, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
+const { fitAutoregressive, fitDampedHolt, fitLogReturnReversion, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
 const { trainingPoints } = require('./temporal-training');
 const { PROFILES, specialisedPredictions } = require('./market-profiles');
 
 const MODEL_VERSION = '5.0.0';
 const METHODS = ['last_value', 'ridge_all', 'ridge_recent60', 'damped_drift20', 'ridge_changes60'];
 const MIN_FEEDBACK = 12;
-const PRIOR = { last_value: .4, ridge_all: .15, ridge_recent60: .15, damped_drift20: .15, ridge_changes60: .15 };
+const PRIOR = {
+    last_value: .34, ridge_all: .14, ridge_recent60: .13, damped_drift20: .10, ridge_changes60: .13,
+    damped_holt: .08, log_ou_reversion: .08,
+};
 const mean = values => values.reduce((sum, value) => sum + value, 0) / values.length;
 const quantile90 = values => [...values].sort((a, b) => a - b)[Math.ceil(values.length * .9) - 1] || 0;
 
@@ -18,8 +21,10 @@ function candidatePredictions(values, horizon, profileId = 'general') {
         last_value: last,
         ridge_all: fitAutoregressive(values)?.predictSteps(horizon),
         ridge_recent60: fitAutoregressive(values.slice(-60))?.predictSteps(horizon),
-        ridge_changes60: fitAutoregressive(values.slice(-60), { targetMode: 'change' })?.predictSteps(horizon),
+        ridge_changes60: fitAutoregressive(values.slice(-60), { targetMode: 'change', decay: 0.985 })?.predictSteps(horizon),
         damped_drift20: last + .5 * horizon * (last - recent[0]) / (recent.length - 1),
+        damped_holt: fitDampedHolt(values, { horizon })?.predictSteps(horizon),
+        log_ou_reversion: fitLogReturnReversion(values, { ridge: 1.0 })?.predictSteps(horizon),
         ...specialisedPredictions(values, horizon, profileId),
     };
     return Object.fromEntries(Object.entries(predictions).filter(([, value]) => Number.isFinite(value) && value > 0));
@@ -56,16 +61,21 @@ function realSamples(feedback, cutoff, knownAt) {
 }
 
 function selectPolicy(policy, candidates, samples) {
-    const paired = samples.slice(-32).filter(row => Number.isFinite(row.policyErrors?.ensemble)
-        && Number.isFinite(row.errors?.ridge_all) && Number.isFinite(row.errors?.last_value));
-    const choices = paired.length < MIN_FEEDBACK ? [] : [
-        { key: 'adaptive_ensemble', mae: mean(paired.map(row => Math.abs(row.policyErrors.ensemble))) },
-        { key: 'ridge_all', mae: mean(paired.map(row => Math.abs(row.errors.ridge_all))) },
-        { key: 'last_value', mae: mean(paired.map(row => Math.abs(row.errors.last_value))) },
-    ].sort((a, b) => a.mae - b.mae);
+    const paired = samples.slice(-32).filter(row => Number.isFinite(row.policyErrors?.ensemble) && row.errors);
+    if (paired.length < MIN_FEEDBACK) {
+        return { ...policy, shadowEnsemble: policy.value, selectedStrategy: 'adaptive_ensemble' };
+    }
+    const ensembleMae = mean(paired.map(row => Math.abs(row.policyErrors.ensemble)));
+    const choices = [{ key: 'adaptive_ensemble', mae: ensembleMae }];
+    for (const key of Object.keys(candidates)) {
+        const vals = paired.map(row => row.errors?.[key]).filter(Number.isFinite);
+        if (vals.length >= MIN_FEEDBACK) {
+            choices.push({ key, mae: mean(vals.map(Math.abs)) });
+        }
+    }
+    choices.sort((a, b) => a.mae - b.mae);
     const best = choices[0];
-    const current = choices.find(row => row.key === 'adaptive_ensemble');
-    if (best && best.key !== 'adaptive_ensemble' && best.mae < current.mae * .98 && candidates[best.key]) return {
+    if (best && best.key !== 'adaptive_ensemble' && best.mae < ensembleMae * .98 && candidates[best.key]) return {
         ...policy, shadowEnsemble: policy.value, value: candidates[best.key], selectedStrategy: best.key,
         weights: Object.fromEntries(Object.keys(candidates).map(key => [key, key === best.key ? 1 : 0])),
         corrections: Object.fromEntries(Object.keys(candidates).map(key => [key, 0])),

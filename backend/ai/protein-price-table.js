@@ -3,6 +3,7 @@
 const { PRODUCTS } = require('../services/protein-market-intelligence');
 const { stateName, stateFromMarket } = require('../services/mexico-price-scope');
 const {matchesPresentation}=require('../services/local-commercial-prices');
+const { normalizeProteinPriceToKg, formatNormalizedKgText, fxRatesSummaryLine } = require('../services/protein-unit-normalizer');
 const cell = value => String(value ?? '—').replace(/[|\r\n]/g, ' ');
 const sourceLabel=record=>record.sourceShort || (record.sourceCode==='porcicultura_live_pork_prices' ? 'Porcicultura.com' : 'SNIIM');
 const isSniim=record=>record.sourceCode==='sniim_mexico_protein_prices' || /^SNIIM/.test(record.source||'');
@@ -29,18 +30,37 @@ function matchingProteinRecords(profile, evidence) {
 function mexicoTableRecords(profile, evidence) {
     return matchingProteinRecords(profile,evidence).filter(record=>record.countryCode==='MX');
 }
+function shouldShowNormalizedColumn(profile = {}, evidence = {}, records = []) {
+    if (!evidence?.fxRates?.rates || !records.length) return false;
+    const hasConvertible = records.some(record => Boolean(normalizeProteinPriceToKg(record, evidence.fxRates)));
+    if (!hasConvertible) return false;
+    return Boolean(profile.global)
+        || (profile.countries || []).some(code => code !== 'MX')
+        || records.some(record => record.currency !== 'MXN' || !/^MXN\/kg$/i.test(String(record.unit || '').trim()));
+}
+
 function proteinPriceTable(plan, evidence) {
     const profile=plan.proteinProfile,records=matchingProteinRecords(profile,evidence);
+    const withNormalized = shouldShowNormalizedColumn(profile, evidence, records);
     const lines=[records.length ? '**Referencias de precios recuperadas.** Cada fila conserva su mercado, presentación y fecha; las unidades y etapas comerciales pueden ser distintas.'
         : '**No pude validar los precios solicitados en esta consulta.** Las noticias y enlaces de investigación no acreditan por sí solos un precio. Estos son los productos pendientes:', '',
-        '| Producto / presentación | País / plaza | Precio / unidad | Fecha del dato | Fuente |',
-        '| --- | --- | --- | --- | --- |'];
+        withNormalized ? '| Producto / presentación | País / plaza | Precio / unidad | Equiv. aprox. (/kg) | Fecha del dato | Fuente |' : '| Producto / presentación | País / plaza | Precio / unidad | Fecha del dato | Fuente |',
+        withNormalized ? '| --- | --- | --- | --- | --- | --- |' : '| --- | --- | --- | --- | --- |'];
     for(const product of PRODUCTS.filter(item=>profile.products.includes(item.id))) {
         const observed=records.filter(record=>record.productId===product.id);
-        for(const record of observed) lines.push(`| ${cell(product.name)} · ${cell(record.category)} | ${cell([record.country,record.market].filter(Boolean).join(' · '))} | ${priceText(record)} | ${cell(record.date)}${record.dateBasis==='catalog_update' ? ' · catálogo' : ''} | [${cell(record.source)}](${record.url}) |`);
-        if(!observed.length)lines.push(`| ${product.name} | ${cell(profile.countries?.join(', ') || 'Sin plaza definida')} | Sin precio verificado | — | — |`);
+        for(const record of observed) {
+            const normCell = withNormalized ? ` ${formatNormalizedKgText(normalizeProteinPriceToKg(record, evidence.fxRates))} |` : '';
+            lines.push(`| ${cell(product.name)} · ${cell(record.category)} | ${cell([record.country,record.market].filter(Boolean).join(' · '))} | ${priceText(record)} |${normCell} ${cell(record.date)}${record.dateBasis==='catalog_update' ? ' · catálogo' : ''} | [${cell(record.source)}](${record.url}) |`);
+        }
+        if(!observed.length)lines.push(`| ${product.name} | ${cell(profile.countries?.join(', ') || 'Sin plaza definida')} | Sin precio verificado |${withNormalized ? ' — |' : ''} — | — |`);
     }
-    if(records.length)lines.push('', 'La fecha es la observación publicada, no una actualización automática al día de hoy. No compares canal, animal en pie, cortes o docenas como si fueran el mismo producto; una referencia publicada tampoco confirma una oferta disponible para tu volumen.');
+    if(records.length) {
+        lines.push('', 'La fecha es la observación publicada, no una actualización automática al día de hoy. No compares canal, animal en pie, cortes o docenas como si fueran el mismo producto; una referencia publicada tampoco confirma una oferta disponible para tu volumen.');
+        if (withNormalized) {
+            const fxNote = fxRatesSummaryLine(evidence.fxRates, records);
+            if (fxNote) lines.push('', fxNote);
+        }
+    }
     lines.push('', !profile.countries?.length ? '¿En qué país necesitas estos precios?'
         : !profile.commercialStages?.length && !profile.priceBasis ? '¿Necesitas precio de productor, mayoreo o venta al público?'
             : 'Para los precios pendientes hace falta una publicación de la plaza y presentación solicitadas; no se completan con precios de otros mercados.');

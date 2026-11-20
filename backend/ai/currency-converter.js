@@ -129,4 +129,4 @@ function conversionAnswer(conversion) {
     return `**${amount} ${conversion.from} = ${result} ${conversion.to}**\n\nCálculo: ${amount} × ${rate} = **${result} ${conversion.to}**.\n\nTipo de cambio de referencia: **1 ${conversion.from} = ${rate} ${conversion.to}**. Fuente: ${conversion.source}${conversion.updatedAt ? `; actualización del proveedor: ${conversion.updatedAt}.` : ''}\n\n> [!TIP] Bancos, tarjetas y casas de cambio pueden aplicar una comisión o spread distinto a esta referencia.`;
 }
 
-module.exports = { parseCurrencyConversion, parseCurrencyPair, calculateConversion, resolveCurrencyConversion, getCurrencyQuote, conversionContext, isSimpleCurrencyConversion, conversionAnswer };
+module.exports = { parseCurrencyConversion, parseCurrencyPair, calculateConversion, resolveCurrencyConversion, getCurrencyQuote, conversionContext, isSimpleCurrencyConversion, conversionAnswer, latestRates };

@@ -50,10 +50,165 @@ const confidencePercent = score => {
   return Math.max(0, Math.min(100, pct));
 };
 
+const METHOD_LABELS = {
+  last_value: 'Persistencia (último valor)',
+  ridge_all: 'Ridge Autorregresivo (histórico completo)',
+  ridge_recent60: 'Ridge Autorregresivo (ventana 60)',
+  ridge_changes60: 'Ridge Ponderado sobre Diferencias (ventana 60)',
+  damped_drift20: 'Deriva Amortiguada (20 pasos)',
+  damped_holt: 'Suavizamiento Exponencial Holt Amortiguado',
+  log_ou_reversion: 'Reversión Estocástica Ornstein-Uhlenbeck (Log Ridge)',
+  damped_holt_smoothing: 'Suavizamiento Exponencial Holt Amortiguado',
+  log_ou_mean_reversion_ridge: 'Reversión Estocástica OU (Log Ridge)',
+  fx_log_drift20: 'Deriva Logarítmica Cambiaria (FX)',
+  fx_ou_ema20: 'Reversión Exponencial FX EMA-20',
+  grain_damped60: 'Tendencia Amortiguada de Granos (60)',
+  grain_seasonal252: 'Estacionalidad Agrícola Anual (252)',
+  grain_reversion60: 'Reversión a la Media de Granos (60)',
+  protein_reversion60: 'Reversión a la Media Pecuaria (60)',
+  protein_ema20: 'Tendencia Exponencial Pecuaria EMA-20',
+  general_ema20: 'Reversión Exponencial EMA-20',
+  physical_level20: 'Nivel Físico Promedio (20)',
+  physical_level12: 'Nivel Físico Semanal (12)',
+  physical_seasonal52: 'Estacionalidad Semanal (52)',
+};
+
+const fmtNum = (val, digits = 2) => {
+  const n = Number(val);
+  return Number.isFinite(n) ? n.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: digits }) : '—';
+};
+
+function WalkForwardChart({ trace = [], forecast = null, unit = '' }) {
+  if (!Array.isArray(trace) || trace.length < 3) return null;
+  const W = 680;
+  const H = 220;
+  const PAD_L = 54;
+  const PAD_R = 24;
+  const PAD_T = 18;
+  const PAD_B = 34;
+
+  const points = trace.map((t, idx) => ({
+    idx,
+    date: t.targetDate,
+    actual: Number(t.actual),
+    predicted: Number(t.predicted),
+    lower: Number(t.lowerBound),
+    upper: Number(t.upperBound),
+  })).filter(p => Number.isFinite(p.actual) && Number.isFinite(p.predicted));
+
+  if (points.length < 3) return null;
+
+  const hasNext = Number.isFinite(Number(forecast?.value));
+  const totalCount = points.length + (hasNext ? 1 : 0);
+  const allVals = points.flatMap(p => [p.actual, p.predicted, p.lower, p.upper]).filter(Number.isFinite);
+  if (hasNext) {
+    allVals.push(Number(forecast.value));
+    if (Number.isFinite(Number(forecast.lowerBound))) allVals.push(Number(forecast.lowerBound));
+    if (Number.isFinite(Number(forecast.upperBound))) allVals.push(Number(forecast.upperBound));
+  }
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const span = Math.max(maxV - minV, 1e-6);
+
+  const xAt = i => PAD_L + (i / Math.max(1, totalCount - 1)) * (W - PAD_L - PAD_R);
+  const yAt = v => PAD_T + (1 - (v - minV) / span) * (H - PAD_T - PAD_B);
+
+  const upperPts = points.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.upper).toFixed(1)}`);
+  const lowerPts = [...points].reverse().map((p, revIdx) => {
+    const i = points.length - 1 - revIdx;
+    return `${xAt(i).toFixed(1)},${yAt(p.lower).toFixed(1)}`;
+  });
+  const bandPolygon = [...upperPts, ...lowerPts].join(' ');
+  const actualLine = points.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.actual).toFixed(1)}`).join(' ');
+  const predLine = points.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.predicted).toFixed(1)}`).join(' ');
+
+  const lastPt = points.at(-1);
+  const nextX = xAt(points.length);
+  const nextY = hasNext ? yAt(Number(forecast.value)) : null;
+
+  return (
+    <div className="ap-wf-chart-wrap">
+      <div className="ap-wf-chart-head">
+        <strong>Demostración Walk-Forward Fuera de Muestra (Real vs Predicción ML y Banda P90)</strong>
+        <div className="ap-wf-legend">
+          <span className="ap-wf-leg-actual">● Observado real</span>
+          <span className="ap-wf-leg-pred">● Predicción ML</span>
+          <span className="ap-wf-leg-band">■ Banda de error fuera de muestra</span>
+          {hasNext && <span className="ap-wf-leg-next">◆ Proyección activa</span>}
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="ap-wf-svg" role="img" aria-label="Gráfica de validación walk-forward real vs predicción">
+        {[0, 0.5, 1].map((t, idx) => {
+          const val = maxV - t * span;
+          const y = PAD_T + t * (H - PAD_T - PAD_B);
+          return (
+            <g key={idx}>
+              <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y} stroke="#284057" strokeDasharray="3 3" />
+              <text x={PAD_L - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#8da9c4">
+                {fmtNum(val, 2)}
+              </text>
+            </g>
+          );
+        })}
+        <polygon points={bandPolygon} fill="rgba(56, 189, 248, 0.14)" stroke="none" />
+        <polyline fill="none" stroke="#34d399" strokeWidth="2.2" points={actualLine} />
+        <polyline fill="none" stroke="#38bdf8" strokeWidth="2" strokeDasharray="5 3" points={predLine} />
+        {points.map((p, i) => (
+          <g key={p.date}>
+            <circle cx={xAt(i)} cy={yAt(p.actual)} r="3" fill="#34d399">
+              <title>{`${p.date} · Real: ${fmtNum(p.actual, 4)} ${unit} | Pred: ${fmtNum(p.predicted, 4)} ${unit}`}</title>
+            </circle>
+            <circle cx={xAt(i)} cy={yAt(p.predicted)} r="2.6" fill="#38bdf8" />
+            {(i === 0 || i === Math.floor(points.length / 2) || i === points.length - 1) && (
+              <text x={xAt(i)} y={H - 10} textAnchor="middle" fontSize="10" fill="#8da9c4">
+                {p.date}
+              </text>
+            )}
+          </g>
+        ))}
+        {hasNext && lastPt && (
+          <g>
+            {Number.isFinite(Number(forecast.lowerBound)) && Number.isFinite(Number(forecast.upperBound)) && (
+              <line
+                x1={nextX}
+                y1={yAt(Number(forecast.upperBound))}
+                x2={nextX}
+                y2={yAt(Number(forecast.lowerBound))}
+                stroke="#fbbf24"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+            )}
+            <line
+              x1={xAt(points.length - 1)}
+              y1={yAt(lastPt.actual)}
+              x2={nextX}
+              y2={nextY}
+              stroke="#fbbf24"
+              strokeWidth="2"
+              strokeDasharray="3 3"
+            />
+            <circle cx={nextX} cy={nextY} r="4.5" fill="#fbbf24" stroke="#0f1d2b" strokeWidth="1.5">
+              <title>{`Proyección h=${forecast.horizon}: ${fmtNum(forecast.value, 4)} ${unit}`}</title>
+            </circle>
+            <text x={nextX} y={H - 10} textAnchor="end" fontSize="10" fontWeight="700" fill="#fcd34d">
+              +{forecast.horizon}p
+            </text>
+          </g>
+        )}
+      </svg>
+    </div>
+  );
+}
+
 export default function AdminLoopus() {
   const [view, setView] = useState('rules');
   const [rows, setRows] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [showcase, setShowcase] = useState(null);
+  const [selectedSymbol, setSelectedSymbol] = useState('ZC=F');
+  const [selectedHorizon, setSelectedHorizon] = useState(3);
+  const [trainingPredictions, setTrainingPredictions] = useState(false);
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('pending_human_review');
   const [domainFilter, setDomainFilter] = useState('');
@@ -76,6 +231,30 @@ export default function AdminLoopus() {
     const controller = new AbortController();
     setLoading(true);
     setError('');
+    if (view === 'predictions') {
+      apiGet('/api/admin/loopus-predictions', { signal: controller.signal })
+        .then(({ ok, data }) => {
+          if (!ok || !data?.success) throw Error(data?.error || 'No se pudieron cargar las predicciones de Loopus ML.');
+          const sc = data.showcase || null;
+          setShowcase(sc);
+          if (sc?.assets?.length) {
+            setSelectedSymbol(cur => {
+              const found = sc.assets.find(a => a.symbol === cur) || sc.assets[0];
+              const bestH = found.horizons?.find(h => h.eligible) || found.horizons?.[0];
+              if (bestH) setSelectedHorizon(bestH.horizon);
+              return found.symbol;
+            });
+          }
+        })
+        .catch(e => {
+          if (!controller.signal.aborted) setError(e.message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+      return () => controller.abort();
+    }
+
     if (view === 'reviews') {
       apiGet('/api/admin/loopus-reviews?limit=30', { signal: controller.signal })
         .then(({ ok, data }) => {
@@ -162,6 +341,31 @@ export default function AdminLoopus() {
     }
   }
 
+  async function retrainPredictions() {
+    if (trainingPredictions || savingId !== null || batchApproving) return;
+    setTrainingPredictions(true);
+    setError('');
+    setNotice('');
+    try {
+      const { ok, data } = await apiPost('/api/admin/loopus-predictions/train', {}, { timeoutMs: 90_000 });
+      if (!ok || !data?.success) throw Error(data?.error || 'No se pudo ejecutar el entrenamiento predictivo.');
+      if (data.showcase) setShowcase(data.showcase);
+      setNotice(
+        `Modelos predictivos re-entrenados (${data.showcase?.summary?.eligibleModelsCount || 0}/${data.showcase?.summary?.totalModelsEvaluated || 0} horizontes superan baseline; +${data.rulesDistilled || 0} reglas cuantitativas destiladas).`
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setTrainingPredictions(false);
+    }
+  }
+
+  const activeAsset = showcase?.assets?.find(a => a.symbol === selectedSymbol) || showcase?.assets?.[0] || null;
+  const activeHorizonModel = activeAsset?.horizons?.find(h => h.horizon === Number(selectedHorizon))
+    || activeAsset?.horizons?.find(h => h.eligible)
+    || activeAsset?.horizons?.[0]
+    || null;
+
   return (
     <section className="ap-profiles" aria-label="Revisión de Proyecto Loopus">
       <div className="ap-intro">
@@ -186,6 +390,15 @@ export default function AdminLoopus() {
               onClick={() => setView('reviews')}
             >
               Auditorías de mercado {stats?.reviewsCount != null ? `(${stats.reviewsCount})` : ''}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'predictions'}
+              className={`ap-tab-btn${view === 'predictions' ? ' is-active' : ''}`}
+              onClick={() => setView('predictions')}
+            >
+              Predicciones y Demostraciones ML {showcase?.summary ? `(${showcase.summary.eligibleModelsCount}/${showcase.summary.totalModelsEvaluated})` : ''}
             </button>
           </div>
         </div>
@@ -234,6 +447,25 @@ export default function AdminLoopus() {
               onClick={() => setRevision(v => v + 1)}
             >
               Actualizar
+            </button>
+          </div>
+        ) : view === 'predictions' ? (
+          <div className="ap-actions">
+            <button
+              type="button"
+              className="ac-btn"
+              disabled={loading || trainingPredictions}
+              onClick={() => void retrainPredictions()}
+            >
+              {trainingPredictions ? 'Entrenando modelos walk-forward…' : 'Re-entrenar Modelos ML'}
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading || trainingPredictions}
+              onClick={() => setRevision(v => v + 1)}
+            >
+              Recargar demostraciones
             </button>
           </div>
         ) : (
@@ -441,6 +673,236 @@ export default function AdminLoopus() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {view === 'predictions' && !loading && showcase && (
+        <div className="ap-pred-container" aria-label="Laboratorio de Predicciones y Demostraciones ML">
+          <div className="ap-loopus-kpis" aria-label="KPIs Predictivos Walk-Forward">
+            <article className="ap-loopus-kpi">
+              <span>Horizontes Validados</span>
+              <strong>{showcase.summary?.eligibleModelsCount || 0} / {showcase.summary?.totalModelsEvaluated || 0}</strong>
+              <small>Superan baseline fuera de muestra (MAE)</small>
+            </article>
+            <article className="ap-loopus-kpi">
+              <span>Mejora Media vs Baseline</span>
+              <strong>+{fmtNum(showcase.summary?.avgImprovementPct, 2)}%</strong>
+              <small>Reducción de error absoluto medio</small>
+            </article>
+            <article className="ap-loopus-kpi">
+              <span>Precisión Direccional</span>
+              <strong>{fmtNum(showcase.summary?.avgDirectionAccuracyPct, 1)}%</strong>
+              <small>Acierto de signo en validación walk-forward</small>
+            </article>
+            <article className="ap-loopus-kpi">
+              <span>Cobertura de Rango (P90)</span>
+              <strong>{showcase.summary?.avgIntervalCoveragePct != null ? `${fmtNum(showcase.summary.avgIntervalCoveragePct, 1)}%` : '—'}</strong>
+              <small>Observaciones dentro de banda empírica</small>
+            </article>
+          </div>
+
+          <div className="ap-pred-asset-bar" role="tablist" aria-label="Activos entrenados">
+            {(showcase.assets || []).map(asset => {
+              const wins = (asset.horizons || []).filter(h => h.eligible).length;
+              return (
+                <button
+                  key={asset.symbol}
+                  type="button"
+                  className={`ap-asset-pill${activeAsset?.symbol === asset.symbol ? ' is-active' : ''}`}
+                  onClick={() => {
+                    setSelectedSymbol(asset.symbol);
+                    const pref = asset.horizons?.find(h => h.eligible) || asset.horizons?.[0];
+                    if (pref) setSelectedHorizon(pref.horizon);
+                  }}
+                >
+                  <strong>{asset.symbol}</strong>
+                  <span>{asset.label.split('·')[0].trim()}</span>
+                  <small className={wins > 0 ? 'is-win' : ''}>{wins}/{asset.horizons?.length || 0} aptos</small>
+                </button>
+              );
+            })}
+          </div>
+
+          {activeAsset && activeHorizonModel && (
+            <div className="ap-pred-grid">
+              <div className="ap-pred-card ap-pred-card--main">
+                <div className="ap-pred-card-head">
+                  <div>
+                    <div className="ap-loopus-pills">
+                      <span className="ap-pill ap-pill--domain-both">{activeAsset.category}</span>
+                      <span className="ap-pill ap-pill--model">{activeAsset.source}</span>
+                      <span className="ap-pill">Corte: {activeAsset.cutoff} ({activeAsset.observations} obs.)</span>
+                    </div>
+                    <h4>{activeAsset.label} ({activeAsset.symbol})</h4>
+                  </div>
+                  <div className="ap-horizon-tabs" role="group" aria-label="Horizonte de pronóstico">
+                    {(activeAsset.horizons || []).map(h => (
+                      <button
+                        key={h.horizon}
+                        type="button"
+                        className={`ap-horizon-btn${activeHorizonModel.horizon === h.horizon ? ' is-active' : ''}${h.eligible ? ' is-eligible' : ''}`}
+                        onClick={() => setSelectedHorizon(h.horizon)}
+                      >
+                        h={h.horizon} ({activeAsset.interval}) {h.eligible ? '✓' : '·'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="ap-pred-numbers">
+                  <div className="ap-pred-stat">
+                    <span>Último cierre verificado</span>
+                    <strong>{fmtNum(activeAsset.lastValue, 4)} <small>{activeAsset.unit}</small></strong>
+                  </div>
+                  <div className="ap-pred-stat">
+                    <span>Proyección ML (h={activeHorizonModel.horizon})</span>
+                    <strong>
+                      {activeHorizonModel.forecast ? `${fmtNum(activeHorizonModel.forecast.value, 4)} ` : 'Abstención '}
+                      <small>{activeHorizonModel.forecast ? activeAsset.unit : ''}</small>
+                    </strong>
+                    {activeHorizonModel.forecast && (
+                      <small className={activeHorizonModel.forecast.changePct >= 0 ? 'is-up' : 'is-down'}>
+                        {activeHorizonModel.forecast.changePct >= 0 ? '+' : ''}{fmtNum(activeHorizonModel.forecast.changePct, 2)}% esperado
+                      </small>
+                    )}
+                  </div>
+                  <div className="ap-pred-stat">
+                    <span>Banda Fuera de Muestra (P90)</span>
+                    <strong>
+                      {activeHorizonModel.forecast
+                        ? `${fmtNum(activeHorizonModel.forecast.lowerBound, 3)} – ${fmtNum(activeHorizonModel.forecast.upperBound, 3)}`
+                        : '—'}
+                    </strong>
+                    <small>{activeAsset.unit} (errores históricos conocidos)</small>
+                  </div>
+                  <div className="ap-pred-stat">
+                    <span>Validación MAE (Modelo vs Baseline)</span>
+                    <strong>{fmtNum(activeHorizonModel.evaluation?.modelMae, 4)} vs {fmtNum(activeHorizonModel.evaluation?.baselineMae, 4)}</strong>
+                    <small className={activeHorizonModel.eligible ? 'is-up' : ''}>
+                      {activeHorizonModel.eligible
+                        ? `Supera baseline (+${fmtNum(activeHorizonModel.evaluation?.improvementPct, 2)}% | Dir: ${fmtNum(activeHorizonModel.evaluation?.directionAccuracyPct, 1)}%)`
+                        : (activeHorizonModel.reason || 'Abstención prudente: no supera el umbral de 2% vs último valor')}
+                    </small>
+                  </div>
+                </div>
+
+                <WalkForwardChart
+                  trace={activeHorizonModel.validationTrace}
+                  forecast={activeHorizonModel.forecast}
+                  unit={activeAsset.unit}
+                />
+              </div>
+
+              <div className="ap-pred-side">
+                <div className="ap-pred-card">
+                  <h4>Pesos Aprendidos del Ensamble Adaptativo</h4>
+                  <p className="ap-pred-sub">
+                    Motor activo: <code>{activeHorizonModel.selectedStrategy}</code> (v{activeHorizonModel.modelVersion})
+                  </p>
+                  {activeHorizonModel.ensembleWeights ? (
+                    <div className="ap-weight-list">
+                      {Object.entries(activeHorizonModel.ensembleWeights)
+                        .sort(([, a], [, b]) => Number(b) - Number(a))
+                        .map(([method, weight]) => {
+                          const pct = Math.round(Number(weight) * 1000) / 10;
+                          const candidateVal = activeHorizonModel.candidateForecasts?.[method];
+                          const biasVal = activeHorizonModel.biasCorrections?.[method];
+                          return (
+                            <div key={method} className="ap-weight-item">
+                              <div className="ap-weight-row">
+                                <span>{METHOD_LABELS[method] || method}</span>
+                                <strong>{pct}%</strong>
+                              </div>
+                              <div className="ap-confidence-bar">
+                                <span style={{ width: `${Math.min(100, pct)}%` }} className={pct >= 20 ? 'is-high' : 'is-mid'} />
+                              </div>
+                              {candidateVal != null && (
+                                <small>
+                                  Estimación: {fmtNum(candidateVal, 4)} {activeAsset.unit}
+                                  {biasVal ? ` · Ajuste sesgo: ${biasVal >= 0 ? '+' : ''}${fmtNum(biasVal, 4)}` : ''}
+                                </small>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <p className="ap-pred-sub">Selección por malla cronológica Ridge (`temporal_grid_ridge`).</p>
+                  )}
+                </div>
+
+                {activeAsset.regime && (
+                  <div className="ap-pred-card">
+                    <h4>Régimen Cuantitativo de Mercado</h4>
+                    <div className="ap-loopus-pills">
+                      <span className="ap-pill ap-pill--domain-chat">{activeAsset.regime.regimeLabel}</span>
+                      <span className="ap-pill ap-pill--audience">{activeAsset.regime.trendLabel}</span>
+                    </div>
+                    <ul className="ap-regime-list">
+                      <li><span>Promedio 20 / 60 pasos:</span> <strong>{fmtNum(activeAsset.regime.mean20, 3)} / {fmtNum(activeAsset.regime.mean60, 3)}</strong></li>
+                      <li><span>Volatilidad 20p / 60p:</span> <strong>{fmtNum(activeAsset.regime.volatility20Pct, 2)}% / {fmtNum(activeAsset.regime.volatility60Pct, 2)}% (ratio {fmtNum(activeAsset.regime.volatilityRatio, 2)}x)</strong></li>
+                      <li><span>Z-Score (20 pasos):</span> <strong>{fmtNum(activeAsset.regime.zScore20, 2)} σ</strong></li>
+                      <li><span>Momentum (20 pasos):</span> <strong>{activeAsset.regime.momentum20Pct >= 0 ? '+' : ''}{fmtNum(activeAsset.regime.momentum20Pct, 2)}%</strong></li>
+                      <li><span>Autocorrelación retorno (Lag-1):</span> <strong>{fmtNum(activeAsset.regime.returnAutocorrLag1, 3)}</strong></li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {showcase.crossAssetDemo && (
+            <div className="ap-pred-card ap-pred-card--cross">
+              <h4>{showcase.crossAssetDemo.title}</h4>
+              <p className="ap-pred-sub">
+                Fórmula encadenada: <code>{showcase.crossAssetDemo.formula}</code> · Conecta pronósticos cuantitativos con decisiones de compras pecuarias e informes ejecutivos.
+              </p>
+              <div className="ap-loopus-kpis">
+                <article className="ap-loopus-kpi">
+                  <span>Ración Balanceada Spot</span>
+                  <strong>${fmtNum(showcase.crossAssetDemo.outputs?.feedCostMxnTonSpot, 2)} MXN/t</strong>
+                  <small>70% Maíz + 30% Soya al tipo de cambio actual</small>
+                </article>
+                <article className="ap-loopus-kpi">
+                  <span>Ración Proyectada ML</span>
+                  <strong>${fmtNum(showcase.crossAssetDemo.outputs?.feedCostMxnTonPredicted, 2)} MXN/t</strong>
+                  <small>Variación proyectada: {showcase.crossAssetDemo.outputs?.feedCostChangePct >= 0 ? '+' : ''}{fmtNum(showcase.crossAssetDemo.outputs?.feedCostChangePct, 2)}%</small>
+                </article>
+                <article className="ap-loopus-kpi">
+                  <span>Banda Estrés P90 (Alimento)</span>
+                  <strong>${fmtNum(showcase.crossAssetDemo.outputs?.feedCostMxnTonStressBand, 2)} MXN/t</strong>
+                  <small>Techo de cobertura cambiaria + granos</small>
+                </article>
+                <article className="ap-loopus-kpi">
+                  <span>Costo Alimento / kg Vivo</span>
+                  <strong>Cerdo: ${fmtNum(showcase.crossAssetDemo.outputs?.estimatedPorkFeedCostMxnKgLive, 2)} · Pollo: ${fmtNum(showcase.crossAssetDemo.outputs?.estimatedPoultryFeedCostMxnKgLive, 2)}</strong>
+                  <small>Conversión FCR 2.85x (cerdo) y 1.72x (pollo)</small>
+                </article>
+              </div>
+              <div className="ap-table-wrap" style={{ marginTop: '.75rem' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Escenario Cuantitativo</th>
+                      <th scope="col">Costo Ración (MXN/ton)</th>
+                      <th scope="col">Paridad Porcina CME (MXN/kg)</th>
+                      <th scope="col">Mecanismo de Transmisión</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(showcase.crossAssetDemo.scenarios || []).map((sc, i) => (
+                      <tr key={i}>
+                        <th scope="row"><strong>{sc.name}</strong></th>
+                        <td data-label="Costo Ración">${fmtNum(sc.feedMxnTon, 2)} MXN/t</td>
+                        <td data-label="Paridad Porcina">${fmtNum(sc.porkParityMxnKg, 2)} MXN/kg</td>
+                        <td data-label="Mecanismo">{sc.driver}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>

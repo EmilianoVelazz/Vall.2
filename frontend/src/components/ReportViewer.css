@@ -56,9 +56,16 @@
 .erh-studio .erh-report-surface :is(summary,button,input,a):focus-visible { outline:2px solid #a1c4ff; outline-offset:3px; }
 .erh-studio .erh-reader-ask-toggle[aria-expanded=true] { background:#2c435e; border-color:#5b85b2; color:#fff; }
 .erh-studio .erh-reader-assistant { margin:0 22px 18px; padding:18px 20px; border:1px solid #35475e; border-radius:14px; background:#0d1a2b; color:#dce7f4; display:grid; gap:14px; }
-.erh-studio .erh-reader-assistant-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.erh-studio .erh-reader-assistant-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; }
 .erh-studio .erh-reader-assistant-badge { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#8ec1ff; letter-spacing:.02em; text-transform:uppercase; }
 .erh-studio .erh-reader-assistant-head p { margin:5px 0 0; color:#a8bbd1; font-size:12px; line-height:1.5; }
+.erh-studio .erh-reader-assistant-head-actions { display:flex; align-items:center; gap:8px; flex:none; }
+.erh-studio .erh-reader-orion-btn,
+.erh-studio .erh-reader-orion-cta { display:inline-flex; align-items:center; gap:7px; min-height:32px; padding:6px 12px; border:1px solid #4c83c3; border-radius:8px; background:rgba(37, 99, 235, .2); color:#dbeafe; font-size:12px; font-weight:600; cursor:pointer; transition:background-color .16s ease, border-color .16s ease, color .16s ease; }
+.erh-studio .erh-reader-orion-btn:is(:hover, :focus-visible),
+.erh-studio .erh-reader-orion-cta:is(:hover, :focus-visible) { background:#2563eb; border-color:#7fb4ff; color:#fff; }
+.erh-studio .erh-reader-orion-btn:disabled,
+.erh-studio .erh-reader-orion-cta:disabled { opacity:.55; cursor:not-allowed; }
 .erh-studio .erh-reader-assistant-close { width:32px; height:32px; border:1px solid #35475e; border-radius:8px; background:#142438; color:#b8cae0; cursor:pointer; flex:none; }
 .erh-studio .erh-reader-assistant-presets { display:flex; flex-wrap:wrap; gap:8px; }
 .erh-studio .erh-reader-assistant-presets button { min-height:32px; padding:6px 11px; font-size:11px; border-radius:999px; }
@@ -77,9 +84,12 @@
 .erh-studio .erh-reader-assistant-points { margin:0; padding-left:18px; display:grid; gap:5px; font-size:12.5px; color:#c8d8eb; }
 .erh-studio .erh-reader-assistant-gaps { padding:10px 12px; border-left:3px solid #d4a656; background:#17273b; font-size:12px; color:#edd29c; }
 .erh-studio .erh-reader-assistant-gaps ul { margin:6px 0 0; padding-left:18px; }
+.erh-studio .erh-reader-assistant-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding-top:4px; flex-wrap:wrap; }
 @media(max-width:760px) {
  .erh-studio .erh-reader-assistant { margin:0 16px 14px; padding:14px; }
  .erh-studio .erh-reader-assistant-form { flex-direction:column; align-items:stretch; }
+ .erh-studio .erh-reader-assistant-actions { justify-content:stretch; }
+ .erh-studio .erh-reader-orion-cta { width:100%; justify-content:center; }
  .erh-studio .erh-report-surface .erh-workbar { align-items:flex-start; flex-direction:column; gap:16px; padding:18px 16px; }
  .erh-studio .erh-report-surface .erh-workbar-actions { width:100%; justify-content:space-between; gap:8px; }
  .erh-studio .erh-report-surface .erh-workbar strong { font-size:21px; }

@@ -14,7 +14,7 @@ export function requestReportFile(report,title,content,format='pdf',fetchPdf=fet
     const response = await fetchPdf('/api/report-export', {
       method: 'POST', credentials: 'include', cache: 'no-store',
       headers: { 'Content-Type': 'application/json','X-VALL-Report-Language':language }, signal,
-      body: JSON.stringify({ title, content, executiveReport: report, format,language,response: 'file',...(options.expectedOwner ? {expectedOwner:options.expectedOwner} : {}) }),
+      body: JSON.stringify({ title, content, executiveReport: report, format,language,response: 'file',...(options.edition==='meeting-summary'?{edition:'meeting-summary'}:{}),...(options.expectedOwner ? {expectedOwner:options.expectedOwner} : {}) }),
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => { signal.throwIfAborted(); return {}; });

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { apiPost } from '../api/client.js';
+import { buildReportOrionHandoff, writeOrionReportHandoff } from '../lib/orionHandoff.js';
 
 const PRESETS = [
   { id: 'summary', label: 'Resumen rápido', question: '' },
@@ -28,7 +30,44 @@ function formatCut(value, locale) {
   });
 }
 
-export default function ReportReaderAssistant({ area, report, language, t, onClose }) {
+function RouterOpenOrionButton({ className, disabled, title, onPrepare, children }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      className={className}
+      disabled={disabled}
+      title={title}
+      onClick={() => { if (onPrepare()) navigate('/orion?from=report'); }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function OpenOrionButton({ className, disabled, title, onPrepare, children }) {
+  const inRouter = useInRouterContext();
+  if (inRouter) {
+    return (
+      <RouterOpenOrionButton className={className} disabled={disabled} title={title} onPrepare={onPrepare}>
+        {children}
+      </RouterOpenOrionButton>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={className}
+      disabled={disabled}
+      title={title}
+      onClick={() => { if (onPrepare()) window.location.assign('/orion?from=report'); }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function ReportReaderAssistant({ area, report, reportDoc = null, accountEmail = '', language, t, onClose }) {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,7 +125,26 @@ export default function ReportReaderAssistant({ area, report, language, t, onClo
 
   const reading = response?.reading;
   const digest = response?.digest;
-  const cutLabel = digest?.generatedAt ? formatCut(digest.generatedAt, t.locale) : '';
+  const effectiveGeneratedAt = digest?.generatedAt || reportDoc?.generatedAt || report?.generatedAt;
+  const cutLabel = effectiveGeneratedAt ? formatCut(effectiveGeneratedAt, t.locale) : '';
+
+  const prepareOrionHandoff = () => {
+    const handoff = buildReportOrionHandoff({
+      area,
+      report,
+      reportDoc,
+      response,
+      question,
+      cutLabel,
+      accountEmail,
+    });
+    if (!writeOrionReportHandoff(handoff)) {
+      setError(t('No se pudo preparar el contexto del informe para abrir en ORION.'));
+      return false;
+    }
+    abortRef.current?.abort();
+    return true;
+  };
 
   return (
     <section className="erh-reader-assistant notranslate" translate="no" lang={language} aria-label={t('Consultar este informe con el agente lector')}>
@@ -98,9 +156,20 @@ export default function ReportReaderAssistant({ area, report, language, t, onClo
           </span>
           <p>{t('Responde usando únicamente las cifras, fechas, unidades y fuentes presentes en este informe.')}</p>
         </div>
-        <button type="button" className="erh-reader-assistant-close" aria-label={t('Cerrar consulta del informe')} onClick={onClose}>
-          <i className="fas fa-xmark" aria-hidden="true" />
-        </button>
+        <div className="erh-reader-assistant-head-actions">
+          <OpenOrionButton
+            className="erh-reader-orion-btn"
+            disabled={!target && !report}
+            title={t('Abrir este informe con su contexto en el chat de ORION')}
+            onPrepare={prepareOrionHandoff}
+          >
+            <i className="fas fa-wand-magic-sparkles" aria-hidden="true" />
+            {t('Analizar en ORION')}
+          </OpenOrionButton>
+          <button type="button" className="erh-reader-assistant-close" aria-label={t('Cerrar consulta del informe')} onClick={onClose}>
+            <i className="fas fa-xmark" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <div className="erh-reader-assistant-presets" role="group" aria-label={t('Consultas rápidas')}>
@@ -181,6 +250,18 @@ export default function ReportReaderAssistant({ area, report, language, t, onClo
               </ul>
             </div>
           )}
+          <div className="erh-reader-assistant-actions">
+            <OpenOrionButton
+              className="erh-reader-orion-cta"
+              disabled={!target && !report}
+              title={t('Continuar analizando esta lectura y cruzar fuentes en ORION')}
+              onPrepare={prepareOrionHandoff}
+            >
+              <i className="fas fa-comments" aria-hidden="true" />
+              {t('Continuar esta lectura en ORION')}
+              <i className="fas fa-arrow-right" aria-hidden="true" />
+            </OpenOrionButton>
+          </div>
         </div>
       )}
     </section>

@@ -1360,8 +1360,8 @@ function makeUserEditionPdf(title, report) {
     });
 }
 
-async function makeExecutivePdf(title,report,localization){
-    const bytes=await renderExecutivePdf(title,report,localization);
+async function makeExecutivePdf(title,report,localization,edition='full'){
+    const bytes=edition==='meeting-summary' ? await require('../lib/report-meeting-summary').makeMeetingSummaryPdf(report,{PDFDocument:PreviewPdfDocument,pdfPageHeader,pdfExecutiveFooter,pdfPersonalization,t:localization?.t}) : await renderExecutivePdf(title,report,localization);
     // El visor y las propiedades del archivo identifican la misma edición que
     // su nombre de descarga, incluso cuando Panorama combina varios PDF.
     const {PDFDocument:ExportDocument}=require('pdf-lib');
@@ -1662,6 +1662,8 @@ router.post('/report-export', verifyToken, limiter, boundedJson({ limit: '7mb' }
         let executive = executivePayload(req.body?.executiveReport);
         const language=requestReportLanguage(req);
         const format = ['docx', 'pdf', 'html', 'markdown', 'txt', 'json','csv','xlsx'].includes(req.body?.format) ? req.body.format : 'docx';
+        const meetingSummary=req.body?.edition==='meeting-summary';
+        if(meetingSummary&&(!executive||format!=='pdf'))return res.status(400).json({success:false,error:'El resumen requiere un informe estructurado y formato PDF.'});
         if (!content && !executive) return res.status(400).json({ success: false, error: 'El reporte está vacío.' });
         if(format==='csv' && !executive) return res.status(400).json({success:false,error:'El informe no contiene datos estructurados para CSV.'});
         if(format==='xlsx' && !executive)return res.status(400).json({success:false,error:'El informe no contiene datos estructurados para Excel.'});
@@ -1675,7 +1677,7 @@ router.post('/report-export', verifyToken, limiter, boundedJson({ limit: '7mb' }
         let buffer, mime, extension;
         if (format === 'docx') { buffer = await makeDocx(title, content, images,localized); mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; extension = 'docx'; }
         else if (format === 'pdf') {
-            buffer=await reportPdfCache.getOrCreate({owner:req.user.email,language,title,report:executive,images:executive ? [] : [content,...images]},()=>executive ? makeExecutivePdf(title,executive,localized) : language==='es' ? makePdf(title,content,images) : makeExecutivePdf(title,{title,generatedAt:new Date().toISOString(),summary:'',sections:[{heading:localized.t('Análisis'),text:content}],metrics:[],visuals:[],tables:[],takeaways:[],watchlist:[],sources:[],sourceLinks:[],personalization:{}},localized));
+            buffer=await reportPdfCache.getOrCreate({owner:req.user.email,language,title,report:meetingSummary?{...executive,meetingSummaryVersion:1}:executive,images:executive ? [] : [content,...images]},()=>executive ? makeExecutivePdf(title,executive,localized,meetingSummary?'meeting-summary':'full') : language==='es' ? makePdf(title,content,images) : makeExecutivePdf(title,{title,generatedAt:new Date().toISOString(),summary:'',sections:[{heading:localized.t('Análisis'),text:content}],metrics:[],visuals:[],tables:[],takeaways:[],watchlist:[],sources:[],sourceLinks:[],personalization:{}},localized));
             mime='application/pdf';extension='pdf';
         }
         else if (format === 'csv') {const {reportCsv}=await import('../../frontend/src/lib/reportCsv.js');buffer=Buffer.from(reportCsv(executive,localized));mime='text/csv; charset=utf-8';extension='csv';}
@@ -1687,7 +1689,8 @@ router.post('/report-export', verifyToken, limiter, boundedJson({ limit: '7mb' }
         // La vista previa y la descarga del editor reciben el PDF en esta misma
         // petición: /tmp no se comparte entre instancias de Vercel. Los clientes
         // que guardan enlaces en el chat conservan el contrato JSON anterior.
-        const name=executive ? reportDownloadName(executive,extension,{language}) : `${filename(title)}${language==='es' ? '' : '-'+language}.${extension}`;
+        const baseName=executive ? reportDownloadName(executive,extension,{language}) : `${filename(title)}${language==='es' ? '' : '-'+language}.${extension}`;
+        const name=meetingSummary?baseName.replace(/\.pdf$/i,'-resumen-junta.pdf'):baseName;
         if (['pdf','csv','xlsx'].includes(format) && req.body?.response === 'file') {
             res.set({ 'Content-Type': mime, 'Content-Disposition': `attachment; filename="${name}"`,
                 'Content-Length': String(buffer.length), 'Cache-Control': 'private, no-store, max-age=0' });

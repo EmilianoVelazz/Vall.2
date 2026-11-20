@@ -104,6 +104,7 @@ async function makePanoramaPdf(title,report,helpers){
   const width=page.getWidth();page.drawRectangle({x:32,y:18,width:width-64,height:27,color:rgb(1,1,1)});
   page.drawLine({start:{x:34,y:43},end:{x:width-34,y:43},thickness:.5,color:color(BRAND.line)});page.drawLine({start:{x:34,y:43},end:{x:58,y:43},thickness:1.5,color:color(BRAND.teal)});
   page.drawText(classification+' · VALLNEWS · PANORAMA GENERAL',{x:34,y:29,size:6,font,color:color(BRAND.muted)});
+  if(index>1){const label='Volver al índice',left=width/2-24;page.drawText(label,{x:left,y:29,size:6.5,font,color:color(BRAND.teal)});const annotation=result.context.register(result.context.obj({Type:'Annot',Subtype:'Link',Rect:[left,24,left+65,39],Border:[0,0,0],Dest:[result.getPage(1).ref,PDFName.of('Fit')]}));page.node.addAnnot(annotation);}
   const label='Página '+(index+1)+' / '+total;page.drawRectangle({x:width-105,y:24,width:71,height:14,color:color(BRAND.pale)});page.drawText(label,{x:width-40-bold.widthOfTextAtSize(label,6.5),y:29,size:6.5,font:bold,color:color(BRAND.navy)});
  }
  for(const item of front.links){const page=result.getPage(item.page),target=result.getPage(indexTargets.get(item.id)),annotation=result.context.register(result.context.obj({Type:'Annot',Subtype:'Link',Rect:[item.x,page.getHeight()-item.y-item.height,item.x+item.width,page.getHeight()-item.y],Border:[0,0,0],Dest:[target.ref,PDFName.of('Fit')]}));page.node.addAnnot(annotation);}

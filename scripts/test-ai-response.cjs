@@ -193,6 +193,9 @@ assert.equal(detectTaskType('Crea un infrome completo del mercado'), 'document')
 assert.equal(detectTaskType('Genera reportes de mercados'), 'document');
 assert.notEqual(detectTaskType('Con estos documentos, ¿qué acuerdos comerciales cambiaron los últimos meses?'),'document');
 assert.notEqual(detectTaskType('Analiza los informes de Rabobank y dime qué afecta mi costo'),'document');
+assert.notEqual(detectTaskType('¿Qué cantidad se publicó? Usa sólo los documentos ficticios proporcionados.'), 'document');
+assert.notEqual(detectTaskType('¿Está confirmado? Usa los informes financieros adjuntos.'), 'document');
+assert.equal(detectTaskType('Genera un informe con los documentos ficticios proporcionados.'), 'document');
 assert.equal(detectTaskType('Necesito informes económicos'), 'document');
 assert.equal(detectTaskType('Genera un reporte informativo sobre el precio del dólar vs el euro en 2025'), 'document');
 assert.equal(selectModelTier({ message: 'Dime rápido el precio' }), 'flash');

@@ -16,8 +16,8 @@ const { activeUserContext, forecastRequest } = require('./answer-strategy');
 // que la misma consulta se trate igual en chat, reportes y voz.
 const TOPICS = Object.freeze({
     fx: /\b(?:usd|mxn|eur|gbp|cad|aud|jpy|brl|inr|d[oó]lar(?:es)?|peso(?:s)?|divisa(?:s)?|tipo de cambio|forex)(?=\s|$|[.,;:!?])/i,
-    equities: /\b(?:bolsa|acciones?|acci[oó]n|ticker|s[ií]mbolo|s&p|nasdaq|dow|bmv|ipc|asx|ftse|dax|cac\s*40|nikkei|hang seng|nifty|ibovespa|tsx|kospi|taiex|jse|ibex|walmex|femsa|bimbo|gruma|bitcoin|btc|ethereum|eth)\b/i,
-    bonds: /\b(?:bonos?|treasury|tesoro|yield|rendimiento|curva de tasas?|deuda soberana)\b/i,
+    equities: /\b(?:bolsa|acciones?|acci[oó]n|ticker|s[ií]mbolo|s&p|nasdaq|dow|bmv|ipc|vix|euro\s*stoxx|mercados?\s+accionarios?|asx|ftse|dax|cac\s*40|nikkei|hang seng|nifty|ibovespa|tsx|kospi|taiex|jse|ibex|walmex|femsa|bimbo|gruma|bitcoin|btc|ethereum|eth)\b/i,
+    bonds: /\b(?:bonos?|treasury|tesoro|yield|rendimiento|curva de tasas?|deuda soberana|embig|riesgo\s+pa[ií]s)\b/i,
     commodities: /\b(?:commodit(?:y|ies)|materias? primas?|ma[ií]z|trigo|soya|soja|forrajes?|avena|caf[eé]|az[uú]car|algod[oó]n|cacao|cerdos?|porcinos?|puercos?|pollos?|aves?|huevos?|res|bovinos?|ganado|beef|pork|poultry|chicken|eggs?|prote[ií]nas?|pescado|marisco|acero|steel|petr[oó]leo|wti|brent|gas natural|gasolina|oro|plata|platino|paladio|cobre|metal(?:es)?)(?=\s|$|[.,;:!?])/i,
     macro: /\b(?:inflaci[oó]n|inpc|tiie|cetes?|banxico|tasa de inter[eé]s|pol[ií]tica monetaria|pib|empleo)\b/i,
     news: /\b(?:noticias?|titulares?|qu[eé] pas[oó]|[uú]ltima hora|actualidad|evento(?:s)?)\b/i,
@@ -25,8 +25,8 @@ const TOPICS = Object.freeze({
 
 const FRESHNESS = /\b(?:hoy|ahora|actual(?:es)?|actualizad[oa]s?|en vivo|[uú]ltim[oa]s?|reciente(?:s)?|cierre|cotiza(?:ci[oó]n)?|precio(?:s)?|cu[aá]nto (?:vale|est[aá]|equivale))\b/i;
 const TRADE_DEFINITION = /\b(?:qu[eé]\s+(?:es|significa)|define|definici[oó]n)\b/i;
-const COMPLEX = /\b(?:analiza|analisis|margen|costos?|logistica|vigilar|verific(?:ar|o)|necesito|cierra|compare|risks?|supply|informe|reporte|panorama|perspectiva|escenario(?:s)?|estrategia|recomendaci[oó]n|riesgo(?:s)?|compar(?:a|aci[oó]n)|proyecci[oó]n|impacto|implicaci[oó]n|cobertura|qu[eé]\s+(?:esta|est[aá])\s+pasando|por\s+qu[eé]|factores?\s+principales?|regre[sc]i[oó]n|modelo\s+lineal|m[ií]nimos\s+cuadrados|an[aá]lisis\s+estad[ií]stic[oa])\b/i;
-const COMPARISON = /\b(?:compara|comparaci[oó]n|versus|vs\.?|diferencia(?:s)?|mejor entre)\b/i;
+const COMPLEX = /\b(?:analiza|analisis|margen|costos?|logistica|vigilar|verific(?:ar|o)|necesito|cierra|compare|risks?|supply|informe|reporte|panorama|perspectiva|escenario(?:s)?|estrategia|recomendaci[oó]n|riesgo(?:s)?|compar(?:a|aci[oó]n)|proyecci[oó]n|impact(?:o|a|an|ar)|implicaci[oó]n|cobertura|qu[eé]\s+(?:esta|est[aá])\s+pasando|por\s+qu[eé]|factores?\s+principales?|regre[sc]i[oó]n|modelo\s+lineal|m[ií]nimos\s+cuadrados|an[aá]lisis\s+estad[ií]stic[oa])\b/i;
+const COMPARISON = /\b(?:compara|comparaci[oó]n|comparativ[oa]s?|versus|vs\.?|frente\s+a|diferencia(?:s)?|mejor entre|matriz)\b/i;
 const DECISION = /\b(?:qu[eé] (?:conviene|debo|recomiendas?)|decisi[oó]n|estrategia|cobertura|comprar|vender|invertir|prioridad)\b/i;
 // Una cotización física local no es intercambiable por un futuro de Chicago,
 // Nueva York o Londres. El plan la identifica antes de activar conectores de
@@ -147,7 +147,10 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     const physicalPriceClause = text.split(/[.;!?\n]|\by\b/).some(clause =>
         proteinProfile(clause).products.length && proteinProfile(clause).asksPrices
         && !/\b(?:acciones?|accion|ticker|simbolo|bolsa|tyson|pilgrim|cal[ -]?maine|tsn|ppc|calm|jbs)\b/i.test(clause));
-    const proteinPhysicalPrice = !suppressMetaResearch && protein.products.length > 0 && protein.asksPrices && !protein.futures
+    const impliedProteinComparison = (protein.products.length >= 2 && (asksComparison || asksCurrentData) && (protein.countries.length > 0 || protein.global || protein.european))
+        || (protein.products.length >= 1 && asksComparison && (protein.mexicoStates.length > 0 || protein.countries.length > 0))
+        || (protein.products.length >= 1 && /\b(?:cutout|usda\s+ams|cuesta\s+\d+|como\s+esta(?:n)?\s+(?:hoy\s+)?(?:el\s+|la\s+)?(?:cerdo|pollo|res|huevo|cutout))\b/i.test(text));
+    const proteinPhysicalPrice = !suppressMetaResearch && protein.products.length > 0 && (protein.asksPrices || impliedProteinComparison) && !protein.futures
         && (!equitySubject || physicalPriceClause);
     const localPhysicalPrice = proteinPhysicalPrice || !suppressMetaResearch && topic === 'commodities'
         && LOCAL_PRICE_SIGNAL.test(text)
@@ -157,15 +160,18 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     const needsRabobank = explicitRabobank || ((!needsMercolleida || protein.global) && topic === 'commodities'
         && requestedResearchTopics(rabobankQuery).some(item => ['pork', 'beef', 'poultry', 'seafood', 'dairy', 'grains', 'inputs', 'animal_protein'].includes(item))
         && (asksAnalysis || asksExecutiveBrief || asksNews || needsTradeResearch));
+    const explicitFx = /\b(?:tipo de cambio|divisas?|forex|convierte|conversion|dolar(?:es)?|usd\s*\/\s*mxn)\b|\b[a-z]{3}\s*\/\s*[a-z]{3}\b/i.test(text);
+    const asksRateOrBenchmark = /\b(?:tipo de cambio|usd\s*\/\s*mxn|eur\s*\/\s*mxn|cetes|tiie|treasury|bonos?\s+del\s+tesoro|bonos?\s+soberanos?|tasa\s+de\s+referencia|rendimiento|s&p|ipc|bmv|nasdaq|dow|wti|brent|gas\s+natural|oro|cobre|maiz|soya|comportamiento\s+reciente|desempeno\s+reciente|matriz\s+comparativa|mercados?\s+globales?)\b/i.test(text);
     const asksQuote = /\b(?:cotizacion(?:es)?|cotiza(?:n)?|precios?|cierre|cuanto (?:vale|esta|equivale)|valor actual|rendimiento actual)\b/i.test(text)
-        || asksCurrentData && !asksNews && !asksAnalysis;
+        || asksCurrentData && !asksNews && !asksAnalysis
+        || (asksCurrentData || asksComparison) && (explicitFx || asksRateOrBenchmark) && !asksNews;
     const quoteEquities = asksQuote && (!/\b(?:futuros?|cme|cbot)\b/i.test(text) || /\b(?:acciones?|accion|bursatil|ticker)\b/i.test(text));
     const explicitStockQuote = requestedProteinIssuers(marketQuery).length > 0 && quoteEquities;
-    const explicitFx = /\b(?:tipo de cambio|divisas?|forex|convierte|conversion)\b|\b[a-z]{3}\s*\/\s*[a-z]{3}\b/i.test(text);
     const needsFxQuote = topics.includes('fx') && (!equitySubject || explicitFx) && (!localPhysicalPrice || explicitFx) && asksQuote;
-    const needsLiveQuote = (explicitStockQuote || needsFxQuote || asksQuote && !localPhysicalPrice && !needsMercolleida && !explicitRabobank && !needsTradeResearch
-        && (instruments.length > 0 || topic === 'bonds'));
-    const needsProteinPrices = proteinPhysicalPrice && (!needsMercolleida || protein.global || explicitRabobank || protein.products.length > 1) && (!explicitRabobank || asksCurrentData);
+    const needsLiveQuote = (explicitStockQuote || needsFxQuote || asksQuote && !needsMercolleida && !explicitRabobank && !needsTradeResearch
+        && (instruments.length > 0 || topic === 'bonds' || topics.includes('bonds'))
+        && (!localPhysicalPrice || instruments.some(i => !/^(?:HE|LE|GF)=F$/i.test(i.ticker))));
+    const needsProteinPrices = proteinPhysicalPrice && (!needsMercolleida || protein.global || explicitRabobank || protein.products.length > 1 || protein.countries.length > 1) && (!explicitRabobank || asksCurrentData);
     const needsProteinResearch = !suppressMetaResearch && protein.products.length > 0 && (proteinPhysicalPrice || asksNews || asksAnalysis || asksExecutiveBrief || needsTradeResearch);
     const internationalNews = /\b(?:noticias? internacionales?|noticieros?|reuters|bloomberg|bbc|financial times)\b/i.test(text);
     const needsLiveNews = !suppressMetaResearch && ((asksNews && (!explicitRabobank || internationalNews || proteinPhysicalPrice)) || (needsProteinResearch && !needsMercolleida && !explicitRabobank && (asksExecutiveBrief || protein.global && proteinPhysicalPrice)));
@@ -179,7 +185,18 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     // Una consulta corta puede requerir razonamiento profundo si compara varios
     // frentes o pide una decisión. No usamos sólo longitud como señal.
     const recommendedTier = needsTradeResearch || asksAnalysis || asksExecutiveBrief || complexity >= 2 || mode === 'executive' || mode === 'technical' ? 'pro' : 'flash';
-    const needsExecutiveReport = /\b(?:informes?\s+ejecutivos?|nuestros?\s+informes|los\s+informes|informe\s+(?:de\s+)?(?:finanzas|mercados|mexico|bonos|divisas|fx|acciones|proteinas|granos|energia|bolsa|noticias|produccion)|panorama\s+(?:ejecutivo|nacional|financiero|de\s+mercados)|(?:el|los)\s+reportes?\s+(?:de\s+)?(?:finanzas|mercados|mexico)|report\s*reader)\b/i.test(text);
+    const needsExecutiveReport = !providedInputsOnly && !suppressMetaResearch && (
+        /\b(?:informes?\s+ejecutivos?|nuestros?\s+informes|los\s+informes|informe\s+(?:de\s+)?(?:finanzas|mercados|mexico|bonos|divisas|fx|acciones|proteinas|granos|energia|bolsa|noticias|produccion)|panorama\s+(?:ejecutivo|nacional|financiero|de\s+mercados|visual|global)|(?:el|los)\s+reportes?\s+(?:de\s+)?(?:finanzas|mercados|mexico)|report\s*reader)\b/i.test(text)
+        || asksExecutiveBrief
+        || (topics.length >= 2 && (asksComparison || asksCurrentData || asksDecision || /\b(?:matriz|global(?:es)?|mundo|mercados?\s+globales?|esta\s+semana|riesgos?)\b/i.test(text)))
+        || /\b(?:cetes|tiie|embig|riesgo\s+pais|bonos?\s+soberanos?|\bvix\b)\b/i.test(text)
+        || /\b(?:riesgos?\s+(?:macro|sanitari|energ|de\s+la\s+semana)|vigilar\s+esta\s+semana|esta\s+semana\s+que\s+puedan)\b/i.test(text)
+    );
+    const needsMarranasML = !providedInputsOnly && (
+        /\b(?:marranas?|orion\s+ml|walk-?forward|pronosticos?\s+ml|paridad\s+de\s+importacion|arbitraje|shap|h5n1|influenza\s+aviar|gripe\s+aviar|peste\s+porcina|gusano\s+barrenador|screwworm|senasica|radar\s+(?:nlp|sanitario)|modelos?\s+ml|machine\s+learning)\b/i.test(text)
+        || protein.products.length > 0
+        || (asksExecutiveBrief && ['commodities', 'markets', 'macro'].includes(topic))
+    );
 
     const plan = {
         locationClarification: proteinPhysicalPrice && !protein.mexicoCities.length ? ambiguousMexicoCities(message)[0] || null : null,
@@ -226,6 +243,7 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
         activeAnchor,
         providedInputsOnly,
         needsExecutiveReport,
+        needsMarranasML,
         historyTurns: Array.isArray(history) ? history.length : 0,
         inheritedTopics: inheritsTopic ? historyTopics.filter(topic => !currentTopics.includes(topic)) : [],
     };
@@ -282,6 +300,9 @@ function planContext(plan) {
     }
     if (plan.needsExecutiveReport) {
         obligations.push('Cuando el usuario pregunte por nuestros informes ejecutivos o panóramas publicados, usa exclusivamente las cifras, cortes, fuentes y alertas de [LECTURA DE INFORMES EJECUTIVOS · REPORT READER]. Si un dato solicitado no aparece en el corte del informe, dilo explícitamente.');
+    }
+    if (plan.needsMarranasML) {
+        obligations.push('Responde siempre con la identidad unificada de ORION, apoyado en tus modelos internos de Machine Learning (proteínas, probabilidades direccionales Subida/Baja, bandas Conformal P80, atribución causal SHAP, Paridad de Importación en MXN/kg y Radar NLP de eventos sanitarios/comerciales). Integra estas señales de forma natural junto con los precios observados y distingue siempre entre precio observado y señal estadística (nunca certeza absoluta ni recomendación de inversión).');
     }
     if (plan.needsSources) {
         obligations.push('Toda cifra material debe indicar fuente y periodo/corte. Si haces una inferencia, etiquétala como inferencia y explica el supuesto.');

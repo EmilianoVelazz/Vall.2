@@ -52,10 +52,33 @@ async function generarDatosFinanzas() {
     });
     const horaStr = ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
+    // Cargar cifras reales del último corte ejecutivo en caché para no usar rangos sintéticos de 2024.
+    let groundedHints = '';
+    try {
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const finCachePath = path.resolve(__dirname, '../cache/finance_executive_reports.json');
+        if (fs.existsSync(finCachePath)) {
+            const snap = JSON.parse(fs.readFileSync(finCachePath, 'utf8'));
+            const reps = Array.isArray(snap.reports) ? snap.reports : [];
+            const fxMxn = (reps.find(r => r.key === 'fx')?.metrics || []).find(m => /usd\/mxn/i.test(m.label || ''));
+            const nasdaqM = (reps.find(r => r.key === 'equities')?.metrics || []).find(m => /nasdaq/i.test(m.label || ''));
+            const tiieM = (reps.find(r => r.key === 'bonds')?.metrics || []).find(m => /tiie.*28/i.test(m.label || ''));
+            const cetesM = (reps.find(r => r.key === 'bonds')?.metrics || []).find(m => /cetes.*28/i.test(m.label || ''));
+            groundedHints = [
+                fxMxn && `USD/MXN verificado: ${fxMxn.value} (${fxMxn.change || ''})`,
+                nasdaqM && `Nasdaq verificado: ${nasdaqM.value} (${nasdaqM.change || ''})`,
+                tiieM && `TIIE 28d verificada: ${tiieM.value}`,
+                cetesM && `CETES 28d verificado: ${cetesM.value}`,
+            ].filter(Boolean).join(' · ');
+        }
+    } catch { /* sin caché local */ }
+
     const prompt = `
 Eres un analista financiero senior de VALLNEWS. Hoy es ${fechaStr}, ${horaStr} (hora CDMX).
+${groundedHints ? `Cifras reales verificadas del corte actual (USA ESTAS CIFRAS, NO inventes rangos antiguos): ${groundedHints}.` : ''}
 
-Genera datos financieros realistas para la sección Finanzas de un portal de inteligencia económica mexicana especializado en el sector agropecuario y empresarial.
+Resume la coyuntura financiera actual para la sección Finanzas de un portal de inteligencia económica mexicana especializado en el sector agropecuario y empresarial, basándote únicamente en las cifras verificadas indicadas arriba y en hechos económicos actuales reales.
 
 Devuelve ÚNICAMENTE el siguiente JSON (sin bloques de código, sin comillas extra, sin texto antes o después):
 
@@ -65,60 +88,31 @@ Devuelve ÚNICAMENTE el siguiente JSON (sin bloques de código, sin comillas ext
     {
       "categoria": "Política Monetaria",
       "fecha": "DD MES AAAA · HH:MM",
-      "titulo": "Título noticia 1 (real, relevante, profesional)",
-      "descripcion": "Descripción de 2 oraciones máximo. Concreta y con datos.",
-      "fuente": "BLOOMBERG",
+      "titulo": "Titular financiero factual del corte",
+      "descripcion": "Descripción de 2 oraciones máximo. Concreta y con datos verificados.",
+      "fuente": "BANXICO",
       "impacto": "alto",
       "ia_insight": "Impacto directo en costos o márgenes del sector agropecuario o empresarial. Máx 15 palabras."
-    },
-    {
-      "categoria": "Mercados Globales",
-      "fecha": "DD MES AAAA · HH:MM",
-      "titulo": "Título noticia 2",
-      "descripcion": "Descripción corta.",
-      "fuente": "REUTERS",
-      "impacto": "medio",
-      "ia_insight": "Insight breve."
-    },
-    {
-      "categoria": "Divisas y Commodities",
-      "fecha": "DD MES AAAA · HH:MM",
-      "titulo": "Título noticia 3",
-      "descripcion": "Descripción corta.",
-      "fuente": "EL ECONOMISTA",
-      "impacto": "bajo",
-      "ia_insight": "Insight breve."
     }
   ],
-  "bancos_centrales": {
-    "banxico": 11.0,
-    "fed": 5.25,
-    "bce": 4.25,
-    "boe": 5.25,
-    "boj": 0.1
-  },
+  "bancos_centrales": { "banxico": 6.5, "fed": 4.25, "bce": 2.5, "boe": 4.5, "boj": 0.5 },
   "mercados": {
-    "nasdaq": { "valor": 18450.5, "cambio_pct": 0.85 },
-    "usdmxn": { "valor": 17.15, "cambio_pct": -0.22 }
+    "nasdaq": { "valor": 0, "cambio_pct": 0 },
+    "usdmxn": { "valor": 0, "cambio_pct": 0 }
   },
-  "tiie": 11.25,
+  "tiie": 6.54,
   "vai": {
     "asset": "BONOS 10Y MX",
-    "prediccion": 72,
-    "veredicto": "Bajista",
-    "alerta": "Diferencial de tasas MX-US presiona rendimientos reales."
+    "prediccion": 55,
+    "veredicto": "Neutral",
+    "alerta": "Monitorear diferencial de tasas MX-US y tipo de cambio."
   }
 }
 
 Reglas:
-- banxico entre 10.5 y 11.5, fed entre 4.75 y 5.5, bce entre 3.75 y 4.5, boe entre 4.75 y 5.5, boj entre 0 y 0.25
-- nasdaq entre 17000 y 20000, usdmxn entre 16.5 y 18.0
-- tiie siempre 0.25 puntos por encima de banxico
+- Conserva las cifras verificadas entregadas en el corte; no inventes precios ni cotizaciones de 2024.
 - impacto solo puede ser: "alto", "medio" o "bajo"
-- prediccion entre 45 y 92 (entero)
 - veredicto: "Alcista", "Bajista" o "Neutral"
-- fuente: una de BLOOMBERG / REUTERS / WSJ / EL ECONOMISTA / BANXICO / INEGI / FMI / FORBES
-- Los titulos deben sonar como noticias reales del día de hoy
 - No incluyas comentarios, solo JSON puro
 `;
 
@@ -1462,7 +1456,10 @@ async function buildExecutiveReports(previousSnapshot) {
             bondNews:[...bondPrimaryNews,...sessionNews].slice(0,12).map(item=>({title:financeNewsHeadline(item).slice(0,500),description:financeNewsDescription(item).slice(0,600),source:String(item.source || 'Fuente del corte').slice(0,240),publishedAt:item.publishedAt,url:financeNewsSourceLinks([item])[0]?.url || ''})),
             objective: 'Comparar rendimientos soberanos por plazo en Estados Unidos y México, explicar sus cambios en puntos base y distinguir repercusiones en precios, reinversión y financiamiento.',
             summary: `Curva soberana: ${cetes28d ? `CETES 28d en ${reportNumber(cetes28d.value)}% (${bpsLabel(cetes28d.delta)}); ` : ''}${long ? `Treasury 10A en ${reportNumber(long.value)}% (${bpsLabel(long.delta)}); ` : ''}${Number.isFinite(curve) ? `pendiente 10A–3M en ${curve >= 0 ? '+' : ''}${curve.toFixed(2)} pp. ` : ''}El catálogo reúne ${bonds.length} referencias soberanas.`,
-            metrics: sortedBonds.slice(0,30).map(item => ({ label: item.label, value: `${reportNumber(item.value)}%`, change: bpsLabel(item.delta), tone: (item.delta ?? 0) > 0 ? 'up' : (item.delta ?? 0) < 0 ? 'down' : 'flat' })),
+            metrics: sortedBonds.slice(0,30).map(item => {
+                const suffix = item.unit === 'pb' || /\bembig\b/i.test(item.label || '') ? ' pb' : '%';
+                return { label: item.label, value: `${reportNumber(item.value)}${suffix}`, change: bpsLabel(item.delta), tone: (item.delta ?? 0) > 0 ? 'up' : (item.delta ?? 0) < 0 ? 'down' : 'flat' };
+            }),
             takeaways: [
                 cetes28d && `CETES 28 días se ubicó en ${reportNumber(cetes28d.value)}% (${bpsLabel(cetes28d.delta)} diario), referencia clave para costo de fondeo y pagarés en pesos.`,
                 Number.isFinite(curve) && `La pendiente 10 años–3 meses es de ${curve >= 0 ? '+' : ''}${curve.toFixed(2)} pp; describe la relación entre plazos soberanos.`,
@@ -1474,7 +1471,24 @@ async function buildExecutiveReports(previousSnapshot) {
                 'Spreads de crédito corporativo y soberano: no se infieren de Treasury y requieren su propia fuente.',
             ],
             closing: 'Treasury y CETES se presentan por moneda, plazo y frecuencia. Para traducir un cambio a la exposición real hacen falta instrumento, precio, cupón, duración, divisa y contrato; una tasa de subasta no representa el retorno diario de la posición.',
-            tables: [reportTable('Curva de rendimientos y variaciones', ['Vencimiento', 'Nivel', 'Día', '5 sesiones', '1 mes', 'YTD'], bonds.map(item => [item.label, `${reportNumber(item.value)}%`, bpsLabel(item.delta), performanceLabel(item.performance?.week), performanceLabel(item.performance?.month), performanceLabel(item.performance?.ytd)]), 'El cambio diario se expresa en puntos base; los demás cambios son porcentuales sobre el rendimiento publicado.')],
+            tables: [(() => {
+                const headers = ['Vencimiento', 'Nivel', 'Día', '5 sesiones', '1 mes', 'YTD'];
+                const rows = bonds.map(item => {
+                    const suffix = item.unit === 'pb' || /\bembig\b/i.test(item.label || '') ? ' pb' : '%';
+                    return [item.label, `${reportNumber(item.value)}${suffix}`, bpsLabel(item.delta), performanceLabel(item.performance?.week), performanceLabel(item.performance?.month), performanceLabel(item.performance?.ytd)];
+                });
+                const keep = headers.map((_, idx) => idx < 3 || rows.some(row => row[idx] && row[idx] !== '—'));
+                const hasTrailingHorizons = keep.slice(3).some(Boolean);
+                const note = hasTrailingHorizons
+                    ? 'El cambio diario se expresa en puntos base; los demás cambios son porcentuales sobre el rendimiento publicado.'
+                    : 'El cambio diario se expresa en puntos base sobre el rendimiento publicado.';
+                return reportTable(
+                    'Curva de rendimientos y variaciones',
+                    headers.filter((_, idx) => keep[idx]),
+                    rows.map(row => row.filter((_, idx) => keep[idx])),
+                    note
+                );
+            })()],
             visuals: [bondVisual].filter(Boolean),
             sections: [
                 { heading: 'Curva, duración y riesgo de tasa', text: Number.isFinite(curve) ? `La relación entre el tramo largo y el corto es ${curve >= 0 ? 'positiva' : 'invertida'} en este corte. La gráfica conserva cada rendimiento en porcentaje para que se vea si el movimiento está concentrado en el tramo corto, medio o largo.` : 'No se pudo calcular la pendiente por falta de dos vencimientos comparables.' },

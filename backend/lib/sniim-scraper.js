@@ -89,8 +89,11 @@ async function scrapeSNIIM() {
     }
 
   } catch (error) {
-    console.error('[SNIIM Scraper] Error crítico:', error);
-    data._meta.type = 'ERROR_FALLBACK';
+    console.warn('[SNIIM Scraper] Navegador local no disponible; se usan referencias estáticas etiquetadas:', error.message);
+    useStaticReference(data, { fallback: true });
+    data._meta.real_time = false;
+    data._meta.type = 'FALLBACK_STATIC';
+    data._meta.disclaimer = 'Navegador local no disponible para SNIIM. Valores de respaldo estáticos, NO son precios reales.';
   } finally {
     if (browser) await browser.close();
   }

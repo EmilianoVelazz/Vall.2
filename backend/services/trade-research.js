@@ -32,7 +32,10 @@ function chinaUsQuery(message) {
 
 function isTradeResearchQuery(message) {
     const text = String(message || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-    return FORMAL_TRADE.test(text) || /\b(?:anuncios?|medidas?|disposiciones?)\s+comercial(?:es)?\b/.test(text) || /\b(?:acuerdos?|tratados?|pactos?|convenios?|tratos?|negociaciones?)\b/.test(text)
+    return FORMAL_TRADE.test(text)
+        || /\b(?:anuncios?|medidas?|disposiciones?)\s+comercial(?:es)?\b/.test(text)
+        || /\b(?:exportaciones?|importaciones?)\s+de\s+.{0,40}\s+(?:hacia|desde|entre|a)\s+/.test(text)
+        || /\b(?:acuerdos?|tratados?|pactos?|convenios?|tratos?|negociaciones?)\b/.test(text)
         && (/\b(?:comercial(?:es)?|comercio|sanitari\w*|arancel\w*|importacion\w*|exportacion\w*)\b/.test(text) || chinaUsQuery(text));
 }
 

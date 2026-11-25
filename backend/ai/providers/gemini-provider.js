@@ -14,11 +14,40 @@ const MODELS = Object.freeze({
     report: process.env.GEMINI_MODEL_REPORTS || 'gemini-4-argon',
 });
 
+const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001';
+const EMBEDDING_FALLBACKS = Object.freeze(['text-embedding-004']);
+
+function normalizeVector(values) {
+    if (!Array.isArray(values) || !values.length) return null;
+    const nums = values.map(Number);
+    if (!nums.every(Number.isFinite)) return null;
+    const norm = Math.sqrt(nums.reduce((sum, v) => sum + v * v, 0));
+    if (!norm) return nums;
+    return nums.map(v => Number((v / norm).toFixed(7)));
+}
+
+function cosineSimilarity(left, right) {
+    if (!Array.isArray(left) || !Array.isArray(right) || !left.length || left.length !== right.length) return 0;
+    let dot = 0;
+    let magL = 0;
+    let magR = 0;
+    for (let i = 0; i < left.length; i++) {
+        const a = Number(left[i]);
+        const b = Number(right[i]);
+        if (!Number.isFinite(a) || !Number.isFinite(b)) return 0;
+        dot += a * b;
+        magL += a * a;
+        magR += b * b;
+    }
+    const denom = Math.sqrt(magL) * Math.sqrt(magR);
+    return denom > 0 ? Math.max(-1, Math.min(1, dot / denom)) : 0;
+}
+
 // La vista previa Pro puede no estar habilitada en todas las cuentas. Antes
 // de reducir un informe complejo a Flash, probamos una variante Pro estable.
 // La variable permite sustituirla sin cambios de código en cada despliegue.
 const PRO_FALLBACKS = Object.freeze([
-    process.env.GEMINI_MODEL_PRO_FALLBACK || 'gemini-2.5-pro',
+    process.env.GEMINI_MODEL_PRO_FALLBACK || 'gemini-pro-latest',
 ]);
 
 const FLASH_FALLBACKS = Object.freeze([
@@ -29,6 +58,47 @@ const FLASH_FALLBACKS = Object.freeze([
     // para no desperdiciar un ciclo largo repitiendo modelos no disponibles.
     'gemini-2.5-flash',
 ]);
+
+// Enfriamiento temporal por modelo cuando el cliente real de GoogleGenAI
+// devuelve 429 por cuota agotada, para evitar perder ~25s por turno
+// reintentando modelos sin cuota. No aplica a mocks de prueba unitaria.
+const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000;
+const MODEL_RATE_LIMIT_COOLDOWN = new Map();
+
+function isQuotaRateLimit(error) {
+    return error?.code === 'AI_RATE_LIMIT'
+        && /exceeded your current quota|plan and billing|resource_exhausted|limit:\s*0/i.test(String(error?.message || ''));
+}
+
+function cooldownKey(model, hasTools = false) {
+    return `${model}:${hasTools ? 'tools' : 'plain'}`;
+}
+
+function markModelRateLimited(client, model, error, hasTools = false) {
+    if (process.env.NODE_ENV === 'test' || !(client instanceof GoogleGenAI) || !model || !isQuotaRateLimit(error)) return;
+    MODEL_RATE_LIMIT_COOLDOWN.set(cooldownKey(model, hasTools), Date.now() + RATE_LIMIT_COOLDOWN_MS);
+}
+
+function orderModelsWithCooldown(client, models, hasTools = false) {
+    if (process.env.NODE_ENV === 'test' || !(client instanceof GoogleGenAI) || !MODEL_RATE_LIMIT_COOLDOWN.size) return models;
+    const now = Date.now();
+    const fresh = [];
+    const cooled = [];
+    for (const model of models) {
+        const key = cooldownKey(model, hasTools);
+        const until = MODEL_RATE_LIMIT_COOLDOWN.get(key);
+        if (until && until > now) cooled.push(model);
+        else {
+            if (until) MODEL_RATE_LIMIT_COOLDOWN.delete(key);
+            fresh.push(model);
+        }
+    }
+    return fresh.length ? [...fresh, ...cooled] : models;
+}
+
+function clearModelCooldowns() {
+    MODEL_RATE_LIMIT_COOLDOWN.clear();
+}
 
 // Gemini recibe esta herramienta sólo en consultas que requieren contrastar
 // evidencia externa. No se habilita para conversiones ni cotizaciones ya
@@ -174,7 +244,8 @@ class GeminiProvider {
         const totalBudget=generationTimeout(timeoutMs, 120_000);
         const deadline = Date.now() + totalBudget;
         let lastError;
-        const models=this.modelsForTier(tier);
+        const hasTools = Boolean(Array.isArray(tools) && tools.length);
+        const models=orderModelsWithCooldown(this.client, this.modelsForTier(tier), hasTools);
         for (const [index,model] of models.entries()) {
             if (signal?.aborted) throw timeoutError(true);
             const remaining = deadline - Date.now();
@@ -208,6 +279,7 @@ class GeminiProvider {
                 if(!responseReceived)await reservation?.fail(lastError);
                 if (signal?.aborted) throw lastError;
                 if (['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                markModelRateLimited(this.client, model, lastError, hasTools);
                 console.warn(`[Gemini] ${model} no disponible (${lastError.code}${lastError.providerStatus ? ` ${lastError.providerStatus}` : ''}: ${String(lastError.message).slice(0, 160)}${lastError.cause ? ` · ${lastError.cause.code || lastError.cause.message}` : ''}); se evalúa el respaldo dentro del plazo restante.`);
             } finally { attempt.dispose(); }
         }
@@ -219,7 +291,8 @@ class GeminiProvider {
         const totalBudget=generationTimeout(timeoutMs, 120_000);
         const deadline = Date.now() + totalBudget;
         let lastError;
-        const models=this.modelsForTier(tier);
+        const hasTools = Boolean(Array.isArray(tools) && tools.length);
+        const models=orderModelsWithCooldown(this.client, this.modelsForTier(tier), hasTools);
         for (const [index,model] of models.entries()) {
             if (signal?.aborted) throw timeoutError(true);
             const remaining = deadline - Date.now();
@@ -266,6 +339,7 @@ class GeminiProvider {
                 if (signal?.aborted) throw lastError;
                 // Nunca concatenar otra respuesta después de entregar texto visible al cliente.
                 if ((text && !allowFallbackBeforeDelivery) || ['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                markModelRateLimited(this.client, model, lastError, hasTools);
                 console.warn(`[Gemini] ${model} no inició; se evalúa el respaldo dentro del plazo restante.`);
             } finally {
                 attempt.dispose();
@@ -275,9 +349,39 @@ class GeminiProvider {
         }
         throw lastError;
     }
+
+    async embed({ text, taskType = 'RETRIEVAL_DOCUMENT', outputDimensionality = 768, signal = null, timeoutMs = 10_000 } = {}) {
+        const cleanText = String(text || '').trim().slice(0, 12_000);
+        if (!this.client || !cleanText || process.env.NODE_ENV === 'test' || signal?.aborted) return null;
+        const models = [...new Set([EMBEDDING_MODEL, ...EMBEDDING_FALLBACKS].filter(Boolean))];
+        for (const model of models) {
+            const attempt = generationAttempt(signal, Math.min(15_000, Math.max(1500, Number(timeoutMs) || 10_000)));
+            try {
+                const config = {
+                    taskType,
+                    ...(Number.isInteger(outputDimensionality) && outputDimensionality > 0 ? { outputDimensionality } : {}),
+                    abortSignal: attempt.signal,
+                    httpOptions: { timeout: Math.min(12_000, Number(timeoutMs) || 10_000) },
+                };
+                const response = await attempt.wait(() => this.client.models.embedContent({
+                    model,
+                    contents: cleanText,
+                    config,
+                }));
+                const values = response?.embeddings?.[0]?.values || response?.embedding?.values || null;
+                const normalized = normalizeVector(values);
+                if (normalized && normalized.length) return normalized;
+            } catch {
+                if (signal?.aborted) return null;
+            } finally {
+                attempt.dispose();
+            }
+        }
+        return null;
+    }
 }
 
 module.exports = {
     GeminiProvider, MODELS, PRO_FALLBACKS, FLASH_FALLBACKS, GOOGLE_SEARCH_TOOL, googleSearchTools,
-    groundingCitations, normalizeProviderError, thinkingFor,
+    groundingCitations, normalizeProviderError, thinkingFor, EMBEDDING_MODEL, cosineSimilarity, normalizeVector, clearModelCooldowns,
 };

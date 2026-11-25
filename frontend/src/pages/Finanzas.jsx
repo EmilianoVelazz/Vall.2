@@ -77,9 +77,8 @@ export default function Finanzas() {
     let retirar;
     const dispose=()=>{window.VNFavro?.desmontar?.();window.VNFinanzas?.desmontar?.();window.VNWorldMap?.desmontar?.();window.VNBondMap?.desmontar?.();window.VNCurrencyMap?.desmontar?.();};
 
-    /* loadPetroleo lo lee nada más arrancar; en el HTML lo sembraba un <script>
-       de una línea en la primera línea del <head>. */
-    window._rpData = window._rpData || { wti: 75.2, brent: 79.5, mix: 70.1 };
+    /* Sin precios semilla de 2024: esperar cotizaciones verificadas en vivo. */
+    window._rpData = window._rpData || { wti: null, brent: null, mix: null };
 
     (async () => {
       try {

@@ -31,7 +31,7 @@ function list(value, maxItems, maxLength) {
 function checkedBrief(draft, facts) {
     const issues=[],brief={};
     const read=value=>typeof value==='string' ? cleanText(value,Number.MAX_SAFE_INTEGER) : '';
-    for(const [key,limit] of Object.entries({headline:120,context:320,thesis:420,committeeQuestion:260})) {
+    for(const [key,limit] of Object.entries({headline:130,context:440,thesis:560,committeeQuestion:340})) {
         brief[key]=read(draft?.[key]);
         if(!brief[key] || brief[key].length>limit)issues.push(`${key}: texto completo de hasta ${limit} caracteres`);
         else if(key!=='headline' && !/[.!?…]["'»”’)]?$/.test(brief[key]))issues.push(`${key}: cerrar la frase con puntuación`);
@@ -39,7 +39,7 @@ function checkedBrief(draft, facts) {
     for(const key of ['drivers','risks']) {
         brief[key]=Array.isArray(draft?.[key]) ? draft[key].map(read) : [];
         if(!brief[key].length || brief[key].length>3)issues.push(`${key}: de una a tres frases`);
-        if(brief[key].some(value=>!value || value.length>240 || !/[.!?…]["'»”’)]?$/.test(value)))issues.push(`${key}: frases completas de hasta 240 caracteres, con puntuación final`);
+        if(brief[key].some(value=>!value || value.length>320 || !/[.!?…]["'»”’)]?$/.test(value)))issues.push(`${key}: frases completas de hasta 320 caracteres, con puntuación final`);
     }
     const allowed=numericTokens(JSON.stringify(facts));
     const unsupported=[...numericTokens(JSON.stringify(brief))].filter(value=>!allowed.has(value));
@@ -52,13 +52,13 @@ function factsFor(report) { return editorialFacts(report); }
 function compactFactsForPrompt(fact) {
     return {
         ...fact,
-        sections: (fact.sections || []).slice(0, 6).map(s => ({ heading: s.heading, text: cleanText(s.text, 550) })),
+        sections: (fact.sections || []).slice(0, 6).map(s => ({ heading: s.heading, text: cleanText(s.text, 700) })),
         tables: (fact.tables || []).slice(0, 4).map(t => ({
             ...t,
-            rows: (t.rows || []).slice(0, 8),
+            rows: (t.rows || []).slice(0, 10),
         })),
-        sources: (fact.sources || []).slice(0, 8),
-        sourceLinks: (fact.sourceLinks || []).slice(0, 6),
+        sources: (fact.sources || []).slice(0, 10),
+        sourceLinks: (fact.sourceLinks || []).slice(0, 8),
     };
 }
 
@@ -119,10 +119,10 @@ Reglas no negociables:
 5. Si faltan hechos, dilo de forma explícita y breve.
 Las preguntas e información a solicitar de la guía sectorial son criterios de análisis, no datos observados. Úsalas para precisar qué debe validarse; no afirmes que esa evidencia o exposición ya existe.
 6. Devuelve JSON válido, sin Markdown ni texto adicional. Sintetiza dentro de los límites de cada campo; todas las frases deben quedar completas y cerrar con puntuación. No copies todas las filas de las tablas.`;
-        const loopusGuidance = getReportReasoningContext({ area, key: fallbackReports.map(r => r.key).join(' ') });
+        const loopusGuidance = getReportReasoningContext({ area, key: fallbackReports.map(r => r.key).join(' '), depth: 'detailed' });
         if (loopusGuidance) systemInstruction += `\n\n${loopusGuidance}`;
-        const buildAreaPrompt = (selectedFacts, repairNote = '') => `Área: ${area}. Para cada informe, devuelve exactamente este esquema:
-{"reports":[{"key":"","headline":"máximo 120 caracteres; describe el hecho sin sensacionalismo","context":"máximo 320 caracteres; explica por qué el corte merece atención usando sólo los datos dados","thesis":"máximo 420 caracteres; hecho y lectura condicional","drivers":["máximo 3, 240 caracteres c/u; señal observable y por qué importa"],"risks":["máximo 3, 240 caracteres c/u; condición que hay que contrastar"],"committeeQuestion":"máximo 260 caracteres"}]}
+        const buildAreaPrompt = (selectedFacts, repairNote = '') => `Área: ${area}. Para cada informe, entrega profundidad analítica de comité conectando cifras literales, fechas, unidades, dispersión regional o entre activos y mecanismos de transmisión (FX, tasas, insumos, energía o abasto) usando únicamente DATOS VERIFICADOS. Devuelve exactamente este esquema:
+{"reports":[{"key":"","headline":"máximo 130 caracteres; describe el hecho rector con precisión sin sensacionalismo","context":"máximo 440 caracteres; explica exposición del negocio, corte y relevancia operativa sin repetir la tesis","thesis":"máximo 560 caracteres; hecho observado con cifra/unidad literal, mecanismo causal y lectura condicional","drivers":["máximo 3, hasta 320 caracteres c/u; señal observable con cifra/fuente del corte, mecanismo e implicación práctica"],"risks":["máximo 3, hasta 320 caracteres c/u; condición específica de riesgo y dato concreto a contrastar para confirmarla"],"committeeQuestion":"máximo 340 caracteres; pregunta accionable y específica para comité"}]}
 
 DATOS VERIFICADOS:
 ${JSON.stringify(selectedFacts)}${repairNote}`;

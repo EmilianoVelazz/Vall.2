@@ -7,7 +7,7 @@ const { researchPeriod } = require('./trade-research');
 const { normalizeForIntent } = require('../ai/conversation-context');
 const { createMexicoPriceClient } = require('./mexico-protein-prices');
 const { createPorciculturaClient } = require('./porcicultura-public');
-const { requestedMexicoStates, requestedMexicoCities, stateFromMarket } = require('./mexico-price-scope');
+const { requestedMexicoStates, requestedMexicoCities, stateFromMarket, stateName } = require('./mexico-price-scope');
 const {createLocalCommercialClient,commercialStagesFor}=require('./local-commercial-prices');
 
 const PRODUCTS = Object.freeze([
@@ -315,8 +315,17 @@ function loadVerifiedSnapshotRecords({ countries, products, existingRecords, win
 
             if (countryCode === 'MX' && (stateFilter || cityFilter)) {
                 const hay = normalizeForIntent(`${item.market || ''} ${item.label || ''}`);
-                const matchesPlace = [...(stateFilter || []), ...(cityFilter || [])].some(p => hay.includes(normalizeForIntent(p)));
-                if (!matchesPlace) continue;
+                const itemStateCode = stateFromMarket(`${item.market || ''} ${item.label || ''}`)?.code || requestedMexicoStates(hay)[0] || null;
+                const stateMatch = Boolean(stateFilter?.length) && (
+                    (itemStateCode && stateFilter.includes(itemStateCode))
+                    || stateFilter.some(code => hay.includes(normalizeForIntent(stateName(code))))
+                );
+                const cityMatch = Boolean(cityFilter?.length) && cityFilter.some(city => {
+                    const name = typeof city === 'string' ? city : city?.name;
+                    const code = typeof city === 'object' ? city?.stateCode : null;
+                    return (name && hay.includes(normalizeForIntent(name))) || (code && itemStateCode === code);
+                });
+                if (!stateMatch && !cityMatch) continue;
             }
 
             const labelNorm = normalizeForIntent(`${item.label || ''} ${item.market || ''}`);
@@ -424,7 +433,11 @@ function createProteinPriceClient({ fetchPage = fetchPublicPage, now = Date.now,
             const eu = countries.filter(code => EU_CODES.has(code)).slice(0, 12);
             const products = PRODUCTS.filter(item => profile.products.includes(item.id));
             const tasks = [];
-            if(countries.includes('MX') && localCommercialClient && window.start<=window.end) tasks.push(localCommercialClient.get(profile,window));
+            const explicitRetail = Boolean(profile.commercialStages?.includes('retail'))
+                || /\b(?:menudeo|retail|supermercado|profeco|chedraui|soriana|walmart|venta al publico)\b/i.test(profile.query || '');
+            const isInternationalOrParity = countries.length > 1 || Boolean(profile.global) || Boolean(profile.european)
+                || /\b(?:paridad|importaci[oó]n|arbitraje|pron[oó]stic\w*\s+ml|motor\s+ml|marranas)\b/i.test(profile.query || '');
+            if(countries.includes('MX') && localCommercialClient && window.start<=window.end && (!isInternationalOrParity || explicitRetail)) tasks.push(localCommercialClient.get(profile,window));
             if (countries.includes('MX') && profile.priceSource !== 'porcicultura') tasks.push(typeof mexicoClient.getDetailed === 'function' ? mexicoClient.getDetailed(profile, window) : mexicoClient.get(profile, window));
             if (countries.includes('MX') && profile.products.includes('pork')) tasks.push(typeof porciculturaClient.getDetailed === 'function' ? porciculturaClient.getDetailed(profile,window) : porciculturaClient.get(profile, window));
             if (!profile.specificPrice && !profile.futures && window.start <= window.end) {

@@ -230,9 +230,10 @@ function LineChart({ points, label, unit = 'puntos', tone = 'cyan' }) {
 }
 
 function useCompanyHistories(shares, range) {
+  const symbolsKey = shares.map(share => share.symbol).join(',');
   const source = useMemo(
-    () => shares.map(share => ({ symbol: share.symbol, ticker: BMV_PROFILES[share.symbol]?.ticker })).filter(item => item.ticker),
-    [shares],
+    () => (symbolsKey ? symbolsKey.split(',') : []).map(symbol => ({ symbol, ticker: BMV_PROFILES[symbol]?.ticker })).filter(item => item.ticker),
+    [symbolsKey],
   );
   const rangeConfig = useMemo(() => IPC_RANGES.find(option => option.id === range) || IPC_RANGES[2], [range]);
   const [state, setState] = useState({ series: {}, loading: false });

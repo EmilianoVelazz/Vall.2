@@ -7,12 +7,18 @@ const CACHE_TTL = 12 * 60 * 60 * 1000; // 12 horas
 
 let inMemoryCache = null;
 
+function hasUsablePrices(entry) {
+    if (!entry || entry._meta?.type === 'ERROR_FALLBACK') return false;
+    return [entry.cerdo, entry.res, entry.pollo, entry.huevo]
+        .some(item => item && (item.norte > 0 || item.centro > 0 || item.sur > 0));
+}
+
 /**
  * Carga o actualiza los datos del SNIIM.
  */
 async function getSNIIMData() {
     // 1. Revisar memoria
-    if (inMemoryCache && (Date.now() - inMemoryCache.ts < CACHE_TTL)) {
+    if (hasUsablePrices(inMemoryCache) && (Date.now() - inMemoryCache.ts < CACHE_TTL)) {
         return inMemoryCache;
     }
 
@@ -20,7 +26,7 @@ async function getSNIIMData() {
     try {
         if (fs.existsSync(CACHE_FILE)) {
             const fileData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-            if (Date.now() - fileData.ts < CACHE_TTL) {
+            if (hasUsablePrices(fileData) && (Date.now() - fileData.ts < CACHE_TTL)) {
                 inMemoryCache = fileData;
                 return inMemoryCache;
             }

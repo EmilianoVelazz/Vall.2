@@ -18,8 +18,8 @@ const CACHE_FILE = path.join(CACHE_DIR, 'gemini-wholesale-protein-prices.json');
 const TTL_MS = 12 * 60 * 60 * 1000;
 const CACHE_SCHEMA = 4;
 const MAX_QUOTE_AGE_DAYS = 14;
-const ABASTEROS_PUEBLA_BEEF_URL = 'https://abasteros.com/products/91';
-const ABASTEROS_PUEBLA_CHICKEN_URL = 'https://abasteros.com/products/87';
+const ABASTEROS_PUEBLA_BEEF_URL = 'https://abasteros.com/productos/91';
+const ABASTEROS_PUEBLA_CHICKEN_URL = 'https://abasteros.com/productos/87';
 const PUEBLA_MARKET = Object.freeze({
     id: 'puebla-puebla', city: 'Puebla, Puebla', country: 'México',
     label: 'Puebla, Puebla · mercado físico',

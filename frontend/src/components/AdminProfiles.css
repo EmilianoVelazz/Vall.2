@@ -91,7 +91,12 @@
 .ap-weight-item small { font-size: .71rem; color: #8da9c4; }
 .ap-regime-list { margin: 0; padding: 0; list-style: none; display: grid; gap: .45rem; font-size: .8rem; color: #c7d9ea; }
 .ap-regime-list li { display: flex; justify-content: space-between; gap: .5rem; border-bottom: 1px dashed #25394d; padding-bottom: .3rem; }
-@media(max-width:960px) { .ap-pred-grid { grid-template-columns: 1fr; } }
+.ap-conformal-row { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .3rem; }
+.ap-intel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.ap-anomaly-list { margin: .45rem 0 0; padding: 0; list-style: none; display: grid; gap: .45rem; font-size: .8rem; color: #dbe9f6; }
+.ap-anomaly-list li { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; padding: .45rem .6rem; border-radius: 8px; background: #0f1d2b; border: 1px solid #293e54; }
+.ap-pill.is-warning { border-color: rgba(251, 191, 36, .55); color: #fde68a; }
+@media(max-width:960px) { .ap-pred-grid, .ap-intel-grid { grid-template-columns: 1fr; } }
 @media(max-width:900px) {
   .ap-table-wrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .ap-table-wrap table,.ap-table-wrap tbody { display: block; }

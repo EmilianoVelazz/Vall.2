@@ -4,6 +4,7 @@ import Footer from '../components/Footer.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import loadScripts, { globalLegado } from '../lib/loadScripts.js';
 import { ContenidoEnriquecido } from '../lib/textoEnriquecido.js';
+import ProteinMLRadar from '../components/ProteinMLRadar.jsx';
 import './MercadoProteinas.css';
 import { DATOS, ESQUELETO } from '../lib/hojasComunes.js';
 
@@ -67,9 +68,9 @@ const ESTADO_FUENTE = {
 const IMGS = ['/assets/img/fallback/ganaderia.webp', '/assets/img/fallback/materias-primas.webp', '/assets/img/fallback/finanzas.webp'];
 
 const DESTINOS = [
-  { clave: 'japon', etiqueta: '🇯🇵 Japón (40%)', pct: 40, extra: 0.35 },
-  { clave: 'corea', etiqueta: '🇰🇷 Corea del Sur (25%)', pct: 25, extra: 0.25 },
-  { clave: 'china', etiqueta: '🇨🇳 China (15%)', pct: 15, extra: 0.45, acento: true },
+  { clave: 'japon', etiqueta: '🇯🇵 Japón (ref. 40% USDA)', pct: 40, extra: 0.35 },
+  { clave: 'corea', etiqueta: '🇰🇷 Corea del Sur (ref. 25% USDA)', pct: 25, extra: 0.25 },
+  { clave: 'china', etiqueta: '🇨🇳 China (ref. 15% USDA)', pct: 15, extra: 0.45, acento: true },
   { clave: 'otros', etiqueta: '🌎 Otros (20%)', pct: 20, extra: 0.15, tenue: true },
 ];
 
@@ -84,9 +85,10 @@ const REF = { corn: 4.82, soy: 342.0, cerdo: 2.45, res: 4.8 };
 
 function clasificar(titulo) {
   const t = (titulo || '').toLowerCase();
-  if (/pork|hog|cerdo|swine|bacon|jamón/.test(t)) return 'cerdo';
-  if (/poult|chicken|broiler|pollo|aviar|turkey/.test(t)) return 'pollo';
-  if (/beef|cattle|bovine|res|ganado|angus|feedlot/.test(t)) return 'res';
+  if (/\b(?:pork|hog|hogs|cerdo|porcino|swine|bacon|jam[oó]n)\b/.test(t)) return 'cerdo';
+  if (/\b(?:egg|eggs|huevo|huevos|ponedora|postura)\b/.test(t)) return 'huevo';
+  if (/\b(?:poultry|chicken|broiler|pollo|aviar|av[ií]cola|turkey|pavo)\b/.test(t)) return 'pollo';
+  if (/\b(?:beef|cattle|bovine|bovino|res|ganado|vacuno|angus|feedlot|carne de res)\b/.test(t)) return 'res';
   return null;
 }
 
@@ -128,18 +130,10 @@ async function calcular(VDS) {
     return true;
   });
 
-  const grupos = { cerdo: [], pollo: [], res: [] };
+  const grupos = { cerdo: [], pollo: [], res: [], huevo: [] };
   unicas.forEach((a) => {
     const especie = clasificar(a.title);
     if (especie && grupos[especie].length < 2) grupos[especie].push(a);
-  });
-
-  // Si alguna especie se quedó sin noticia propia, se rellena con las sobrantes.
-  let relleno = 0;
-  ESPECIES.forEach((especie) => {
-    while (grupos[especie].length === 0 && relleno < unicas.length) {
-      grupos[especie].push(unicas[relleno++]);
-    }
   });
 
   const [hogsR, cattleR, cornR, soyR] = await Promise.allSettled([
@@ -428,6 +422,8 @@ export default function MercadoProteinas() {
             </button>
           ))}
         </div>
+
+        <ProteinMLRadar activeSpecies={filtro} onSelectSpecies={setFiltro} />
 
         <div className="mp-news-grid">
           {noticias.map((n) => (

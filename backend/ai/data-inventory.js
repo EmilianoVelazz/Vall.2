@@ -68,11 +68,26 @@ function buildDataInventoryContext({ plan = {}, liveData = null, evidence = null
     if (showcase?.assets?.length) {
         const eligible = showcase.assets.filter(a => a.horizons?.some(h => h.eligible));
         lines.push(
-            `2) **Modelos ML Predictivos (Proyecto Loopus Walk-Forward, corte ${String(showcase.generatedAt || '').slice(0, 10)}):**`,
+            `2) **Modelos ML Predictivos Generales (Proyecto Loopus Walk-Forward, corte ${String(showcase.generatedAt || '').slice(0, 10)}):**`,
             `- ${showcase.summary?.eligibleModelsCount || 0}/${showcase.summary?.totalModelsEvaluated || 0} horizontes validados fuera de muestra (mejora media MAE: +${showcase.summary?.avgImprovementPct || 0}%, precisión direccional: ${showcase.summary?.avgDirectionAccuracyPct || 0}%).`,
             `- Activos con pronóstico validado activo: ${eligible.map(a => `${a.symbol} (${a.lastValue} ${a.unit} al ${a.cutoff})`).join(', ')}.`,
         );
     }
+
+    try {
+        const { loadCachedProteinML } = require('../ml/protein-ml-engine');
+        const { loadCachedClosedLoopAudit } = require('../ml/protein-ml-closed-loop');
+        const marranas = loadCachedProteinML();
+        const mAudit = loadCachedClosedLoopAudit();
+        if (marranas?.stats?.activeModels) {
+            lines.push(
+                `2b) **Motor ML Independiente de Proteínas Animales (MARRANAS · ${marranas.version}, corte ${String(marranas.generatedAt || '').slice(0, 10)}):**`,
+                `- ${marranas.stats.activeModels} modelos activos (${marranas.stats.conformalAndAdaptiveModels || 0} Conformal P80) entrenados con ${(marranas.stats.totalObservationsIngested || 0).toLocaleString('es-MX')} observaciones reales y ${marranas.stats.exogenousDriverSeries || 0} drivers exógenos (CFTC COT, IBGE Brasil, spreads USDA, ración, FX, paridad MXN/kg).`,
+                `- Desempeño: Exactitud Walk-Forward ${marranas.stats.avgWalkForwardDirectionalAccuracyPct}% (México SNIIM ${marranas.summary?.byRegion?.MX?.avgDirectionalAccuracyPct ?? '—'}%), Brier ${marranas.stats.avgBrierScore}, mejora MAE +${marranas.stats.avgMaeImprovementPct}%.`,
+                `- Módulos integrados: Explicabilidad causal SHAP (8 factores), Paridad de Importación → México (USD/MXN=${marranas.importParity?.fxRates?.usdMxn ?? '—'}), Radar NLP Sanitario/Comercial (${marranas.nlpEvents?.stats?.relevantEventsDetected || 0} eventos activos) y Auditoría Real Closed-Loop en Dokploy (${mAudit?.summary?.totalEvaluated || 0} evals · P80 ${mAudit?.summary?.conformal80CoveragePct ?? '—'}% · MAPE ${mAudit?.summary?.avgMapePct ?? '—'}%).`,
+            );
+        }
+    } catch { /* MARRANAS opcional */ }
 
     const commFile = fs.existsSync(path.join(CACHE_DIR, 'commodity-cache.json'))
         ? path.join(CACHE_DIR, 'commodity-cache.json')

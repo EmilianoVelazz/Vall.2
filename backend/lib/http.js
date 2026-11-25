@@ -1,6 +1,25 @@
 'use strict';
 const https = require('https');
 const { trustedCertificates } = require('./tls-trust');
+
+function decodeHttpBody(buffer, contentType = '') {
+    const ct = String(contentType || '').toLowerCase();
+    const match = ct.match(/charset\s*=\s*["']?([a-z0-9._-]+)/i);
+    if (match) {
+        const charset = match[1].toLowerCase();
+        if (charset === 'latin1' || charset === 'iso-8859-1' || charset === 'windows-1252' || charset === 'cp1252') {
+            return new TextDecoder('windows-1252').decode(buffer);
+        }
+    }
+    const utf8 = buffer.toString('utf8');
+    // Muchos portales oficiales mexicanos (SNIIM, Abasteros) envían HTML en
+    // ISO-8859-1/Windows-1252 sin declarar charset; si UTF-8 genera U+FFFD,
+    // decodificamos como windows-1252 para conservar acentos y eñes.
+    if (utf8.includes('\uFFFD') && (!ct || ct.includes('text/') || ct.includes('html') || ct.includes('xml'))) {
+        return new TextDecoder('windows-1252').decode(buffer);
+    }
+    return utf8;
+}
 // Incluye las CA del sistema operativo sin desactivar TLS. Una instalación
 // corporativa de Windows puede añadir una CA que no está en ssl-root-cas.
 const publicAgent = new https.Agent({ keepAlive: true, maxSockets: 16, maxTotalSockets: 32,
@@ -47,22 +66,24 @@ function externalGet(url, extraHeaders = {}, timeoutMs = 9000, { signal } = {}) 
                 },
             },
             res => {
-                let raw = '';
+                const chunks = [];
                 let bytes = 0;
                 res.on('error', error => finish(reject, error));
                 res.on('close', () => {
                     if (!res.complete) finish(reject, new Error('El proveedor interrumpió la respuesta.'));
                 });
                 res.on('data', c => {
-                    bytes += Buffer.byteLength(c);
+                    const chunk = Buffer.isBuffer(c) ? c : Buffer.from(c);
+                    bytes += chunk.length;
                     if (bytes > MAX_RESPONSE_BYTES) {
                         finish(reject, new Error('Respuesta del proveedor demasiado grande.'));
                         req.destroy();
                         return;
                     }
-                    raw += c;
+                    chunks.push(chunk);
                 });
                 res.on('end', () => {
+                    const raw = decodeHttpBody(Buffer.concat(chunks), res.headers['content-type']);
                     finish(resolve, {
                         ok:     res.statusCode >= 200 && res.statusCode < 300,
                         status: res.statusCode,

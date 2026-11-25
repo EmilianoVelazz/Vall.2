@@ -240,9 +240,11 @@ export function inteligenciaMetales(p, mxn) {
   const canastaMxn = canastaUsd * fx;
 
   const movimiento = cobrePct * 0.60 + aluminioPct * 0.40;
-  const score = Math.max(0, Math.min(100, Math.round(50 + movimiento * 4.5)));
+  // Escala suave (tanh) para que retrocesos o avances fuertes no aplasten el
+  // medidor a 0/100 ni 100/100 aparentando falta de datos.
+  const score = Math.max(8, Math.min(92, Math.round(50 + 38 * Math.tanh(movimiento / 8))));
   const volatilidadMedia = (Math.abs(cobrePct) + Math.abs(aluminioPct)) / 2;
-  const capexScore = Math.max(0, Math.min(100, Math.round(50 + movimiento * 3 + (fx - 18) * 5)));
+  const capexScore = Math.max(8, Math.min(92, Math.round(50 + 32 * Math.tanh((movimiento + (fx - 18) * 1.5) / 10))));
 
   const amplitud = cobrePct > 0.25 && aluminioPct > 0.25 ? 'Expansiva'
     : cobrePct < -0.25 && aluminioPct < -0.25 ? 'Contractiva' : 'Mixta';

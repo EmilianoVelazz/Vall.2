@@ -148,6 +148,201 @@ router.get('/proteinas/fuentes/estado', (req, res) => {
 // Evidencia oficial ya normalizada. Se mantiene separada del catálogo para que
 // la UI pueda consultarla bajo demanda, sin añadir llamadas externas a cada
 // cambio de página. La respuesta conserva unidad, periodo y descripción.
+// Motor ML dedicado de proteínas animales (Cerdo, Res, Pollo, Huevo) con
+// pronósticos walk-forward de subida/baja de precios y auditoría Closed-Loop.
+function serveProteinMLForecasts(req, res) {
+    const { loadCachedProteinML, buildMarranasAlerts } = require('../ml/protein-ml-engine');
+    const { loadCachedClosedLoopAudit } = require('../ml/protein-ml-closed-loop');
+    const { buildLivestockMarginReport } = require('../services/livestock-margin-engine');
+    const artifact = loadCachedProteinML();
+    if (!artifact) {
+        return res.status(503).json({
+            available: false,
+            error: 'El modelo ML de proteínas aún no tiene un corte entrenado en caché.',
+        });
+    }
+    const species = String(req.query.species || '').trim().toLowerCase();
+    const region = String(req.query.region || '').trim().toUpperCase();
+    const direction = String(req.query.direction || '').trim().toUpperCase();
+    let forecasts = Array.isArray(artifact.forecasts) ? artifact.forecasts.filter(f => f.available) : [];
+    if (species && species !== 'all' && species !== 'todos') {
+        forecasts = forecasts.filter(f => f.species === species);
+    }
+    if (region && region !== 'ALL' && region !== 'TODAS') {
+        forecasts = forecasts.filter(f => f.region === region);
+    }
+    if (['ALZA', 'BAJA', 'LATERAL'].includes(direction)) {
+        forecasts = forecasts.filter(f => f.primaryForecast?.direction === direction);
+    }
+    const audit = loadCachedClosedLoopAudit();
+    res.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800');
+    res.json({
+        available: true,
+        model: artifact.model || 'MARRANAS',
+        displayName: artifact.displayName || 'MARRANAS · Motor ML de Proteínas',
+        version: artifact.version,
+        generatedAt: artifact.generatedAt,
+        stats: artifact.stats,
+        summary: artifact.summary,
+        importParity: artifact.importParity || null,
+        livestockMargins: buildLivestockMarginReport({ proteinArtifact: artifact }),
+        nlpEvents: artifact.nlpEvents || require('../ml/protein-nlp-events').loadCachedNlpEvents() || null,
+        transmission: artifact.transmission,
+        closedLoopAudit: audit ? {
+            generatedAt: audit.generatedAt,
+            summary: audit.summary,
+            bySpecies: audit.bySpecies,
+            byRegion: audit.byRegion,
+        } : null,
+        alerts: buildMarranasAlerts(artifact, { species: species || null, region: region || null, limit: 16 }),
+        count: forecasts.length,
+        forecasts,
+        notice: 'Pronóstico cuantitativo walk-forward (Ridge-ARX + GBDT + Logit + Bandas Conformal P80/P90); señal estadística, no certeza ni recomendación financiera.',
+    });
+}
+router.get('/proteinas/ml-pronosticos', serveProteinMLForecasts);
+router.get('/ml/proteins', serveProteinMLForecasts);
+router.get('/marranas', serveProteinMLForecasts);
+router.get('/livestock-margins', (req, res) => {
+    const { buildLivestockMarginReport } = require('../services/livestock-margin-engine');
+    const report = buildLivestockMarginReport();
+    res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
+    res.status(report.available ? 200 : 503).json(report);
+});
+router.get('/market-catalysts', (req, res) => {
+    const { getUpcomingMarketCatalysts } = require('../services/market-catalysts');
+    const daysAhead = Math.min(Math.max(Number(req.query.days) || 45, 7), 120);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 24);
+    const category = String(req.query.category || 'all').trim().toLowerCase();
+    const report = getUpcomingMarketCatalysts({ daysAhead, category, limit });
+    res.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
+    res.json(report);
+});
+router.get('/executive-pulse', (req, res) => {
+    const { buildExecutivePulse } = require('../services/executive-pulse-service');
+    const pulse = buildExecutivePulse();
+    res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
+    res.status(pulse.available ? 200 : 503).json(pulse);
+});
+
+// Radar de Alertas Tempranas MARRANAS (Alza fuerte, Baja/Oportunidad, Margen comprimido y Choques de volatilidad)
+function serveMarranasAlerts(req, res) {
+    const { loadCachedProteinML, buildMarranasAlerts } = require('../ml/protein-ml-engine');
+    const artifact = loadCachedProteinML();
+    if (!artifact) {
+        return res.status(503).json({ available: false, error: 'MARRANAS aún no tiene un corte entrenado en caché.' });
+    }
+    const species = String(req.query.species || '').trim().toLowerCase() || null;
+    const region = String(req.query.region || '').trim().toUpperCase() || null;
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const alerts = buildMarranasAlerts(artifact, { species, region, limit });
+    res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
+    res.json({
+        available: true,
+        model: artifact.model || 'MARRANAS',
+        version: artifact.version,
+        generatedAt: artifact.generatedAt,
+        count: alerts.length,
+        bySeverity: {
+            critica: alerts.filter(a => a.severity === 'CRÍTICA').length,
+            alta: alerts.filter(a => a.severity === 'ALTA').length,
+            vigilancia: alerts.filter(a => a.severity === 'VIGILANCIA').length,
+        },
+        alerts,
+    });
+}
+router.get('/marranas/alertas', serveMarranasAlerts);
+router.get('/proteinas/ml-alertas', serveMarranasAlerts);
+
+// Paridad de Importación y Arbitraje Internacional (EE. UU., Brasil, Europa → México en MXN/kg)
+function serveMarranasParity(req, res) {
+    const { loadCachedProteinML } = require('../ml/protein-ml-engine');
+    const artifact = loadCachedProteinML();
+    if (!artifact?.importParity) {
+        return res.status(503).json({ available: false, error: 'Paridad de importación MARRANAS aún no disponible.' });
+    }
+    res.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800');
+    res.json({
+        available: true,
+        model: artifact.model || 'MARRANAS',
+        version: artifact.version,
+        importParity: artifact.importParity,
+    });
+}
+router.get('/marranas/paridad', serveMarranasParity);
+router.get('/proteinas/paridad-importacion', serveMarranasParity);
+
+// Radar NLP de Eventos Sanitarios y Comerciales (H5N1, PPA, Gusano Barrenador, Aranceles/Fronteras)
+async function serveMarranasNlpEvents(req, res) {
+    try {
+        const { loadCachedNlpEvents, fetchAndClassifyProteinNlpEvents } = require('../ml/protein-nlp-events');
+        let snapshot = loadCachedNlpEvents();
+        const ageMs = snapshot?.generatedAt ? (Date.now() - Date.parse(snapshot.generatedAt)) : Infinity;
+        if (!snapshot || (req.query.refresh === '1' && ageMs > 15 * 60 * 1000) || ageMs > 6 * 60 * 60 * 1000) {
+            snapshot = await fetchAndClassifyProteinNlpEvents().catch(() => snapshot);
+        }
+        if (!snapshot) {
+            return res.status(503).json({ available: false, error: 'Radar NLP de eventos sanitarios/comerciales aún no disponible.' });
+        }
+        const species = String(req.query.species || '').trim().toLowerCase() || null;
+        const region = String(req.query.region || '').trim().toUpperCase() || null;
+        let topEvents = snapshot.topEvents || [];
+        if (species && species !== 'all') topEvents = topEvents.filter(e => e.species?.includes(species));
+        if (region && region !== 'ALL') topEvents = topEvents.filter(e => e.regions?.includes(region));
+        res.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800');
+        res.json({
+            available: true,
+            model: 'MARRANAS',
+            version: snapshot.version,
+            generatedAt: snapshot.generatedAt,
+            windowDays: snapshot.windowDays,
+            stats: snapshot.stats,
+            bySpecies: snapshot.bySpecies,
+            bySpeciesRegion: snapshot.bySpeciesRegion,
+            topEvents,
+        });
+    } catch (error) {
+        console.error('[MARRANAS NLP Eventos] Error:', error.message);
+        res.status(503).json({ available: false, error: 'Radar NLP no disponible temporalmente.' });
+    }
+}
+router.get('/marranas/eventos', serveMarranasNlpEvents);
+router.get('/proteinas/eventos-nlp', serveMarranasNlpEvents);
+
+// Auditoría real Closed-Loop: desempeño verificado contra precios reales en Dokploy DB
+async function serveMarranasAudit(req, res) {
+    try {
+        const { loadCachedClosedLoopAudit, buildClosedLoopAuditAndFeedback } = require('../ml/protein-ml-closed-loop');
+        const refresh = req.query.refresh === '1';
+        const audit = (!refresh && loadCachedClosedLoopAudit()) || await buildClosedLoopAuditAndFeedback();
+        res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
+        res.json({ available: Boolean(audit), model: 'MARRANAS', audit });
+    } catch (error) {
+        console.error('[MARRANAS Auditoría] Error:', error.message);
+        res.status(503).json({ available: false, error: 'Auditoría cerrada de MARRANAS no disponible temporalmente.' });
+    }
+}
+router.get('/proteinas/ml-auditoria', serveMarranasAudit);
+router.get('/marranas/auditoria', serveMarranasAudit);
+
+// Disparo protegido por CRON_SECRET para reentrenamiento y auditoría Closed-Loop (Dokploy / Cron)
+async function triggerMarranasClosedLoop(req, res) {
+    if (!hasBearerSecret(req, process.env.CRON_SECRET)) {
+        return res.status(401).json({ success: false, error: 'No autorizado.' });
+    }
+    try {
+        const { runProteinClosedLoopCycle } = require('../ml/protein-ml-closed-loop');
+        const retrain = req.query.retrain !== '0';
+        const result = await runProteinClosedLoopCycle({ retrain });
+        res.json({ success: true, model: 'MARRANAS', ...result });
+    } catch (error) {
+        console.error('[MARRANAS Ciclo Cerrado] Error:', error.message);
+        res.status(502).json({ success: false, error: 'No se pudo completar el ciclo cerrado de MARRANAS.' });
+    }
+}
+router.get('/proteinas/ml-ciclo-cerrado', triggerMarranasClosedLoop);
+router.get('/marranas/ciclo-cerrado', triggerMarranasClosedLoop);
+
 const _proteinEvidenceCache = new Map();
 const PROTEIN_EVIDENCE_TTL = 12 * 60 * 60 * 1000;
 const PROTEIN_EVIDENCE_PROVIDERS = Object.freeze({
@@ -328,12 +523,23 @@ const YF_COMMODITIES = {
     SOYBEANS:    { ticker: 'ZS=F', factor: 36.7437 / 100, unidad: 'USD/MT' },
 };
 
+// Respaldo con futuros de Yahoo Finance cuando Alpha Vantage agota su cuota diaria (25 req/día),
+// convirtiendo cada contrato a la misma unidad que entrega Alpha Vantage.
+const YF_FALLBACK_COMMODITIES = {
+    CORN:        { ticker: 'ZC=F',  factor: 39.36825 / 100, unidad: 'dollar per metric ton' },
+    WHEAT:       { ticker: 'ZW=F',  factor: 36.7437 / 100,  unidad: 'dollar per metric ton' },
+    CRUDE_OIL:   { ticker: 'CL=F',  factor: 1,              unidad: 'dollars per barrel' },
+    NATURAL_GAS: { ticker: 'NG=F',  factor: 1,              unidad: 'dollars per million BTU' },
+    COPPER:      { ticker: 'HG=F',  factor: 2204.62262,     unidad: 'dollar per metric ton' },
+    ALUMINUM:    { ticker: 'ALI=F', factor: 1,              unidad: 'dollar per metric ton' },
+};
+
 /* Devuelve la serie mensual en el formato de AV: puntos { date, value } del más
    reciente al más antiguo, que es el orden del que dependen commodityWithPct()
    —toma data[0] como precio y data[3] como referencia de tres meses— y el
    histórico de seis puntos de las sparklines. */
-async function _fetchYahooCommodity(fn) {
-    const spec = YF_COMMODITIES[fn];
+async function _fetchYahooCommodity(fn, specOverride = null) {
+    const spec = specOverride || YF_COMMODITIES[fn];
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(spec.ticker)}`
         + '?interval=1mo&range=2y';
     const r = await yahooFetch(url, {
@@ -406,20 +612,49 @@ async function _fetchOneCommodity(fn) {
     }
 
     const avKey = process.env.ALPHA_VANTAGE_KEY;
-    if (!avKey) { _fetchingCommodities.delete(fn); return; }
     const avFn  = AV_FN_MAP[fn] || fn;
     const ratio = AV_FN_RATIO[fn] || 1;
+    let fallbackReason = null;
     try {
-        const r = await externalGet(`https://www.alphavantage.co/query?function=${avFn}&apikey=${avKey}`);
-        const j = await r.json();
-        if (j?.Information || j?.Note) { console.warn(`[commodity] rate-limited on ${fn}`); return; }
-        if (!Array.isArray(j?.data) || !j.data.length) { console.warn(`[commodity] invalid data for ${fn}`); return; }
-        const data  = ratio !== 1 ? j.data.map(d => ({ ...d, value: String(parseFloat(d.value) * ratio) })) : j.data;
-        _avComCache.set(fn, { ts: Date.now(), data: { ...j, data } });
-        _comCacheSave();
-        console.log(`[commodity] cached ${fn} (${data[0]?.value?.slice(0, 7)})`);
-    } catch (e) { console.error(`[commodity] fetch error ${fn}:`, e.message); }
-    finally { _fetchingCommodities.delete(fn); }
+        try {
+            if (!avKey) {
+                fallbackReason = 'sin ALPHA_VANTAGE_KEY';
+            } else {
+                const r = await externalGet(`https://www.alphavantage.co/query?function=${avFn}&apikey=${avKey}`);
+                const j = await r.json();
+                if (j?.Information || j?.Note) {
+                    fallbackReason = 'cuota de Alpha Vantage agotada';
+                    console.warn(`[commodity] rate-limited on ${fn}`);
+                } else if (!Array.isArray(j?.data) || !j.data.length) {
+                    fallbackReason = 'datos inválidos de Alpha Vantage';
+                    console.warn(`[commodity] invalid data for ${fn}`);
+                } else {
+                    const data  = ratio !== 1 ? j.data.map(d => ({ ...d, value: String(parseFloat(d.value) * ratio) })) : j.data;
+                    _avComCache.set(fn, { ts: Date.now(), data: { ...j, data } });
+                    _comCacheSave();
+                    console.log(`[commodity] cached ${fn} (${data[0]?.value?.slice(0, 7)})`);
+                    return;
+                }
+            }
+        } catch (e) {
+            fallbackReason = e.message;
+            console.error(`[commodity] fetch error ${fn}:`, e.message);
+        }
+
+        const yfFallback = YF_FALLBACK_COMMODITIES[fn];
+        if (fallbackReason && yfFallback) {
+            try {
+                const payload = await _fetchYahooCommodity(fn, yfFallback);
+                _avComCache.set(fn, { ts: Date.now(), data: payload });
+                _comCacheSave();
+                console.log(`[commodity] cached ${fn} via Yahoo fallback (${payload.data[0]?.value}; motivo: ${fallbackReason})`);
+            } catch (yfErr) {
+                console.error(`[commodity] yahoo fallback error ${fn}:`, yfErr.message);
+            }
+        }
+    } finally {
+        _fetchingCommodities.delete(fn);
+    }
 }
 
 async function _runCommodityWarmer(label = 'warmup') {
@@ -854,7 +1089,17 @@ async function buildMarketExecutiveReports(previousSnapshot) {
     const quoteRows = values => values.map(item => [
         item.label, price(item), performanceLabel(item.performance?.day), performanceLabel(item.performance?.week), performanceLabel(item.performance?.month), performanceLabel(item.performance?.ytd),
     ]);
-    const quoteTable = (title, values, note) => reportTable(title, ['Referencia', 'Último', 'Día', '5 sesiones', '1 mes', 'YTD'], quoteRows(values), note);
+    const quoteTable = (title, values, note) => {
+        const headers = ['Referencia', 'Último', 'Día', '5 sesiones', '1 mes', 'YTD'];
+        const rows = quoteRows(values);
+        const keep = headers.map((_, idx) => idx < 3 || rows.some(row => row[idx] && row[idx] !== '—'));
+        return reportTable(
+            title,
+            headers.filter((_, idx) => keep[idx]),
+            rows.map(row => row.filter((_, idx) => keep[idx])),
+            note
+        );
+    };
     const firstBy = (values, ticker) => values.find(item => item.ticker === ticker);
     const corn = firstBy(grains, 'ZC=F');
     const soyMeal = firstBy(grains, 'ZM=F') || firstBy(proteins, 'ZM=F');
@@ -878,9 +1123,16 @@ async function buildMarketExecutiveReports(previousSnapshot) {
         'Proteínas y alimento: evolución relativa', proteins,
         'Base 100 en el primer cierre del periodo mostrado. La comparación ordena tendencias de contratos; no representa por sí sola margen, canal o precio local.'
     );
-    const leaderSentence = (item, scope) => item
-        ? `${item.label} registra ${performanceLabel(item.performance?.day)} en la sesión disponible, ${performanceLabel(item.performance?.week)} en cinco sesiones y ${performanceLabel(item.performance?.month)} en un mes.`
-        : `No hubo una referencia verificable suficiente para identificar el movimiento de ${scope}.`;
+    const leaderSentence = (item, scope) => {
+        if (!item) return `No hubo una referencia verificable suficiente para identificar el movimiento de ${scope}.`;
+        const parts = [];
+        if (Number.isFinite(item.performance?.day)) parts.push(`${performanceLabel(item.performance.day)} en la sesión disponible`);
+        if (Number.isFinite(item.performance?.week)) parts.push(`${performanceLabel(item.performance.week)} en cinco sesiones`);
+        if (Number.isFinite(item.performance?.month)) parts.push(`${performanceLabel(item.performance.month)} en un mes`);
+        if (!parts.length) return `${item.label} conserva su última cotización publicada sin variación comparable en el corte.`;
+        const joined = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} y ${parts.at(-1)}` : parts[0];
+        return `${item.label} registra ${joined}.`;
+    };
     const reports = [
         {
             key: 'overview', title: 'Panorama general', eyebrow: 'Síntesis de Mercados', generatedAt,
@@ -947,8 +1199,14 @@ async function buildMarketExecutiveReports(previousSnapshot) {
             summary: energy.length ? `Se observaron ${energy.length} referencias de energía y metales. ${leaderSentence(energyLeader, 'energía y metales')}` : 'No hubo suficientes cotizaciones verificables para este corte industrial.',
             metrics: energy.map(metric),
             takeaways: [
-                energyLeader && `${energyLeader.label} concentra el mayor cambio porcentual absoluto de la sesión disponible (${performanceLabel(energyLeader.performance?.day)}); a un mes registra ${performanceLabel(energyLeader.performance?.month)}.`,
-                wti && `WTI: ${price(wti)}; cinco sesiones ${performanceLabel(wti.performance?.week)} y YTD ${performanceLabel(wti.performance?.ytd)}. Es una referencia internacional, no el precio de diésel puesto en planta.`,
+                energyLeader && `${energyLeader.label} concentra el mayor cambio porcentual absoluto de la sesión disponible (${performanceLabel(energyLeader.performance?.day)})${Number.isFinite(energyLeader.performance?.month) ? `; a un mes registra ${performanceLabel(energyLeader.performance.month)}` : ''}.`,
+                wti && (() => {
+                    const horizons = [
+                        Number.isFinite(wti.performance?.week) && `cinco sesiones ${performanceLabel(wti.performance.week)}`,
+                        Number.isFinite(wti.performance?.ytd) && `YTD ${performanceLabel(wti.performance.ytd)}`,
+                    ].filter(Boolean);
+                    return `WTI: ${price(wti)}${horizons.length ? `; ${horizons.join(' y ')}` : ''}. Es una referencia internacional, no el precio de diésel puesto en planta.`;
+                })(),
                 'Gas natural, cobre y oro amplían la lectura de energía, industria y refugio, pero no permiten inferir por sí solos una dirección de costos para una empresa.',
                 'Un efecto presupuestal requiere volumen, ruta, eficiencia, contrato, impuestos, precio local, moneda y fecha de entrega.',
             ].filter(Boolean),

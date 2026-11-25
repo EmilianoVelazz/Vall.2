@@ -6,8 +6,28 @@
  * huevo no se venden al rastro como animales: se publican como pollo entero y
  * huevo blanco al mayoreo. Se conservan esas diferencias en el payload para no
  * llamar "precio de rastro" a algo que no lo es. */
+const fs = require('node:fs');
+const path = require('node:path');
 const { externalGet } = require('./http');
 const { getWeeklyStateLivestockPrices } = require('./weekly-state-livestock-service');
+
+const DISK_CACHE_FILE = path.resolve(__dirname, '../cache/sniim-first-sale.json');
+let pendingFetch = null;
+
+function readDiskCache() {
+    try {
+        const parsed = JSON.parse(fs.readFileSync(DISK_CACHE_FILE, 'utf8'));
+        if (parsed?.data && Number.isFinite(parsed.ts)) return parsed;
+    } catch { /* sin caché en disco todavía */ }
+    return null;
+}
+
+function writeDiskCache(entry) {
+    try {
+        fs.mkdirSync(path.dirname(DISK_CACHE_FILE), { recursive: true });
+        fs.writeFileSync(DISK_CACHE_FILE, JSON.stringify(entry), 'utf8');
+    } catch { /* degradación silenciosa en entornos read-only */ }
+}
 
 const BASE = 'https://www.economia-sniim.gob.mx/SNIIM-Pecuarios-Nacionales';
 const SNIIM_ORIGIN = 'https://www.economia-sniim.gob.mx';
@@ -61,14 +81,33 @@ const PORK_UNAVAILABLE = Object.freeze({
     error: 'SNIIM no publicó una cotización primaria de cerdo utilizable en este corte.',
 });
 
+function repairLegacyMojibake(value) {
+    return String(value || '')
+        .replace(/Frigor\uFFFDfico/gi, 'Frigorífico').replace(/Guti\uFFFDrrez/gi, 'Gutiérrez')
+        .replace(/distribuci\uFFFDn/gi, 'distribución').replace(/L\uFFFDpez/gi, 'López')
+        .replace(/M\uFFFDdulo/gi, 'Módulo').replace(/Quer\uFFFDtaro/gi, 'Querétaro')
+        .replace(/Potos\uFFFD/gi, 'Potosí').replace(/Culiac\uFFFDn/gi, 'Culiacán')
+        .replace(/Obreg\uFFFDn/gi, 'Obregón').replace(/Malibr\uFFFDn/gi, 'Malibrán')
+        .replace(/M\uFFFDrida/gi, 'Mérida').replace(/Torre\uFFFDn/gi, 'Torreón')
+        .replace(/Trevi\uFFFDo/gi, 'Treviño').replace(/Le\uFFFDn/gi, 'León')
+        .replace(/Ray\uFFFDn/gi, 'Rayón').replace(/G\uFFFDmez/gi, 'Gómez')
+        .replace(/Ju\uFFFDrez/gi, 'Juárez').replace(/M\uFFFDxico/gi, 'México')
+        .replace(/Michoac\uFFFDn/gi, 'Michoacán').replace(/Yucat\uFFFDn/gi, 'Yucatán')
+        .replace(/Mazatl\uFFFDn/gi, 'Mazatlán').replace(/C\uFFFDrdoba/gi, 'Córdoba')
+        .replace(/Tehuac\uFFFDn/gi, 'Tehuacán').replace(/C\uFFFDrdenas/gi, 'Cárdenas')
+        .replace(/Mart\uFFFDnez/gi, 'Martínez').replace(/N\uFFFD\uFFFD?ez/gi, 'Núñez')
+        .replace(/Pe\uFFFDa/gi, 'Peña').replace(/Mu\uFFFDoz/gi, 'Muñoz')
+        .replace(/Jos\uFFFD/gi, 'José').replace(/Mar\uFFFDa/gi, 'María');
+}
+
 function textFromHtml(value) {
-    const clean = String(value || '')
+    const clean = repairLegacyMojibake(String(value || '')
         .replace(/<br\s*\/?>/gi, ' ')
         .replace(/&nbsp;/gi, ' ')
         .replace(/&#(?:x)?[0-9a-f]+;/gi, ' ')
         .replace(/<[^>]*>/g, ' ')
         .replace(/\s+/g, ' ')
-        .trim();
+        .trim());
     // El HTML legado mezcla páginas UTF-8 e ISO-8859-1. En las respuestas que
     // llegan sin charset el decodificador sustituye únicamente la vocal
     // acentuada; se reparan los nombres de plaza conocidos sin tocar cifras.
@@ -320,9 +359,7 @@ async function forLatestDay(loader, parser, maxDays = 7) {
     return { price: null, observations: 0, date: null };
 }
 
-async function getFirstSalePrices() {
-    if (cache && Date.now() - cache.ts < TTL_MS) return cache.data;
-
+async function fetchFirstSalePricesFresh() {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -372,7 +409,30 @@ async function getFirstSalePrices() {
         },
     };
     cache = { ts: Date.now(), data };
+    writeDiskCache(cache);
     return data;
+}
+
+async function getFirstSalePrices() {
+    if (!cache) cache = readDiskCache();
+    if (cache && Date.now() - cache.ts < TTL_MS) return cache.data;
+
+    // Stale-while-revalidate: devolver caché en disco al instante (<5ms) para
+    // que /mexico nunca quede colgado >8s mientras se refresca en segundo plano.
+    if (cache?.data) {
+        if (!pendingFetch) {
+            pendingFetch = fetchFirstSalePricesFresh()
+                .catch(() => {})
+                .finally(() => { pendingFetch = null; });
+        }
+        return cache.data;
+    }
+
+    if (!pendingFetch) {
+        pendingFetch = fetchFirstSalePricesFresh()
+            .finally(() => { pendingFetch = null; });
+    }
+    return pendingFetch;
 }
 
 module.exports = { getFirstSalePrices };

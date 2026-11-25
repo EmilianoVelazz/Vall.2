@@ -172,6 +172,107 @@ export function buildReportOrionHandoff({
 }
 
 /**
+ * Packages a MARRANAS v6.0 forecast/SHAP, Import Parity, or NLP Sanitary/Trade
+ * snapshot into a structured handoff payload for interactive analysis in `/orion`.
+ */
+export function buildMarranasOrionHandoff({
+  kind = 'overview',
+  row = null,
+  horizon = null,
+  simulation = null,
+  data = null,
+  accountEmail = '',
+} = {}) {
+  const version = cleanInline(data?.version || 'ORION ML', 60);
+  const cut = cleanInline(data?.generatedAt ? String(data.generatedAt).slice(0, 16).replace('T', ' ') : '', 80);
+  let title = 'ORION ML · Inteligencia de Proteínas';
+  let prompt = 'Con tus modelos ML integrados y el resumen adjunto, dame un diagnóstico ejecutivo de cerdo, res, pollo y huevo en México y el mundo, destacando probabilidades direccionales, factores SHAP dominantes, paridad de importación MXN/kg y riesgos sanitarios NLP.';
+  const lines = [
+    `# ${title} (${version})`,
+    '',
+    `- **Motor:** ORION asistido por modelos ML de proteínas`,
+    cut ? `- **Corte entrenado:** ${cut}` : '',
+    data?.stats ? `- **Cobertura:** ${data.stats.activeModels || 0} modelos activos · Exactitud Walk-Forward ${data.stats.avgWalkForwardDirectionalAccuracyPct ?? '—'}% · Brier ${data.stats.avgBrierScore ?? '—'}` : '',
+  ];
+
+  if (kind === 'simulator' && row && horizon && simulation?.scenarios) {
+    const sc = simulation.scenarios;
+    title = `ORION ML · Simulación de Margen (${cleanInline(row.label, 70)})`;
+    lines.push(
+      '',
+      `## Escenario simulado en planta (${cleanInline(horizon.horizonLabel || horizon.code, 40)})`,
+      `- **Mercado de referencia:** ${cleanInline(row.label, 140)} (${cleanInline(row.regionLabel || row.region, 40)})`,
+      `- **Parámetros del lote:** Volumen ${simulation.volumeKg}, Flete ${simulation.freightPerUnit} ${sc.currency}, Merma ${simulation.shrinkagePct}%, Precio objetivo de venta ${simulation.salePrice} ${sc.currency}`,
+      `- **Spot actual:** Costo vendible ${sc.spot.costPerSellable.toFixed(2)} ${sc.currency} · Margen bruto ${sc.spot.grossMarginPct.toFixed(1)}% · Lote ${sc.spot.totalBatchCost.toFixed(0)} ${sc.currency}`,
+      `- **Base ORION ML:** Costo vendible ${sc.base.costPerSellable.toFixed(2)} ${sc.currency} · Margen bruto ${sc.base.grossMarginPct.toFixed(1)}% · Delta caja ${sc.cashFlowDeltaBase >= 0 ? '+' : ''}${sc.cashFlowDeltaBase.toFixed(0)} ${sc.currency}`,
+      `- **Estrés alcista P90:** Costo vendible ${sc.stressP90.costPerSellable.toFixed(2)} ${sc.currency} · Margen bruto ${sc.stressP90.grossMarginPct.toFixed(1)}% · Delta caja ${sc.cashFlowDeltaStress >= 0 ? '+' : ''}${sc.cashFlowDeltaStress.toFixed(0)} ${sc.currency}`,
+    );
+    prompt = `Analiza este escenario simulado de compras y margen para "${cleanInline(row.label, 100)}" (${horizon.horizonLabel || horizon.code}). Evalúa la sensibilidad entre Spot, Base ORION ML y Estrés P90, qué umbral de precio compromete el margen bruto y qué acciones de compra o cobertura conviene revisar.`;
+  } else if (kind === 'series' && row && horizon) {
+    title = `ORION ML · ${cleanInline(row.label, 90)}`;
+    const exp = horizon.explainability;
+    lines.push(
+      '',
+      `## Pronóstico puntual (${cleanInline(horizon.horizonLabel || horizon.code, 40)})`,
+      `- **Mercado:** ${cleanInline(row.label, 140)} (${cleanInline(row.regionLabel || row.region, 40)} · ${cleanInline(row.country, 40)})`,
+      `- **Último corte:** ${row.lastValue} ${cleanInline(row.unit, 30)} (${cleanInline(row.lastDate, 20)})`,
+      `- **Señal ORION ML:** ${horizon.direction} (Prob. Subida ${horizon.probUpPct}% / Baja ${horizon.probDownPct}%, Confianza ${horizon.confidence})`,
+      `- **Objetivo:** ${horizon.projectedValue} ${cleanInline(row.unit, 30)} (${horizon.expectedChangePct > 0 ? '+' : ''}${horizon.expectedChangePct}%) · Banda Conformal P80 [${horizon.low80}, ${horizon.high80}]`,
+      horizon.validation?.walkForwardDirectionalAccuracyPct != null ? `- **Validación Walk-Forward:** ${horizon.validation.walkForwardDirectionalAccuracyPct}% (Brier ${horizon.validation.brierScore ?? '—'})` : '',
+    );
+    if (exp?.factors?.length) {
+      lines.push('', '## Atribución Causal SHAP', '', cleanInline(exp.narrative, 400), '');
+      for (const f of exp.factors) {
+        lines.push(`- ${cleanInline(f.label, 80)}: ${f.impactPctPts > 0 ? '+' : ''}${f.impactPctPts} pts (${f.direction})`);
+      }
+    }
+    prompt = `Analiza con tus modelos ML el pronóstico adjunto de "${cleanInline(row.label, 100)}" (${horizon.direction}, Prob. Subida ${horizon.probUpPct}%). Explica por qué pesan esos factores SHAP, qué implicaciones tiene para compras/coberturas y qué señal podría invalidar este escenario.`;
+  } else if (kind === 'parity' && data?.importParity?.bySpecies) {
+    title = 'ORION ML · Paridad de Importación hacia México (MXN/kg)';
+    const fx = data.importParity.fxRates || {};
+    lines.push('', `## Tipos de cambio usados`, `- USD/MXN: ${fx.usdMxn ?? '—'} · EUR/MXN: ${fx.eurMxn ?? '—'} · BRL/MXN: ${fx.brlMxn ?? '—'}`, '', '## Comparativa SNIIM México vs Paridad Puesta (MXN/kg)');
+    for (const entry of Object.values(data.importParity.bySpecies)) {
+      const p = entry.primaryParity;
+      if (!p) continue;
+      lines.push(`- **${entry.speciesLabel}:** México SNIIM $${entry.mexicoBenchmark.priceMxnKg} MXN/kg vs ${p.originCountry} puesto $${p.landedMxnKg} MXN/kg (diferencial ${p.spreadPct > 0 ? '+' : ''}${p.spreadPct}%, señal ${p.signal}).`);
+    }
+    prompt = 'Con base en la Paridad de Importación adjunta de ORION ML, analiza dónde hay ventana real de arbitraje o techo de importación en cerdo, res, pollo y huevo para México, y cómo impactaría una depreciación de 5% del tipo de cambio USD/MXN.';
+  } else if (kind === 'nlp' && data?.nlpEvents?.bySpecies) {
+    title = 'ORION ML · Radar NLP Sanitario y Comercial';
+    lines.push('', `## Índices de Riesgo NLP (${data.nlpEvents.stats?.relevantEventsDetected || 0} eventos en ${data.nlpEvents.windowDays || 35} días)`);
+    for (const [sp, ev] of Object.entries(data.nlpEvents.bySpecies)) {
+      lines.push(`- **${sp.toUpperCase()}:** Riesgo ${ev.riskScore}/100 (${ev.riskLevel}) · Sesgo ${ev.bias} · ${cleanInline(ev.dominantType || 'eventos activos', 100)} (${ev.eventCount} noticias)`);
+    }
+    if (Array.isArray(data.nlpEvents.topEvents) && data.nlpEvents.topEvents.length) {
+      lines.push('', '## Titulares recientes verificados');
+      for (const h of data.nlpEvents.topEvents.slice(0, 6)) {
+        lines.push(`- [${cleanInline(h.publishedAt?.slice(0, 10), 16)} · ${cleanInline(h.source, 40)}] (${h.priceImpact}) ${cleanInline(h.title, 180)}`);
+      }
+    }
+    prompt = 'Evalúa el Radar NLP de eventos sanitarios y comerciales adjunto (H5N1, PPA, gusano barrenador, aranceles): ¿qué especie tiene mayor riesgo de choque de oferta en las próximas 4 semanas y qué medidas preventivas de abasto conviene tomar?';
+  } else if (data?.summary?.bySpecies) {
+    lines.push('', '## Consenso Global por Especie');
+    for (const sum of Object.values(data.summary.bySpecies)) {
+      lines.push(`- **${sum.label}:** ${sum.consensusDirection} (Subida ${sum.avgProbUpPct}% / Baja ${sum.avgProbDownPct}% · WF ${sum.avgDirectionalAccuracyPct}% · ${sum.seriesCount} mercados)`);
+    }
+  }
+
+  return {
+    version: 1,
+    title,
+    area: 'markets',
+    reportKey: 'marranas_ml',
+    analysisPeriod: 'daily',
+    cutLabel: cut,
+    accountEmail: cleanInline(accountEmail, 240).toLowerCase(),
+    fileName: slugifyReportFilename(title, 'orion-ml-contexto'),
+    markdown: lines.filter(Boolean).join('\n').slice(0, 12_000),
+    prompt,
+    createdAt: Date.now(),
+  };
+}
+
+/**
  * Writes the serialized report handoff to sessionStorage for consumption by `/orion`.
  */
 export function writeOrionReportHandoff(handoff, storage = safeSessionStorage()) {

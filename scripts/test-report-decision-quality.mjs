@@ -63,8 +63,10 @@ for(const [collection,file]of [['finance','finance_executive_reports'],['markets
  for(const input of snapshot.reports){const report={...input,collection},before=JSON.stringify(report),current=weeklyReport(report);assert.equal(JSON.stringify(report),before);assert.deepEqual(current.decisionSummary.panels.map(p=>p.heading),['Qué cambió','Cuánto importa','Qué revisar primero']);assert(!JSON.stringify(current.decisionSummary).match(/\bNaN\b|\bInfinity\b/));
   if(current.equityExecutive)assert(!current.equityExecutive.movers.some(item=>/science and practice/i.test(item.title)));
   if(current.bondExecutive)assert(!current.bondExecutive.movers.some(item=>/niquel|nickel/i.test(item.title)));
-  if(input.key==='market_news'){assert(!current.newsExecutive.stories.some(s=>/operador movil/.test(s.title.normalize('NFD').replace(/[\u0300-\u036f]/g,''))));assert(current.newsExecutive.stories.find(s=>/huelga/.test(s.title))?.topic==='trade');}
+  if(input.key==='market_news'){assert(!current.newsExecutive.stories.some(s=>/operador movil/.test(s.title.normalize('NFD').replace(/[\u0300-\u036f]/g,''))));const strikeStory=current.newsExecutive.stories.find(s=>/huelga/.test(s.title));if(strikeStory)assert.equal(strikeStory.topic,'trade');}
   reviewed++;
  }
 }
+const syntheticStrike=weeklyReport({key:'market_news',collection:'markets',generatedAt:cutoff,headlines:[{title:'Huelga de transporte en puertos retrasa exportaciones y fletes marítimos',description:'Paro de estibadores y servicios mínimos afectan rutas portuarias y tiempos de entrega.',source:'Reuters',publishedAt:cutoff,url:'https://example.invalid/huelga'}]});
+assert.equal(syntheticStrike.newsExecutive.stories.find(s=>/huelga/i.test(s.title))?.topic,'trade','A port/logistics strike headline must classify as trade');
 console.log('PASS calidad ejecutiva: clasificación contextual, catalizadores sin causalidad inventada, unidades y fechas, impacto ilustrativo, datos pendientes e inmutabilidad en '+reviewed+' informes.');

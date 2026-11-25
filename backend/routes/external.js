@@ -182,18 +182,21 @@ router.get('/usda/crop-progress', async (req, res) => {
     if (!USDA_NASS_KEY) return res.status(503).json({ error: 'USDA_NASS_KEY no configurado.' });
 
     try {
-        const year = new Date().getFullYear();
-        const url = `https://quickstats.nass.usda.gov/api/api_GET/?key=${encodeURIComponent(USDA_NASS_KEY)}&commodity_desc=${encodeURIComponent(commodity)}&statisticcat_desc=CONDITION&year=${year}&freq_desc=WEEKLY&reference_period_desc=WEEK%20ENDING&format=JSON`;
-        const response = await externalGet(url, {}, 15000);
-        const payload = await response.json();
-        
-        if (!payload || !payload.data) {
-            throw new Error('Respuesta inválida del USDA NASS');
+        const currentYear = new Date().getFullYear();
+        const fetchUsdaYear = async (year) => {
+            const url = `https://quickstats.nass.usda.gov/api/api_GET/?key=${encodeURIComponent(USDA_NASS_KEY)}&commodity_desc=${encodeURIComponent(commodity)}&statisticcat_desc=CONDITION&agg_level_desc=NATIONAL&year=${year}&freq_desc=WEEKLY&format=JSON`;
+            const response = await externalGet(url, { Accept: 'application/json' }, 15000);
+            if (!response.ok) throw new Error(`USDA NASS HTTP ${response.status}`);
+            const payload = await response.json();
+            if (!payload || !Array.isArray(payload.data)) return [];
+            return payload.data.filter(d => d.state_alpha === 'US' && (d.unit_desc === 'PCT EXCELLENT' || d.unit_desc === 'PCT GOOD'));
+        };
+
+        let nationalData = await fetchUsdaYear(currentYear);
+        if (!nationalData.length) {
+            nationalData = await fetchUsdaYear(currentYear - 1);
         }
 
-        // Filtramos solo el estado "US TOTAL" para obtener el progreso nacional
-        const nationalData = payload.data.filter(d => d.state_alpha === 'US' && (d.unit_desc === 'PCT EXCELLENT' || d.unit_desc === 'PCT GOOD'));
-        
         boundedSet(_usdaCache, cacheKey, { ts: Date.now(), data: nationalData }, 20);
         res.set('Cache-Control', 'public, s-maxage=43200, stale-while-revalidate=86400');
         res.json(nationalData);
@@ -205,28 +208,71 @@ router.get('/usda/crop-progress', async (req, res) => {
     }
 });
 
-// ── PROTEÍNAS: USDA AMS (Market News) ──────────────────────────────────────
-const USDA_AMS_KEY = process.env.USDA_AMS_KEY || '';
+// ── PROTEÍNAS: USDA AMS (LMPR Datamart público, sin clave requerida) ────────
 const _amsCache = new Map();
 const AMS_TTL = 6 * 60 * 60 * 1000;
+
+function parseUsdNumber(value) {
+    const num = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
+    return Number.isFinite(num) ? num : null;
+}
 
 router.get('/usda/ams/cutout', async (req, res) => {
     const cacheKey = 'ams_cutout';
     const hit = _amsCache.get(cacheKey);
     if (hit && Date.now() - hit.ts < AMS_TTL) return res.json(hit.data);
 
-    if (!USDA_AMS_KEY) {
-        return res.json({ 
+    try {
+        const [porkRes, beefRes] = await Promise.all([
+            externalGet('https://mpr.datamart.ams.usda.gov/services/v1.1/reports/2498/Cutout%20and%20Primal%20Values?lastReports=1', { Accept: 'application/json' }, 12000),
+            externalGet('https://mpr.datamart.ams.usda.gov/services/v1.1/reports/2453/Current%20Cutout%20Values?lastReports=1', { Accept: 'application/json' }, 12000),
+        ]);
+        if (!porkRes.ok || !beefRes.ok) {
+            throw new Error(`USDA AMS LMPR HTTP ${porkRes.status}/${beefRes.status}`);
+        }
+        const [porkJson, beefJson] = await Promise.all([porkRes.json(), beefRes.json()]);
+        const porkRow = porkJson?.results?.[0];
+        const beefRow = beefJson?.results?.[0];
+        const porkCutout = parseUsdNumber(porkRow?.pork_carcass);
+        const beefChoice = parseUsdNumber(beefRow?.choice_600_900_current);
+        const beefSelect = parseUsdNumber(beefRow?.select_600_900_current);
+        if (porkCutout === null && beefChoice === null) {
+            throw new Error('Respuesta sin cotizaciones de cutout del USDA AMS');
+        }
+
+        const payload = {
             _meta: {
-                source: 'USDA AMS',
-                real_time: false,
-                type: 'STATIC_REFERENCE',
-                disclaimer: 'USDA_AMS_KEY no configurada. Registrarse gratis en https://marketnews.usda.gov',
+                source: 'USDA AMS · Livestock Mandatory Reporting (LM_PK602 / LM_XB403)',
+                real_time: true,
+                type: 'REAL_DATA',
+                unit: 'USD/cwt',
+                pork_report_date: porkRow?.report_date || null,
+                beef_report_date: beefRow?.report_date || null,
+                disclaimer: 'Valores oficiales FOB planta publicados por USDA AMS Datamart (USD por quintal / cwt).',
             },
-            data: { pork_cutout: 104.50, beef_cutout: 312.20 }
-        });
+            data: {
+                pork_cutout: porkCutout,
+                beef_cutout: beefChoice,
+                beef_select_cutout: beefSelect,
+                pork_primals: porkRow ? {
+                    loin: parseUsdNumber(porkRow.pork_loin),
+                    butt: parseUsdNumber(porkRow.pork_butt),
+                    picnic: parseUsdNumber(porkRow.pork_picnic),
+                    rib: parseUsdNumber(porkRow.pork_rib),
+                    ham: parseUsdNumber(porkRow.pork_ham),
+                    belly: parseUsdNumber(porkRow.pork_belly),
+                } : null,
+            },
+        };
+
+        boundedSet(_amsCache, cacheKey, { ts: Date.now(), data: payload }, 10);
+        res.set('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=43200');
+        return res.json(payload);
+    } catch (error) {
+        console.error('/api/usda/ams/cutout:', error.message);
+        if (hit) return res.json(hit.data);
+        return res.status(502).json({ error: 'No se pudo consultar el cutout oficial de USDA AMS.' });
     }
-    res.status(501).json({ error: 'Conexión real al USDA AMS pendiente.' });
 });
 
 // ── PROTEÍNAS: INEGI API — Precios Reales al Consumidor (México) ───────────
@@ -402,11 +448,17 @@ router.get('/bls/meat-prices', async (req, res) => {
             registrationkey: BLS_KEY || undefined
         });
         
-        const response = await externalGet('https://api.bls.gov/publicAPI/v2/timeseries/data/', {
+        const response = await fetch('https://api.bls.gov/publicAPI/v2/timeseries/data/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body
-        }, 20000);
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible; VALLNews/1.0)',
+            },
+            body,
+            signal: AbortSignal.timeout(20000),
+        });
+        if (!response.ok) throw new Error(`BLS HTTP ${response.status}`);
         const data = await response.json();
 
         if (data?.Results?.series) {
@@ -828,6 +880,33 @@ router.get('/bond-yields', async (req, res) => {
         const val     = r => r.status === 'fulfilled' ? r.value : null;
         const mxYield = val(mxTiie) || _BOND_FALLBACK_RATES.mx;
 
+        // Leer niveles soberanos verificados desde el caché ejecutivo de Finanzas
+        // para Japón, Reino Unido, China, Brasil y Canadá en lugar de tasas fijas.
+        const snapshotBond = (() => {
+            try {
+                const fs = require('node:fs');
+                const path = require('node:path');
+                const finPath = path.resolve(__dirname, '../cache/finance_executive_reports.json');
+                if (!fs.existsSync(finPath)) return () => null;
+                const fin = JSON.parse(fs.readFileSync(finPath, 'utf8'));
+                const bondsRep = (fin.reports || []).find(r => r.key === 'bonds');
+                const list = Array.isArray(bondsRep?.sourceSnapshot?.bonds) ? bondsRep.sourceSnapshot.bonds : [];
+                return (re) => {
+                    const hit = list.find(b => re.test(String(b?.label || '')) && Number.isFinite(Number(b?.value)) && b?.unit !== 'pb');
+                    if (!hit) return null;
+                    const y = Number(hit.value);
+                    const p = Number.isFinite(Number(hit.delta)) ? Number((y - Number(hit.delta) / 100).toFixed(4)) : y;
+                    return { yield: y, prev: p, source: hit.source || 'Corte ejecutivo verificado', date: hit.date || null };
+                };
+            } catch { return () => null; }
+        })();
+
+        const jpSnap = snapshotBond(/jap[oó]n|japan/i);
+        const gbSnap = snapshotBond(/reino\s+unido|uk\b|gilt/i);
+        const cnSnap = snapshotBond(/china/i);
+        const brSnap = snapshotBond(/brasil|brazil/i);
+        const caSnap = snapshotBond(/canad[aá]/i);
+
         const data = [
             {
                 key: 'us', country: 'Estados Unidos', flag: '🇺🇸', source: 'US Treasury / Yahoo Finance',
@@ -843,11 +922,11 @@ router.get('/bond-yields', async (req, res) => {
                 bonds: [{ label: '10 años', maturity: '10Y', ...(val(euroArea) || _BOND_FALLBACK_RATES.eu10y) }],
             },
             { key: 'mx', country: 'México',      flag: '🇲🇽', source: 'Banxico SIE (TIIE 28 días)',      bonds: [{ label: 'TIIE 28D',     maturity: '28D', ...mxYield }] },
-            { key: 'jp', country: 'Japón',       flag: '🇯🇵', source: 'Bank of Japan (tasa objetivo)',   bonds: [{ label: 'Tasa objetivo', maturity: 'OVN', yield: 0.50, prev: 0.25 }] },
-            { key: 'gb', country: 'Reino Unido', flag: '🇬🇧', source: 'Bank of England (base rate)',     bonds: [{ label: 'Tasa base',     maturity: 'OVN', yield: 4.50, prev: 4.75 }] },
-            { key: 'cn', country: 'China',       flag: '🇨🇳', source: "People's Bank of China (LPR)",   bonds: [{ label: 'LPR 1 año',     maturity: '1Y',  yield: 3.45, prev: 3.65 }] },
-            { key: 'br', country: 'Brasil',      flag: '🇧🇷', source: 'Banco Central do Brasil (SELIC)', bonds: [{ label: 'SELIC',         maturity: 'OVN', yield: 13.75,prev: 14.75}] },
-            { key: 'ca', country: 'Canadá',      flag: '🇨🇦', source: 'Bank of Canada (tasa objetivo)',  bonds: [{ label: 'Tasa objetivo', maturity: 'OVN', yield: 4.25, prev: 4.50 }] },
+            { key: 'jp', country: 'Japón',       flag: '🇯🇵', source: jpSnap ? `${jpSnap.source}${jpSnap.date ? ` (${jpSnap.date})` : ''}` : 'Bank of Japan (referencia · sin corte diario)', bonds: [{ label: jpSnap ? 'Soberano 10A' : 'Tasa referencia', maturity: jpSnap ? '10Y' : 'OVN', yield: jpSnap ? jpSnap.yield : 0.50, prev: jpSnap ? jpSnap.prev : 0.50, isReference: !jpSnap }] },
+            { key: 'gb', country: 'Reino Unido', flag: '🇬🇧', source: gbSnap ? `${gbSnap.source}${gbSnap.date ? ` (${gbSnap.date})` : ''}` : 'Bank of England (referencia · sin corte diario)', bonds: [{ label: gbSnap ? 'Soberano 10A' : 'Tasa referencia', maturity: gbSnap ? '10Y' : 'OVN', yield: gbSnap ? gbSnap.yield : 4.50, prev: gbSnap ? gbSnap.prev : 4.50, isReference: !gbSnap }] },
+            { key: 'cn', country: 'China',       flag: '🇨🇳', source: cnSnap ? `${cnSnap.source}${cnSnap.date ? ` (${cnSnap.date})` : ''}` : "People's Bank of China (referencia · sin corte diario)", bonds: [{ label: cnSnap ? 'Soberano 10A' : 'LPR 1A ref.', maturity: cnSnap ? '10Y' : '1Y', yield: cnSnap ? cnSnap.yield : 3.45, prev: cnSnap ? cnSnap.prev : 3.45, isReference: !cnSnap }] },
+            { key: 'br', country: 'Brasil',      flag: '🇧🇷', source: brSnap ? `${brSnap.source}${brSnap.date ? ` (${brSnap.date})` : ''}` : 'Banco Central do Brasil (referencia · sin corte diario)', bonds: [{ label: brSnap ? 'Soberano 10A' : 'SELIC ref.', maturity: brSnap ? '10Y' : 'OVN', yield: brSnap ? brSnap.yield : 13.75, prev: brSnap ? brSnap.prev : 13.75, isReference: !brSnap }] },
+            { key: 'ca', country: 'Canadá',      flag: '🇨🇦', source: caSnap ? `${caSnap.source}${caSnap.date ? ` (${caSnap.date})` : ''}` : 'Bank of Canada (referencia · sin corte diario)', bonds: [{ label: caSnap ? 'Soberano 10A' : 'Tasa referencia', maturity: caSnap ? '10Y' : 'OVN', yield: caSnap ? caSnap.yield : 4.25, prev: caSnap ? caSnap.prev : 4.25, isReference: !caSnap }] },
         ];
 
         _bondsCache.ts   = Date.now();
@@ -925,14 +1004,15 @@ router.get('/bond-spreads', async (req, res) => {
             .filter(r => r.status === 'fulfilled' && Number.isFinite(r.value.yield))
             .map(r => r.value);
 
-        // China: curva soberana oficial ChinaBond/CCDC. Se toman las dos
-        // observaciones más recientes para conservar la misma lectura de
-        // nivel y variación que el resto del tablero.
+        // China: curva soberana oficial ChinaBond/CCDC (con timeout acotado para no trabar la tabla).
         try {
             const currentYear = new Date().getUTCFullYear();
-            const chinaFiles = await Promise.allSettled([
-                fetchChinaBondYear(currentYear),
-                fetchChinaBondYear(currentYear - 1),
+            const chinaFiles = await Promise.race([
+                Promise.allSettled([
+                    fetchChinaBondYear(currentYear),
+                    fetchChinaBondYear(currentYear - 1),
+                ]),
+                new Promise(resolve => setTimeout(() => resolve([]), 4500)),
             ]);
             const chinaPoints = chinaFiles
                 .filter(result => result.status === 'fulfilled')
@@ -951,6 +1031,45 @@ router.get('/bond-spreads', async (req, res) => {
             }
         } catch (e) {
             console.warn('/api/bond-spreads: sin ChinaBond:', e.message);
+        }
+
+        // Respaldo verificado desde el corte de Informes Ejecutivos de Finanzas si el BCE no respondió completo.
+        if (countries.length < 5) {
+            try {
+                const fs = require('node:fs');
+                const path = require('node:path');
+                const finPath = path.resolve(__dirname, '../cache/finance_executive_reports.json');
+                if (fs.existsSync(finPath)) {
+                    const fin = JSON.parse(fs.readFileSync(finPath, 'utf8'));
+                    const bondsRep = (fin.reports || []).find(r => r.key === 'bonds');
+                    const snapBonds = Array.isArray(bondsRep?.sourceSnapshot?.bonds) ? bondsRep.sourceSnapshot.bonds : [];
+                    const fallbackMap = [
+                        ['DE', 'Alemania', '🇩🇪', /alemania|germany/i],
+                        ['FR', 'Francia', '🇫🇷', /francia|france/i],
+                        ['IT', 'Italia', '🇮🇹', /italia|italy/i],
+                        ['ES', 'España', '🇪🇸', /espa[nñ]a|spain/i],
+                        ['GB', 'Reino Unido', '🇬🇧', /reino\s+unido|uk\b/i],
+                        ['JP', 'Japón', '🇯🇵', /jap[oó]n|japan/i],
+                        ['MX', 'México', '🇲🇽', /m[eé]xico.*largo\s+plazo|mbono.*10|m[eé]xico.*10/i],
+                        ['CA', 'Canadá', '🇨🇦', /canad[aá]/i],
+                    ];
+                    const existing = new Set(countries.map(c => c.code));
+                    for (const [code, name, flag, re] of fallbackMap) {
+                        if (existing.has(code)) continue;
+                        const match = snapBonds.find(b => re.test(String(b?.label || '')) && Number.isFinite(Number(b?.value)) && b?.unit !== 'pb');
+                        if (match) {
+                            const val = Number(match.value);
+                            const prev = Number.isFinite(Number(match.delta)) ? Number((val - Number(match.delta) / 100).toFixed(4)) : null;
+                            countries.push({
+                                code, name, flag, yield: val, prev,
+                                period: match.date || String(fin.generatedAt || '').slice(0, 10),
+                                source: `${match.source || 'Corte verificado'} (caché ejecutivo)`,
+                            });
+                            existing.add(code);
+                        }
+                    }
+                }
+            } catch { /* sin respaldo en disco */ }
         }
 
         // Estados Unidos: corte diario, se etiqueta como tal.

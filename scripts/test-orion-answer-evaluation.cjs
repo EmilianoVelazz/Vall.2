@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const dataset = require('./lib/orion-evaluation-cases.json');
 const { evaluateAnswer, summarizeEvaluation, DIMENSIONS } = require('../backend/ai/answer-evaluation');
-const { caseContext, format } = require('./evaluate-orion-answers.cjs');
+const { caseContext, format, syntheticRequest } = require('./evaluate-orion-answers.cjs');
 const { researchLedger, verifiedResearchFallback, auditResearchAnswer } = require('../backend/ai/research-evidence');
 const { groundingSourcesMarkdown, AIOrchestrator } = require('../backend/ai/orchestrator');
 let rejected = 0;
@@ -45,6 +45,25 @@ assert.equal(summary.latency.p95Ms, null, 'No inventar latencia a partir de resp
 const timed = summarizeEvaluation([10, 50, 100].map(latencyMs => ({ ...results[0], latencyMs })));
 assert.equal(timed.latency.p50Ms, 50); assert.equal(timed.latency.p95Ms, 100);
 (async () => {
+    const heldOut = require('./lib/orion-evaluation-v2.json');
+    for (const id of ['exact_quantity-1', 'dated_observation-1', 'document_injection-1']) {
+        const item = heldOut.cases.find(row => row.id === id), context = caseContext(item);
+        let delivered = false;
+        const chat = new AIOrchestrator({
+            provider: { name: 'fixture', isConfigured: () => true, generate: async request => {
+                delivered = request.prompt.includes(context.evidence.context);
+                return { text: format(item.reference, item), model: 'fixture' };
+            } },
+            liveDataGrounder: async () => context.evidence, forecastBuilder: async () => null,
+            statisticsBuilder: async () => null, priceArchive: null,
+            reportReader: { forQuery: async () => context.evidence },
+            retriever: { retrieve: async () => ({ context: '', citations: [], sourceCodes: [] }), recordQuery: async () => null, recordEvidence: async () => null },
+        });
+        const request = syntheticRequest(item, context);
+        assert.equal(request.message, item.question, 'El evaluador no cambia la intención de la pregunta');
+        await chat.generateStructured(request);
+        assert(delivered, id + ': la evaluación entrega realmente los documentos sintéticos al proveedor');
+    }
     for (const id of ['conditional-financial-effect', 'background-not-current']) {
         const item = dataset.cases.find(row => row.id === id), context = caseContext(item);
         let generations = 0;

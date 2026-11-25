@@ -7,6 +7,7 @@ const path = require('path');
 const { GeminiProvider } = require('./providers/gemini-provider');
 const { persistMarketReview } = require('./ml-persistence');
 const { CACHE_DIR } = require('../lib/config');
+const { analyzeMarketAnomalies } = require('../ml/anomaly-detector');
 
 const COMMODITY_CACHE_FILE = path.join(CACHE_DIR, 'commodity-cache.json');
 const SNIIM_CACHE_FILE = path.join(__dirname, '../sniim-cache.json');
@@ -48,12 +49,14 @@ function normalizeModelReview(value) {
 
 function buildDeterministicReview(rawData) {
     const issues = validateSniimSnapshot(rawData.sniim);
+    const unsupervised = analyzeMarketAnomalies(rawData);
     return {
         version: 2,
         createdAt: new Date().toISOString(),
         sourceTimestamp: numberOrNull(rawData.sniim?.ts),
         status: issues.some(issue => issue.severity === 'critical') ? 'blocked' : 'review_required',
         deterministicIssues: issues,
+        unsupervised,
         source: { name: rawData.sniim?._meta?.source || 'unknown', realTime: rawData.sniim?._meta?.real_time === true, type: rawData.sniim?._meta?.type || 'UNKNOWN' },
         model: { status: 'disabled', assessments: [], proposedRules: [] },
         approval: { required: true, approved: false },

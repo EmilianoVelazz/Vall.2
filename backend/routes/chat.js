@@ -18,6 +18,7 @@ const { wantsStatisticalAnalysis, buildStatisticalModel, statisticalResponse } =
 const profileStore = require('../services/user-profile-store');
 const { accountKey, createWorkGate, boundedJson } = require('../lib/resource-limits');
 const {chatCredits}=require('../services/chat-credits');
+const { recordFeedbackEvent } = require('../ai/closed-loop-feedback');
 
 const router = express.Router();
 // El historial, contexto y referencias de adjuntos pueden superar el parser
@@ -189,7 +190,7 @@ function hashUser(user) {
 async function persistTrainingTurn(user, input, result) {
     if (!user?.sub || user.trainingOptIn === false || !input?.message || !result?.text) return;
     try {
-        const current = input._profile || await profileStore.findById(user.sub);
+        const current = await profileStore.findById(user.sub);
         if (!current?.active || current.trainingOptIn !== true) return;
     } catch { return; }
     await profileStore.recordTrainingQuery(user.sub, {
@@ -436,6 +437,20 @@ router.post('/ai-feedback', verifyToken, aiLimiter, chatJson, async (req, res) =
         correctionText: req.body?.correctionText,
     });
     if (!saved) return res.status(404).json({ success: false, error: 'Consulta no encontrada para este usuario.' });
+    if (process.env.NODE_ENV !== 'test') {
+        void recordFeedbackEvent({
+            queryText: req.body?.queryText || `Consulta #${queryId}`,
+            responseText: req.body?.responseText || '',
+            rating,
+            isHelpful: typeof req.body?.isHelpful === 'boolean' ? req.body.isHelpful : null,
+            feedbackText: req.body?.feedbackText,
+            correctionText: req.body?.correctionText,
+            userKeyHash: hashUser(req.user),
+            category: 'user_feedback',
+            sourceKind: 'user_feedback',
+            metadata: { queryId },
+        }).catch(() => {});
+    }
     res.json({ success: true });
 });
 

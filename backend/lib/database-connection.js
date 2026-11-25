@@ -14,21 +14,29 @@ function databaseConfig(env = process.env) {
         return { connectionString: url.toString() };
     }
     const base = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
-    if (!base || !env.SUPABASE_PASSWORD) return null;
+    if (!base || !env.SUPABASE_PASSWORD || !env.SUPABASE_POOLER_HOST) return null;
     const reference = new URL(base).hostname.split('.')[0];
-    const host = env.SUPABASE_POOLER_HOST || `db.${reference}.supabase.co`;
-    const port = env.SUPABASE_POOLER_HOST ? Number(env.SUPABASE_POOLER_PORT || 6543) : 5432;
+    const host = env.SUPABASE_POOLER_HOST;
+    const port = Number(env.SUPABASE_POOLER_PORT || 6543);
     if (![5432, 6543].includes(port)) throw Object.assign(new Error('Puerto PostgreSQL no válido.'), { code: 'DB_INVALID_PORT' });
     return { host, port, database: 'postgres',
-        user: env.SUPABASE_POOLER_HOST ? `postgres.${reference}` : 'postgres', password: env.SUPABASE_PASSWORD };
+        user: `postgres.${reference}`, password: env.SUPABASE_PASSWORD };
 }
 
 function databaseTls(env = process.env) {
     return { rejectUnauthorized: true, ca: trustedCertificates(env.SUPABASE_DB_CA) };
 }
 
+function isMariaDbConfigured(env = process.env) {
+    if (String(env.MARIADB_ENABLED || env.MYSQL_ENABLED || '').toLowerCase() === 'false') return false;
+    return Boolean(
+        String(env.DB_HOST || env.MYSQL_HOST || env.MARIADB_HOST || '').trim()
+        || String(env.MARIADB_ENABLED || env.MYSQL_ENABLED || '').toLowerCase() === 'true'
+    );
+}
+
 function mysqlTlsOptions(env = process.env) {
-    const host = env.DB_HOST || env.MYSQL_HOST || '127.0.0.1';
+    const host = env.DB_HOST || env.MYSQL_HOST || env.MARIADB_HOST || '127.0.0.1';
     if (['127.0.0.1', 'localhost', '::1'].includes(host.toLowerCase())) return {};
     // Solo para una MariaDB en la red privada de Docker (Dokploy), que no expone
     // TLS. Debe pedirse explícitamente; cualquier otro valor conserva TLS verificado.
@@ -65,4 +73,4 @@ async function connectDatabase() {
     };
 }
 
-module.exports = { connectDatabase, databaseConfig, databaseTls, mysqlTlsOptions };
+module.exports = { connectDatabase, databaseConfig, databaseTls, mysqlTlsOptions, isMariaDbConfigured };

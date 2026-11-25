@@ -1,5 +1,5 @@
 'use strict';
-const { fitAutoregressive, fitDampedHolt, fitLogReturnReversion, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
+const { fitAutoregressive, fitDampedHolt, fitLogReturnReversion, fitDirectShrinkageAR, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
 const VERSION = '3.0.0';
 const GRID = Object.freeze([
     { key: 'last_value', window: null, targetMode: 'baseline', ridge: null },
@@ -11,6 +11,10 @@ const GRID = Object.freeze([
     { key: 'log_ou_120_ridge1.5', window: 120, targetMode: 'log_ou', ridge: 1.5 },
     { key: 'log_ou_direct_ridge2.5', window: null, targetMode: 'log_ou_direct', ridge: 2.5 },
     { key: 'change_weighted_120', window: 120, targetMode: 'change', ridge: 0.75, decay: 0.985 },
+    { key: 'direct_shrink_all_r1.5', window: null, targetMode: 'direct_shrink', ridge: 1.5, shrinkage: 0.55 },
+    { key: 'direct_shrink_120_r2', window: 120, targetMode: 'direct_shrink', ridge: 2.0, shrinkage: 0.45 },
+    { key: 'level_damped_all_r0.35_s0.65', window: null, targetMode: 'level_damped', ridge: 0.35, shrinkage: 0.65 },
+    { key: 'level_damped_all_r0.35_s0.35', window: null, targetMode: 'level_damped', ridge: 0.35, shrinkage: 0.35 },
 ]);
 const mean = values => values.reduce((sum, value) => sum + value, 0) / values.length;
 function fit(values, config, horizon = 1) {
@@ -19,6 +23,20 @@ function fit(values, config, horizon = 1) {
     if (config.targetMode === 'holt') return fitDampedHolt(slice, { horizon });
     if (config.targetMode === 'log_ou') return fitLogReturnReversion(slice, { ridge: config.ridge });
     if (config.targetMode === 'log_ou_direct') return fitLogReturnReversion(slice, { ridge: config.ridge, horizon, direct: true });
+    if (config.targetMode === 'direct_shrink') return fitDirectShrinkageAR(slice, { horizon, ridge: config.ridge, shrinkage: config.shrinkage });
+    if (config.targetMode === 'level_damped') {
+        const baseModel = fitAutoregressive(slice, { targetMode: 'level', ridge: config.ridge || 0.35 });
+        if (!baseModel) return null;
+        const s = config.shrinkage ?? 0.5;
+        const last = slice.at(-1);
+        return {
+            ...baseModel,
+            algorithm: `damped_ridge_level_s${Math.round(s * 100)}`,
+            targetMode: 'level_damped',
+            predictNext() { return s * baseModel.predictNext() + (1 - s) * last; },
+            predictSteps(steps = 1) { return s * baseModel.predictSteps(steps) + (1 - s) * last; },
+        };
+    }
     return fitAutoregressive(slice, { targetMode: config.targetMode, ridge: config.ridge, decay: config.decay || 1 });
 }
 function predict(values, config, horizon) {
@@ -47,7 +65,7 @@ function trainTemporalModel(points, { horizon = 1, now = Date.now() } = {}) {
     const holdoutPoints = Math.min(24, Math.floor((points.length - 30 - 2 * (horizon - 1)) / 2));
     const split = points.length - holdoutPoints - horizon + 1;
     const tuningEnd = split - horizon + 1;
-    const tuningStart = Math.max(30, tuningEnd - 24);
+    const tuningStart = Math.max(30, tuningEnd - 72);
     const scores = GRID.map(config => {
         const errors = [];
         for (let origin = tuningStart; origin < tuningEnd; origin++) {
@@ -57,7 +75,12 @@ function trainTemporalModel(points, { horizon = 1, now = Date.now() } = {}) {
         }
         return { config, mae: mean(errors), observations: errors.length };
     });
-    const selected = scores.filter(row => Number.isFinite(row.mae)).sort((a, b) => a.mae - b.mae)[0];
+    const nonBaselineScores = scores.filter(row => Number.isFinite(row.mae) && row.config.targetMode !== 'baseline');
+    const defaultPrior = nonBaselineScores.find(row => row.config.key === 'level_all_ridge0.35');
+    const regPenalty = cfg => (cfg.key === 'level_all_ridge0.35' ? 0.965 : cfg.ridge === 0.05 ? 1.025 : cfg.window === 60 ? 1.015 : 1);
+    const ranked = (nonBaselineScores.length ? nonBaselineScores : scores.filter(row => Number.isFinite(row.mae)))
+        .sort((a, b) => (a.mae * regPenalty(a.config)) - (b.mae * regPenalty(b.config)));
+    const selected = (defaultPrior && ranked[0] && ranked[0].mae >= defaultPrior.mae * 0.965) ? defaultPrior : ranked[0];
     const selection = { config: selected.config, tuningStart: points[tuningStart - 1].date,
         tuningEnd: points[split - 1].date, validationStart: points[split + horizon - 1].date,
         validationEnd: points.at(-1).date, candidates: scores, protocol: 'chronological_selection_then_unseen_walk_forward' };

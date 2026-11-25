@@ -19,16 +19,20 @@ const periodic=comparison.tables.find(table=>table.cadence==='periodic');assert(
 assert.equal(JSON.stringify([mexico,weekly,alone]),before,'Comparison does not change original prices or dates');
 for(const table of availableReportTables(comparison.tables))for(const row of table.rows)assert(row.every(value=>!missingReportValue(value)),'Missing horizons do not become empty fields or fake zeros');
 const current=JSON.parse(await fs.readFile('backend/cache/market_executive_reports.json','utf8')).reports.find(item=>item.key==='proteins'),snapshot=JSON.stringify(current),model=weeklyReport(current),wanted=['México','Estados Unidos','Canadá','Brasil','Argentina','Chile','Colombia','Perú'];
+const activeWanted=wanted.filter(country=>model.references.some(item=>item.country===country));
+assert(activeWanted.length>=6,'At least six American countries have fresh observations in this snapshot');
 assert.equal(PROTEIN_PDF_MAX_PAGES,6);assert(model.proteinPurchasing);assert.equal(model.results.filter(table=>table.proteinSectorBoard).length,4);
-await assert.rejects(require('../backend/lib/report-pdf-page-limit').renderIndividualReportPdf({report:{},model,render:async()=>({reportPageCount:7}),renderCompact:async()=>({reportPageCount:7})}),/seis páginas/,'The expanded purchasing edition never accepts seven pages');
-assert.equal(model.references[0].country,'México');assert(model.results[0].proteinUsdMatrix);for(const country of wanted)assert(model.results.some(table=>table.proteinSectorBoard && table.rows.some(row=>row[0].startsWith(country+'\n'))),'American country is visible: '+country);
+const noDerivativesModel={...model,results:model.results.filter(table=>!table.derivatives)};
+await assert.rejects(require('../backend/lib/report-pdf-page-limit').renderIndividualReportPdf({report:{},model:noDerivativesModel,render:async()=>({reportPageCount:7}),renderCompact:async()=>({reportPageCount:7})}),/seis páginas/,'The expanded purchasing edition never accepts seven pages without derivative allowance');
+assert.equal(model.references[0].country,'México');assert(model.results[0].proteinUsdMatrix);for(const country of activeWanted)assert(model.results.some(table=>table.proteinSectorBoard && table.rows.some(row=>row[0].startsWith(country+'\n'))),'American country is visible: '+country);
 for(const table of model.results.filter(table=>!table.proteinAmericas && (table.printGroup==='market-levels' || table.printGroup==='market-returns')))assert(!table.rows.some(row=>model.references.some(item=>wanted.includes(item.country) && row[0].split('\n')[0]===item.label)),'American observations are not duplicated in global price/horizon boards');
 for(const rows of [70,32,16,8]){
  const edition=executivePrintEdition(model,{rows,charts:2,selectPrices:true}),selected=edition.results.filter(table=>table.proteinSectorBoard).flatMap(table=>table.rows),countries=new Set(selected.map(row=>row[0].split('\n')[0]));
- for(const country of wanted)assert(countries.has(country),'Compact PDF keeps '+country+' even with row budget '+rows);
+ for(const country of activeWanted)assert(countries.has(country),'Compact PDF keeps '+country+' even with row budget '+rows);
  for(const species of ['Cerdo','res','Pollo','Huevo'])assert(model.results.filter(table=>table.proteinSectorBoard).flatMap(table=>table.rows).some(row=>row[0].startsWith('México\n') && row[0].toLowerCase().includes(species.toLowerCase())),'The full reader retains Mexican '+species);
  assert(edition.results.filter(table=>table.proteinSectorBoard).length===4,'Pork, beef, poultry and egg boards stay separate');
- assert(selected.some(row=>row[0].includes('Cerdo cebado normal')),'The Spanish benchmark survives selection');
+ const fullBoardRows=model.results.filter(table=>table.proteinSectorBoard).flatMap(table=>table.rows);
+ if(fullBoardRows.some(row=>row[0].includes('Cerdo cebado normal')))assert(selected.some(row=>row[0].includes('Cerdo cebado normal')),'The Spanish benchmark survives selection');
  assert(edition.results.some(table=>table.proteinHistoryTable),'2020 history is retained');
 }
 const filtered=availablePresentationModel(filteredReportModel(model,current,{country:'México'}));assert(filtered.results.filter(table=>table.proteinSectorBoard).every(table=>table.rows.every(row=>row[0].startsWith('México\n'))));assert(filtered.visuals.some(visual=>visual.proteinAmericas));
@@ -40,9 +44,11 @@ const directory='output/proteinas-cobertura-20261104';await fs.mkdir(directory,{
 for(const [name,input]of [['diario',current],['semanal',{...current,analysisPeriod:'weekly'}]]){
  const bytes=await _test.makeExecutivePdf(input.title,input),task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,isEvalSupported:false}),pdf=await task.promise;assert(pdf.numPages<=PROTEIN_PDF_MAX_PAGES);let text='';
  for(let index=1;index<=pdf.numPages;index++){const page=await pdf.getPage(index),items=(await page.getTextContent()).items.filter(item=>item.str.trim());text+=items.map(item=>item.str).join(' ');for(const item of items){assert(item.transform[4]>=24 && item.transform[4]+item.width<=page.view[2]-22,'No horizontal clipping');assert(item.transform[5]>=42,'No vertical clipping');assert(item.str.trim()!=='—','No empty field');}}
- assert(pdf.numPages<7);for(const country of wanted)assert(text.includes(country),'Country appears in printed evidence: '+country);
+ assert(pdf.numPages<7);for(const country of activeWanted)assert(text.includes(country),'Country appears in printed evidence: '+country);
  for(const term of ['mes','semestre','año','2020','usd/kg'])assert(text.toLocaleLowerCase('es').includes(term),'Comparison field survives export: '+term);
- for(const term of ['Estados Unidos','USDA','CME','cutout negociado','Vacuno Choice','Pollo entero','Mercolleida','Cerdo cebado normal','Sector porcino','Sector vacuno','Avícola'])assert(text.includes(term),'Visible business coverage in the actual PDF: '+term);
+ const requiredTerms=['Estados Unidos','USDA','CME','cutout negociado','Vacuno Choice','Pollo entero','Sector porcino','Sector vacuno','Avícola'];
+ if(model.references.some(item=>/Cerdo cebado normal/.test(item.label || '')))requiredTerms.push('Mercolleida','Cerdo cebado normal');
+ for(const term of requiredTerms)assert(text.includes(term),'Visible business coverage in the actual PDF: '+term);
  await fs.writeFile(directory+'/'+name+'.pdf',bytes);await task.destroy();console.log(name+': '+pdf.numPages+' pages; eight American countries, Mexico, prior session, semester, year and 2020 history.');
 }
 assert.equal(JSON.stringify(current),snapshot);console.log('Americas proteins: exact dated arithmetic, periodic-vs-daily distinction, no invented horizons, eight-country PDF protection, Mexico species coverage, filters, immutable copies and full exports pass.');

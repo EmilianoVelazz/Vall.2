@@ -40,9 +40,11 @@ export function createAuthSession({ verify = apiGet, storage = browserStorage() 
     async check(signal) {
       const current = ++revision;
       try {
-        const { ok, data } = await verify('/api/verify-token', { signal, cache: 'no-store' });
+        const { ok, status, data } = await verify('/api/verify-token', { signal, cache: 'no-store' });
         if (current !== revision || signal?.aborted) return;
-        apply(ok && data?.success === true ? data.email || '' : null);
+        if (ok && data?.success === true) apply(data.email || '');
+        else if (status === 429 || (status >= 500 && status < 600)) { if (!state.sessionChecked) publish({ ...state, sessionChecked: true }); }
+        else apply(null);
       } catch {
         if (current !== revision || signal?.aborted) return;
         apply(null);

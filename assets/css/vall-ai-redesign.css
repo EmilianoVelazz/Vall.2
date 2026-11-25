@@ -6069,3 +6069,85 @@ body.vall-ai-body .vai-attachment-excerpt {
     width: auto !important;
   }
 }
+
+/* ── ORION Chat Box · Cuadre limpio del compositor ── */
+body.vall-ai-body .vai-composer,
+body.vall-ai-body .vai-composer textarea,
+body.vall-ai-body .vai-compose-bottom {
+  box-sizing: border-box;
+}
+
+body.vall-ai-body .vai-composer,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer {
+  padding: 0;
+  border-radius: 20px;
+}
+
+body.vall-ai-body .vai-composer textarea,
+body.vall-ai-body .vai-composer textarea:focus,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-composer textarea:focus,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-composer textarea:focus {
+  padding: 14px 18px 10px;
+  min-height: 50px;
+  border-radius: 20px 20px 0 0;
+}
+
+body.vall-ai-body .vai-compose-bottom,
+body.vall-ai-body .vai-workspace:has(.vai-welcome:not([hidden])) .vai-compose-bottom,
+body.vall-ai-body .vai-workspace:not(:has(.vai-welcome:not([hidden]))) .vai-compose-bottom {
+  padding: 6px 10px 8px 12px;
+}
+
+/* Alineación vertical limpia para selectores de visualización en gráficas de ORION */
+.chat-shell select,
+.vall-chart-card select,
+.chart-toolbar select {
+  height: 34px;
+  min-height: 34px;
+  line-height: 1.25;
+  padding: 4px 10px;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+/* Pestañas limpias de sugerencias ejecutivas (visibles en escritorio y móvil) */
+.vai-prompt-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 0 10px;
+}
+.vai-prompt-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.04);
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.vai-prompt-tab.is-active {
+  background: #0f172a;
+  color: #f8fafc;
+  border-color: #0f172a;
+}
+@media (max-width: 640px) {
+  .vai-prompts {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .vai-scroll-bottom {
+    bottom: 112px !important;
+    right: 14px !important;
+  }
+}

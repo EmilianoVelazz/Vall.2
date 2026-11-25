@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict');
-const {parseProfeco,parseDspc,createLocalCommercialClient,requestedStages}=require('../backend/services/local-commercial-prices');
+const {parseProfeco,parseDspc,createLocalCommercialClient,requestedStages,matchesPresentation}=require('../backend/services/local-commercial-prices');
 const {proteinProfile,proteinPriceEvidence,createProteinPriceClient}=require('../backend/services/protein-market-intelligence');
 const {STATES}=require('../backend/services/mexico-price-scope');
 const {mexicoPriceTable}=require('../backend/ai/protein-price-table');
@@ -56,6 +56,13 @@ async function main() {
     assert.equal(parseDspc(catalogue({href:'javascript:alert(1)'}),PERIOD,'2026-10-08').filter(r=>r.productId==='poultry').length,0);
     assert.deepEqual(parseDspc(catalogue({stamp:'2026-10-09T00:00:00Z'}),PERIOD,'2026-10-08'),[]);groups++;
 
+    const wholeProfile=proteinProfile('Precio de pollo entero en México y Estados Unidos');
+    for(const category of ['Whole Broiler','Whole broiler (65%)','Pollo entero']) {
+        assert(matchesPresentation({productId:'poultry',priceBasis:'whole',category},wholeProfile));
+    }
+    for(const category of ['Whole Broiler Breast','Chicken Breast','Chicken Wings']) {
+        assert(!matchesPresentation({productId:'poultry',priceBasis:'whole',category},wholeProfile));
+    }
     let calls=0;const source=fixtureSource({onFetch:()=>calls++});
     const profile=proteinProfile('Precio de pollo y res en Puebla México, mayoreo y menudeo');
     assert.deepEqual(profile.commercialStages,['wholesale','retail']);assert.equal(profile.priceBasis,null);

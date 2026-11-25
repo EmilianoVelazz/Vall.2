@@ -91,7 +91,9 @@ function requestedStages(profile) {
 }
 function matchesPresentation(record,profile) {
     const query=normalizeForIntent(profile.presentationQuery ?? profile.query),category=normalizeForIntent(record.category);
-    if(record.productId==='poultry' && /\bpollo entero\b/.test(query) && !/\bpollo entero\b/.test(category)) return false;
+    const wholePoultry = /\bpollo entero\b/.test(category)
+        || record.priceBasis==='whole' && /^whole (?:broilers?|chickens?|birds?)(?:\s*\([\d.%\s]+\))?$/.test(category);
+    if(record.productId==='poultry' && /\bpollo entero\b/.test(query) && !wholePoultry) return false;
     const requested=[...query.matchAll(/\b(pechugas?|muslos?|lomos?|costillas?|ribeye|arrachera|bistecs?|tocino|bacon|sirloin|chuletas?)\b/g)].map(match=>match[1].replace(/s$/,''));
     if(requested.length && !requested.some(term=>category.includes(term))) return false;
     for(const term of query.matchAll(/\b(?:congelad[oa]s?|refrigerad[oa]s?|deshuesad[oa]s?|marinad[oa]s?)\b/g)) if(!category.includes(term[0].replace(/[oa]s?$/,''))) return false;

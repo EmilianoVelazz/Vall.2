@@ -92,10 +92,23 @@ function buildMexicoReports({macro,bmv,proteins,sourceErrors=[]},time=new Date()
             if(!row) return [state,'No disponible',group.level || stage,'—','—','—'];
             const url=safeUrl(row.sourceUrl || row.sourceUrls?.[0] || row.url || group.sourceUrl || (id==='pork' ? 'https://www.porcicultura.com/economia/precios-del-cerdo-en-pie-en-mexico' : 'https://www.economia-sniim.gob.mx/SNIIM-Pecuarios-Nacionales/'));
             if(url && links.size<40) links.set(url,{label:row.source || (id==='pork' ? 'Porcicultura.com' : 'SNIIM'),url});
-            const period=row.cadence==='monthly' ? row.date.slice(0,7)+' (mensual)' : row.date+(/weekly/.test(row.cadence || '') ? ' (fuente semanal)' : '');
+            const ageDays = Math.floor((time.getTime() - Date.parse(row.date)) / 86_400_000);
+            const staleTag = Number.isFinite(ageDays) && ageDays > 30 ? ' · rezagado (>30d)' : '';
+            const period=(row.cadence==='monthly' ? row.date.slice(0,7)+' (mensual)' : row.date+(/weekly/.test(row.cadence || '') ? ' (fuente semanal)' : ''))+staleTag;
             const basis=row.level || row.basis || group.level || stage;
             const priceUnit=row.unit || (/canal/i.test(basis) ? 'MXN/kg canal' : /pie|vivo/i.test(basis) ? 'MXN/kg vivo' : 'MXN/kg');
-            return [state,format(row.price)+' '+priceUnit,basis,(row.markets || [row.market || 'Referencia estatal']).join('; '),period,(row.source || (id==='pork' ? 'Porcicultura.com' : 'SNIIM'))+' · '+url];
+            const cleanMarkets = (row.markets || [row.market || 'Referencia estatal'])
+                .map(m => String(m || '')
+                    .replace(/Torre\uFFFDn/gi, 'Torreón').replace(/Trevi\uFFFDo/gi, 'Treviño')
+                    .replace(/Le\uFFFDn/gi, 'León').replace(/Ray\uFFFDn/gi, 'Rayón')
+                    .replace(/G\uFFFDmez/gi, 'Gómez').replace(/distribuci\uFFFDn/gi, 'distribución')
+                    .replace(/Frigor\uFFFDfico/gi, 'Frigorífico').replace(/Guti\uFFFDrrez/gi, 'Gutiérrez')
+                    .replace(/L\uFFFDpez/gi, 'López').replace(/M\uFFFDdulo/gi, 'Módulo')
+                    .replace(/Quer\uFFFDtaro/gi, 'Querétaro').replace(/Potos\uFFFD/gi, 'Potosí')
+                    .replace(/Culiac\uFFFDn/gi, 'Culiacán').replace(/Obreg\uFFFDn/gi, 'Obregón')
+                    .replace(/Malibr\uFFFDn/gi, 'Malibrán').replace(/M\uFFFDrida/gi, 'Mérida'))
+                .join('; ');
+            return [state,format(row.price)+' '+priceUnit,basis,cleanMarkets,period,(row.source || (id==='pork' ? 'Porcicultura.com' : 'SNIIM'))+' · '+url];
         })};
     });
     const coverageRows=proteinTables.map(table=>{
@@ -109,7 +122,17 @@ function buildMexicoReports({macro,bmv,proteins,sourceErrors=[]},time=new Date()
             return catalog.STATE_GRAIN_PRODUCTION.map(({state})=>{
                 const row=group.states?.find(item=>item.state===state),basis=row?.level || row?.basis || group.level || stage;
                 const unit=row?.unit || (/canal/i.test(basis) ? 'MXN/kg canal' : /pie|vivo/i.test(basis) ? 'MXN/kg vivo' : defaultUnit);
-                const markets=(row?.markets || [row?.market || 'Referencia estatal']).join('; ');
+                const markets=(row?.markets || [row?.market || 'Referencia estatal'])
+                    .map(m => String(m || '')
+                        .replace(/Torre\uFFFDn/gi, 'Torreón').replace(/Trevi\uFFFDo/gi, 'Treviño')
+                        .replace(/Le\uFFFDn/gi, 'León').replace(/Ray\uFFFDn/gi, 'Rayón')
+                        .replace(/G\uFFFDmez/gi, 'Gómez').replace(/distribuci\uFFFDn/gi, 'distribución')
+                        .replace(/Frigor\uFFFDfico/gi, 'Frigorífico').replace(/Guti\uFFFDrrez/gi, 'Gutiérrez')
+                        .replace(/L\uFFFDpez/gi, 'López').replace(/M\uFFFDdulo/gi, 'Módulo')
+                        .replace(/Quer\uFFFDtaro/gi, 'Querétaro').replace(/Potos\uFFFD/gi, 'Potosí')
+                        .replace(/Culiac\uFFFDn/gi, 'Culiacán').replace(/Obreg\uFFFDn/gi, 'Obregón')
+                        .replace(/Malibr\uFFFDn/gi, 'Malibrán').replace(/M\uFFFDrida/gi, 'Mérida'))
+                    .join('; ');
                 return {label:proteinReferenceLabel([name,state,basis,markets,row?.source || group.source || (id==='pork' ? 'Porcicultura.com' : 'SNIIM')]),unit,points:row && !/monthly|weekly|annual/.test(row.cadence || '') ? [{date:row.date,value:row.price}] : []};
             });
         }),

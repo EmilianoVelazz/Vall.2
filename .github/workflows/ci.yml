@@ -43,8 +43,12 @@ jobs:
 
       - name: ORION, AI, forecast and proteins suites
         run: |
+          npm run test:smart-data
+          npm run test:orion:knowledge
+          npm run evaluate:orion:heldout
           npm run test:orion:mcp
           npm run test:orion:quality
+          npm run evaluate:orion
           node scripts/test-orion-resilience.cjs
           npm run test:intelligence
           npm run test:forecast
@@ -57,4 +61,7 @@ jobs:
           npm run test:seo
           npm run test:reports:argon
           npm run test:reports:email
+          npm run test:reports:meeting
+          npm run test:reports:reader-render
+          npm run test:cross-module:ui
           node scripts/test-report-bond-session.mjs

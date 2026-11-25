@@ -78,6 +78,11 @@ const CURRENCY_BY_CODE = new Map(CURRENCY_CATALOG.map(currency => [currency.code
 const MENTION_CACHE = new Map();
 const MENTION_CACHE_LIMIT = 300;
 const STRONG_CURRENCY_CONTEXT = /\b(?:monedas?|divisas?|forex|tipo de cambio|cotizaci[oó]n(?:es)?|convertir|convierte|conversi[oó]n)\b|\b[a-z]{3}\s*(?:vs\.?|versus|contra|frente a|\/)\s*[a-z]{3}\b/i;
+// "libra/libras" en contexto agroindustrial/peso (cwt, kg, cutout, 100 libras)
+// se refiere a unidad de masa (lb), no a la libra esterlina (GBP), salvo que
+// se indique explícitamente "esterlina", "británica" o el código ISO "GBP".
+const WEIGHT_POUND_CONTEXT = /\b(?:cwt|lbs?|kg|kilos?|kilogramos?|toneladas?|cutout|canal|cerdos?|porcinos?|res|bovinos?|pollos?|aves?|carne|ganado|peso\s+vivo|en\s+pie|por\s+100\s+libras?|100\s+libras?)\b|\/(?:cwt|lb|kg|ton)\b/i;
+const EXPLICIT_GBP_CONTEXT = /\b(?:gbp|esterlinas?|brit[aá]nicas?|reino\s+unido|londres)\b/i;
 
 function levenshtein(left, right) {
     if (left === right) return 0;
@@ -98,11 +103,13 @@ function levenshtein(left, right) {
     return previous[right.length];
 }
 
-function exactAliasCandidates(normalized) {
+function exactAliasCandidates(normalized, rawText = '') {
     const padded = ` ${normalized} `;
+    const weightPoundContext = WEIGHT_POUND_CONTEXT.test(rawText) && !EXPLICIT_GBP_CONTEXT.test(rawText);
     const candidates = [];
     for (const currency of CURRENCY_CATALOG) {
         for (const alias of currency.aliases) {
+            if (weightPoundContext && currency.code === 'GBP' && (alias === 'libra' || alias === 'libras')) continue;
             let offset = 0;
             const needle = ` ${alias} `;
             while ((offset = padded.indexOf(needle, offset)) >= 0) {
@@ -170,7 +177,7 @@ function findCurrencyMentions(message) {
     if (MENTION_CACHE.has(raw)) return MENTION_CACHE.get(raw);
     const normalized = normalizeCurrencyText(raw);
     if (!normalized) return [];
-    const exact = [...exactAliasCandidates(normalized), ...codeCandidates(raw)];
+    const exact = [...exactAliasCandidates(normalized, raw), ...codeCandidates(raw)];
     const candidates = [...exact, ...fuzzyAliasCandidates(normalized)]
         .sort((left, right) => left.index - right.index
             || left.distance - right.distance

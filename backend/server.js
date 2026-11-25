@@ -79,6 +79,7 @@ const apiLimiter = rateLimit({
     },
     windowMs: 60 * 1000,
     max: 300,
+    skip: req => req.path === '/verify-token' || req.path === '/health',
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: 'Demasiadas peticiones. Intenta en un momento.' },
@@ -194,8 +195,14 @@ if (SIRVE_SPA) {
 
 
 // ── Health check ──────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: Math.floor(process.uptime()) });
+const { buildHealthPayload } = require('./lib/health-check');
+app.get('/api/health', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const deep = req.query.deep === '1' || req.query.deep === 'true';
+    const strict = req.query.strict === '1' || req.query.strict === 'true';
+    const payload = await buildHealthPayload({ deep });
+    const httpStatus = strict && !payload.ok ? 503 : 200;
+    res.status(httpStatus).json(payload);
 });
 
 // ── Routers ───────────────────────────────────────────────────────────────────
@@ -289,6 +296,8 @@ if (require.main === module && RUN_BACKGROUND_JOBS) {
     finanzasRouter.initDailyNewsWarmer?.();
     require('./lib/report-schedule').scheduleDailyReport(()=>mexicoReports.refresh(),'mexico-reports');
     require('./lib/report-schedule').scheduleDailyReport(()=>require('./ml/forecast-review-job').runForecastReview(),'orion-forecast-review');
+    require('./lib/report-schedule').scheduleDailyReport(()=>require('./ml/protein-ml-closed-loop').runProteinClosedLoopCycle({retrain:true}),'marranas-ml-closed-loop');
+    setInterval(()=>require('./ml/protein-nlp-events').fetchAndClassifyProteinNlpEvents().catch(()=>{}), 6 * 60 * 60 * 1000).unref?.();
     const { initSNIIMWarmer } = require('./lib/sniim-service');
     initSNIIMWarmer();
     const { initProteinSourceIngestion } = require('./lib/protein-source-ingestion');
@@ -340,6 +349,23 @@ if (require.main === module) {
     server.requestTimeout = 30000;
     server.keepAliveTimeout = 5000;
     server.maxRequestsPerSocket = 1000;
+
+    let shuttingDown = false;
+    const gracefulShutdown = signal => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        console.log(`\n  [shutdown] Recibida señal ${signal}; cerrando conexiones activas...`);
+        server.close(() => {
+            console.log('  [shutdown] Servidor HTTP cerrado limpiamente.');
+            process.exit(0);
+        });
+        setTimeout(() => {
+            console.warn('  [shutdown] Tiempo de gracia agotado (8s); salida forzada.');
+            process.exit(1);
+        }, 8000).unref();
+    };
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 module.exports = app;

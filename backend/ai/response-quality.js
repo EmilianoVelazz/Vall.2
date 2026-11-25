@@ -14,10 +14,20 @@ function textMentionsSource(text, citations = []) {
         || lower.includes(source.split(' · ')[0].toLowerCase()));
 }
 
+const INTERNAL_CITATION_TYPES = new Set(['loopus_rule', 'few_shot_exemplar', 'vector_knowledge']);
+const HUMAN_SOURCE_LABELS = {
+    executive_report_cache: 'Informe ejecutivo VALLNews',
+    loopus_ml_walkforward: 'Modelo ML walk-forward VALLNews',
+    'VALLNews Vector Index': 'Base de conocimiento VALLNews',
+};
+
 function citationDisclosure(citations = []) {
-    const sources = citations.slice(0, 4).map(item => {
+    const visible = citations.filter(item => !INTERNAL_CITATION_TYPES.has(item?.type));
+    const list = visible.length ? visible : citations;
+    const sources = list.slice(0, 4).map(item => {
         const date = item.date ? ` · corte: ${item.date}` : '';
-        const label = `${item.title} (${item.source || 'fuente verificada'}${date})`.replaceAll('[', ' ').replaceAll(']', ' ').replace(/[\r\n]/g, ' ');
+        const sourceName = HUMAN_SOURCE_LABELS[item.source] || item.source || 'fuente verificada';
+        const label = `${item.title} (${sourceName}${date})`.replaceAll('[', ' ').replaceAll(']', ' ').replace(/[\r\n]/g, ' ');
         try {
             const url = new URL(item.url);
             if (['https:', 'http:'].includes(url.protocol) && !url.username && !url.password) {

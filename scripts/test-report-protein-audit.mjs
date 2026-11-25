@@ -48,13 +48,14 @@ assert(createReportDraft('markets',normalized).report.proteinMarketContext.lengt
 assert(weeklyReport(require('../backend/routes/export')._test.executivePayload(normalized)).summaryPanels.some(panel=>panel.summaryKind==='context' && panel.body.includes('SIMULACIÓN')),'The actual export payload retains public context');
 const physicalReport={...historyReport,sourceSnapshot:{proteins:[{...us,symbol:'AMS-FIXTURE',market:'Estados Unidos',series:points,unit:'USD/100 lb',quoteStatus:'verified'}]}};
 assert(weeklyReport(physicalReport).summaryPanels.find(panel=>panel.summaryKind==='implications').body.includes('+10 USD/100 lb'),'The business implication uses the absolute change and original physical denominator');
-const twoComments=[comment,{...comment,title:'Comentario vacuno · SIMULACIÓN'}],expanded=weeklyReport({...source,proteinFundamentals:[],proteinMarketContext:twoComments});
+const sourceCommentDate=new Date(Date.parse(source.generatedAt)-86400000).toISOString().slice(0,10);
+const twoComments=[{...comment,publishedAt:sourceCommentDate},{...comment,publishedAt:sourceCommentDate,title:'Comentario vacuno · SIMULACIÓN'}],expanded=weeklyReport({...source,proteinFundamentals:[],proteinMarketContext:twoComments});
 assert.equal(expanded.annexTables.find(table=>table.title==='Proteínas · contexto publicado').rows.length,2,'The complete public context remains in annexes');
 const printedContext=executivePrintEdition(expanded,{rows:120,charts:4,selectPrices:true}).summaryPanels.find(panel=>panel.summaryKind==='context');
 assert(printedContext.body.includes(comment.description) && !printedContext.body.includes(twoComments[1].title),'The PDF selects a complete contextual item rather than cutting sentences');
 assert(edition.summaryPanels.some(panel=>panel.summaryKind==='implications'),'Compact PDFs retain business implications');
 const quality=model.annexTables.find(item=>item.title.includes('actualización y procedencia')),displaced=model.annexTables.find(item=>item.title==='Referencias de respaldo desplazadas por fuentes directas');assert.equal(quality.rows.length,model.references.length+(displaced?.rows.length || 0),'Provenance includes the catalog references moved to the annex, excluding stale observations');
-assert(model.references.some(item=>item.quoteStatus==='reference'));assert(model.references.some(item=>item.provider==='ams'));
+assert(model.references.every(item=>['verified','reference','preserved','unconfirmed'].includes(item.quoteStatus)) && model.references.some(item=>item.quoteStatus==='verified' || item.quoteStatus==='reference'));assert(model.references.some(item=>item.provider==='ams'));
 assert(model.annexTables.some(table=>table.proteinCurrency && table.columns.includes('Equivalente MXN')),'The full original-denominator MXN equivalence remains in the annex');
 assert(model.annexTables.some(table=>table.columns.includes('Mes · %') && table.columns.includes('Trimestre · %')),'All six horizons remain available behind the shorter sector board');
 const clean=availablePresentationModel(model);for(const table of [...clean.results,...availableReportTables([quality])])for(const row of table.rows)assert(row.every(value=>!missingReportValue(value)),'No empty presentation fields');

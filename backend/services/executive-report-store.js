@@ -84,7 +84,8 @@ function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table
         if(await diskSave(snapshot)) snapshot.persistence='disk';
         if(memory!==snapshot)return memory;
         const nextRefresh=table==='market_executive_reports' ? nextMarketReportRefreshAt : nextReportRefreshAt;
-        const rows=reports.map(report=>({report_key:report.key,title:report.title,report,source_snapshot:report.sourceSnapshot || {},generated_at:generatedAt,next_refresh_at:nextRefresh(generatedAt).toISOString()}));
+        const updatedAt=new Date().toISOString();
+        const rows=reports.map(report=>({report_key:report.key,title:report.title,report,source_snapshot:report.sourceSnapshot || {},generated_at:generatedAt,next_refresh_at:nextRefresh(generatedAt).toISOString(),updated_at:updatedAt}));
         try {
             const service=serviceClient();
             if(service) {

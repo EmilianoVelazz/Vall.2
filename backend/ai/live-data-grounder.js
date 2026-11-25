@@ -68,20 +68,23 @@ function rulesForMessage(message, plan) {
     // fuente regional con Grounding y declarar cualquier brecha encontrada.
     const text = String(message || '');
     const futuresRequested = /\b(?:futuros?|cme|cbot|contrato)\b/i.test(text);
-    const rules = requestedInstruments(text, { limit: 8 }).filter(instrument => {
+    const rules = requestedInstruments(text, { limit: 12 }).filter(instrument => {
         const future = instrument.ticker.endsWith('=F');
+        const isProteinFuture = /^(?:HE|LE|GF)=F$/i.test(instrument.ticker);
         if (instrument.assetClass === 'equity' && plan?.quoteEquities === false) return false;
-        if (future && (plan?.localPhysicalPrice || plan?.needsMercolleida || plan?.topics?.includes('equities') || plan?.topic === 'equities') && !futuresRequested) return false;
-        if ((plan?.localPhysicalPrice || plan?.needsMercolleida) && instrument.assetClass !== 'equity') return false;
+        // Nunca sustituir precio físico de proteína por futuros ganaderos (HE=F/LE=F/GF=F)
+        // salvo petición explícita; sí permitir granos/energía/metales como insumos en consultas multi-mercado.
+        if (isProteinFuture && (plan?.localPhysicalPrice || plan?.needsMercolleida || plan?.topics?.includes('equities') || plan?.topic === 'equities') && !futuresRequested) return false;
+        if (future && plan?.needsMercolleida && !futuresRequested && !plan?.asksComparison) return false;
         if (plan?.needsFxQuote && instrument.ticker.endsWith('=X')) return false;
         return true;
     }).map(instrument => ({
         symbol: instrument.ticker, label: instrument.name, unit: instrument.unit,
     }));
-    if (plan.topic === 'bonds') rules.push(...BOND_RULES.filter(rule => rule.re.test(text)));
+    if (plan.topic === 'bonds' || plan.topics?.includes('bonds')) rules.push(...BOND_RULES.filter(rule => rule.re.test(text)));
     // Una consulta general por bonos debe ofrecer una curva mínima comprobable.
     if (plan.topic === 'bonds' && !rules.length) rules.push(...BOND_RULES);
-    return [...new Map(rules.map(rule => [rule.symbol, rule])).values()].slice(0, 8);
+    return [...new Map(rules.map(rule => [rule.symbol, rule])).values()].slice(0, 12);
 }
 
 function quoteContext(quotes) {
@@ -154,10 +157,13 @@ function selectNews(rows, profile, period = null, now = Date.now()) {
         if (article.indexedAt && (!Number.isFinite(Date.parse(article.indexedAt)) || Date.parse(article.indexedAt) > now)) return false;
         const date = String(article.publishedAt || article.indexedAt || '').slice(0, 10);
         if (period && (!date || date < period.start || date > period.end)) return false;
-        if (!profile?.products?.length) return true;
+        const rawHay = `${article.title} ${article.description || ''} ${article.url || ''}`.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+        if (/\b(?:diariobitcoin|criptonoticias|xataka|genbeta|doordash|instacart|windows\s*11|videojuego|horoscope|recipes?|recetas?|chef|cooking|cocina|gastronomia)\b/i.test(rawHay)) return false;
+        if (!profile?.products?.length) {
+            return /\b(?:econom|finanz|mercad|bolsa|ipc|s&p|nasdaq|dolar|peso|divisa|forex|bono|cetes|tiie|banxico|fed|tasa|inflaci|petroleo|wti|brent|gas|oro|cobre|maiz|soya|trigo|cerdo|pollo|huevo|res|ganad|proteina|arancel|comercio|export|import|sanitari|h5n1|influenza|peste|barrenador|usda|sniim|senasica)\b/i.test(rawHay);
+        }
         const text = `${article.title} ${article.description || ''}`.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
         return PRODUCTS.some(product => profile.products.includes(product.id) && product.re.test(text))
-            && !/\b(?:recipes?|recetas?|chef|cooking|cocina|gastronomia|horoscope|videojuego)\b/i.test(text)
             && /\b(?:price|prices|precios?|market|mercado|trade|comercio|export\w*|import\w*|tariff\w*|arancel\w*|disease|influenza|outbreak|brote\w*|h5n1|hpa[ia]|supply|demand|oferta|demanda|earnings|result\w*|ingresos|ventas|margins?|margenes|stocks?|acciones|production|produccion)\b/i.test(text);
     });
     if (!profile?.products?.length) return articles.slice(0, 3);
@@ -314,6 +320,15 @@ async function groundLiveData(plan, message, { mercolleidaClient, tradeClient, r
         }
         if (lines.length) {
             merged.context = [merged.context, `[EQUIVALENCIAS NORMALIZADAS A KG (FX REFERENCIAL)]\n${fxRatesSummaryLine(resolvedFx, merged.proteinPriceRecords)}\n${lines.slice(0, 28).join('\n')}`].filter(Boolean).join('\n\n');
+        }
+    }
+    if (/\b(?:calendario|catalizador|pr[oó]ximos?\s+eventos?|agenda|wasde|cold\s+storage|hogs\s*(?:&|and)\s*pigs|cattle\s+on\s+feed|fomc|riesgos?\s+de\s+la\s+semana)\b/i.test(String(message || ''))) {
+        try {
+            const { getUpcomingMarketCatalysts, formatCatalystsForOrion } = require('../services/market-catalysts');
+            const calText = formatCatalystsForOrion(getUpcomingMarketCatalysts({ daysAhead: 45, limit: 6 }));
+            if (calText) merged.context = [merged.context, calText].filter(Boolean).join('\n\n');
+        } catch {
+            // Degradación silenciosa
         }
     }
     return merged;

@@ -10,14 +10,17 @@ const fs = require('fs');
 const path = require('path');
 const { GeminiProvider } = require('./providers/gemini-provider');
 const { persistRuleProposals } = require('./ml-persistence');
+const { distillClosedLoopProposals } = require('./closed-loop-feedback');
+
+const { mysqlTlsOptions, isMariaDbConfigured } = require('../lib/database-connection');
 
 let pool = null;
 
 function getPool() {
     if (!pool) {
         pool = mysql.createPool({
-            ...require('../lib/database-connection').mysqlTlsOptions(),
-            host: process.env.DB_HOST || process.env.MYSQL_HOST || '127.0.0.1',
+            ...mysqlTlsOptions(),
+            host: process.env.DB_HOST || process.env.MYSQL_HOST || process.env.MARIADB_HOST || '127.0.0.1',
             port: Number(process.env.DB_PORT || process.env.MYSQL_PORT || 3306),
             user: process.env.DB_USER || process.env.MYSQL_USER || 'root',
             password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || '',
@@ -44,6 +47,12 @@ function saveRuleProposal(rule) {
 }
 
 async function evaluateQueries() {
+    if (!isMariaDbConfigured()) {
+        if (process.env.NODE_ENV !== 'test') {
+            await distillClosedLoopProposals({ limit: 8, provider: new GeminiProvider() }).catch(() => {});
+        }
+        return;
+    }
     const db = getPool();
     try {
         const [queries] = await db.execute(
@@ -53,49 +62,55 @@ async function evaluateQueries() {
              WHERE q.evaluated_by_brain = FALSE AND q.response_text IS NOT NULL
              ORDER BY q.created_at ASC LIMIT 5`
         );
-        if (!queries.length) return;
-
-        const ai = new GeminiProvider();
-        if (!ai.isConfigured()) return;
-
-        for (const query of queries) {
-            const prompt = `[PREGUNTA DEL USUARIO]\n${query.question_text}\n\n[RESPUESTA DE LA IA]\n${query.response_text}\n\n${query.correction_text ? `[CORRECCIÓN DEL USUARIO]\n${query.correction_text}\n` : ''}\nEvalúa y extrae una propuesta si es necesaria.`;
-            let evaluated = false;
-            try {
-                const response = await ai.generate({ prompt, systemInstruction: SYSTEM_INSTRUCTION, tier: 'flash', json: true });
-                const result = JSON.parse(response.text);
-                if (result.needsRule && result.condition_trigger && result.learned_rule) {
-                    const proposal = {
-                        condition_trigger: String(result.condition_trigger).slice(0, 200),
-                        learned_rule: String(result.learned_rule).slice(0, 800),
-                        confidence_score: 85,
-                        source_query_id: query.id,
-                        source: {
-                            provider: 'brain-worker-feedback',
-                            topic: 'chat_feedback',
-                            domain: 'chat',
-                            source_query_id: query.id,
-                            collected_at: new Date().toISOString(),
-                        },
-                    };
-                    saveRuleProposal(proposal);
+        if (queries.length) {
+            const ai = new GeminiProvider();
+            if (ai.isConfigured()) {
+                for (const query of queries) {
+                    const prompt = `[PREGUNTA DEL USUARIO]\n${query.question_text}\n\n[RESPUESTA DE LA IA]\n${query.response_text}\n\n${query.correction_text ? `[CORRECCIÓN DEL USUARIO]\n${query.correction_text}\n` : ''}\nEvalúa y extrae una propuesta si es necesaria.`;
+                    let evaluated = false;
                     try {
-                        await persistRuleProposals([proposal], null);
-                    } catch (err) {
-                        console.warn('[Loopus] No se pudo guardar propuesta de feedback en Supabase:', err.message);
+                        const response = await ai.generate({ prompt, systemInstruction: SYSTEM_INSTRUCTION, tier: 'flash', json: true });
+                        const result = JSON.parse(response.text);
+                        if (result.needsRule && result.condition_trigger && result.learned_rule) {
+                            const proposal = {
+                                condition_trigger: String(result.condition_trigger).slice(0, 200),
+                                learned_rule: String(result.learned_rule).slice(0, 800),
+                                confidence_score: 85,
+                                source_query_id: query.id,
+                                source: {
+                                    provider: 'brain-worker-feedback',
+                                    topic: 'chat_feedback',
+                                    domain: 'chat',
+                                    source_query_id: query.id,
+                                    collected_at: new Date().toISOString(),
+                                },
+                            };
+                            saveRuleProposal(proposal);
+                            try {
+                                await persistRuleProposals([proposal], null);
+                            } catch (err) {
+                                console.warn('[Loopus] No se pudo guardar propuesta de feedback en Supabase:', err.message);
+                            }
+                            console.log(`[Loopus] Propuesta guardada para revisión humana: "${result.condition_trigger}"`);
+                        }
+                        evaluated = true;
+                    } catch (error) {
+                        console.error(`[Loopus] Error evaluando query ${query.id}:`, error.message);
                     }
-                    console.log(`[Loopus] Propuesta guardada para revisión humana: "${result.condition_trigger}"`);
+                    // Los errores se reintentan después; no se descartan consultas sin revisar.
+                    if (evaluated) await db.execute(`UPDATE ai_queries SET evaluated_by_brain = TRUE WHERE id = ?`, [query.id]);
                 }
-                evaluated = true;
-            } catch (error) {
-                console.error(`[Loopus] Error evaluando query ${query.id}:`, error.message);
             }
-            // Los errores se reintentan después; no se descartan consultas sin revisar.
-            if (evaluated) await db.execute(`UPDATE ai_queries SET evaluated_by_brain = TRUE WHERE id = ?`, [query.id]);
+        }
+        if (process.env.NODE_ENV !== 'test') {
+            await distillClosedLoopProposals({ limit: 8, provider: new GeminiProvider() }).catch(() => {});
         }
     } catch (error) {
         if (!['ECONNREFUSED', 'PROTOCOL_CONNECTION_LOST'].includes(error.code)) {
             console.error('[Loopus] Error de DB:', error.message);
+        }
+        if (process.env.NODE_ENV !== 'test') {
+            await distillClosedLoopProposals({ limit: 8, provider: new GeminiProvider() }).catch(() => {});
         }
     }
 }

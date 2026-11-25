@@ -3,6 +3,7 @@
 const mysql = require('mysql2/promise');
 const { createClient } = require('@supabase/supabase-js');
 const { SemanticSearch } = require('./semantic-search');
+const { hybridSearch } = require('./vector-knowledge');
 const {
     CURRENCY_CATALOG,
     findCurrencyMentions,
@@ -50,10 +51,12 @@ const TERM_EXPANSIONS = [
     { re: /\b(?:geopol[ií]tica|conflicto|guerra|sanci[oó]n|arancel)\b/i, terms: ['geopolitica', 'conflicto', 'guerra', 'sancion', 'arancel', 'comercio'] },
 ];
 
+const { mysqlTlsOptions, isMariaDbConfigured } = require('../lib/database-connection');
+
 function databaseConfig() {
     return {
-        ...require('../lib/database-connection').mysqlTlsOptions(),
-        host: process.env.DB_HOST || process.env.MYSQL_HOST || '127.0.0.1',
+        ...mysqlTlsOptions(),
+        host: process.env.DB_HOST || process.env.MYSQL_HOST || process.env.MARIADB_HOST || '127.0.0.1',
         port: Number(process.env.DB_PORT || process.env.MYSQL_PORT || 3306),
         user: process.env.DB_USER || process.env.MYSQL_USER || 'root',
         password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || '',
@@ -465,7 +468,7 @@ class RagRetriever {
     getSupabase() {
         if (!this.supabase) {
             const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
             if (supabaseUrl && supabaseKey) {
                 this.supabase = createClient(supabaseUrl, supabaseKey, {
                     auth: { persistSession: false, autoRefreshToken: false },
@@ -498,8 +501,9 @@ class RagRetriever {
     }
 
     async ensureDbAvailable() {
-        if (Date.now() < this.disabledUntil) return false;
         if (this._dbReady) return true;
+        if (!this.pool && !isMariaDbConfigured()) return false;
+        if (Date.now() < this.disabledUntil) return false;
         if (!this._probePromise) {
             this._probePromise = Promise.resolve()
                 .then(() => this.getPool().execute('SELECT 1'))
@@ -557,38 +561,11 @@ class RagRetriever {
         );
     }
 
-    async retrieveNeuralRules(message) {
-        const terms = expandedSearchTerms(message);
-        if (!terms) return [];
-        
-        const supabase = this.getSupabase();
-        if (supabase) {
-            try {
-                // Simplified search for Supabase since MATCH AGAINST is MySQL specific
-                const searchTerms = terms.split(' ').filter(Boolean).map(t => `%${t}%`);
-                let query = supabase.from('ai_neural_rules').select('condition_trigger, learned_rule, confidence_score');
-
-                if (searchTerms.length > 0) {
-                    query = query.ilike('condition_trigger', searchTerms[0]);
-                }
-
-                const { data, error } = await query.order('confidence_score', { ascending: false }).limit(3);
-                if (!error && data) return data;
-            } catch (e) {
-                console.warn('[rag] Error querying Supabase for neural rules:', e.message);
-            }
-        }
-
-        // Fallback to MySQL if Supabase fails or not configured
-        return this.safeQuery(
-            `SELECT condition_trigger, learned_rule, confidence_score,
-                    MATCH(condition_trigger) AGAINST (? IN NATURAL LANGUAGE MODE) AS relevance
-             FROM ai_neural_rules
-             WHERE MATCH(condition_trigger) AGAINST (? IN NATURAL LANGUAGE MODE)
-             ORDER BY relevance DESC, confidence_score DESC
-             LIMIT 3`,
-            [terms, terms]
-        );
+    async retrieveNeuralRules() {
+        // Legacy rows can originate in private chats and have no publication
+        // approval field. Reviewed public rules use vector-knowledge and
+        // loopus-knowledge instead; confidence alone never authorizes sharing.
+        return [];
     }
 
     async retrieveDocuments(message) {
@@ -860,7 +837,26 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
                 `[W${index + 1}] ${news?.title || ''}\nFuente: ${news?.source?.name || news?.source || 'Web'} | Fecha: ${news?.publishedAt || ''} | URL: ${news?.url || ''}\nResumen: ${news?.description || ''}`
             ).join('\n\n'));
         }
+        if (arguments[0].vectorHits && arguments[0].vectorHits.length) {
+            sections.push('[CONOCIMIENTO VECTORIAL HÍBRIDO · RRF]\n' + arguments[0].vectorHits.map((hit, index) =>
+                `[V${index + 1}] (${hit.source_kind || 'report'}) ${hit.title}${hit.as_of_date ? ` | fecha=${hit.as_of_date}` : ''} | rrf=${num(hit.rrf_score, 4)}\n${String(hit.content || '').slice(0, 900)}`
+            ).join('\n\n'));
+        }
         return sections.join('\n\n').slice(0, 14000);
+    }
+
+    async retrieveVectorKnowledge(message) {
+        if (!message || String(message).trim().length < 3) return [];
+        try {
+            const res = await hybridSearch(message, {
+                kinds: ['report', 'news', 'loopus_rule', 'market_snapshot', 'protein_benchmark'],
+                limit: 4,
+                allowRemote: process.env.NODE_ENV !== 'test',
+            });
+            return Array.isArray(res?.results) ? res.results : [];
+        } catch {
+            return [];
+        }
     }
 
     async retrieveLiveNews(message) {
@@ -889,14 +885,15 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
     async retrieve(message, userKeyHash = null) {
         const started = Date.now();
         const profile = queryProfile(message);
-        const [documents, events, economic, market, memory, neuralRules, liveNews] = await Promise.all([
+        const [documents, events, economic, market, memory, neuralRules, liveNews, vectorHits] = await Promise.all([
             this.retrieveDocuments(message),
             this.retrieveEvents(message, profile),
             this.retrieveEconomic(message, profile),
             this.retrieveMarket(message),
             this.retrieveMemory(message, userKeyHash),
             this.retrieveNeuralRules(message),
-            this.retrieveLiveNews(message)
+            this.retrieveLiveNews(message),
+            this.retrieveVectorKnowledge(message)
         ]);
         let filteredDocuments = documents;
         if (profile.historicalMarketOnly) {
@@ -942,6 +939,10 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
                 id: `N${index + 1}`, title: row.title, source: row.source_name,
                 url: row.canonical_url || null, date: dateOnly(row.occurred_at), type: 'event',
             })),
+            ...vectorHits.map((row, index) => ({
+                id: `V${index + 1}`, title: row.title, source: row.metadata?.source || 'VALLNews Vector Index',
+                url: null, date: row.as_of_date || null, type: row.source_kind || 'vector_knowledge',
+            })),
         ];
         const evidenceRecords = [
             ...market.rows.map((row, index) => ({
@@ -981,7 +982,8 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
                 metadata: { eventType: row.event_type },
             })),
         ];
-        const context = this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market, memory, neuralRules, liveNews });
+        const context = this.formatContext({ documents: filteredDocuments, events: filteredEvents, economic, market, memory, neuralRules, liveNews, vectorHits });
+        const hasVectorBoost = vectorHits.some(row => Number(row.vector_score) > 0);
         return {
             context: [context, verifiedChartContext(verifiedCharts)].filter(Boolean).join('\n\n'),
             chart: verifiedCharts[0] || null,
@@ -994,9 +996,11 @@ Corrección del usuario: ${row.correction_text || 'Ninguna'}
                     : (wantsChart(message) ? market.chartStatus || 'insufficient_data' : 'not_requested')),
             citations,
             sourceCodes,
-            retrievedChunks: filteredDocuments.length,
+            retrievedChunks: filteredDocuments.length + vectorHits.length,
             evidenceCount: citations.length,
-            retrievalStrategy: filteredDocuments.some(row=>row.retrieval_mode === 'hybrid_conceptual') ? 'hybrid_conceptual_mmr_v3' : 'hybrid_lexical_mmr_v2',
+            retrievalStrategy: hasVectorBoost
+                ? 'hybrid_vector_rrf_v4'
+                : (filteredDocuments.some(row=>row.retrieval_mode === 'hybrid_conceptual') ? 'hybrid_conceptual_mmr_v3' : 'hybrid_lexical_mmr_v2'),
             retrievalLatencyMs: Date.now() - started,
             evidenceRecords,
         };

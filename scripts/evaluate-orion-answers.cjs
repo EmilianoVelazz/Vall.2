@@ -1,10 +1,13 @@
 'use strict';
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const dataset = require('./lib/orion-evaluation-cases.json');
+const { createHash } = require('node:crypto');
+const datasetPath=process.argv.find(value=>value.startsWith('--dataset='))?.slice('--dataset='.length);
+const dataset = require(datasetPath?path.resolve(datasetPath):'./lib/orion-evaluation-cases.json');
 const { evaluateAnswer, summarizeEvaluation, DIMENSIONS } = require('../backend/ai/answer-evaluation');
 const { planQuery } = require('../backend/ai/query-planner');
 const NOW = Date.parse('2026-10-15T18:00:00Z');
+const HARNESS_VERSION = '2026-11-20.2';
 const arg = name => process.argv.find(value => value.startsWith(name + '='))?.slice(name.length + 1);
 const urlFor = id => `https://example.org/orion-simulation/${id}`;
 function itemUrls(item) {
@@ -75,10 +78,31 @@ function caseContext(item) {
         },
     };
 }
+function syntheticRequest(item, context, timeoutMs = 25000) {
+    return {
+        message: item.question,
+        history: [],
+        context: context.evidence.context,
+        attachments: context.attachments || [],
+        tier: 'flash',
+        signal: AbortSignal.timeout(timeoutMs + 10000),
+    };
+}
 async function main() {
     const live = process.argv.includes('--live'), answersPath = arg('--answers'), reviewsPath = arg('--reviews');
+    const timeoutMs = Number(arg('--timeout-ms') || 25000);
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 120000) throw Error('El plazo debe estar entre 1000 y 120000 ms.');
     const selectedCase = arg('--case'), selectedCategory = arg('--category');
-    const cases = dataset.cases.filter(item => (!selectedCase || item.id === selectedCase) && (!selectedCategory || item.category === selectedCategory));
+    const representative = process.argv.includes('--representative');
+    const seenCategories = new Set();
+    const cases = dataset.cases.filter(item => (!selectedCase || item.id === selectedCase) && (!selectedCategory || item.category === selectedCategory))
+        .filter(item => {
+            if (!representative) return true;
+            const category = item.category || 'trade_research';
+            if (seenCategories.has(category)) return false;
+            seenCategories.add(category);
+            return true;
+        });
     if (!cases.length) throw Error('Caso o categoría de evaluación desconocida.');
     if (live && answersPath) throw Error('Elige --live o --answers, no ambos.');
     const mode = live ? 'live_synthetic_sample' : answersPath ? 'recorded_answers' : 'reference_and_mutation_controls';
@@ -92,6 +116,8 @@ async function main() {
     if ([...suppliedMap.keys(), ...reviewMap.keys()].some(id => !known.has(id))) throw Error('Hay identificadores ajenos al conjunto evaluado.');
     let provider;
     if (live) {
+        // Las pruebas usan evidencia sintética y nunca leen o escriben Supabase.
+        process.env.NODE_ENV = 'test';
         require('dotenv').config({ path: path.resolve(__dirname, '../backend/.env'), quiet: true });
         require('dotenv').config({ path: path.resolve(__dirname, '../.env.local'), quiet: true });
         require('../backend/lib/tls-trust').configureSystemTrust();
@@ -104,22 +130,27 @@ async function main() {
         const context = caseContext(item);
         let answer = answersPath ? suppliedMap.get(item.id) || { text: '' } : { text: format(item.reference, item) };
         if (live) {
+            let providerCalls=0, evidenceDelivered=true;
             const { AIOrchestrator } = require('../backend/ai/orchestrator');
-            const empty = { context: '', citations: [], sourceCodes: [], charts: [], evidenceCount: 0 };
             const chat = new AIOrchestrator({
                 provider: { name: provider.name, isConfigured: () => true,
-                    generate: request => provider.generate({ ...request, tools: null, timeoutMs: Math.min(request.timeoutMs || 25000, 25000), maxOutputTokens: 3072 }) },
-                retriever: { retrieve: async () => empty, recordQuery: async () => null, recordEvidence: async () => null },
+                    generate: request => {
+                        providerCalls++;
+                        if (context.evidence.context && !request.prompt.includes(context.evidence.context)) evidenceDelivered=false;
+                        return provider.generate({ ...request, tools: null, timeoutMs });
+                    } },
+                retriever: { retrieve: async () => context.evidence, recordQuery: async () => null, recordEvidence: async () => null },
                 liveDataGrounder: async () => context.evidence, forecastBuilder: async () => context.forecast || null, statisticsBuilder: async () => null, priceArchive: null,
+                reportReader: { forQuery: async () => context.evidence, read: async () => context.evidence },
             });
             const started = Date.now();
             try {
-                const liveHint = context.attachments?.length ? ' Usa los datos y archivos ficticios proporcionados.' : ' Usa sólo los documentos ficticios proporcionados.';
-                const response = await chat.generateStructured({ message: item.question + liveHint, history: [], attachments: context.attachments || [], tier: 'flash', signal: AbortSignal.timeout(35000) });
-                answer = { text: response.text, response: response.response, latencyMs: Date.now() - started, fallbackUsed: response.response.meta?.researchAudit?.fallbackUsed === true };
-            } catch { answer = { text: '', latencyMs: Date.now() - started, error: 'provider_unavailable' }; }
+                const response = await chat.generateStructured(syntheticRequest(item, context, timeoutMs));
+                if (!evidenceDelivered) throw Object.assign(new Error('La evidencia sintética no llegó al proveedor.'), { code: 'EVALUATION_EVIDENCE_MISSING' });
+                answer = { text: response.text, response: response.response, latencyMs: Date.now() - started, providerCalls, evidenceDelivered, actualModel:response.response.meta?.model||response.model||null, fallbackUsed: response.response.meta?.researchAudit?.fallbackUsed === true };
+            } catch (error) { answer = { text: '', latencyMs: Date.now() - started, providerCalls, evidenceDelivered, error: error.code || 'provider_unavailable' }; }
             liveAnswers.push({ id: item.id, category: item.category, ...answer });
-            console.log(JSON.stringify({ case: item.id, category: item.category, completed: !answer.error, latencyMs: answer.latencyMs }));
+            console.log(JSON.stringify({ case: item.id, category: item.category, completed: !answer.error, latencyMs: answer.latencyMs,providerCalls:answer.providerCalls,model:answer.actualModel }));
         }
         const result = evaluateAnswer(item, answer, { ...context, format, review: reviewMap.get(item.id) });
         results.push(result);
@@ -132,10 +163,13 @@ async function main() {
         }
     }
     const summary = summarizeEvaluation(results, { datasetVersion: dataset.version, datasetStatus: dataset.status, mode });
-    const report = { ...summary, mutationControls: { total: mutations.length, rejected: mutations.filter(row => row.rejected).length }, results };
+    const datasetHash = createHash('sha256').update(JSON.stringify(dataset)).digest('hex');
+    const baselinePath=arg('--baseline');let comparison=null;
+    if(baselinePath){const previous=JSON.parse(await fs.readFile(path.resolve(baselinePath),'utf8'));if(previous.mode!==mode||previous.harnessVersion!==HARNESS_VERSION||previous.timeoutMs!==(live?timeoutMs:null)||previous.datasetHash!==datasetHash||JSON.stringify(previous.results?.map(row=>row.id))!==JSON.stringify(results.map(row=>row.id)))throw Error('La comparación requiere exactamente el mismo banco, evaluador, modo, plazo y casos.');comparison={baseline:path.basename(baselinePath),automaticPassDelta:summary.automaticPassed-previous.automaticPassed,p95DeltaMs:summary.latency.p95Ms!=null&&previous.latency?.p95Ms!=null?summary.latency.p95Ms-previous.latency.p95Ms:null};}
+    const report = { ...summary, harnessVersion:HARNESS_VERSION, createdAt:new Date().toISOString(), datasetHash, comparison, timeoutMs:live?timeoutMs:null, providerErrors:liveAnswers.filter(row=>row.error).length, actualModels:[...new Set(liveAnswers.map(row=>row.actualModel).filter(Boolean))], providerCalls:live?liveAnswers.reduce((sum,row)=>sum+(row.providerCalls||0),0):0, mutationControls: { total: mutations.length, rejected: mutations.filter(row => row.rejected).length }, results };
     const directory = path.resolve(__dirname, '../output/analisis-inteligencia-orion');
     await fs.mkdir(directory, { recursive: true });
-    const scopeSuffix = (selectedCategory ? '-' + selectedCategory : '') + (selectedCase ? '-' + selectedCase : '');
+    const scopeSuffix = (representative ? '-representative' : '') + (selectedCategory ? '-' + selectedCategory : '') + (selectedCase ? '-' + selectedCase : '');
     const suffix = (live ? 'live' : answersPath ? 'recorded' : 'controls') + scopeSuffix;
     await fs.writeFile(path.join(directory, `answer-evaluation-${suffix}.json`), JSON.stringify(report, null, 2));
     await fs.writeFile(path.join(directory, `human-review-${suffix}.json`), JSON.stringify(reviewPacket, null, 2));
@@ -144,4 +178,4 @@ async function main() {
     if (results.some(row => !row.automaticPassed) || mutations.some(row => !row.rejected)) process.exitCode = 1;
 }
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });
-module.exports = { caseContext, format };
+module.exports = { caseContext, format, syntheticRequest };

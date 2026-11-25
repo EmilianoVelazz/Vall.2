@@ -12,7 +12,7 @@ class PreviewPdfDocument extends PDFDocument {
 }
 const { reportMailStatus, mailTransport, mailFailure, mailAutomationEnabled, mailSender } = require('../services/report-mailer');
 const JSZip = require('jszip');
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, AlignmentType } = require('docx');
+const { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType, BorderStyle } = require('docx');
 const { verifyToken } = require('./auth');
 const { hasBearerSecret } = require('../lib/request-security');
 const { reportOwnerBinding } = require('../lib/report-session-owner');
@@ -112,28 +112,141 @@ const runScheduledReportEmails = createScheduledReportDelivery({
     prepare: executivePayload, deliver: deliverExecutiveEmail,deliverBundle:reportBundleSender.deliver,
 });
 
+function docxInlineRuns(rawText, { size = 21, color = '1E293B' } = {}) {
+    const cleaned = clean(rawText).replace(/```[\s\S]*?```/g, '').replace(/^>\s?(?:\[![A-Z]+\]\s*)?/i, '').trim();
+    const parts = cleaned.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+    if (!parts.length) return [new TextRun({ text: plain(rawText), size, color })];
+    return parts.map(part => {
+        const boldMatch = part.match(/^\*\*(.+)\*\*$/);
+        const text = (boldMatch ? boldMatch[1] : part).replace(/\*(.*?)\*/g, '$1').replace(/\|/g, ' ');
+        return new TextRun({ text, bold: Boolean(boldMatch), size, color });
+    });
+}
+
+function imageDimensionsFromBuffer(buffer) {
+    if (!Buffer.isBuffer(buffer) || buffer.length < 24) return null;
+    // PNG signature: 89 50 4E 47 0D 0A 1A 0A -> IHDR width at 16, height at 20
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+        const width = buffer.readUInt32BE(16);
+        const height = buffer.readUInt32BE(20);
+        if (width > 0 && height > 0) return { width, height };
+    }
+    // JPEG SOF0/SOF2 markers
+    if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+        let offset = 2;
+        while (offset + 9 < buffer.length) {
+            if (buffer[offset] !== 0xFF) break;
+            const marker = buffer[offset + 1];
+            const len = buffer.readUInt16BE(offset + 2);
+            if ([0xC0, 0xC1, 0xC2].includes(marker)) {
+                const height = buffer.readUInt16BE(offset + 5);
+                const width = buffer.readUInt16BE(offset + 7);
+                if (width > 0 && height > 0) return { width, height };
+                break;
+            }
+            if (len < 2) break;
+            offset += 2 + len;
+        }
+    }
+    return null;
+}
+
+function docxImageSize(buffer, maxWidth = 600) {
+    const dims = imageDimensionsFromBuffer(buffer);
+    if (!dims) return { width: maxWidth, height: 340 };
+    const ratio = dims.height / dims.width;
+    const height = Math.max(180, Math.min(460, Math.round(maxWidth * ratio)));
+    return { width: maxWidth, height };
+}
+
+function parseMarkdownTableRow(line) {
+    return String(line || '').trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => plain(cell));
+}
+
+function buildDocxTable(tableLines) {
+    const parsed = tableLines
+        .filter(line => !/^\s*\|?\s*:?-{2,}:?(?:\s*\|\s*:?-{2,}:?)*\s*\|?\s*$/.test(line))
+        .map(parseMarkdownTableRow)
+        .filter(cells => cells.length > 0 && cells.some(Boolean));
+    if (!parsed.length) return null;
+    const colCount = Math.max(...parsed.map(r => r.length));
+    const borderSpec = { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' };
+    const borders = { top: borderSpec, bottom: borderSpec, left: borderSpec, right: borderSpec };
+    const rows = parsed.map((cells, rowIdx) => {
+        const isHeader = rowIdx === 0;
+        const padded = Array.from({ length: colCount }, (_, i) => cells[i] || '—');
+        return new TableRow({
+            tableHeader: isHeader,
+            children: padded.map(cellText => new TableCell({
+                borders,
+                shading: isHeader
+                    ? { type: ShadingType.CLEAR, fill: 'E2E8F0', color: 'auto' }
+                    : rowIdx % 2 === 0
+                        ? { type: ShadingType.CLEAR, fill: 'F8FAFC', color: 'auto' }
+                        : undefined,
+                margins: { top: 70, bottom: 70, left: 100, right: 100 },
+                children: [new Paragraph({
+                    children: [new TextRun({ text: cellText, bold: isHeader, size: isHeader ? 18 : 17, color: isHeader ? '0F172A' : '1E293B' })],
+                    spacing: { before: 20, after: 20 },
+                })],
+            })),
+        });
+    });
+    return new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows,
+    });
+}
+
 function docxParagraphs(content) {
-    const paragraphs = [];
+    const blocks = [];
+    const lines = clean(content).split(/\r?\n/);
     let inCode = false;
-    for (const raw of clean(content).split(/\r?\n/)) {
-        if (/^```/.test(raw.trim())) { inCode = !inCode; continue; }
+    let tableBuffer = [];
+    const flushTable = () => {
+        if (!tableBuffer.length) return;
+        const table = buildDocxTable(tableBuffer);
+        if (table) {
+            blocks.push(table);
+            blocks.push(new Paragraph({ text: '', spacing: { after: 100 } }));
+        }
+        tableBuffer = [];
+    };
+    for (const raw of lines) {
+        if (/^```/.test(raw.trim())) { flushTable(); inCode = !inCode; continue; }
         if (inCode) continue;
+        if (/^\s*\|.*\|\s*$/.test(raw)) {
+            tableBuffer.push(raw);
+            continue;
+        }
+        flushTable();
         const heading = raw.match(/^(#{1,4})\s+(.+)/);
         if (heading) {
             const levels = [HeadingLevel.TITLE, HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3];
-            paragraphs.push(new Paragraph({ text: plain(heading[2]), heading: levels[Math.min(heading[1].length - 1, 3)], spacing: { before: 220, after: 100 } }));
+            blocks.push(new Paragraph({ text: plain(heading[2]), heading: levels[Math.min(heading[1].length - 1, 3)], spacing: { before: 220, after: 100 } }));
             continue;
         }
         const bullet = raw.match(/^\s*[-•]\s+(.+)/);
         const ordered = raw.match(/^\s*\d+\.\s+(.+)/);
         if (bullet || ordered) {
-            paragraphs.push(new Paragraph({ text: plain((bullet || ordered)[1]), bullet: { level: 0 }, spacing: { after: 60 } }));
+            blocks.push(new Paragraph({ children: docxInlineRuns((bullet || ordered)[1], { size: 21 }), bullet: { level: 0 }, spacing: { after: 60 } }));
             continue;
         }
-        if (!raw.trim()) { paragraphs.push(new Paragraph('')); continue; }
-        paragraphs.push(new Paragraph({ children: [new TextRun({ text: plain(raw), size: 22 })], spacing: { after: 100 } }));
+        if (/^\s*>\s?/.test(raw)) {
+            blocks.push(new Paragraph({
+                children: docxInlineRuns(raw, { size: 20, color: '0F172A' }),
+                shading: { type: ShadingType.CLEAR, fill: 'F1F5F9', color: 'auto' },
+                border: { left: { style: BorderStyle.SINGLE, size: 18, color: '1D4ED8', space: 8 } },
+                indent: { left: 160, right: 120 },
+                spacing: { before: 80, after: 100 },
+            }));
+            continue;
+        }
+        if (!raw.trim()) { blocks.push(new Paragraph('')); continue; }
+        blocks.push(new Paragraph({ children: docxInlineRuns(raw, { size: 22 }), spacing: { after: 100 } }));
     }
-    return paragraphs;
+    flushTable();
+    return blocks;
 }
 
 async function mergeDocxWithVallnewsTemplate(generatedBuffer) {
@@ -187,7 +300,7 @@ async function makeDocx(title, content, images,localization=reportLabels()) {
     ];
     images.forEach((data, index) => {
         children.push(new Paragraph({ text: `${t('Gráfica')} ${index + 1}`, heading: HeadingLevel.HEADING_2, spacing: { before: 240, after: 80 } }));
-        children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data, transformation: { width: 620, height: 340 } })] }));
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data, transformation: docxImageSize(data, 600) })] }));
     });
     children.push(new Paragraph({ text: language==='es' ? 'Documento informativo. Verifique las cifras antes de tomar decisiones.' : t('Documento informativo. Confirme fecha, unidad y fuente primaria.'), spacing: { before: 300 } }));
     const document = new Document({ sections: [{ properties: {}, children }] });
@@ -326,7 +439,15 @@ function executivePayload(input) {
         takeaways: Array.isArray(input.takeaways) ? input.takeaways.slice(0, 20).map(item => text(item, 1500)).filter(Boolean) : [],
         watchlist: personalization.sections.risks && Array.isArray(input.watchlist) ? input.watchlist.slice(0, 20).map(item => text(item, 1500)).filter(Boolean) : [],
         sections: Array.isArray(input.sections) ? input.sections.slice(0, 20).map(item => ({ heading: text(item?.heading, 140), text: text(item?.text, 8000) })).filter(item => item.heading && item.text) : [],
-        tables: personalization.sections.tables && Array.isArray(input.tables) ? input.tables.slice(0, 6).map(table => ({ ...(table?.kind==='guide' ? {kind:'guide'} : {}),title: text(table?.title, 140), note: text(table?.note, 800), columns: Array.isArray(table?.columns) ? table.columns.slice(0, 12).map(column => text(column, 140)) : [], rows: rows(table?.rows) })).filter(table => table.title && table.columns.length && table.rows.length) : [],
+        tables: personalization.sections.tables && Array.isArray(input.tables) ? input.tables.slice(0, 6).map(table => {
+            const origRows = Array.isArray(table?.rows) ? table.rows.length : 0;
+            const origCols = Array.isArray(table?.columns) ? table.columns.length : 0;
+            const truncNote = origRows > 100 || origCols > 12
+                ? `Tabla acotada para impresión (${Math.min(origRows, 100)} de ${origRows} filas, ${Math.min(origCols, 12)} de ${origCols} columnas).`
+                : '';
+            const mergedNote = [text(table?.note, 700), truncNote].filter(Boolean).join(' ');
+            return { ...(table?.kind==='guide' ? {kind:'guide'} : {}),title: text(table?.title, 140), note: mergedNote, columns: Array.isArray(table?.columns) ? table.columns.slice(0, 12).map(column => text(column, 140)) : [], rows: rows(table?.rows) };
+        }).filter(table => table.title && table.columns.length && table.rows.length) : [],
         visuals: personalization.sections.charts ? visuals : [],
         comparisons: personalization.sections.indicators ? comparisons : [],
         executiveBrief: executiveBrief ? { ...executiveBrief, risks: personalization.sections.risks ? executiveBrief.risks : [] } : null,
@@ -910,7 +1031,10 @@ function pdfBarChart(document, visual, pageLabel = 'SEÑALES DEL MERCADO') {
         document.fillColor(PDF_COLORS.ink).font('Helvetica').fontSize(8.3).text(bar.label, x, rowY + 2, { width: labelWidth, ellipsis: true });
         document.roundedRect(barX, rowY + 4, barWidth, 9, 4).fill('#E5E7EB');
         const zero=barX+(signed ? barWidth/2 : 0),extent=barWidth*(signed ? .5 : 1)*Math.abs(bar.value)/max;
-        if(bar.value!==0) document.rect(bar.value<0 ? zero-extent : zero,rowY+4,extent,9).fill(['#111827', '#4B5563', '#6B7280', '#9CA3AF'][index % 4]);
+        const barColor = signed
+            ? (bar.value > 0 ? '#15803D' : '#B91C1C')
+            : ['#0F172A', '#1D4ED8', '#0369A1', '#334155'][index % 4];
+        if(bar.value!==0) document.rect(bar.value<0 ? zero-extent : zero,rowY+4,extent,9).fill(barColor);
         if(signed) document.strokeColor('#6B7280').lineWidth(.7).moveTo(zero,rowY+2).lineTo(zero,rowY+15).stroke();
         document.fillColor(PDF_COLORS.ink).font('Helvetica-Bold').fontSize(8.3).text(values[index], barX + barWidth + 6, rowY + 2, { width: valueWidth - 2, align: 'right' });
         pdfResetFlow(document, rowY + rowHeight);
@@ -981,12 +1105,12 @@ function pdfEquityPageHeader(document, label, title, generatedAt, report) {
     const personalization = pdfPersonalization(report);
     document.rect(0, 0, document.page.width, 13).fill(theme.accent);
     document.rect(x, 27, width, 50).fillAndStroke('#F3F4F6', '#4B5563');
-    document.fillColor('#1F2937').font('Helvetica-Bold').fontSize(7.3).text('VALLNEWS · INTELIGENCIA ECONÓMICA', x + 12, 37, { characterSpacing: .8 });
+    document.fillColor('#1F2937').font('Helvetica-Bold').fontSize(7.5).text('VALLNEWS · INTELIGENCIA ECONÓMICA', x + 12, 37, { characterSpacing: .8 });
     document.fillColor('#111827').font('Helvetica-Bold').fontSize(14.2).text(title || 'INFORME DE BOLSA', x + 12, 49, { width: width - 170, ellipsis: true });
-    document.fillColor('#4B5563').font('Helvetica-Bold').fontSize(6.15).text(label, x + width - 153, 38, { width: 141, align: 'right', characterSpacing: .48 });
-    document.fillColor('#6B7280').font('Helvetica').fontSize(5.8).text(`Corte: ${pdfCutLabel(generatedAt)}`, x + width - 153, 52, { width: 141, align: 'right' });
+    document.fillColor('#4B5563').font('Helvetica-Bold').fontSize(7.2).text(label, x + width - 153, 38, { width: 141, align: 'right', characterSpacing: .4 });
+    document.fillColor('#6B7280').font('Helvetica').fontSize(7.0).text(`Corte: ${pdfCutLabel(generatedAt)}`, x + width - 153, 52, { width: 141, align: 'right' });
     const owner = [personalization.recipientName, personalization.organization].filter(Boolean).join(' · ') || personalization.audience;
-    document.fillColor('#6B7280').font('Helvetica').fontSize(5.2).text(`${personalization.confidentialityLabel.toUpperCase()} · ${owner} · ${personalization.horizon}`, x + 12, 65, { width: width - 177, ellipsis: true });
+    document.fillColor('#6B7280').font('Helvetica').fontSize(6.8).text(`${personalization.confidentialityLabel.toUpperCase()} · ${owner} · ${personalization.horizon}`, x + 12, 65, { width: width - 177, ellipsis: true });
     return 91;
 }
 
@@ -1104,9 +1228,9 @@ function pdfEquityMiniChart(document, item, projection, x, y, width, height, tit
     }
     document.undash();
     const firstDate = historical[0]?.date; const lastDate = forecast.at(-1)?.date || historical.at(-1)?.date;
-    document.fillColor('#6B7280').font('Helvetica').fontSize(4.8).text(equityShortDate(firstDate), plotX, y + height - 13, { width: 42 });
-    document.fillColor('#6B7280').font('Helvetica').fontSize(4.8).text(equityShortDate(lastDate), x + width - 50, y + height - 13, { width: 42, align: 'right' });
-    if (forecast.length) document.fillColor('#4B5563').font('Helvetica-Bold').fontSize(4.7).text('Negro: cierre real · grafito: escenario OLS · gris: rango 80%', x + 8, y + height - 13, { width: width - 60, align: 'center' });
+    document.fillColor('#6B7280').font('Helvetica').fontSize(6.4).text(equityShortDate(firstDate), plotX, y + height - 13, { width: 46 });
+    document.fillColor('#6B7280').font('Helvetica').fontSize(6.4).text(equityShortDate(lastDate), x + width - 54, y + height - 13, { width: 46, align: 'right' });
+    if (forecast.length) document.fillColor('#4B5563').font('Helvetica-Bold').fontSize(6.2).text('Negro: cierre real · grafito: escenario OLS · gris: rango 80%', x + 8, y + height - 13, { width: width - 60, align: 'center' });
 }
 
 function pdfEquityPerformanceTable(document, y, series) {
@@ -1114,12 +1238,12 @@ function pdfEquityPerformanceTable(document, y, series) {
     const width = document.page.width - document.page.margins.left - document.page.margins.right;
     const columns = ['REGION', 'MERCADO', 'BOLSA', 'CIERRE', 'DIA', '5 SES.', '1 MES', 'YTD'];
     const ratios = [.095, .115, .205, .16, .10, .11, .11, .105];
-    const heights = { header: 20, row: 18 };
+    const heights = { header: 22, row: 20 };
     document.rect(x, y, width, heights.header).fill('#1F2937');
     let cursor = x;
     columns.forEach((column, index) => {
         const cellWidth = width * ratios[index];
-        document.fillColor('#effafb').font('Helvetica-Bold').fontSize(5.3).text(column, cursor + 5, y + 7, { width: cellWidth - 8, align: index ? 'right' : 'left', ellipsis: true });
+        document.fillColor('#effafb').font('Helvetica-Bold').fontSize(7.0).text(column, cursor + 4, y + 7, { width: cellWidth - 7, align: index ? 'right' : 'left', ellipsis: true });
         cursor += cellWidth;
     });
     series.forEach((item, rowIndex) => {
@@ -1131,7 +1255,7 @@ function pdfEquityPerformanceTable(document, y, series) {
             const cellWidth = width * ratios[index];
             const negative = index > 3 && String(value).startsWith('-');
             document.fillColor(index < 3 ? '#1F2937' : negative ? '#a94351' : index > 3 ? '#18745a' : '#4B5563')
-                .font(index === 2 ? 'Helvetica-Bold' : 'Helvetica').fontSize(index < 3 ? 4.9 : 5.25).text(value, cursor + 4, rowY + 6, { width: cellWidth - 7, align: index > 2 ? 'right' : 'left', ellipsis: true });
+                .font(index === 2 ? 'Helvetica-Bold' : 'Helvetica').fontSize(index < 3 ? 6.8 : 7.1).text(value, cursor + 4, rowY + 6, { width: cellWidth - 7, align: index > 2 ? 'right' : 'left', ellipsis: true });
             cursor += cellWidth;
         });
     });
@@ -1142,12 +1266,12 @@ function pdfEquityScenarioTable(document, y, series) {
     const x = document.page.margins.left;
     const width = document.page.width - document.page.margins.left - document.page.margins.right;
     const columns = ['REGION', 'BOLSA', 'ULTIMO CIERRE', 'ESCENARIO 5 SES.', 'RANGO 80%', 'PENDIENTE / SES.'];
-    const ratios = [.12, .22, .17, .18, .18, .13]; const headerHeight = 20; const rowHeight = 18;
+    const ratios = [.12, .22, .17, .18, .18, .13]; const headerHeight = 22; const rowHeight = 20;
     document.rect(x, y, width, headerHeight).fill('#1F2937');
     let cursor = x;
     columns.forEach((column, index) => {
         const cellWidth = width * ratios[index];
-        document.fillColor('#effafb').font('Helvetica-Bold').fontSize(5.1).text(column, cursor + 5, y + 7, { width: cellWidth - 8, align: index ? 'right' : 'left', ellipsis: true });
+        document.fillColor('#effafb').font('Helvetica-Bold').fontSize(7.0).text(column, cursor + 4, y + 7, { width: cellWidth - 7, align: index ? 'right' : 'left', ellipsis: true });
         cursor += cellWidth;
     });
     series.forEach((item, index) => {
@@ -1166,7 +1290,7 @@ function pdfEquityScenarioTable(document, y, series) {
         values.forEach((value, valueIndex) => {
             const cellWidth = width * ratios[valueIndex];
             document.fillColor(valueIndex < 2 ? '#1F2937' : valueIndex === 5 && scenario?.slope < 0 ? '#a94351' : '#4B5563')
-                .font(valueIndex === 1 ? 'Helvetica-Bold' : 'Helvetica').fontSize(valueIndex < 2 ? 5 : 5.25).text(value, cursor + 4, rowY + 6, { width: cellWidth - 7, align: valueIndex > 1 ? 'right' : 'left', ellipsis: true });
+                .font(valueIndex === 1 ? 'Helvetica-Bold' : 'Helvetica').fontSize(valueIndex < 2 ? 6.8 : 7.1).text(value, cursor + 4, rowY + 6, { width: cellWidth - 7, align: valueIndex > 1 ? 'right' : 'left', ellipsis: true });
             cursor += cellWidth;
         });
     });

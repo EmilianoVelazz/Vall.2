@@ -20,11 +20,9 @@
  * Uso:   node scripts/verify-mercados.mjs [http://localhost:5273]
  * Sale con código 1 si algo falla, para poder encadenarlo.
  */
-const BASE = process.argv[2] || 'http://localhost:5273';
-const RAIZ = 'file:///C:/Users/JonathanEmirL%C3%B3pezVel/Documents/public_html/';
+import { chromium } from 'playwright';
 
-const mod = await import(new URL('node_modules/puppeteer/lib/puppeteer/puppeteer.js', RAIZ).href);
-const puppeteer = mod.default ?? mod;
+const BASE = process.argv[2] || 'http://localhost:5273';
 
 let fallos = 0;
 const ok = (cond, txt, detalle = '') => {
@@ -32,28 +30,40 @@ const ok = (cond, txt, detalle = '') => {
   console.log(`  ${cond ? 'OK  ' : 'FALLA'} ${txt}${detalle ? `  ${detalle}` : ''}`);
 };
 
-const nav = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+const nav = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 
 /** Abre una pestaña de Mercados ya autenticada. `tema` fuerza data-theme. */
-async function abrir(tab, { tema = null, cortarNoticias = false } = {}) {
-  const p = await nav.newPage();
-  await p.setViewport({ width: 1500, height: 1000 });
+async function abrir(tab, { tema = null } = {}) {
+  const ctx = await nav.newContext({ viewport: { width: 1500, height: 1000 } });
+  await ctx.addInitScript(({ t }) => {
+    try {
+      sessionStorage.setItem('vn_auth', '1');
+      sessionStorage.setItem('vn_user', 'verificacion@vallnews.test');
+      localStorage.setItem('mkt_active_tab', t);
+    } catch { /* Ignora iframes sandboxed sin allow-same-origin */ }
+  }, { t: tab });
+  const p = await ctx.newPage();
   const errores = [];
   p.on('pageerror', (e) => errores.push(e.message));
-  if (cortarNoticias) {
-    await p.setRequestInterception(true);
-    p.on('request', (r) => (/\/api\/daily-news-markets/.test(r.url()) ? r.abort('failed') : r.continue()));
-  }
-  await p.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
-  await p.evaluate((t) => {
-    sessionStorage.setItem('vn_auth', 'verificacion');
-    sessionStorage.setItem('vn_user', 'verificacion');
-    localStorage.setItem('mkt_active_tab', t);
-  }, tab);
-  await p.goto(`${BASE}/mercados`, { waitUntil: 'networkidle2' });
+  await p.route('**/api/verify-token*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, email: 'verificacion@vallnews.test' }),
+  }));
+  await p.route('**/api/profile*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, profile: { email: 'verificacion@vallnews.test', role: 'user', preferences: {} } }),
+  }));
+  await p.goto(`${BASE}/mercados`, { waitUntil: 'domcontentloaded' });
+  await p.waitForSelector('.grain-hero, .energy-hero, .protein-hero', { timeout: 15000 }).catch(() => {});
   if (tema) await p.evaluate((t) => document.documentElement.setAttribute('data-theme', t), tema);
-  await new Promise((r) => setTimeout(r, tab === 'noticias' ? 11000 : 5000));
-  return { p, errores };
+  await new Promise((r) => setTimeout(r, 5000));
+  return {
+    p,
+    errores,
+    cerrar: () => ctx.close(),
+  };
 }
 
 const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -66,106 +76,20 @@ for (const tema of [null, 'dark']) {
     ['industriales', '.energy-hero', 'Energía'],
     ['proteinas', '.protein-hero', 'Proteínas'],
   ]) {
-    const { p } = await abrir(tab, { tema });
+    const { p, errores, cerrar } = await abrir(tab, { tema });
     const foto = await p.evaluate((s) => {
       const e = document.querySelector(s);
       return e ? /url\(/.test(getComputedStyle(e).backgroundImage) : null;
     }, sel);
     ok(foto === true, `${nombre.padEnd(10)} con data-theme=${String(tema)}`, foto === null ? '(hero no visible)' : '');
-    await p.close();
+    if (tema === null) ok(errores.length === 0, `${nombre.padEnd(10)} sin errores de runtime`, errores.join(' | '));
+    await cerrar();
   }
 }
 
-// ── 2. La sala de Noticias monta entera ─────────────────────────────────────
-console.log('\n2 · Sala de Noticias · estructura');
-{
-  const { p, errores } = await abrir('noticias');
-  const e = await p.evaluate(() => ({
-    capitulos: ['.fnb-masthead', '.fnb-pulse', '.fnb-reading-route', '.fnb-desk', '.fnb-lead',
-      '.fnb-brief', '.fnb-radar', '.fnb-departments', '.fnb-perspectives', '.fnb-coverage', '.fnb-archive']
-      .filter((s) => document.querySelector(s)).length,
-    pulso: document.querySelectorAll('.fnb-pulse-node').length,
-    tarjetas: document.querySelectorAll('.fnb-card').length,
-    indice: document.querySelectorAll('.fnb-archive-item').length,
-    cobertura: document.querySelectorAll('.fnb-coverage-card').length,
-    /* Si el tema de Daily News no se aplicó, la sala se ve BLANCA: su base es
-       una hoja de tema claro y lo oscuro va colgado de estas clases. */
-    tema: document.body.classList.contains('ff-detail-noticias'),
-  }));
-  ok(e.capitulos === 11, `los 11 capítulos montan`, `(${e.capitulos}/11)`);
-  ok(e.tema, 'el tema de Daily News está aplicado (body.ff-detail-noticias)');
-  ok(e.pulso > 0, 'el pulso tiene puntos', `(${e.pulso})`);
-  ok(e.tarjetas > 0, 'la parrilla tiene tarjetas', `(${e.tarjetas})`);
-  ok(e.indice > 0, 'el índice tiene historias', `(${e.indice})`);
-  ok(e.cobertura > 0, 'la cobertura tiene tarjetas', `(${e.cobertura})`);
-  ok(errores.length === 0, 'sin errores de runtime', errores.join(' | '));
-  await p.close();
-}
-
-// ── 3. Lo interactivo hace lo suyo ──────────────────────────────────────────
-console.log('\n3 · Sala de Noticias · interacción');
-{
-  const { p } = await abrir('noticias');
-
-  // Pulso: hay que mover el ratón DE VERDAD; React delega mouseenter vía mouseover.
-  await p.evaluate(() => document.getElementById('mkt-pulse-section')?.scrollIntoView({ block: 'center' }));
-  await pausa(2000);
-  const caja = await p.evaluate(() => {
-    const d = document.querySelector('.fnb-pulse-node .fnb-pulse-dot');
-    if (!d) return null;
-    const r = d.getBoundingClientRect();
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  });
-  if (caja) {
-    await p.mouse.move(caja.x, caja.y);
-    await pausa(600);
-  }
-  ok(await p.evaluate(() => document.querySelectorAll('.fnb-pulse-node.is-active').length === 1),
-    'el pulso responde al señalar un punto');
-
-  // Carrusel: la tira tiene que DESPLAZARSE, no solo cambiar la marca.
-  await p.evaluate(() => document.getElementById('mkt-coverage-section')?.scrollIntoView({ block: 'center' }));
-  await pausa(1500);
-  const antes = await p.evaluate(() => Math.round(document.querySelector('.fnb-coverage-grid')?.scrollLeft ?? -1));
-  await p.evaluate(() => document.querySelectorAll('.fnb-carousel-controls button')[1]?.click());
-  await pausa(1200);
-  const despues = await p.evaluate(() => Math.round(document.querySelector('.fnb-coverage-grid')?.scrollLeft ?? -1));
-  ok(despues > antes, 'el carrusel desplaza la tira', `(scrollLeft ${antes} → ${despues})`);
-
-  // Dossiers
-  const d0 = await p.evaluate(() => document.querySelector('.fnb-department-host')?.innerText.slice(0, 40));
-  await p.evaluate(() => document.querySelectorAll('.fnb-thread-map button')[1]?.click());
-  await pausa(700);
-  ok(await p.evaluate((a) => document.querySelector('.fnb-department-host')?.innerText.slice(0, 40) !== a, d0),
-    'los dossiers cambian de contenido');
-
-  // Buscador del índice
-  const n0 = await p.evaluate(() => document.querySelectorAll('.fnb-archive-item').length);
-  await p.evaluate(() => {
-    const i = document.querySelector('#mkt-archive-search');
-    const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-    set.call(i, 'a'); i.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await pausa(700);
-  const n1 = await p.evaluate(() => document.querySelectorAll('.fnb-archive-item').length);
-  ok(n1 > 0 && n1 <= n0, 'el buscador del índice filtra', `(${n0} → ${n1})`);
-  await p.close();
-}
-
-// ── 4. La sala aguanta que se caiga su fuente ───────────────────────────────
-console.log('\n4 · Sala de Noticias · resistencia');
-{
-  const { p } = await abrir('noticias', { cortarNoticias: true });
-  const r = await p.evaluate(() => ({
-    historias: document.querySelectorAll('.fnb-archive-item').length,
-    cartel: /no disponible/i.test(document.querySelector('.fnb-desk')?.innerText || ''),
-    fuente: document.querySelector('.fnb-edition small')?.textContent || '',
-  }));
-  ok(r.historias > 0, 'con la fuente caída sigue habiendo noticias', `(${r.historias})`);
-  ok(!r.cartel, 'no aparece el cartel de «edición no disponible»');
-  ok(/directas/i.test(r.fuente), 'y avisa de que es la edición de reserva', `"${r.fuente}"`);
-  await p.close();
-}
+// Nota: la antigua pestaña «Sala de Noticias» migró fuera de /mercados hacia
+// /finanzas y /noticias (verificada por npm run test:news y verify-finanzas.mjs).
+// Aquí se validan los módulos activos de Mercados: granos, energía y proteínas.
 
 /* ── 5. La línea de tiempo del mapa de Proteínas ────────────────────────────
    Está aquí por lo mismo que el resto: puede romperse sin dar un solo error.
@@ -174,7 +98,7 @@ console.log('\n4 · Sala de Noticias · resistencia');
    que un mapa que funciona. Lo que se comprueba es que el RELLENO cambie. */
 console.log('\n5 · Mapa de Proteínas · línea de tiempo');
 {
-  const { p } = await abrir('proteinas');
+  const { p, cerrar } = await abrir('proteinas');
   const banda = () => p.evaluate(() => Object.fromEntries(
     [...document.querySelectorAll('.gm-paises path[data-ne]')]
       .map((e) => [e.dataset.ne, e.getAttribute('class')]),
@@ -222,7 +146,7 @@ console.log('\n5 · Mapa de Proteínas · línea de tiempo');
      el aviso TIENE que estar en pantalla. */
   const nota = await p.evaluate(() => document.querySelector('.gm-tiempo-nota')?.textContent || '');
   ok(/estimaci[óo]n/i.test(nota), 'en un año estimado sale el cartel que lo dice', `"${nota.slice(0, 70)}…"`);
-  await p.close();
+  await cerrar();
 }
 
 /* ── 6. «Lo que come una persona» ───────────────────────────────────────────
@@ -233,7 +157,7 @@ console.log('\n5 · Mapa de Proteínas · línea de tiempo');
    falle ni se vea raro en una captura. */
 console.log('\n6 · Lo que come una persona · dónut por país');
 {
-  const { p } = await abrir('proteinas');
+  const { p, cerrar } = await abrir('proteinas');
   const leer = () => p.evaluate(() => ({
     total: document.querySelector('.cp-total strong')?.textContent || '',
     orden: [...document.querySelectorAll('.cp-desglose li span')].map((l) => l.textContent),
@@ -249,13 +173,13 @@ console.log('\n6 · Lo que come una persona · dónut por país');
   ok(Math.abs(mx.pcts.reduce((s, v) => s + v, 0) - 100) <= 2, 'los porcentajes suman 100', `(${mx.pcts.join('+')})`);
   ok(/^\d/.test(mx.total), 'la cifra por persona sale', `→ ${mx.total}`);
 
-  await p.select('.cp-selector select', 'Argentina');
+  await p.selectOption('.cp-selector select', 'Argentina');
   await pausa(700);
   const ar = await leer();
   ok(ar.total !== mx.total, 'cambiar de país cambia el dato', `${mx.total} → ${ar.total}`);
   ok(ar.orden.join() === mx.orden.join() && ar.tramos.join() === mx.tramos.join(),
     'pero NO repinta: cada proteína conserva su color', `${ar.tramos.join(' ')}`);
-  await p.close();
+  await cerrar();
 }
 
 /* ── 7. «De qué parte del animal» ───────────────────────────────────────────
@@ -266,7 +190,7 @@ console.log('\n6 · Lo que come una persona · dónut por país');
    mismo en todas partes y el cartel que lo dice tiene que estar. */
 console.log('\n7 · De qué parte del animal · despiece');
 {
-  const { p } = await abrir('proteinas');
+  const { p, cerrar } = await abrir('proteinas');
   const leer = () => p.evaluate(() => {
     const s = document.querySelector('.ca-canal');
     if (!s) return null;
@@ -303,7 +227,7 @@ console.log('\n7 · De qué parte del animal · despiece');
 
   // Y AHORA lo importante: cambiar de país NO puede mover el reparto.
   const antes = await leer();
-  await p.select('.ca-canal-pais select', 'Mongolia');
+  await p.selectOption('.ca-canal-pais select', 'Mongolia');
   await pausa(700);
   const dsp = await leer();
   ok(dsp.kg !== antes.kg, 'cambiar de país cambia los kilos', `${antes.kg} → ${dsp.kg}`);
@@ -311,7 +235,7 @@ console.log('\n7 · De qué parte del animal · despiece');
     'pero NO el reparto: el porcentaje es rendimiento de canal, no dato por país');
   ok(/no existe publicado el consumo por corte/i.test(dsp.aviso), 'y el cartel que lo advierte sigue ahí');
   ok(dsp.despojos > 0, 'las vísceras y la grasa (dato real por país) se pintan', `(${dsp.despojos} filas)`);
-  await p.close();
+  await cerrar();
 }
 
 /* ── 8. Balance nacional con selector de país ───────────────────────────────
@@ -322,7 +246,7 @@ console.log('\n7 · De qué parte del animal · despiece');
    sigue diciendo «México», y nada fallaría. */
 console.log('\n8 · Balance nacional · selector de país');
 {
-  const { p } = await abrir('proteinas');
+  const { p, cerrar } = await abrir('proteinas');
   const leer = () => p.evaluate(() => {
     const s = document.querySelector('.prot-balance');
     const h = document.querySelector('.grain-pressure-card.es-auto');
@@ -341,14 +265,14 @@ console.log('\n8 · Balance nacional · selector de país');
   ok(/M[ée]xico/.test(mx.titulo), 'abre por México', `→ "${mx.titulo}"`);
   ok(mx.filas === 4, 'con sus cuatro proteínas', `(${mx.filas})`);
 
-  await p.select('.pb-pais select', 'Brazil');
+  await p.selectOption('.pb-pais select', 'Brazil');
   await pausa(700);
   const br = await leer();
   ok(/Brasil/.test(br.titulo), 'cambiar de país cambia el bloque', `→ "${br.titulo}"`);
   ok(br.auto !== mx.auto, 'y su autosuficiencia', `${mx.auto} → ${br.auto}`);
   ok(br.heroLbl === mx.heroLbl && br.heroVal === mx.heroVal,
     'pero el medidor del hero SIGUE clavado en México', `"${br.heroLbl}" ${br.heroVal}`);
-  await p.close();
+  await cerrar();
 }
 
 await nav.close();

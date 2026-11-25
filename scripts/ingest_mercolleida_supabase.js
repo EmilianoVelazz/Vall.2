@@ -1,16 +1,14 @@
 'use strict';
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env.local') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../backend/.env'), quiet: true });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env.local'), quiet: true });
 const fs = require('fs');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const { createServerClient } = require('../backend/lib/supabase-connection');
 
 const MERCOLLEIDA_DIR = path.resolve(__dirname, '../mercolleida');
 
 function getSupabase() {
-    const url = process.env.VITE_SUPABASE_URL;
-    const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    if (!url || !key) throw new Error('Faltan credenciales de Supabase');
-    return createClient(url, key);
+    return createServerClient();
 }
 
 function readJSON(filename) {

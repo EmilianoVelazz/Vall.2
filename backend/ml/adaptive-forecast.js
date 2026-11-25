@@ -1,8 +1,9 @@
 'use strict';
 
-const { fitAutoregressive, fitDampedHolt, fitLogReturnReversion, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
+const { fitAutoregressive, fitDampedHolt, fitLogReturnReversion, fitDirectShrinkageAR, MIN_IMPROVEMENT } = require('./autoregressive-forecast');
 const { trainingPoints } = require('./temporal-training');
 const { PROFILES, specialisedPredictions } = require('./market-profiles');
+const { computeConformalInterval } = require('./multivariate-forecast');
 
 const MODEL_VERSION = '5.0.0';
 const METHODS = ['last_value', 'ridge_all', 'ridge_recent60', 'damped_drift20', 'ridge_changes60'];
@@ -17,9 +18,12 @@ const quantile90 = values => [...values].sort((a, b) => a - b)[Math.ceil(values.
 function candidatePredictions(values, horizon, profileId = 'general') {
     const last = values.at(-1);
     const recent = values.slice(-20);
+    const ridgeAll = fitAutoregressive(values)?.predictSteps(horizon);
     const predictions = {
         last_value: last,
-        ridge_all: fitAutoregressive(values)?.predictSteps(horizon),
+        ridge_all: ridgeAll,
+        damped_ridge: Number.isFinite(ridgeAll) ? 0.55 * ridgeAll + 0.45 * last : null,
+        direct_shrink: fitDirectShrinkageAR(values, { horizon, ridge: 1.5, shrinkage: 0.55 })?.predictSteps(horizon),
         ridge_recent60: fitAutoregressive(values.slice(-60))?.predictSteps(horizon),
         ridge_changes60: fitAutoregressive(values.slice(-60), { targetMode: 'change', decay: 0.985 })?.predictSteps(horizon),
         damped_drift20: last + .5 * horizon * (last - recent[0]) / (recent.length - 1),
@@ -68,6 +72,7 @@ function selectPolicy(policy, candidates, samples) {
     const ensembleMae = mean(paired.map(row => Math.abs(row.policyErrors.ensemble)));
     const choices = [{ key: 'adaptive_ensemble', mae: ensembleMae }];
     for (const key of Object.keys(candidates)) {
+        if (key === 'last_value') continue;
         const vals = paired.map(row => row.errors?.[key]).filter(Number.isFinite);
         if (vals.length >= MIN_FEEDBACK) {
             choices.push({ key, mae: mean(vals.map(Math.abs)) });
@@ -75,7 +80,7 @@ function selectPolicy(policy, candidates, samples) {
     }
     choices.sort((a, b) => a.mae - b.mae);
     const best = choices[0];
-    if (best && best.key !== 'adaptive_ensemble' && best.mae < ensembleMae * .98 && candidates[best.key]) return {
+    if (best && best.key !== 'adaptive_ensemble' && best.mae < ensembleMae * .995 && candidates[best.key]) return {
         ...policy, shadowEnsemble: policy.value, value: candidates[best.key], selectedStrategy: best.key,
         weights: Object.fromEntries(Object.keys(candidates).map(key => [key, key === best.key ? 1 : 0])),
         corrections: Object.fromEntries(Object.keys(candidates).map(key => [key, 0])),
@@ -149,6 +154,12 @@ function assessAdaptiveForecast(points, { horizon = 1, feedback = [], now = Date
     const sufficientWindows = nonOverlapping.length >= 8;
     const eligible = sufficientWindows && Number.isFinite(policy.value) && policy.value > 0
         && improvement >= MIN_IMPROVEMENT && independentImprovement >= MIN_IMPROVEMENT && policy.selectedStrategy !== 'last_value';
+    const recentMoves = values.slice(-10).map((val, idx, arr) => (idx ? Math.abs(val - arr[idx - 1]) : 0)).slice(1);
+    const liveScale = Math.max(recentMoves.length ? mean(recentMoves) : 0, values.at(-1) * 0.004, 1e-6);
+    const evalResiduals = evaluations.map(row => row.signedError);
+    const evalScales = evaluations.map(row => Math.max(row.baseline, values[row.origin - 1] * 0.004, 1e-6));
+    const c80 = computeConformalInterval(evalResiduals, { alpha: 0.2, scales: evalScales, currentScale: liveScale });
+    const c90 = computeConformalInterval(evalResiduals, { alpha: 0.1, scales: evalScales, currentScale: liveScale });
     return {
         eligible, observations: values.length,
         reason: eligible ? null : !sufficientWindows ? `Sólo hay ${nonOverlapping.length} ventanas sin solapamiento; se requieren ocho para publicar una estimación a este horizonte.`
@@ -166,7 +177,9 @@ function assessAdaptiveForecast(points, { horizon = 1, feedback = [], now = Date
             eligible, protocol: 'prequential_delayed_feedback' },
         candidateForecasts: candidates,
         forecast: { horizon, value: policy.value, lowerBound: Math.max(0, policy.value - errorRange), upperBound: policy.value + errorRange,
-            changePct: (policy.value - values.at(-1)) / values.at(-1) * 100, probabilityUp: null, rangeMethod: 'out_of_sample_absolute_errors' },
+            changePct: (policy.value - values.at(-1)) / values.at(-1) * 100, probabilityUp: null, rangeMethod: 'out_of_sample_absolute_errors',
+            conformal80: c80.radius != null ? { lowerBound: Math.max(0, policy.value - c80.radius), upperBound: policy.value + c80.radius, empiricalCoverage: c80.empiricalCoverage, targetCoverage: c80.targetCoverage, method: c80.method } : null,
+            conformal90: c90.radius != null ? { lowerBound: Math.max(0, policy.value - c90.radius), upperBound: policy.value + c90.radius, empiricalCoverage: c90.empiricalCoverage, targetCoverage: c90.targetCoverage, method: c90.method } : null },
         learning: { modelVersion: MODEL_VERSION, marketProfile: profileId, profileName: PROFILES[profileId].name, methods: Object.keys(candidates), method: 'rolling_error_weights_and_shrunk_bias',
             weights: policy.weights, corrections: policy.corrections, candidateErrors: policy.errors,
             selectedStrategy: policy.selectedStrategy, shadowEnsemble: policy.shadowEnsemble,

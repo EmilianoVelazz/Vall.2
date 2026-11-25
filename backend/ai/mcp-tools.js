@@ -14,6 +14,7 @@ const DEFINITIONS = Object.freeze({
     forecast_analysis: ['Evaluar un pronóstico temporal y registrar su estimación original para seguimiento.', false],
     commercial_margin: ['Calcular margen con los datos comerciales explícitos de esta consulta.', true],
     report_reader: ['Leer los informes ejecutivos publicados y sus cortes verificados.', true],
+    marranas_proteins_ml: ['Consultar pronósticos direccionales, explicabilidad SHAP, paridad de importación MXN/kg y radar NLP sanitario/comercial de MARRANAS v6.0.', true],
 });
 
 function failure(code) {

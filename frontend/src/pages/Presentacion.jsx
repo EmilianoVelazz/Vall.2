@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import SpaceJourney from '../components/SpaceJourney.jsx';
 import {PublicOverview,PublicLinks} from '../components/PublicSite.jsx';
@@ -10,6 +11,8 @@ const HOJAS = ['/assets/css/base.css'];
 
 export default function Presentacion() {
   usePageStyles(HOJAS);
+  const auth = useAuth();
+  const entryTo = auth?.user ? '/inicio' : '/login';
   const [paused, setPaused] = useState(false);
   const main = useRef(null);
   const [chapter, setChapter] = useState('vp-bolsa');
@@ -47,11 +50,11 @@ export default function Presentacion() {
       <nav className="sx-navigation" aria-label="Capítulos de la presentación">
         <a href="#vp-space-earth">Tierra</a>{[['vp-bolsa', 'Bolsa'], ['vp-proteinas', 'Proteínas'], ['vp-orion', 'ORION']].map(([id, name]) => <a key={id} href={`#${id}`} aria-current={chapter === id ? 'location' : undefined}>{name}</a>)}
         <button type="button" onMouseDown={event => event.preventDefault()} onClick={toggleMotion} aria-pressed={!moving} aria-label={moving ? 'Pausar animaciones' : 'Activar animaciones'}>{moving ? 'Ⅱ' : '▷'}</button>
-        <Link to="/login">Entrar ↗</Link>
+        <Link to={entryTo}>Entrar ↗</Link>
       </nav>
       <PresentationScenes moving={moving} reducedMotion={reducedMotion} />
       <PublicOverview moving={moving} />
     </main>
-    <footer className="sx-footer"><a href="#vp-space-start" aria-label="Volver al inicio">VALL<span>News</span> ↑</a><p>Economía. Mercados. Perspectiva.</p><span>© 2026 VALLNews</span><PublicLinks /><Link to="/login">Entrar a la plataforma ↗</Link></footer>
+    <footer className="sx-footer"><a href="#vp-space-start" aria-label="Volver al inicio">VALL<span>News</span> ↑</a><p>Economía. Mercados. Perspectiva.</p><span>© 2026 VALLNews</span><PublicLinks /><Link to={entryTo}>Entrar a la plataforma ↗</Link></footer>
   </div>;
 }

@@ -5,6 +5,9 @@ const path = require('node:path');
 const { assessAdaptiveForecast, MODEL_VERSION: ADAPTIVE_VERSION } = require('./adaptive-forecast');
 const { trainTemporalModel, VERSION: TEMPORAL_VERSION } = require('./temporal-training');
 const { fetchYahooHistory, trainForSymbol } = require('./forecasting-service');
+const { assessMultivariateForecast, estimateCrossAssetElasticities } = require('./multivariate-forecast');
+const { analyzeMarketAnomalies } = require('./anomaly-detector');
+const { getProteinMLContextForQuery } = require('./protein-ml-engine');
 const { CACHE_DIR } = require('../lib/config');
 
 const SHOWCASE_CACHE_FILE = path.resolve(__dirname, '../cache/ml-predictions-showcase.json');
@@ -19,7 +22,7 @@ const LIVE_SHOWCASE_CATALOG = Object.freeze([
     { symbol: 'ZC=F', label: 'Maíz CBOT · Futuros Continuos', category: 'Granos e Insumos', profileId: 'grains', unit: 'cUSD/bu', intervals: ['1d', '1wk'], horizons: [1, 3, 5, 10] },
     { symbol: 'ZS=F', label: 'Soya CBOT · Futuros Continuos', category: 'Granos e Insumos', profileId: 'grains', unit: 'cUSD/bu', intervals: ['1d', '1wk'], horizons: [1, 3, 5, 10] },
     { symbol: 'ZW=F', label: 'Trigo CBOT · Futuros Continuos', category: 'Granos e Insumos', profileId: 'grains', unit: 'cUSD/bu', intervals: ['1d', '1wk'], horizons: [1, 3, 5] },
-    { symbol: 'HE=F', label: 'Cerdo CME Lean Hogs', category: 'Proteínas Pecuarias', profileId: 'protein_futures', unit: 'cUSD/lb', intervals: ['1d', '1mo', '1wk'], horizons: [1, 3, 5, 10] },
+    { symbol: 'HE=F', label: 'Cerdo CME Lean Hogs', category: 'Proteínas Pecuarias', profileId: 'protein_futures', unit: 'cUSD/lb', intervals: ['1d', '1wk', '1mo'], horizons: [1, 3, 5, 10] },
     { symbol: 'LE=F', label: 'Bovino CME Live Cattle', category: 'Proteínas Pecuarias', profileId: 'protein_futures', unit: 'cUSD/lb', intervals: ['1d', '1wk'], horizons: [1, 3, 5] },
     { symbol: 'CL=F', label: 'Petróleo WTI NYMEX', category: 'Energía y Logística', profileId: 'general', unit: 'USD/bbl', intervals: ['1wk', '1d'], horizons: [1, 3, 5] },
     { symbol: '^MXX', label: 'Índice S&P/BMV IPC México', category: 'Renta Variable', profileId: 'general', unit: 'pts MXN', intervals: ['1wk', '1d'], horizons: [1, 3, 5] },
@@ -192,6 +195,8 @@ function evaluateHorizonWithTrace(points, { horizon = 1, profileId = 'general', 
             changePct: round(chosen.forecast.changePct, 2),
             confidenceScore: round(chosen.forecast.confidenceScore ?? (chosen.eligible ? Math.min(96, Math.round(58 + Math.max(0, (evalObj.improvement || 0) * 180))) : 42), 1),
             rangeMethod: chosen.forecast.rangeMethod,
+            conformal80: adaptive?.forecast?.conformal80 || null,
+            conformal90: adaptive?.forecast?.conformal90 || null,
         }
         : null;
 
@@ -310,6 +315,23 @@ function distillPredictiveRulesFromShowcase(showcase) {
             learned_rule: `Priorizar el motor ${best.engine} (${best.selectedStrategy}) validado con mejora fuera de muestra de ${impr}% en MAE y precisión direccional de ${dirAcc}% bajo ${regime} (${trend}); acotar cualquier escenario al rango de error fuera de muestra sin declarar certeza puntual.`,
             reasoning_chain: `Validación Walk-Forward (${asset.symbol}) -> Mejora MAE vs Baseline -> Banda Fuera de Muestra -> Decisión de Cobertura`,
             confidence_score: Math.min(96, Math.max(84, Math.round(84 + impr * 0.5))),
+            public_retrieval: true,
+            source: { provider: 'loopus-ml-forecaster-v5', public_retrieval: true },
+        });
+    }
+    for (const mv of Array.isArray(showcase.multivariateModels) ? showcase.multivariateModels : []) {
+        if (!mv?.eligible && !mv?.beatsUnivariate) continue;
+        const drivers = Array.isArray(mv.exogenousDrivers) ? mv.exogenousDrivers.join(', ') : 'variables exógenas';
+        rules.push({
+            domain: 'both',
+            topic: `ml_arx_${String(mv.id || mv.target).toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+            audience: 'finance',
+            condition_trigger: `Análisis multivariable Ridge-ARX y transmisión cruzada para ${mv.label} (${mv.target}) con impulsores ${drivers}`,
+            learned_rule: `Incorporar los impulsores exógenos rezagados (${drivers}) mediante regresión Ridge-ARX regularizada sin fuga temporal y bandas Conformal adaptativas; verificar qué impulsor domina la sensibilidad estandarizada antes de atribuir el movimiento a un solo factor.`,
+            reasoning_chain: `Alineación Causal Exógena (${mv.target}) -> Pesos Estandarizados Ridge-ARX -> Intervalo Conformal -> Cobertura Multivariable`,
+            confidence_score: 91,
+            public_retrieval: true,
+            source: { provider: 'loopus-ml-forecaster-v5', public_retrieval: true },
         });
     }
     return rules;
@@ -318,6 +340,8 @@ function distillPredictiveRulesFromShowcase(showcase) {
 async function buildPredictiveShowcase({ offlineOnly = false, persistSupabase = false, now = Date.now() } = {}) {
     const assets = [];
     const supabaseSynced = [];
+    const rawSeriesBySymbol = new Map();
+    const anomalySeriesInput = {};
 
     if (!offlineOnly) {
         for (const item of LIVE_SHOWCASE_CATALOG) {
@@ -349,6 +373,8 @@ async function buildPredictiveShowcase({ offlineOnly = false, persistSupabase = 
             }
 
             if (bestInterval && bestPoints.length) {
+                rawSeriesBySymbol.set(item.symbol, bestPoints);
+                anomalySeriesInput[item.symbol] = { series: bestPoints };
                 const regime = computeRegimeDiagnostics(bestPoints);
                 assets.push({
                     symbol: item.symbol,
@@ -387,6 +413,8 @@ async function buildPredictiveShowcase({ offlineOnly = false, persistSupabase = 
                 const rawRows = cache[item.key]?.data?.data || cache[item.key]?.data;
                 const points = cleanMonthlyPoints(rawRows, now);
                 if (points.length < 70) continue;
+                rawSeriesBySymbol.set(item.symbol, points);
+                anomalySeriesInput[item.symbol] = { series: points };
                 const horizons = item.horizons
                     .map(h => evaluateHorizonWithTrace(points, { horizon: h, profileId: item.profileId, now }))
                     .filter(Boolean);
@@ -409,6 +437,41 @@ async function buildPredictiveShowcase({ offlineOnly = false, persistSupabase = 
         }
     } catch { /* caché local opcional */ }
 
+    const multivarSpecs = [
+        { id: 'HE_F_ARX', target: 'HE=F', label: 'Cerdo CME Lean Hogs (Ridge-ARX)', exog: ['ZC=F', 'ZS=F', 'USDMXN=X', 'CL=F'], horizon: 1 },
+        { id: 'GRUMAB_ARX', target: 'GRUMAB.MX', label: 'Gruma BMV (Ridge-ARX)', exog: ['ZC=F', 'USDMXN=X'], horizon: 1 },
+        { id: 'USDMXN_ARX', target: 'USDMXN=X', label: 'USD/MXN Spot (Ridge-ARX)', exog: ['CL=F', 'ZC=F', '^MXX'], horizon: 1 },
+        { id: 'CORN_LOCAL_ARX', target: 'CORN-LOCAL', label: 'Maíz Global FMI/FRED (Ridge-ARX)', exog: ['WTI-LOCAL', 'NATGAS-LOCAL', 'WHEAT-LOCAL'], horizon: 1 },
+        { id: 'WHEAT_LOCAL_ARX', target: 'WHEAT-LOCAL', label: 'Trigo Global FMI/FRED (Ridge-ARX)', exog: ['CORN-LOCAL', 'WTI-LOCAL', 'ALUMINUM-LOCAL'], horizon: 1 },
+        { id: 'WTI_LOCAL_ARX', target: 'WTI-LOCAL', label: 'Crudo WTI Mensual (Ridge-ARX)', exog: ['NATGAS-LOCAL', 'COPPER-LOCAL', 'CORN-LOCAL'], horizon: 1 },
+        { id: 'COPPER_LOCAL_ARX', target: 'COPPER-LOCAL', label: 'Cobre Industrial (Ridge-ARX)', exog: ['WTI-LOCAL', 'ALUMINUM-LOCAL', 'NATGAS-LOCAL'], horizon: 1 },
+    ];
+    const labelMap = Object.fromEntries(assets.map(a => [a.symbol, a.label.split(' · ')[0]]));
+    const multivariateModels = [];
+    for (const spec of multivarSpecs) {
+        const targetPts = rawSeriesBySymbol.get(spec.target);
+        if (!targetPts) continue;
+        const exogMap = {};
+        for (const sym of spec.exog) {
+            if (rawSeriesBySymbol.has(sym)) exogMap[sym] = rawSeriesBySymbol.get(sym);
+        }
+        if (!Object.keys(exogMap).length) continue;
+        try {
+            const assessed = assessMultivariateForecast(targetPts, exogMap, { horizon: spec.horizon, now, labelMap });
+            if (assessed?.observations >= 32) {
+                multivariateModels.push({ id: spec.id, target: spec.target, label: spec.label, ...assessed });
+            }
+        } catch { /* serie insuficiente */ }
+    }
+
+    const empiricalElasticities = estimateCrossAssetElasticities(rawSeriesBySymbol).slice(0, 12);
+    let sniimSnapshot = {};
+    try {
+        const sniimFile = path.resolve(__dirname, '../sniim-cache.json');
+        if (fs.existsSync(sniimFile)) sniimSnapshot = JSON.parse(fs.readFileSync(sniimFile, 'utf8'));
+    } catch { /* opcional */ }
+    const unsupervisedDiagnostics = analyzeMarketAnomalies({ sniim: sniimSnapshot, commodities: anomalySeriesInput });
+
     const allHorizons = assets.flatMap(a => a.horizons);
     const eligibleHorizons = allHorizons.filter(h => h.eligible);
     const avgImprovement = eligibleHorizons.length
@@ -419,6 +482,15 @@ async function buildPredictiveShowcase({ offlineOnly = false, persistSupabase = 
         : 0;
     const coverageValues = allHorizons.map(h => h.evaluation.intervalCoveragePct).filter(Number.isFinite);
     const avgCoverage = coverageValues.length ? round(mean(coverageValues), 1) : null;
+    const conf80Coverages = allHorizons.map(h => h.forecast?.conformal80?.empiricalCoverage).filter(Number.isFinite).map(v => v * 100);
+    const conf90Coverages = allHorizons.map(h => h.forecast?.conformal90?.empiricalCoverage).filter(Number.isFinite).map(v => v * 100);
+
+    const conformalSummary = {
+        method: 'adaptive_conformal_v1',
+        horizonsCalibrated: conf90Coverages.length,
+        avgCoverage80Pct: conf80Coverages.length ? round(mean(conf80Coverages), 1) : null,
+        avgCoverage90Pct: conf90Coverages.length ? round(mean(conf90Coverages), 1) : null,
+    };
 
     const crossAssetDemo = buildCrossAssetDemonstration(assets);
     const showcase = {
@@ -433,10 +505,17 @@ async function buildPredictiveShowcase({ offlineOnly = false, persistSupabase = 
             avgImprovementPct: avgImprovement,
             avgDirectionAccuracyPct: avgDirectionAccuracy,
             avgIntervalCoveragePct: avgCoverage,
+            multivariateModelsCount: multivariateModels.length,
+            multivariateBeatsUnivariateCount: multivariateModels.filter(m => m.beatsUnivariate).length,
+            anomaliesDetectedCount: unsupervisedDiagnostics.anomalyCount,
             supabaseSyncedCount: supabaseSynced.filter(s => s.predictionId).length,
         },
         supabaseSynced,
         crossAssetDemo,
+        multivariateModels,
+        empiricalElasticities,
+        conformalSummary,
+        unsupervisedDiagnostics,
         assets,
     };
 
@@ -459,33 +538,48 @@ function loadCachedPredictiveShowcase() {
     return null;
 }
 
-function getPredictiveContextForQuery(queryText = '', { stripNumbers = false } = {}) {
+function getPredictiveContextForQuery(queryText = '', { stripNumbers = false, includeProtein = true } = {}) {
     const showcase = loadCachedPredictiveShowcase();
     if (!showcase?.assets?.length) return '';
     const folded = String(queryText || '').toLowerCase();
     const relevant = showcase.assets.filter(asset => {
         const sym = asset.symbol.toLowerCase();
         if (folded.includes(sym)) return true;
-        if ((/d[oó]lar|usd|mxn|cambio|divisa/.test(folded)) && sym.includes('usdmxn')) return true;
-        if ((/ma[ií]z|corn|grano|alimento/.test(folded)) && (sym.includes('zc=f') || sym.includes('corn'))) return true;
-        if ((/soya|soja|oleaginosa/.test(folded)) && sym.includes('zs=f')) return true;
-        if ((/trigo|wheat/.test(folded)) && (sym.includes('zw=f') || sym.includes('wheat'))) return true;
-        if ((/cerdo|porcino|hog|prote[ií]na/.test(folded)) && sym.includes('he=f')) return true;
-        if ((/res|bovino|cattle|ganado/.test(folded)) && sym.includes('le=f')) return true;
-        if ((/petr[oó]leo|wti|crudo|energ[ií]a|gas/.test(folded)) && (sym.includes('cl=f') || sym.includes('wti') || sym.includes('natgas'))) return true;
-        if ((/ipc|bolsa|bmv|acci[oó]n/.test(folded)) && sym.includes('mxx')) return true;
+        if ((/\bfx\b|d[oó]lar|usd|mxn|eur|cambio|divisa|tesorer[ií]a|finanzas|mexico|overview/.test(folded)) && (sym.includes('usdmxn') || sym.includes('eurusd'))) return true;
+        if ((/\bgrains?\b|ma[ií]z|corn|grano|alimento|forraje|mercados|overview/.test(folded)) && (sym.includes('zc=f') || sym.includes('corn'))) return true;
+        if ((/\bgrains?\b|soya|soja|oleaginosa|alimento/.test(folded)) && sym.includes('zs=f')) return true;
+        if ((/\bgrains?\b|trigo|wheat/.test(folded)) && (sym.includes('zw=f') || sym.includes('wheat'))) return true;
+        if ((/\bproteins?\b|cerdo|porcino|hog|prote[ií]na|mx_proteins|mercados|overview/.test(folded)) && sym.includes('he=f')) return true;
+        if ((/\bproteins?\b|res|bovino|cattle|ganado|mx_proteins/.test(folded)) && sym.includes('le=f')) return true;
+        if ((/\benergy|metals?\b|petr[oó]leo|wti|crudo|energ[ií]a|gas|cobre|aluminio|flete/.test(folded)) && (sym.includes('cl=f') || sym.includes('wti') || sym.includes('natgas') || sym.includes('copper'))) return true;
+        if ((/\bequities\b|ipc|bolsa|bmv|mx_bolsa|acci[oó]n|emisora|finanzas/.test(folded)) && (sym.includes('mxx') || sym.includes('grumab'))) return true;
         return /pron[oó]stic|predicci|proyecci|escenario|futuro|tendencia/.test(folded);
-    }).slice(0, 4);
+    }).slice(0, stripNumbers ? 6 : 4);
 
-    if (!relevant.length) return '';
+    const proteinContext = includeProtein ? getProteinMLContextForQuery(queryText, { stripNumbers, limit: stripNumbers ? 6 : 8 }) : '';
+    if (!relevant.length) return proteinContext || '';
     if (stripNumbers) {
+        const relevantSymbols = new Set(relevant.map(a => a.symbol));
+        const mvNotes = (Array.isArray(showcase.multivariateModels) ? showcase.multivariateModels : [])
+            .filter(mv => relevantSymbols.has(mv.target) && (mv.eligible || mv.beatsUnivariate))
+            .slice(0, 3)
+            .map(mv => {
+                const drivers = Array.isArray(mv.exogenousDrivers) ? mv.exogenousDrivers.join(', ') : 'variables exógenas';
+                return `- [Transmisión multivariable Ridge-ARX · ${mv.label}]: cruzar la evolución del activo con sus impulsores rezagados (${drivers}) sin fuga temporal para explicar presiones compuestas en costos y márgenes.`;
+            });
+        const regimeShiftNote = showcase.unsupervisedDiagnostics?.regimeShifts?.length
+            ? `- [Diagnóstico no supervisado de régimen]: considerar los cambios de régimen de volatilidad detectados por agrupación estadística para distinguir ruido transitorio de tendencia persistente.`
+            : '';
         return [
-            'METODOLOGÍA PREDICTIVA WALK-FORWARD (Proyecto Loopus ML):',
+            'METODOLOGÍA PREDICTIVA WALK-FORWARD Y MULTIVARIABLE (Proyecto Loopus ML · sólo guía analítica cualitativa, sin introducir cifras nuevas):',
             ...relevant.map(a => {
                 const best = a.horizons.find(h => h.eligible) || a.horizons[0];
-                return `- [${a.label}]: Régimen ${a.regime?.regimeLabel || 'normal'} (${a.regime?.trendLabel || 'estable'}). Motor seleccionado: ${best?.selectedStrategy || 'ensamble adaptativo'} con validación temporal fuera de muestra y banda de incertidumbre empírica.`;
+                return `- [${a.label}]: Régimen ${a.regime?.regimeLabel || 'normal'} (${a.regime?.trendLabel || 'estable'}). Motor validado: ${best?.selectedStrategy || 'ensamble adaptativo'} con evaluación fuera de muestra y banda empírica de incertidumbre.`;
             }),
-        ].join('\n');
+            ...mvNotes,
+            regimeShiftNote,
+            proteinContext,
+        ].filter(Boolean).join('\n');
     }
 
     const lines = [
@@ -506,6 +600,7 @@ function getPredictiveContextForQuery(queryText = '', { stripNumbers = false } =
         const d = showcase.crossAssetDemo;
         lines.push(`- Transmisión multivariable (Maíz + Soya + USD/MXN): costo estimado de ración balanceada=${d.outputs.feedCostMxnTonPredicted} MXN/ton (spot=${d.outputs.feedCostMxnTonSpot} MXN/ton, banda estrés P90=${d.outputs.feedCostMxnTonStressBand} MXN/ton); paridad porcina CME=${d.inputs.hogsParityMxnKg.predicted} MXN/kg.`);
     }
+    if (proteinContext) lines.push('', proteinContext);
     return lines.join('\n');
 }
 

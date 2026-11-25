@@ -118,7 +118,14 @@ function createMexicoPriceClient({ fetchPage = fetchPublicPage, now = Date.now }
                 if (!pending.has(url)) pending.set(url, (async () => {
                     const response = await fetchPage(url, { headers: { Accept: 'text/html' }, encoding: 'latin1', signal: AbortSignal.timeout(6500) });
                     if (!response.ok) throw new Error(`SNIIM HTTP ${response.status}`);
-                    const html = await response.text();
+                    let html;
+                    if (typeof response.arrayBuffer === 'function') {
+                        const buf = Buffer.from(await response.arrayBuffer());
+                        const utf8 = buf.toString('utf8');
+                        html = utf8.includes('\uFFFD') ? new TextDecoder('windows-1252').decode(buf) : utf8;
+                    } else {
+                        html = await response.text();
+                    }
                     if (Buffer.byteLength(html) > 1024 * 1024) throw new Error('Reporte SNIIM demasiado grande');
                     const result = parseMexicoPrices(html, id, url, window, new Date(now()).toISOString().slice(0,10));
                     if (cache.size >= 32) cache.delete(cache.keys().next().value);

@@ -1,4 +1,5 @@
 'use strict';
+const {isPublicRule}=require('./knowledge-policy');
 
 const fs = require('fs');
 const path = require('path');
@@ -85,6 +86,78 @@ const BASELINE_REASONING_RULES = Object.freeze([
         learned_rule: 'Estructura el análisis separando volatilidad de sesión, tendencia del periodo disponible y sensibilidad de flujos en moneda extranjera o deuda a tasa variable; nunca conviertas índices o cierres en recomendaciones de inversión ni inventes conteos o promedios no publicados.',
         reasoning_chain: 'Cierre y variación literal -> Sensibilidad de caja y pasivos -> Ventana y costo de cobertura -> Pregunta de tesorería',
     },
+    {
+        id: 'loopus-base-chat-ml-walkforward',
+        domain: 'chat',
+        topic: 'ml_walkforward_forecasting',
+        keywords: ['pronostico', 'prediccion', 'proyeccion', 'walk-forward', 'mae', 'baseline', 'conformal', 'horizonte', 'modelo', 'futuro'],
+        condition_trigger: 'Consultas de pronóstico cuantitativo, validación walk-forward o intervalos de incertidumbre ML',
+        learned_rule: 'Distingue el último cierre verificado del valor proyectado por el ensamble walk-forward; reporta siempre la mejora porcentual en MAE frente al baseline ingenuo y acota el escenario con las bandas empíricas o Conformal (P80/P90) sin atribuir probabilidades subjetivas ni certeza puntual.',
+        reasoning_chain: 'Corte y último valor observado -> Ventaja MAE fuera de muestra -> Banda Conformal P80/P90 -> Condición que invalida el escenario',
+    },
+    {
+        id: 'loopus-base-chat-multivariate-arx',
+        domain: 'chat',
+        topic: 'multivariate_transmission',
+        keywords: ['multivariable', 'arx', 'elasticidad', 'racion', 'transmision', 'cruzado', 'var', 'insumos', 'paridad'],
+        condition_trigger: 'Análisis de transmisión multivariable entre divisas, granos, energía y paridad pecuaria',
+        learned_rule: 'Evalúa el efecto conjunto de los impulsores exógenos rezagados (maíz, pasta de soya, petróleo WTI y tipo de cambio USD/MXN) sin fuga temporal; desglosa qué proporción de la presión en costo proviene del grano en origen y qué proporción proviene de la depreciación cambiaria.',
+        reasoning_chain: 'Impulsores exógenos rezagados -> Elasticidad cruzada y peso ARX -> Costo estimado de ración y paridad -> Escenario de estrés P90',
+    },
+    {
+        id: 'loopus-base-chat-global-livestock',
+        domain: 'chat',
+        topic: 'global_livestock_benchmarks',
+        keywords: ['mercolleida', 'usda', 'cepea', 'dg agri', 'odepa', 'europa', 'espana', 'brasil', 'estados unidos', 'internacional', 'ppa', 'sanidad'],
+        condition_trigger: 'Comparativas internacionales de porcino, bovino y aves o alertas zoosanitarias (PPA, influenza aviar)',
+        learned_rule: 'Homologa o explicita la base física de cada referencia internacional (vivo en granja Lleida vs canal magra CME/USDA vs arroba CEPEA) antes de comparar niveles; ante brotes sanitarios o aranceles, delimita jurisdicción, especie y fecha oficial sin extrapolar vetos regionales a todo un país.',
+        reasoning_chain: 'Plaza y base de cotización -> Moneda y factor de rendimiento -> Restricción sanitaria o comercial -> Impacto relativo en flujo',
+    },
+    {
+        id: 'loopus-base-chat-energy-logistics',
+        domain: 'chat',
+        topic: 'energy_cold_chain',
+        keywords: ['petroleo', 'wti', 'gas natural', 'henry hub', 'diesel', 'energia', 'fertilizante', 'flete', 'refrigeracion', 'cadena de frio'],
+        condition_trigger: 'Impacto de precios de energía (WTI, gas natural, diésel) en agroindustria, fertilizantes y cadena de frío',
+        learned_rule: 'Conecta el gas natural con el costo de amoniaco/urea y secado de grano, y el crudo/diésel con el flete terrestre y la refrigeración en rastro y distribución; trata la transmisión hacia el precio final del alimento como rezagada y condicional a los contratos de transporte vigentes.',
+        reasoning_chain: 'Referencia energética primaria -> Canal de costo (fertilizante, secado o flete frío) -> Rezago de transmisión -> Medida de eficiencia operativa',
+    },
+    {
+        id: 'loopus-base-chat-equities-issuers',
+        domain: 'chat',
+        topic: 'equities_agribusiness_issuers',
+        keywords: ['accion', 'bolsa', 'ipc', 'bmv', 'emisora', 'gruma', 'bachoco', 'bimbo', 'valuacion', 'ebitda', 'inversor', 'portafolio'],
+        condition_trigger: 'Análisis de emisoras bursátiles vinculadas a alimentos, consumo o agroindustria en México y EE. UU.',
+        learned_rule: 'Vincula la evolución de los insumos agrícolas y del tipo de cambio con la estructura de ventas por moneda, política de coberturas y poder de fijación de precios de la emisora; un movimiento spot en maíz o cerdo no altera de inmediato el EBITDA cuando existen coberturas de seis a doce meses.',
+        reasoning_chain: 'Exposición geográfica y cambiaria -> Cobertura de insumos y traspaso a precio -> Sensibilidad de margen operativo -> Catalizador trimestral',
+    },
+    {
+        id: 'loopus-base-chat-statistical-rigor',
+        domain: 'chat',
+        topic: 'statistical_anomaly_rigor',
+        keywords: ['regresion', 'ols', 'correlacion', 'anomalia', 'atipico', 'z-score', 'mad', 'isolation forest', 'volatilidad', 'regimen'],
+        condition_trigger: 'Consultas de regresión lineal (OLS), detección de anomalías o cambios de régimen de volatilidad',
+        learned_rule: 'Verifica tamaño de muestra, continuidad temporal y homogeneidad de unidades antes de interpretar pendientes o correlaciones; emplea dispersión robusta (MAD z-score / Isolation Forest) para separar choques transitorios de cambios estructurales de régimen y recuerda que correlación histórica no implica causalidad.',
+        reasoning_chain: 'Auditoría de serie y continuidad -> Estadístico robusto y régimen activo -> Separación ruido vs tendencia -> Límite metodológico',
+    },
+    {
+        id: 'loopus-base-chat-commercial-incoterms',
+        domain: 'chat',
+        topic: 'commercial_margin_incoterms',
+        keywords: ['margen', 'merma', 'fob', 'cif', 'incoterm', 'lote', 'comercializador', 'distribuidor', 'puesto en planta', 'vendible'],
+        condition_trigger: 'Cálculo de márgenes comerciales con merma, flete o términos de comercio internacional FOB/CIF',
+        learned_rule: 'Calcula el costo por kilogramo vendible dividiendo el costo total puesto en destino entre el volumen neto tras merma (1 - m); verifica qué conceptos ya incluye el Incoterm pactado para no duplicar seguro o flete marítimo y expresa las fórmulas en texto plano verificable.',
+        reasoning_chain: 'Volumen comprado y merma declarada -> Costo unitario sobre kg vendible -> Diferencia margen sobre venta vs recargo -> Variable pendiente',
+    },
+    {
+        id: 'loopus-base-report-mexico',
+        domain: 'reports',
+        topic: 'report_mexico_macro',
+        keywords: ['mexico', 'mx_overview', 'mx_finanzas', 'mx_mercados', 'mx_agro', 'banxico', 'inflacion', 'inpc', 'nearshoring', 'regional'],
+        condition_trigger: 'Ediciones de informes enfocadas en panorama económico, financiero y agropecuario de México',
+        learned_rule: 'Articula la interacción entre inflación subyacente, postura monetaria de Banxico, paridad cambiaria y brechas regionales de precios físicos (norte, centro y sur); fundamenta cada conclusión exclusivamente en las cifras y fechas del corte verificado.',
+        reasoning_chain: 'Indicador macro nacional -> Diferencial regional o sectorial -> Transmisión a costos internos -> Señal doméstica a vigilar',
+    },
 ]);
 
 let cachedCustomRules = null;
@@ -125,7 +198,7 @@ function triggerRemoteSupabaseHydration() {
                 if (!rows.length && !remoteRejectedKeys.size) return;
                 remoteRulesCache = rows
                     .filter(item => {
-                        if (!item?.condition_trigger || !item?.learned_rule) return false;
+                        if (!item?.condition_trigger || !item?.learned_rule || !isPublicRule(item)) return false;
                         if (item.status === 'rejected') return false;
                         if (remoteRejectedKeys.has(ruleKey(item.condition_trigger, item.learned_rule))) return false;
                         return item.status === 'approved' || Number(item.confidence_score) >= 0.82;
@@ -133,12 +206,13 @@ function triggerRemoteSupabaseHydration() {
                     .map(item => ({
                         id: item.id || item.fingerprint || `sb-${fold(item.condition_trigger).slice(0, 32)}`,
                         domain: item.domain || item.source?.domain || 'both',
+                        audience: item.audience || item.source?.audience || 'general',
                         topic: item.topic || item.source?.topic || 'general',
                         keywords: fold(`${item.topic || ''} ${item.condition_trigger}`).split(/[^a-z0-9]+/).filter(w => w.length >= 3),
                         condition_trigger: clean(item.condition_trigger, 200),
                         learned_rule: clean(item.learned_rule, 400),
                         reasoning_chain: clean(item.reasoning_chain || item.source?.reasoning_chain || '', 260) || null,
-                        status: item.status === 'approved' ? 'approved' : 'playbook',
+                        status: item.status === 'approved' ? 'approved' : 'playbook',public_retrieval:true,
                     }));
                 cachedCustomRules = null;
             })
@@ -189,34 +263,36 @@ function loadApprovedAndPlaybookRules() {
     }
 
     const approved = [...proposals, ...brain]
-        .filter(item => item?.status === 'approved' && item?.condition_trigger && item?.learned_rule)
+        .filter(item => item?.status === 'approved' && item?.condition_trigger && item?.learned_rule && isPublicRule(item))
         .filter(item => !rejectedKeys.has(ruleKey(item.condition_trigger, item.learned_rule)))
         .map(item => {
             const src = item.source && typeof item.source === 'object' ? item.source : {};
             return {
                 id: item.fingerprint || `approved-${fold(item.condition_trigger).slice(0, 32)}`,
                 domain: item.domain || src.domain || 'both',
+                audience: item.audience || src.audience || 'general',
                 topic: item.topic || src.topic || 'general',
                 keywords: fold(`${item.topic || ''} ${src.topic || ''} ${item.condition_trigger}`).split(/[^a-z0-9]+/).filter(w => w.length >= 3),
                 condition_trigger: clean(item.condition_trigger, 200),
                 learned_rule: clean(item.learned_rule, 400),
                 reasoning_chain: clean(item.reasoning_chain || src.reasoning_chain || '', 260) || null,
-                status: 'approved',
+                status: 'approved',public_retrieval:true,
             };
         });
 
     const playbookRules = playbook
-        .filter(item => item?.status !== 'rejected' && item?.condition_trigger && item?.learned_rule && Number(item?.confidence_score || 0) >= 82)
+        .filter(item => item?.status !== 'rejected' && item?.condition_trigger && item?.learned_rule && Number(item?.confidence_score || 0) >= 82 && isPublicRule(item))
         .filter(item => !rejectedKeys.has(ruleKey(item.condition_trigger, item.learned_rule)))
         .map(item => ({
             id: item.id || `playbook-${fold(item.condition_trigger).slice(0, 32)}`,
             domain: item.domain || 'both',
+            audience: item.audience || item.source?.audience || 'general',
             topic: item.topic || 'general',
             keywords: fold(`${item.topic || ''} ${item.condition_trigger} ${(item.keywords || []).join(' ')}`).split(/[^a-z0-9]+/).filter(w => w.length >= 3),
             condition_trigger: clean(item.condition_trigger, 200),
             learned_rule: clean(item.learned_rule, 400),
             reasoning_chain: clean(item.reasoning_chain || '', 260) || null,
-            status: item.status || 'playbook',
+            status: item.status || 'playbook',public_retrieval:true,
         }));
 
     const seen = new Set();
@@ -266,10 +342,19 @@ function getChatReasoningContext({ message = '', plan = {}, limit = 3 } = {}) {
     let predictiveCtx = '';
     try {
         const { getPredictiveContextForQuery } = require('../ml/predictive-showcase');
-        predictiveCtx = getPredictiveContextForQuery(queryText, { stripNumbers: false }) || '';
+        predictiveCtx = getPredictiveContextForQuery(queryText, { stripNumbers: false, includeProtein: false }) || '';
     } catch { /* showcase opcional */ }
 
-    const ruleLimit = predictiveCtx ? Math.min(limit, 2) : limit;
+    let marranasCtx = '';
+    const wantsInlineProteinMl = /\b(?:marranas?|paridad\s+de\s+importacion|shap|radar\s+nlp|h5n1|peste\s+porcina|gusano\s+barrenador|sube\s+o\s+baja|pronostic\w*)\b/i.test(queryText);
+    if (wantsInlineProteinMl && plan?.skipInlineProteinMl !== true) {
+        try {
+            const { getProteinMLContextForQuery } = require('../ml/protein-ml-engine');
+            marranasCtx = getProteinMLContextForQuery(queryText, { stripNumbers: false, limit: 6 }) || '';
+        } catch { /* ML de proteínas opcional */ }
+    }
+
+    const ruleLimit = (predictiveCtx || marranasCtx) ? Math.min(limit, 2) : limit;
     const lines = [
         '[GUÍA DE RACIOCINIO ANALÍTICO · PROYECTO LOOPUS]',
         'Aplica estos criterios metodológicos para estructurar raciocinio y límites de evidencia (nunca sustituyen cifras):',
@@ -281,22 +366,47 @@ function getChatReasoningContext({ message = '', plan = {}, limit = 3 } = {}) {
         lines.push(`- Cuando: ${cond} -> Criterio: ${crit}${chain ? ` (Cadena lógica: ${chain})` : ''}`);
     }
     if (predictiveCtx) lines.push('', predictiveCtx.slice(0, 750));
+    if (marranasCtx) lines.push('', marranasCtx.slice(0, 2600));
     const joined = lines.join('\n');
-    return joined.length <= 1980 ? joined : `${joined.slice(0, 1977).replace(/\n[^\n]*$/, '')}...`.slice(0, 1980);
+    const maxBudget = marranasCtx ? 4600 : 1980;
+    return joined.length <= maxBudget ? joined : `${joined.slice(0, maxBudget - 3).replace(/\n[^\n]*$/, '')}...`.slice(0, maxBudget);
 }
 
-function getReportReasoningContext({ area = '', key = '', audience = 'general', instructions = '', limit = 3 } = {}) {
-    const queryText = fold(`${area} ${key} ${audience} ${instructions}`);
+const REPORT_KEY_EXPANSIONS = Object.freeze({
+    fx: 'divisas dolar peso usd mxn tipo de cambio cobertura tesoreria',
+    bonds: 'bonos tasas cetes tiie treasury banxico fed curva rendimiento deuda',
+    equities: 'bolsa acciones ipc bmv emisoras valuacion renta variable',
+    daily_news: 'noticias financieras regulacion politica monetaria macroeconomia',
+    grains: 'granos maiz soya trigo forraje alimento cbot base fisica flete',
+    proteins: 'proteinas cerdo pollo res huevo canal pie sniim usda mercolleida margen paridad importacion arbitraje sanidad',
+    energy_metals: 'energia petroleo wti gas natural diesel fertilizante cobre aluminio flete',
+    market_news: 'noticias mercados comercio aranceles sanidad abasto logistica',
+    overview: 'panorama ejecutivo comite direccion finanzas mercados riesgo escenarios',
+    mx_overview: 'mexico economia inflacion banxico tipo de cambio consumo regional',
+    mx_proteins: 'mexico proteinas cerdo pollo huevo res sniim profeco plazas regionales paridad importacion arbitraje sanidad',
+    mx_bolsa: 'mexico bolsa bmv ipc emisoras consumo exposicion cambiaria',
+    mx_production: 'mexico produccion pecuaria siap estados regiones abasto sanidad',
+});
+
+function getReportReasoningContext({ area = '', key = '', audience = 'general', instructions = '', depth = 'standard', limit = null } = {}) {
+    const keyTokens = fold(key).split(/[^a-z0-9_]+/).filter(Boolean);
+    const expanded = keyTokens.map(k => REPORT_KEY_EXPANSIONS[k] || '').filter(Boolean).join(' ');
+    const queryText = fold(`${area} ${key} ${expanded} ${audience} ${instructions}`);
+    const resolvedLimit = Number.isInteger(limit) && limit > 0 ? limit : (depth === 'detailed' ? 6 : depth === 'brief' ? 3 : 5);
     const rules = loadApprovedAndPlaybookRules()
-        .map(rule => ({ rule, score: scoreRule(rule, queryText, 'reports') }))
+        .map(rule => {
+            let score = scoreRule(rule, queryText, 'reports');
+            if (score > 0 && audience && rule.audience && fold(rule.audience) === fold(audience)) score += 3;
+            return { rule, score };
+        })
         .filter(item => item.score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, limit)
+        .slice(0, resolvedLimit)
         .map(item => item.rule);
 
     if (!rules.length) return '';
     const lines = [
-        'CRITERIOS DE RAZONAMIENTO EDITORIAL (Proyecto Loopus · sólo metodología, prohibido introducir cifras que no estén en DATOS VERIFICADOS):',
+        'CRITERIOS DE RAZONAMIENTO EDITORIAL Y PROFUNDIDAD (Proyecto Loopus ML · sólo metodología, prohibido introducir cifras que no estén en DATOS VERIFICADOS):',
     ];
     for (const r of rules) {
         const safeCondition = stripNumbersForReportRule(r.condition_trigger);
@@ -308,12 +418,20 @@ function getReportReasoningContext({ area = '', key = '', audience = 'general', 
     }
     try {
         const { getPredictiveContextForQuery } = require('../ml/predictive-showcase');
-        const predictiveMethodology = getPredictiveContextForQuery(queryText, { stripNumbers: true });
+        const predictiveMethodology = getPredictiveContextForQuery(queryText, { stripNumbers: true, includeProtein: false });
         if (predictiveMethodology) {
-            const safeMethod = stripNumbersForReportRule(predictiveMethodology);
+            const safeMethod = clean(String(predictiveMethodology || '').replace(/\b\d+(?:[.,]\d+)?%?/g, '').replace(/\s{2,}/g, ' '), 1500);
             if (safeMethod) lines.push(safeMethod);
         }
     } catch { /* showcase opcional */ }
+    try {
+        const { getProteinMLContextForQuery } = require('../ml/protein-ml-engine');
+        const marranasQual = getProteinMLContextForQuery(queryText, { stripNumbers: true, limit: 4 });
+        if (marranasQual) {
+            const safeMarranas = clean(String(marranasQual || '').replace(/\d+(?:[.,–-]\d+)?%?/g, '').replace(/\s{2,}/g, ' '), 2400);
+            if (safeMarranas) lines.push(safeMarranas);
+        }
+    } catch { /* MARRANAS opcional */ }
     return lines.join('\n');
 }
 
@@ -332,20 +450,23 @@ function updateReasoningPlaybook(newEntries = []) {
         const learned_rule = stripNumbersForReportRule(raw?.learned_rule);
         if (!condition_trigger || condition_trigger.length < 15 || !learned_rule || learned_rule.length < 35) continue;
         const key = `${fold(condition_trigger)}|${fold(learned_rule)}`;
+        const isPublic = isPublicRule(raw);
         const entry = {
             id: raw.id || `pb-${byKey.size + 1}`,
             domain: ['chat', 'reports', 'both'].includes(raw?.domain) ? raw.domain : 'both',
+            audience: ['general', 'finance', 'purchasing', 'operations', 'commercial'].includes(raw?.audience) ? raw.audience : 'general',
             topic: clean(raw?.topic || 'general', 80),
             condition_trigger,
             learned_rule,
             reasoning_chain: stripNumbersForReportRule(raw?.reasoning_chain || ''),
             confidence_score: Math.min(100, Math.max(0, Number(raw?.confidence_score) || 85)),
+            ...(isPublic ? { public_retrieval: true } : {}),
             updated_at: new Date().toISOString(),
         };
         if (!byKey.has(key)) added++;
         byKey.set(key, entry);
     }
-    const finalEntries = [...byKey.values()].slice(-160);
+    const finalEntries = [...byKey.values()].slice(-220);
     fs.mkdirSync(path.dirname(PLAYBOOK_FILE), { recursive: true });
     fs.writeFileSync(PLAYBOOK_FILE, JSON.stringify({
         project: 'Proyecto Loopus Reasoning Playbook',

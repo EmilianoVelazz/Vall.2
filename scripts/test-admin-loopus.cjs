@@ -202,6 +202,48 @@ async function main() {
         const trainPredBody = await trainPredRes.json();
         assert(trainPredBody.success && trainPredBody.showcase?.summary?.totalModelsEvaluated > 0);
 
+        // 5c. Verificar endpoints Smart Data / RAG Vectorial / Exportación SFT
+        assert.equal((await call('/admin/loopus-intelligence', null, userCookie)).status, 403);
+        assert.equal((await call('/admin/loopus-knowledge/reindex', { offlineOnly: true }, userCookie)).status, 403);
+        assert.equal((await call('/admin/loopus-sft-export?format=gemini', null, userCookie)).status, 403);
+
+        const intelRes = await call('/admin/loopus-intelligence', null, adminCookie);
+        assert.equal(intelRes.status, 200);
+        const intelBody = await intelRes.json();
+        assert(intelBody.success && intelBody.intelligence?.sftReadiness?.count > 0);
+        assert(intelBody.intelligence?.unsupervised && Number.isFinite(intelBody.intelligence.multivariateCount));
+
+        const reindexRes = await call('/admin/loopus-knowledge/reindex', { offlineOnly: true }, adminCookie);
+        assert.equal(reindexRes.status, 200);
+        const reindexBody = await reindexRes.json();
+        assert(reindexBody.success && reindexBody.indexResult?.totalDocs > 0);
+
+        const sftRes = await call('/admin/loopus-sft-export?format=gemini', null, adminCookie);
+        assert.equal(sftRes.status, 200);
+        assert.match(sftRes.headers.get('content-disposition') || '', /vallnews-orion-sft-gemini\.jsonl/);
+        const sftLines = (await sftRes.text()).trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+        assert(sftLines.length > 0 && sftLines.every(row => row.systemInstruction && Array.isArray(row.contents)));
+
+        const badSftRes = await call('/admin/loopus-sft-export?format=invalid', null, adminCookie);
+        assert.equal(badSftRes.status, 400);
+
+        // 5d. Verificar endpoints administrativos de MARRANAS (/admin/marranas/health y /retrain)
+        assert.equal((await call('/admin/marranas/health')).status, 401);
+        assert.equal((await call('/admin/marranas/health', null, userCookie)).status, 403);
+        assert.equal((await call('/admin/marranas/retrain', { mode: 'nlp' }, userCookie)).status, 403);
+        assert.equal((await call('/admin/marranas/retrain', { mode: 'invalid_mode' }, adminCookie)).status, 400);
+
+        const mHealthRes = await call('/admin/marranas/health', null, adminCookie);
+        assert.equal(mHealthRes.status, 200);
+        const mHealthBody = await mHealthRes.json();
+        assert(mHealthBody.success && mHealthBody.health?.available && mHealthBody.health?.model === 'MARRANAS', 'Devuelve salud completa del motor independiente MARRANAS');
+        assert(mHealthBody.health?.stats?.activeModels >= 60 && mHealthBody.health?.importParity?.bySpecies && mHealthBody.health?.nlpEvents?.bySpecies);
+
+        const mRetrainDry = await call('/admin/marranas/retrain', { mode: 'full', dryRun: true }, adminCookie);
+        assert.equal(mRetrainDry.status, 200);
+        const mRetrainBody = await mRetrainDry.json();
+        assert(mRetrainBody.success && mRetrainBody.dryRun === true && mRetrainBody.mode === 'full');
+
         // normalizeProposal tolera fechas inválidas sin lanzar RangeError
         assert.doesNotThrow(() => mlPersistence.normalizeProposal({
             condition_trigger: 'Condición de prueba válida',

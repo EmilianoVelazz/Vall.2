@@ -72,14 +72,15 @@ function buildFxReportData({rates=[],histories=[],previous,generatedAt=new Date(
             change = sign + delta.toFixed(2) + '%';
             tone = Math.abs(delta) < 0.05 ? 'flat' : delta > 0 ? 'up' : 'down';
         }
+        const digits = positive(quote.value) && quote.value >= 100 ? 2 : 4;
         return {
             label: quote.label+' · '+quote.name,
-            value: positive(quote.value) ? reportNumber(quote.value)+' '+quote.code : 'Sin dato',
+            value: positive(quote.value) ? reportNumber(quote.value, digits)+' '+quote.code : 'Sin dato',
             change,
             tone
         };
     });
-    const table={title:'Cotizaciones por 1 USD',columns:['Moneda','Par','Unidades por 1 USD','Fecha del dato','Fuente'],rows:sortedQuotes.map(quote=>[quote.name,quote.label,positive(quote.value) ? reportNumber(quote.value)+' '+quote.code : 'Sin dato',quote.updatedAt || 'Sin dato',quote.source || 'Sin dato']),note:''};
+    const table={title:'Cotizaciones por 1 USD',columns:['Moneda','Par','Unidades por 1 USD','Fecha del dato','Fuente'],rows:sortedQuotes.map(quote=>[quote.name,quote.label,positive(quote.value) ? reportNumber(quote.value, quote.value >= 100 ? 2 : 4)+' '+quote.code : 'Sin dato',quote.updatedAt || 'Sin dato',quote.source || 'Sin dato']),note:''};
     return {fxSchemaVersion:config.schemaVersion,metrics,visuals,tables:[table],sourceSnapshot:{baseCurrency:'USD',fx:quotes,fxHistories:keptHistories,fxHistory:keptHistories.find(item=>item.code==='MXN') || null},sources:[...new Set(quotes.map(quote=>quote.source).filter(Boolean))],sourceLinks:[...new Map(keptHistories.filter(item=>item.url).map(item=>[item.url,{label:item.source || item.label,url:item.url}])).values()]};
 }
 function exportFxHistory(report){

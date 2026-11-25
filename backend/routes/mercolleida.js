@@ -12,7 +12,7 @@ const router = express.Router();
 
 function getConnection() {
     const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) return null;
     return { url: url.replace(/\/$/, ''), key };
 }
@@ -79,7 +79,7 @@ router.get('/mercolleida/overview', async (req, res) => {
         res.set('Cache-Control', 'no-cache, max-age=0, must-revalidate');
         res.json({
             available: hasData,
-            source: 'Mercolleida · Supabase',
+            source: 'Mercolleida · PostgreSQL',
             retrievedAt: new Date().toISOString(),
             session: latest.session,
             pork: latest.pork && { ...latest.pork, precio_medio: numeric(latest.pork.precio_medio), variacion_semanal_pct: numeric(latest.pork.variacion_semanal_pct), variacion_interanual_pct: numeric(latest.pork.variacion_interanual_pct) },

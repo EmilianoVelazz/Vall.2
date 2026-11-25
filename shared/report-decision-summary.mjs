@@ -89,8 +89,10 @@ export function withDecisionSummary(report,model,{t=value=>value}={}){
   const mexican=physical.filter(item=>/mexico/.test(fold(item.country || item.market)) || item.state);
   const candidates=[...mexican,...physical];let chosen;
   for(const candidate of candidates){const sample=illustrative(candidate,'physical');if(sample && (!illustration || Math.abs(sample.amount)>0)){illustration=sample;chosen=candidate;if(Math.abs(sample.amount)>0)break;}}
-  if(chosen){const change=observedChange(chosen,cutoff,main);changeBody=(chosen.displayLabel || chosen.label)+': de '+n(change.base)+' a '+n(change.last)+' '+chosen.unit+' ('+change.baseDate+' / '+change.lastDate+').';}
-  impact=illustration?.body || model.summaryPanels?.find(item=>/impacto|repercusiones|margen/.test(fold(item.heading)))?.body || 'Faltan bases físicas comparables para cuantificar un costo de compra. Mantener separados precios físicos, futuros y contexto histórico.';
+  let chosenChange=null;
+  if(chosen){chosenChange=observedChange(chosen,cutoff,main);changeBody=(chosen.displayLabel || chosen.label)+': de '+n(chosenChange.base)+' a '+n(chosenChange.last)+' '+chosen.unit+' ('+chosenChange.baseDate+' / '+chosenChange.lastDate+').';}
+  const physicalDeltaText=chosen && chosenChange && finite(chosenChange.delta) ? 'Cambio absoluto: '+(chosenChange.delta>0 ? '+' : chosenChange.delta<0 ? '-' : '')+n(Math.abs(chosenChange.delta))+' '+chosen.unit+' ('+chosenChange.baseDate+' / '+chosenChange.lastDate+'). ' : '';
+  impact=illustration?.body ? physicalDeltaText+illustration.body : model.summaryPanels?.find(item=>/impacto|repercusiones|margen/.test(fold(item.heading)))?.body || 'Faltan bases físicas comparables para cuantificar un costo de compra. Mantener separados precios físicos, futuros y contexto histórico.';
   const purchasing={
    grains:{priority:'Compras: antes de reponer alimento, cruzar existencias y consumo de la fórmula con ofertas del mismo grano, calidad y destino. Cotizar costo entregado; revisar campaña, base local, divisa y flete si cambia el origen o la fecha de entrega.',inputs:['Consumo de la fórmula, existencias y próxima entrega','Grano, calidad, origen, divisa y flete']},
    proteins:{priority:'Compras: antes de reponer proteína, cotizar la misma especie, corte y etapa comercial. Cruzar inventario y pedidos con rendimiento, merma y próxima entrega; recalcular el costo por kg vendible si cambia el precio físico o el rendimiento.',inputs:['Volumen, especie, corte y etapa comercial','Inventario, pedidos, rendimiento, merma y flete']},

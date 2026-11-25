@@ -273,9 +273,178 @@ function buildProteinComparisonChart({ records = [], fxRates = null, plan = {}, 
     };
 }
 
+/**
+ * Construye una gráfica verificada desde MARRANAS v6.0 (Paridad MXN/kg, Riesgo NLP o Consenso Direccional).
+ */
+function buildMarranasChart({ message = '' } = {}) {
+    try {
+        const { loadCachedProteinML } = require('../ml/protein-ml-engine');
+        const artifact = loadCachedProteinML();
+        if (!artifact?.available && !artifact?.summary?.bySpecies) return null;
+        const norm = normalizeForIntent(message);
+        const order = [
+            ['cerdo', 'Cerdo'],
+            ['res', 'Res'],
+            ['pollo', 'Pollo'],
+            ['huevo', 'Huevo'],
+        ];
+
+        if (/\b(?:paridad|importaci|arbitraje|frontera|landed|puesta)\b/i.test(norm) && artifact.importParity?.bySpecies) {
+            const rows = order
+                .map(([id, label]) => ({ id, label, entry: artifact.importParity.bySpecies[id] }))
+                .filter(r => r.entry?.mexicoBenchmark?.priceMxnKg > 0 && r.entry?.primaryParity?.landedMxnKg > 0);
+            if (rows.length >= 2) {
+                return {
+                    type: 'bar',
+                    view: 'bar',
+                    title: 'ORION ML · Paridad de Importación hacia México (MXN/kg)',
+                    subtitle: `Mediana SNIIM México vs paridad puesta en frontera (USD/MXN=${artifact.importParity.fxRates?.usdMxn ?? '—'})`,
+                    insight: rows.map(r => `${r.label}: ${r.entry.primaryParity.spreadPct > 0 ? '+' : ''}${r.entry.primaryParity.spreadPct}% (${r.entry.primaryParity.signal})`).join(' · '),
+                    unit: 'MXN/kg',
+                    source: 'ORION ML · SNIIM MX + USDA AMS / CEPEA / DG AGRI / FMI',
+                    labels: rows.map(r => r.label),
+                    datasets: [
+                        { label: 'México SNIIM (MXN/kg)', data: rows.map(r => r.entry.mexicoBenchmark.priceMxnKg) },
+                        { label: 'Paridad puesta origen (MXN/kg)', data: rows.map(r => r.entry.primaryParity.landedMxnKg) },
+                    ],
+                };
+            }
+        }
+
+        if (/\b(?:nlp|sanidad|sanitari|h5n1|influenza|gripe aviar|peste porcina|barrenador|screwworm|brote)\b/i.test(norm) && artifact.nlpEvents?.bySpecies) {
+            const rows = order
+                .map(([id, label]) => ({ id, label, ev: artifact.nlpEvents.bySpecies[id] }))
+                .filter(r => r.ev && Number.isFinite(r.ev.riskScore));
+            if (rows.length >= 2) {
+                return {
+                    type: 'bar',
+                    view: 'bar',
+                    title: 'ORION ML · Índice de Riesgo Sanitario y Comercial NLP (0–100)',
+                    subtitle: `Clasificación automática de ${artifact.nlpEvents.stats?.relevantEventsDetected || 0} eventos recientes (ventana ${artifact.nlpEvents.windowDays || 35} días)`,
+                    insight: rows.map(r => `${r.label}: ${r.ev.riskScore}/100 (${r.ev.riskLevel}, ${r.ev.bias})`).join(' · '),
+                    unit: 'Puntos (0–100)',
+                    source: `ORION ML · Radar NLP (${String(artifact.nlpEvents.generatedAt || '').slice(0, 10)})`,
+                    labels: rows.map(r => r.label),
+                    datasets: [
+                        { label: 'Índice de Riesgo NLP (0–100)', data: rows.map(r => r.ev.riskScore) },
+                    ],
+                };
+            }
+        }
+
+        const rows = order
+            .map(([id, label]) => ({ id, label, sum: artifact.summary?.bySpecies?.[id] }))
+            .filter(r => r.sum && Number.isFinite(r.sum.avgProbUpPct));
+        if (rows.length < 2) return null;
+        return {
+            type: 'bar',
+            view: 'bar',
+            title: 'ORION ML · Probabilidad Direccional por Especie (%)',
+            subtitle: `${artifact.stats?.activeModels || 0} modelos activos · Exactitud WF ${artifact.stats?.avgWalkForwardDirectionalAccuracyPct ?? '—'}% · Corte ${String(artifact.generatedAt || '').slice(0, 10)}`,
+            insight: rows.map(r => `${r.label}: ${r.sum.consensusDirection} (Subida ${r.sum.avgProbUpPct}%)`).join(' · '),
+            unit: '%',
+            source: `ORION ML (${artifact.version}) · Walk-Forward + SHAP + Conformal P80`,
+            labels: rows.map(r => r.label),
+            datasets: [
+                { label: 'Prob. Subida (%)', data: rows.map(r => r.sum.avgProbUpPct) },
+                { label: 'Prob. Baja (%)', data: rows.map(r => r.sum.avgProbDownPct) },
+            ],
+        };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Construye una gráfica comparativa verificada de mercados globales (Bolsas, Energía, Metales y Divisas)
+ * directamente desde el caché de Informes Ejecutivos de Finanzas y Mercados.
+ */
+function buildGlobalMarketsChart({ liveQuotes = [] } = {}) {
+    try {
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const finPath = path.resolve(__dirname, '../cache/finance_executive_reports.json');
+        const mktPath = path.resolve(__dirname, '../cache/market_executive_reports.json');
+        const parsePct = raw => {
+            const m = String(raw ?? '').match(/([+-]?\d+(?:[.,]\d+)?)\s*%/);
+            if (!m) return null;
+            const n = Number(m[1].replace(',', '.'));
+            return Number.isFinite(n) ? Number(n.toFixed(2)) : null;
+        };
+        const liveBySymbol = new Map();
+        for (const q of Array.isArray(liveQuotes) ? liveQuotes : []) {
+            if (q?.symbol && Number.isFinite(Number(q.change))) {
+                liveBySymbol.set(String(q.symbol).toUpperCase(), Number(Number(q.change).toFixed(2)));
+            }
+        }
+        const items = [];
+        const addItem = (label, pct, liveSym = null) => {
+            const resolved = liveSym && liveBySymbol.has(liveSym) ? liveBySymbol.get(liveSym) : pct;
+            if (!label || !Number.isFinite(resolved) || items.some(x => x.label === label)) return;
+            items.push({ label, pct: resolved });
+        };
+
+        if (fs.existsSync(finPath)) {
+            const fin = JSON.parse(fs.readFileSync(finPath, 'utf8'));
+            const reports = Array.isArray(fin.reports) ? fin.reports : [];
+            const eq = reports.find(r => r.key === 'equities');
+            const eqPick = [
+                ['S&P/BMV IPC', /ipc|bmv/i, '^MXX'],
+                ['S&P 500', /s&p\s*500/i, '^GSPC'],
+                ['Nasdaq', /nasdaq/i, '^IXIC'],
+                ['Euro Stoxx / DAX', /euro\s*stoxx|dax/i, '^STOXX50E'],
+                ['Nikkei 225', /nikkei/i, '^N225'],
+            ];
+            for (const [shortLabel, re, sym] of eqPick) {
+                const m = (eq?.metrics || []).find(x => re.test(String(x?.label || '')));
+                if (m) addItem(shortLabel, parsePct(m.delta ?? m.change), sym);
+            }
+            const fx = reports.find(r => r.key === 'fx');
+            for (const [shortLabel, re] of [['USD/MXN', /usd\/mxn/i], ['USD/BRL', /usd\/brl/i], ['EUR/USD', /eur\/usd/i]]) {
+                const m = (fx?.metrics || []).find(x => re.test(String(x?.label || '')));
+                if (m) addItem(shortLabel, parsePct(m.delta ?? m.change));
+            }
+        }
+        if (fs.existsSync(mktPath)) {
+            const mkt = JSON.parse(fs.readFileSync(mktPath, 'utf8'));
+            const reports = Array.isArray(mkt.reports) ? mkt.reports : [];
+            const em = reports.find(r => r.key === 'energy_metals');
+            for (const [shortLabel, re, sym] of [
+                ['Petróleo WTI', /\bwti\b/i, 'CL=F'],
+                ['Gas Natural', /gas\s+natural|henry\s+hub/i, 'NG=F'],
+                ['Oro', /\boro\b/i, 'GC=F'],
+                ['Cobre', /\bcobre\b/i, 'HG=F'],
+            ]) {
+                const m = (em?.metrics || []).find(x => re.test(String(x?.label || '')));
+                if (m) addItem(shortLabel, parsePct(m.delta ?? m.change), sym);
+            }
+        }
+        if (items.length < 3) return null;
+        const selected = items.slice(0, 10);
+        const leader = [...selected].sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct))[0];
+        return {
+            type: 'bar',
+            view: 'horizontalBar',
+            title: 'Mercados Globales · Variación diaria verificada (%)',
+            subtitle: 'Bolsas internacionales, energía, metales y divisas (cortes verificados de Informes Ejecutivos)',
+            insight: leader ? `Mayor movimiento reciente: ${leader.label} (${leader.pct >= 0 ? '+' : ''}${leader.pct}%)` : `${selected.length} referencias globales verificadas`,
+            unit: '%',
+            source: 'VALLNews Informes Ejecutivos (Finanzas + Mercados)',
+            labels: selected.map(x => x.label),
+            datasets: [
+                { label: 'Variación diaria (%)', data: selected.map(x => x.pct) },
+            ],
+        };
+    } catch {
+        return null;
+    }
+}
+
 module.exports = {
     buildTrajectoryForecastSpec,
     buildForecastRecordChart,
     buildShowcaseChart,
     buildProteinComparisonChart,
+    buildMarranasChart,
+    buildGlobalMarketsChart,
 };

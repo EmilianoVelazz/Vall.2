@@ -12,17 +12,19 @@ function parseCommercialInputs(message, previous = {}) {
     const text = normalizeForIntent(message);
     const result = { ...previous };
     const match = pattern => new RegExp(pattern, 'i').exec(text);
-    const quantity = match('(?:compro|compramos|adquiero|cantidad|volumen|lote de|llevar|transportar|ahora son|son)\\s*(?:es|de|:|a)?\\s*' + NUM + '\\s*(kg|kilogramos?|kilos?|toneladas?|ton|t)\\b');
+    const quantity = match('(?:compro|compramos|adquiero|cantidad|volumen|lote de|llevar|transportar|ahora son|son)\\s*(?:es|de|:|a)?\\s*' + NUM + '\\s*(kg|kilogramos?|kilos?|toneladas?|ton|t)\\b')
+        || match('(?:^|[,;])\\s*' + NUM + '\\s*(kg|kilogramos?|kilos?|toneladas?|ton|t)\\b');
     if (quantity) result.purchasedKg = number(quantity[1]) * (/^(?:ton|t$)/.test(quantity[2]) ? 1000 : 1);
     const buy = match('\\b(?:compro|compramos|compra|adquiero)\\b.{0,100}?\\ba\\s*\\$?\\s*' + NUM + '\\s*(?:mxn|usd|eur|pesos)?\\s*(?:/|por\\s+)(?:kg|kilo)')
-        || match('(?:precio|costo)\\s*(?:de\\s*)?compra\\s*'+LINK+'\\$?\\s*' + NUM)
+        || match('(?:precio|costo)\\s*(?:(?:cif|fob|dap|ddp|exw|cfr|fca)\\s*)?(?:de\\s*)?compra\\s*'+LINK+'\\$?\\s*' + NUM)
         || match('\\bcompra\\s*(?:es|de|:|a|baja a|sube a)?\\s*\\$?\\s*'+NUM+'\\s*(?:mxn|usd|eur|pesos)?\\s*(?:/|por\\s+)(?:kg|kilo)');
-    const sell = match('\\b(?:vendo|vendemos|venta|precio de venta)\\s*'+LINK+'\\$?\\s*' + NUM + '\\s*(?:mxn|usd|eur|pesos)?');
+    const sell = match('\\b(?:vendo|vendemos|venta|precio de venta)\\s*(?:en\\s+(?:canal|pie|cortes?)\\s*)?'+LINK+'\\$?\\s*' + NUM + '\\s*(?:mxn|usd|eur|pesos)?');
     if (buy) result.buyPricePerKg = number(buy[1]);
     if (sell && !/^\s*(?:kg|kilos?|toneladas?|t)\b/.test(text.slice(sell.index+sell[0].length))) result.sellPricePerKg = number(sell[1]);
     if(buy && /^\s*(?:%|por ciento)/.test(text.slice(buy.index+buy[0].length)))result.buyPricePerKg=null;
     if(sell && /^\s*(?:%|por ciento)/.test(text.slice(sell.index+sell[0].length)))result.sellPricePerKg=null;
-    const shrink = match('(?:merma|perdida de peso)\\s*'+LINK + NUM + '\\s*(%|por ciento)?');
+    const shrink = match('(?:merma|perdida de peso)\\s*'+LINK + NUM + '\\s*(%|por ciento)?')
+        || match(NUM + '\\s*(%|por ciento)\\s*(?:de\\s*)?(?:merma|perdida de peso)');
     if (shrink) {
         const amount = number(shrink[1]);
         if (shrink[2]) result.shrinkFraction = amount / 100;
@@ -31,7 +33,8 @@ function parseCommercialInputs(message, previous = {}) {
     }
     const costs = { freight: 'flete|transporte', insurance: 'seguro', duties: 'aranceles?|impuestos?', otherCosts: 'otros costos|otros gastos|comisiones' };
     for (const [field, label] of Object.entries(costs)) {
-        const found = match('(?:' + label + ')\\s*'+LINK+'\\$?\\s*' + NUM + '\\s*(mxn|usd|eur|pesos|%|por ciento)?\\s*((?:/|por\\s+)(?:kg|kilo))?');
+        const found = match('(?:' + label + ')\\s*'+LINK+'\\$?\\s*' + NUM + '\\s*(mxn|usd|eur|pesos|%|por ciento)?\\s*((?:/|por\\s+)(?:kg|kilo))?')
+            || match('\\$?\\s*' + NUM + '\\s*(mxn|usd|eur|pesos|%|por ciento)?\\s*((?:/|por\\s+)(?:kg|kilo))?\\s*(?:de|en|por)\\s*(?:' + label + ')\\b');
         if (found) {
             // Los porcentajes de arancel/comisión necesitan base imponible.
             if (/%|por ciento/.test(found[2] || '')) result[field] = null;

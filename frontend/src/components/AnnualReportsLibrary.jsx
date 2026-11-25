@@ -13,7 +13,7 @@ import './ReportLayout.css';
 const areas={finance:'Finanzas',markets:'Mercados',mexico:'México'};
 export default function AnnualReportsLibrary({onAnnex,requestedYear,accountEmail}) {
   const [language]=useIdioma(),t=useMemo(()=>reportText(language),[language]);
-  const params=new URLSearchParams(window.location.search),initial=Number(params.get('anio'));
+  const params=new URLSearchParams(typeof window==='undefined' ? '' : window.location.search),initial=Number(params.get('anio'));
   const reportCount=Object.values(REPORT_LIBRARY.reports).reduce((total,reports)=>total+Object.keys(reports).length,0);
   const [year,setYear]=useState(REPORT_LIBRARY.years.includes(initial) ? initial : Math.max(...REPORT_LIBRARY.years)),[area,setArea]=useState('finance'),[keys,setKeys]=useState({finance:'equities',markets:'overview',mexico:'mx_overview'}),[search,setSearch]=useState(''),[data,setData]=useState(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
   const cache=useRef(new Map()),panel=useRef(null);

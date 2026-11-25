@@ -377,7 +377,10 @@ router.get('/admin/loopus-reviews', verifyToken, requireProfileAdmin, async (req
 router.get('/admin/loopus-predictions', verifyToken, requireProfileAdmin, async (req, res) => {
     try {
         const { loadCachedPredictiveShowcase, buildPredictiveShowcase } = require('../ml/predictive-showcase');
-        const showcase = loadCachedPredictiveShowcase() || await buildPredictiveShowcase({ offlineOnly: true });
+        const cached = loadCachedPredictiveShowcase();
+        const showcase = cached?.unsupervisedDiagnostics && Array.isArray(cached?.multivariateModels)
+            ? cached
+            : await buildPredictiveShowcase({ offlineOnly: true });
         res.set('Cache-Control', 'private, no-store');
         res.json({ success: true, showcase });
     } catch {
@@ -417,6 +420,96 @@ router.post('/admin/loopus-predictions/train', verifyToken, requireProfileAdmin,
     }
 });
 
+router.get('/admin/loopus-intelligence', verifyToken, requireProfileAdmin, async (_req, res) => {
+    try {
+        const { getVectorIndexStats } = require('../ai/vector-knowledge');
+        const { getFeedbackStats } = require('../ai/closed-loop-feedback');
+        const { buildSftDataset } = require('../ai/sft-dataset-builder');
+        const { loadCachedPredictiveShowcase, buildPredictiveShowcase } = require('../ml/predictive-showcase');
+
+        const vectorIndex = getVectorIndexStats();
+        const feedback = getFeedbackStats();
+        const sftPreview = buildSftDataset({ format: 'gemini' });
+        const cached = loadCachedPredictiveShowcase();
+        const showcase = cached?.unsupervisedDiagnostics && Array.isArray(cached?.multivariateModels)
+            ? cached
+            : await buildPredictiveShowcase({ offlineOnly: true });
+        res.set('Cache-Control', 'private, no-store');
+        res.json({
+            success: true,
+            intelligence: {
+                vectorIndex,
+                feedback,
+                sftReadiness: {
+                    count: sftPreview.count,
+                    stats: sftPreview.stats,
+                },
+                multivariateCount: Array.isArray(showcase?.multivariateModels) ? showcase.multivariateModels.length : 0,
+                elasticitiesCount: Array.isArray(showcase?.empiricalElasticities) ? showcase.empiricalElasticities.length : 0,
+                unsupervised: showcase?.unsupervisedDiagnostics || null,
+                conformalSummary: showcase?.conformalSummary || null,
+            },
+        });
+    } catch {
+        res.status(503).json({ success: false, error: 'No se pudo cargar el diagnóstico inteligente de Loopus.' });
+    }
+});
+
+router.post('/admin/loopus-knowledge/reindex', verifyToken, requireProfileAdmin, express.json({ limit: '4kb' }), async (req, res) => {
+    try {
+        const offlineOnly = req.body?.offlineOnly === true || process.env.NODE_ENV === 'test';
+        const { GeminiProvider } = require('../ai/providers/gemini-provider');
+        const { buildDefaultKnowledgeCorpus, indexKnowledgeDocuments, getVectorIndexStats } = require('../ai/vector-knowledge');
+        const { distillClosedLoopProposals, getFeedbackStats } = require('../ai/closed-loop-feedback');
+
+        const provider = !offlineOnly && process.env.GEMINI_API_KEY ? new GeminiProvider() : null;
+        const corpus = buildDefaultKnowledgeCorpus();
+        const indexResult = await indexKnowledgeDocuments(corpus, {
+            provider,
+            persistSupabase: !offlineOnly,
+            generateEmbeddings: Boolean(provider),
+        });
+        const closedLoopResult = await distillClosedLoopProposals({
+            limit: 12,
+            provider,
+            persistSupabase: !offlineOnly,
+        });
+        res.set('Cache-Control', 'private, no-store');
+        res.json({
+            success: true,
+            offlineOnly,
+            indexResult,
+            closedLoopResult: {
+                processedCount: closedLoopResult.processedCount,
+                proposalsCreated: closedLoopResult.proposalsCreated,
+                exemplarsPromoted: closedLoopResult.exemplarsPromoted,
+            },
+            vectorIndex: getVectorIndexStats(),
+            feedback: getFeedbackStats(),
+        });
+    } catch (error) {
+        res.status(503).json({ success: false, error: error?.message || 'No se pudo re-indexar la base vectorial.' });
+    }
+});
+
+router.get('/admin/loopus-sft-export', verifyToken, requireProfileAdmin, async (req, res) => {
+    try {
+        const rawFormat = String(req.query?.format || 'gemini').trim().toLowerCase();
+        if (!['gemini', 'openai_chat'].includes(rawFormat)) {
+            return res.status(400).json({ success: false, error: 'Formato SFT inválido. Usa gemini u openai_chat.' });
+        }
+        const { buildSftDataset } = require('../ai/sft-dataset-builder');
+        const dataset = buildSftDataset({ format: rawFormat });
+        res.set('Cache-Control', 'private, no-store');
+        res.set('Content-Type', 'application/x-ndjson; charset=utf-8');
+        res.set('Content-Disposition', `attachment; filename="vallnews-orion-sft-${dataset.format}.jsonl"`);
+        res.set('X-VALL-SFT-Count', String(dataset.count));
+        res.send(dataset.jsonl ? `${dataset.jsonl}\n` : '');
+    } catch {
+        res.status(503).json({ success: false, error: 'No se pudo exportar el dataset SFT.' });
+    }
+});
+
 router.post('/admin/loopus-proposals/:id/review', verifyToken, requireProfileAdmin, express.json({ limit: '8kb' }), async (req, res) => {
     try {
         const rawId = String(req.params.id || '').trim();
@@ -433,6 +526,163 @@ router.post('/admin/loopus-proposals/:id/review', verifyToken, requireProfileAdm
     } catch (error) {
         const code = Number.isInteger(error?.status) ? error.status : 503;
         res.status(code).json({ success: false, error: error?.message || 'No se pudo actualizar la propuesta.' });
+    }
+});
+
+// ── MARRANAS · Panel de Salud y Control Administrativo (Motor independiente de Loopus) ──
+const _marranasAdminJob = {
+    running: false,
+    mode: null,
+    startedAt: null,
+    finishedAt: null,
+    lastError: null,
+    lastSummary: null,
+};
+
+function buildMarranasHealthPayload() {
+    const { loadCachedProteinML, buildMarranasAlerts } = require('../ml/protein-ml-engine');
+    const { loadCachedClosedLoopAudit } = require('../ml/protein-ml-closed-loop');
+    const { loadCachedNlpEvents } = require('../ml/protein-nlp-events');
+
+    const artifact = loadCachedProteinML();
+    const audit = loadCachedClosedLoopAudit();
+    const nlpEvents = artifact?.nlpEvents || loadCachedNlpEvents() || null;
+    const alerts = artifact ? buildMarranasAlerts(artifact, { limit: 12 }) : [];
+
+    return {
+        available: Boolean(artifact),
+        model: artifact?.model || 'MARRANAS',
+        displayName: artifact?.displayName || 'MARRANAS · Motor ML de Proteínas',
+        version: artifact?.version || null,
+        generatedAt: artifact?.generatedAt || null,
+        stats: artifact?.stats || null,
+        summary: artifact?.summary || null,
+        importParity: artifact?.importParity || null,
+        nlpEvents: nlpEvents ? {
+            version: nlpEvents.version,
+            generatedAt: nlpEvents.generatedAt,
+            windowDays: nlpEvents.windowDays,
+            stats: nlpEvents.stats,
+            bySpecies: nlpEvents.bySpecies,
+            topEvents: (nlpEvents.topEvents || []).slice(0, 6),
+        } : null,
+        closedLoopAudit: audit ? {
+            generatedAt: audit.generatedAt,
+            summary: audit.summary,
+            bySpecies: audit.bySpecies,
+            byRegion: audit.byRegion,
+        } : null,
+        alertsSummary: {
+            total: alerts.length,
+            critica: alerts.filter(a => a.severity === 'CRÍTICA').length,
+            alta: alerts.filter(a => a.severity === 'ALTA').length,
+            vigilancia: alerts.filter(a => a.severity === 'VIGILANCIA').length,
+            topAlerts: alerts.slice(0, 6),
+        },
+    };
+}
+
+router.get('/admin/marranas/health', verifyToken, requireProfileAdmin, async (_req, res) => {
+    try {
+        res.set('Cache-Control', 'private, no-store');
+        res.json({
+            success: true,
+            health: buildMarranasHealthPayload(),
+            jobStatus: { ..._marranasAdminJob },
+        });
+    } catch (error) {
+        res.status(503).json({ success: false, error: error?.message || 'No se pudo cargar la salud de MARRANAS.' });
+    }
+});
+
+router.post('/admin/marranas/retrain', verifyToken, requireProfileAdmin, express.json({ limit: '4kb' }), async (req, res) => {
+    try {
+        const mode = String(req.body?.mode || 'full').trim().toLowerCase();
+        if (!['full', 'audit', 'nlp'].includes(mode)) {
+            return res.status(400).json({ success: false, error: 'Modo inválido. Usa full, audit o nlp.' });
+        }
+        const dryRun = req.body?.dryRun === true || process.env.NODE_ENV === 'test';
+        if (dryRun) {
+            res.set('Cache-Control', 'private, no-store');
+            return res.json({
+                success: true,
+                dryRun: true,
+                mode,
+                health: buildMarranasHealthPayload(),
+                jobStatus: { ..._marranasAdminJob },
+            });
+        }
+
+        if (mode === 'nlp') {
+            const { fetchAndClassifyProteinNlpEvents } = require('../ml/protein-nlp-events');
+            const nlpEvents = await fetchAndClassifyProteinNlpEvents();
+            res.set('Cache-Control', 'private, no-store');
+            return res.json({
+                success: true,
+                mode,
+                nlpEvents,
+                health: buildMarranasHealthPayload(),
+                jobStatus: { ..._marranasAdminJob },
+            });
+        }
+
+        if (mode === 'audit') {
+            const { runProteinClosedLoopCycle } = require('../ml/protein-ml-closed-loop');
+            const auditResult = await runProteinClosedLoopCycle({ retrain: false });
+            res.set('Cache-Control', 'private, no-store');
+            return res.json({
+                success: true,
+                mode,
+                auditResult: auditResult?.audit?.summary || null,
+                health: buildMarranasHealthPayload(),
+                jobStatus: { ..._marranasAdminJob },
+            });
+        }
+
+        if (_marranasAdminJob.running) {
+            return res.status(409).json({
+                success: false,
+                error: 'Ya hay un re-entrenamiento completo de MARRANAS en ejecución.',
+                jobStatus: { ..._marranasAdminJob },
+            });
+        }
+
+        _marranasAdminJob.running = true;
+        _marranasAdminJob.mode = 'full';
+        _marranasAdminJob.startedAt = new Date().toISOString();
+        _marranasAdminJob.finishedAt = null;
+        _marranasAdminJob.lastError = null;
+
+        // Ejecuta el pipeline completo en segundo plano para no agotar el timeout HTTP
+        setImmediate(async () => {
+            try {
+                const { runProteinTrainingPipeline } = require('../../scripts/train-protein-ml.cjs');
+                const result = await runProteinTrainingPipeline({ seedOutOfTimeAudit: false });
+                _marranasAdminJob.lastSummary = {
+                    version: result?.artifact?.version || null,
+                    activeModels: result?.artifact?.stats?.activeModels || 0,
+                    avgWalkForwardDirectionalAccuracyPct: result?.artifact?.stats?.avgWalkForwardDirectionalAccuracyPct ?? null,
+                    avgBrierScore: result?.artifact?.stats?.avgBrierScore ?? null,
+                    persistedRuns: result?.dbStats?.persistedForecastRuns || 0,
+                };
+            } catch (err) {
+                _marranasAdminJob.lastError = err?.message || 'Error durante el re-entrenamiento de MARRANAS.';
+            } finally {
+                _marranasAdminJob.running = false;
+                _marranasAdminJob.finishedAt = new Date().toISOString();
+            }
+        });
+
+        res.set('Cache-Control', 'private, no-store');
+        return res.status(202).json({
+            success: true,
+            mode: 'full',
+            accepted: true,
+            message: 'Re-entrenamiento completo de MARRANAS v6.0 iniciado en segundo plano (≈5–6 min).',
+            jobStatus: { ..._marranasAdminJob },
+        });
+    } catch (error) {
+        res.status(503).json({ success: false, error: error?.message || 'No se pudo ejecutar la acción de MARRANAS.' });
     }
 });
 

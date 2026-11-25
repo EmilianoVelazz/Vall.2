@@ -10,18 +10,22 @@ const { requestedProteinIssuers } = require('../services/protein-equities');
 
 const PROGRAMMING_RE = /\b(?:programaci[oó]n|programar|programa(?:r|do|dor)?|c[oó]digo|script|javascript|typescript|python|java|php|react|angular|vue|node\.?js|backend|frontend|base de datos|sql|html|css|desarrolla(?:r)?\s+(?:una\s+)?(?:app|aplicaci[oó]n|web)|crear?\s+(?:una\s+)?api|endpoint|debug|bug)\b/i;
 const CODE_CREATION_RE = /(?:\b(?:escribe|crea|haz|genera|desarrolla|programa)\b.{0,45}\b(?:c[oó]digo|script|programa|api|app|aplicaci[oó]n|python|javascript|typescript|sql|html|css)\b|\b(?:c[oó]digo|script|programa)\b.{0,45}\b(?:para|que)\b)/i;
-const DOMAIN_RE = /\b(?:econom[ií]a|econ[oó]mic[oa]s?|macroeconom[ií]a|microeconom[ií]a|finanzas?|financier[oa]s?|mercados?|inversi[oó]n|inversiones|portafolios?|carteras?|rentabilidad|volatilidad|liquidez|valuaci[oó]n|acciones?|bolsa|bmv|ipc|asx(?:\s*200)?|ibex(?:\s*35)?|ftse(?:\s*100)?|dax|cac\s*40|nikkei(?:\s*225)?|hang\s*seng|nifty(?:\s*50)?|ibovespa|tsx|kospi|taiex|jse|s&p\s*(?:500|\/\s*asx)|nasdaq|dow\s*jones|etfs?|futuros?|opciones?|derivados?|bonos?|deuda|cr[eé]dito|tasas?|inter[eé]s|inflaci[oó]n|deflaci[oó]n|pib|producto interno bruto|crecimiento|recesi[oó]n|empleo|desempleo|salarios?|productividad|consumo|exportaciones?|importaciones?|balanza comercial|banxico|banco central|fed|powell|cetes|tiie|udibonos?|divisas?|forex|tipo de cambio|conversi[oó]n(?:es)? de (?:moneda|divisa)|d[oó]lar(?:es)?|usd|mxn|pesos? mexicanos?|euros?|commodit(?:y|ies)|materias primas|ma[ií]z|trigo|soya|soja|petr[oó]leo|brent|wti|gas natural|oro|plata|cobre|aluminio|acero|prote[ií]nas?|ganado|porcino|pollo|cerdo|agropecuari[oa]|agricultura|geopol[ií]tica|conflicto|guerra|sanciones?|aranceles?|comercio internacional|t-?mec|nearshoring|m[eé]xico|inegi|hacienda|shcp|pemex|cripto|bitcoin|ethereum|riesgo|escenarios?|empresa|empresarial|corporativ[oa]|industria|sector productivo|resultados trimestrales|ingresos|utilidades|ganancias|cadena de suministro)\b/i;
+const DOMAIN_RE = /\b(?:econom[ií]a|econ[oó]mic[oa]s?|macroeconom[ií]a|microeconom[ií]a|finanzas?|financier[oa]s?|mercados?|inversi[oó]n|inversiones|portafolios?|carteras?|rentabilidad|volatilidad|liquidez|valuaci[oó]n|acciones?|bolsa|bmv|ipc|asx(?:\s*200)?|ibex(?:\s*35)?|ftse(?:\s*100)?|dax|cac\s*40|nikkei(?:\s*225)?|hang\s*seng|nifty(?:\s*50)?|ibovespa|tsx|kospi|taiex|jse|s&p\s*(?:500|\/\s*asx)|nasdaq|dow\s*jones|etfs?|futuros?|opciones?|derivados?|bonos?|deuda|cr[eé]dito|tasas?|inter[eé]s|inflaci[oó]n|deflaci[oó]n|pib|producto interno bruto|crecimiento|recesi[oó]n|empleo|desempleo|salarios?|productividad|consumo|exportaciones?|importaciones?|balanza comercial|banxico|banco central|fed|powell|cetes|tiie|udibonos?|divisas?|forex|tipo de cambio|conversi[oó]n(?:es)? de (?:moneda|divisa)|d[oó]lar(?:es)?|usd|mxn|pesos? mexicanos?|(?:el\s+)?peso\s+(?:hoy|ayer|mexicano|frente|contra|subi[oó]|baj[oó]|cay[oó])|c[oó]mo\s+(?:va|est[aá]|cerr[oó]|abri[oó])\s+el\s+peso|euros?|commodit(?:y|ies)|materias primas|ma[ií]z|trigo|soya|soja|petr[oó]leo|brent|wti|gas natural|oro|plata|cobre|aluminio|acero|prote[ií]nas?|ganado|porcino|pollo|cerdo|res|bovino|huevo|carne|rastro|granja|granos?|forraje|alimento balanceado|raci[oó]n|agropecuari[oa]|agricultura|agroindustria|pecuari[oa]|av[ií]cola|geopol[ií]tica|conflicto|guerra|sanciones?|aranceles?|aduanas?|comercio internacional|t-?mec|nearshoring|m[eé]xico|estados\s+unidos|ee\.?\s*uu\.?|inegi|hacienda|shcp|pemex|sniim|profeco|siap|usda|mercolleida|cepea|cripto|bitcoin|ethereum|riesgo|escenarios?|empresa|empresarial|corporativ[oa]|industria|sector productivo|resultados trimestrales|ingresos|utilidades|ganancias|cadena de suministro|cotizaci[oó]n(?:es)?|margen comercial|margen bruto|mermas?|fletes?|log[ií]stica|abasto|abastecimiento|inventarios?|proveedores?|tesorer[ií]a|presupuesto|flujo de caja|impuestos?|iva|isr|di[eé]sel|combustible|fertilizantes?|urea|cosechas?|sequ[ií]a|pron[oó]sticos?|predicciones?|proyecciones?|tendencias?|regresi[oó]n|estad[ií]stic[oa]s?|coberturas?|incoterms?|fob|cif|panorama|lo\s+m[aá]s\s+(?:importante|relevante)\s+del\s+d[ií]a|resumen\s+del\s+d[ií]a|qu[eé]\s+(?:recomiendas|conviene)\s+revisar\s+(?:hoy|esta\s+semana)|precios?\s+(?:de\s+hoy|hoy|actuales?)|tabla\s+(?:con|de)\s+(?:los\s+)?precios?|machine\s+learning|modelos?\s+(?:de\s+)?(?:ml|ia|cuantitativos?)|cu[aá]nto\s+(?:voy\s+a\s+)?ganar\s+si\s+compro|compro\s+[\d.,]+\s*(?:kg|kilos?|ton|toneladas?))\b/i;
 const NEWS_RE = /\b(?:noticias?|titulares?|actualidad|[uú]ltima hora|qu[eé] pas[oó])\b/i;
-const PLATFORM_RE = /\b(?:vall(?:\s|-)?ai|vallnews|plataforma|p[aá]gina|secci[oó]n|chatbox|chat|reporte|exportar|descargar|configuraci[oó]n|contrase[nñ]a|iniciar sesi[oó]n|suscripci[oó]n)\b/i;
-// Los saludos son parte de una conversación normal. El texto ya llega sin
-// acentos desde normalizeForIntent, por eso los patrones se mantienen simples.
-const SOCIAL_RE = /^[¿¡\s]*(?:hola(?:\s+orion)?|buenos dias|buenas tardes|buenas noches|que tal|como estas|como va(?:s)?|todo bien|gracias|muchas gracias|te agradezco|adios|hasta luego|nos vemos|ok|vale|entendido|perfecto|excelente|claro|de acuerdo)[!,.?\s]*$/i;
-// Preguntas breves sobre la identidad del asistente son conversación normal,
-// no una desviación del alcance financiero. Las aceptamos de forma explícita
-// para que «¿quién te creó?» no reciba un rechazo frío de dominio.
-const SOCIAL_PHRASE_RE = /^(?:hola(?:\s+orion)?(?:\s+(?:como te llamas|quien eres|como estas|que tal|que puedes hacer|en que (?:me )?puedes ayudar))?|como te llamas|quien eres|cual es tu nombre|quien (?:te )?(?:creo|creadore?s?|desarrollo|hizo)|quien fue tu creadore?s?|(?:que|en que) (?:me )?puedes (?:hacer|ayudar)|como funcionas|ayuda(?:me)?)[\s!?.,]*$/i;
+const PLATFORM_RE = /\b(?:vall(?:\s|-)?ai|vallnews|orion|loopus|plataforma|p[aá]gina|secci[oó]n|chatbox|chat|reportes?|informes?|exportar|descargar|pdf|word|docx|excel|csv|configuraci[oó]n|contrase[nñ]a|iniciar sesi[oó]n|suscripci[oó]n)\b/i;
+// Los saludos y preguntas sobre capacidades son parte de una conversación normal.
+// El texto ya llega sin acentos desde normalizeForIntent.
+const SOCIAL_RE = /^[¿¡\s]*(?:hola(?:\s+(?:orion|amigo|que tal|como estas))?|hey(?:\s+orion)?|oye(?:\s+orion)?|buenas(?:\s+(?:dias|tardes|noches))?|buenos dias|buenas tardes|buenas noches|buen dia|que tal|que onda|como estas|como andas|como te va|como va(?:s)?|todo bien|gracias|muchas gracias|mil gracias|te agradezco|adios|hasta luego|nos vemos|chao|bye|ok|okay|vale|va|sale|entendido|perfecto|excelente|genial|super|claro|de acuerdo|listo)[!,.?\s]*$/i;
+// Preguntas naturales sobre identidad, capacidades o ayuda del asistente (incluso
+// con saludos, abreviaturas como «q» o muletillas como «hola dime que puedes hacer»).
+const SOCIAL_GREETING_LEAD_RE = /^(?:(?:hola|hey|oye|buenas|buenos dias|buenas tardes|buenas noches|buen dia|que tal|que onda|saludos|disculpa|perdon|mira|a ver|por favor|porfa|de favor|orion|amigo)\s+)+/i;
+const SOCIAL_COURTESY_TAIL_RE = /(?:\s+(?:por favor|porfa|de favor|plis|orion|(?:de\s+)?hoy|ahorita|ahora|aqui|conmigo|en general|mas o menos|un poco))+$/i;
+const SOCIAL_ASK_LEAD_RE = /^(?:(?:me puedes|puedes|podrias|quisiera saber|quiero saber|dime|cuentame|explicame|indicame|platicame|sabes)\s+)+/i;
+const SOCIAL_CAPABILITY_RE = /^(?:como te llamas|quien eres(?: tu)?(?:\s+y\s+que\s+modelos?\s+usas)?|cual es tu nombre|quien (?:te )?(?:creo|creadore?s?|desarrollo|hizo|construyo)|quien fue tu creadore?s?|(?:que|en que) (?:me )?(?:puedes|podrias|sabes) (?:hacer|ayudar|apoyar|servir|ofrecer|dar)(?:\s+y\s+(?:que|en que) (?:me )?(?:puedes|podrias|sabes) (?:hacer|ayudar|apoyar|servir|ofrecer|dar))?|que haces|que sabes hacer|para que sirves|cuales son tus (?:funciones|capacidades|herramientas|modelos)|que (?:funciones|capacidades|herramientas|servicios|datos|modelos) (?:tienes|usas|manejas)|tienes datos(?: de hoy)?|ayudar a entender como va todo|como va todo|que hay de nuevo|como funcionas|como te uso|como puedo (?:empezar|usarte)|que te puedo preguntar|dame ejemplos?(?: de (?:lo que (?:puedes hacer|haces)|preguntas?))?|presentate|ayuda(?:me)?(?: por favor)?|necesito ayuda(?: por favor)?)$/i;
+const SOCIAL_GRATITUDE_OR_ACK_RE = /^(?:(?:muchas |mil )?gracias|te agradezco|excelente|perfecto|genial|muy bien|super|entendido|claro|de acuerdo|ok|vale|va|listo)(?:\s+(?:orion|por la (?:ayuda|explicacion|info|informacion|respuesta)|(?:muy buena |excelente |gran )?(?:ayuda|explicacion|info|informacion|respuesta)|me sirvio(?: mucho)?|todo claro|trabajo|hasta luego|nos vemos|adios))*$/i;
+const META_STYLE_RE = /\b(?:por que (?:me )?respondes tan (?:robotico|formal|largo|tecnico|frio|estatico)|habla(?:me)? mas (?:natural|sencillo|claro|corto|humano|directo|simple)|mas natural|sin tanto rollo|no entendi(?: nada)?|explica(?:me|lo)? (?:mas sencillo|como si tuviera|en palabras simples|mejor)|esta muy largo|resumelo en \d+ puntos?)\b/i;
 const COMMAND_RE = /\b(?:gr[aá]fic[oa]s?|tablas?|datos?|resumen|analiza|an[aá]lisis|reporte|expl[ií]ca|haz|crea|puedes)\b/i;
-const FOLLOW_UP_RE = /(?:^(?:y|pero|entonces|ahora|tambi[eé]n|adem[aá]s|por qu[eé]|c[oó]mo|cu[aá]l(?:es)?|qu[eé] pasa|contin[uú]a|sigue|profundiza|ampl[ií]a|detalla|resume)\b|\b(?:eso|esa|ese|esto|aquello|anterior|lo mismo|sobre lo anterior|con esos datos|esa cifra|ese mercado|ese pa[ií]s|dicho activo|hazlo|hazla|ponlo|ponla|mu[eé]stralo|mu[eé]strala|comp[aá]ralo|comp[aá]rala)\b|\b(?:en|para|desde|hasta)\s+(?:20\d{2}|m[eé]xico|europa|asia|ee\.?\s*uu\.?|estados unidos)\b|\b(?:gr[aá]fica|tabla|resumen|escenario|proyecci[oó]n|fuentes?|noticias?)\b)/i;
+const FOLLOW_UP_RE = /(?:^(?:y|pero|entonces|ahora|tambi[eé]n|adem[aá]s|por qu[eé]|c[oó]mo|cu[aá]l(?:es)?|qu[eé] pasa|contin[uú]a|sigue|profundiza|ampl[ií]a|detalla|resume|res[uú]melo|expl[ií]calo|aclara|desglosa|recalcula)\b|\b(?:eso|esa|ese|esto|aquello|anterior|lo mismo|sobre lo anterior|con esos datos|esa cifra|ese mercado|ese pa[ií]s|dicho activo|hazlo|hazla|ponlo|ponla|mu[eé]stralo|mu[eé]strala|comp[aá]ralo|comp[aá]rala|no entend[ií]|m[aá]s sencillo|m[aá]s corto|m[aá]s claro|m[aá]s simple|pon un ejemplo|dame un ejemplo|qu[eé] opinas|qu[eé] recomiendas|y qu[eé] m[aá]s)\b|\b(?:en|para|desde|hasta)\s+(?:20\d{2}|m[eé]xico|europa|asia|ee\.?\s*uu\.?|estados unidos)\b|\b(?:gr[aá]fica|tabla|resumen|escenario|proyecci[oó]n|fuentes?|noticias?)\b)/i;
 const EXPLICIT_OFF_TOPIC_RE = /\b(?:receta|cocina|pastel|poema|cuento|novela|pel[ií]cula|serie de televisi[oó]n|videojuego|f[uú]tbol|deportes?|rutina de ejercicio|diagn[oó]stico m[eé]dico|medicamento|relaci[oó]n sentimental|hor[oó]scopo|capital de|biograf[ií]a de)\b/i;
 const ECONOMIC_IMPACT_RE = /\b(?:impacto|efecto|costo|precio|ingresos|finanzas?|econ[oó]mic[oa]|mercado|empresa|cotizaci[oó]n|inversi[oó]n)\b/i;
 
@@ -74,10 +78,20 @@ function esDelDominio(texto) {
 
 function isSocialMessage(intent) {
     if (SOCIAL_RE.test(intent)) return true;
-    // «Hola, ¿cómo te llamas?» lleva puntuación en medio; la limpiamos antes
-    // de compararla para no rechazar una conversación cotidiana.
-    const plain = String(intent || '').replace(/[¿¡,!.?]+/g, ' ').replace(/\s+/g, ' ').trim();
-    return SOCIAL_PHRASE_RE.test(plain);
+    // Limpiamos puntuación, abreviaturas de chat («q» -> «que»), saludos iniciales
+    // y cortesías para aceptar frases naturales como «hola q haces» o «buenas, en q me puedes ayudar?».
+    const plain = String(intent || '')
+        .replace(/[¿¡,!.?;:]+/g, ' ')
+        .replace(/\bq\b/gi, 'que')
+        .replace(/\bxq\b/gi, 'porque')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!plain || plain.length > 160) return false;
+    if (SOCIAL_RE.test(plain) || SOCIAL_GRATITUDE_OR_ACK_RE.test(plain)) return true;
+    const withoutGreeting = plain.replace(SOCIAL_GREETING_LEAD_RE, '').replace(SOCIAL_COURTESY_TAIL_RE, '').trim();
+    if (!withoutGreeting || SOCIAL_RE.test(withoutGreeting) || SOCIAL_CAPABILITY_RE.test(withoutGreeting)) return true;
+    const core = withoutGreeting.replace(SOCIAL_ASK_LEAD_RE, '').replace(SOCIAL_COURTESY_TAIL_RE, '').trim();
+    return Boolean(core) && SOCIAL_CAPABILITY_RE.test(core);
 }
 
 function domainDecision({ message = '', history = [], attachments = [] } = {}) {
@@ -94,6 +108,9 @@ function domainDecision({ message = '', history = [], attachments = [] } = {}) {
     if(/\b(?:forwards?|swaps?)\b/.test(intent) && !PROGRAMMING_RE.test(intent))return {allowed:true,reason:'domain'};
 
     const anchor = recentDomainUserMessage(history);
+    if (META_STYLE_RE.test(intent)) {
+        return anchor ? { allowed: true, reason: 'follow_up', anchor } : { allowed: true, reason: 'social' };
+    }
     if (anchor && isLikelyFollowUp(text, history)) return { allowed: true, reason: 'follow_up', anchor };
 
     if (PLATFORM_RE.test(intent) && !CODE_CREATION_RE.test(intent)) return { allowed: true, reason: 'platform' };
@@ -116,9 +133,9 @@ function domainDecision({ message = '', history = [], attachments = [] } = {}) {
 
 function domainRedirectText(reason = 'off_topic') {
     if (reason === 'programming') {
-        return 'ORION está especializado exclusivamente en finanzas y mercados. No puedo crear código, programas, aplicaciones ni soluciones de desarrollo. Puedo ayudarte a analizar bolsas, divisas, monedas, noticias económicas de México o modelos cuantitativos financieros.';
+        return 'Con gusto te ayudo con análisis económico y financiero, pero en este chat No puedo crear código, programas ni aplicaciones. Si quieres, podemos revisar bolsas, tipo de cambio, precios de granos o proteínas, noticias económicas de México o correr un análisis cuantitativo.';
     }
-    return 'Solo puedo ayudarte con finanzas, mercados, bolsas, divisas, monedas, noticias económicas, mercados de proteínas animales, comercio internacional y modelos cuantitativos aplicados a esos temas. Si te refieres a la respuesta anterior, dime «sobre lo anterior» y continúo desde ahí.';
+    return '¡Hola! Ese tema queda fuera de mi especialidad. Solo puedo ayudarte con finanzas, mercados, divisas, bolsas, noticias económicas, proteínas animales, agroindustria y modelos cuantitativos. Si querías continuar lo que estábamos revisando, dime qué parte ajustamos o con qué mercado arrancamos.';
 }
 
 module.exports = { PROGRAMMING_RE, DOMAIN_RE, PLATFORM_RE, VOICE_DOMAIN_INSTRUCTION, domainDecision, domainRedirectText, isSocialMessage };

@@ -1,0 +1,92 @@
+# Plantilla Docker Compose para Dokploy · VALLNews (Web + Worker)
+# Separa el tráfico HTTP/SPA de las tareas programadas (warmers, informes, ML)
+# compartiendo los volúmenes persistentes de cachés e informes generados.
+#
+# Configura las variables sensibles en el panel Environment de Dokploy;
+# no escribas secretos directamente en este archivo.
+
+x-vallnews-common: &vallnews-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 12s
+  volumes:
+    - vallnews_cache:/app/backend/cache
+    - vallnews_generated_reports:/app/backend/generated-reports
+  environment: &vallnews-env
+    NODE_ENV: production
+    PORT: 3101
+    TRUST_PROXY: ${TRUST_PROXY:-1}
+    ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://vallnews.com,https://www.vallnews.com}
+    MARIADB_ENABLED: ${MARIADB_ENABLED:-false}
+    SUPABASE_URL: ${SUPABASE_URL}
+    SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    SUPABASE_DATABASE_URL: ${SUPABASE_DATABASE_URL:-}
+    GEMINI_API_KEY: ${GEMINI_API_KEY}
+    INEGI_TOKEN: ${INEGI_TOKEN:-}
+    BANXICO_TOKEN: ${BANXICO_TOKEN:-}
+    CRON_SECRET: ${CRON_SECRET}
+    REFRESH_SECRET: ${REFRESH_SECRET:-}
+    JWT_SECRET: ${JWT_SECRET}
+    SESSION_SECRET: ${SESSION_SECRET:-}
+    SMTP_HOST: ${SMTP_HOST:-}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_USER: ${SMTP_USER:-}
+    SMTP_PASS: ${SMTP_PASS:-}
+    SMTP_FROM: ${SMTP_FROM:-}
+
+services:
+  # Réplica HTTP/API/SPA (puede escalarse horizontalmente sin duplicar crons)
+  vallnews-web:
+    <<: *vallnews-common
+    environment:
+      <<: *vallnews-env
+      RUN_BACKGROUND_JOBS: "false"
+    expose:
+      - "3101"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3101/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  # Worker único: ejecuta warmers, cortes de informes, correos y ciclo ML
+  vallnews-worker:
+    <<: *vallnews-common
+    environment:
+      <<: *vallnews-env
+      RUN_BACKGROUND_JOBS: "true"
+      VALL_BRAIN_ENABLED: ${VALL_BRAIN_ENABLED:-false}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3101/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+
+volumes:
+  vallnews_cache:
+  vallnews_generated_reports:

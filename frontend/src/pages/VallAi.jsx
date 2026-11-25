@@ -44,19 +44,47 @@ const HOJAS = [
 const DEPENDENCIAS = ['/assets/js/data-service.js?v=23', '/assets/js/report-artifacts.js?v=2'];
 const PAGINA_JS = '/assets/js/vall-ai-page-v4.js?v=73';
 
-const SUGERENCIAS = [
-  { prompt: 'Soy distribuidor mundial de res, cerdo, huevo y pollo. ¿Qué noticias, restricciones sanitarias y riesgos logísticos de los últimos siete días pueden afectar mis compras, ventas y margen? Da fechas y fuentes; separa hechos de escenarios.', icono: 'fa-truck', titulo: 'Compra y venta de proteínas', nota: 'Abasto, rutas y margen comercial' },
-  { prompt: 'Vendo cerdo. Usa estos supuestos hipotéticos: compra 80 MXN/kg, flete 5 MXN/kg, merma de peso 4% y venta 100 MXN/kg. Calcula costo por kg vendible, margen sobre venta y recargo sobre costo. No busques precios.', icono: 'fa-calculator', titulo: 'Calcular margen y merma', nota: 'Ejercicio con supuestos explícitos' },
-  { prompt: 'Dame un panorama ejecutivo de los mercados globales hoy', icono: 'fa-earth-americas', titulo: 'Panorama global', nota: 'Mercados, tasas y riesgo' },
-  { prompt: 'Compara los últimos precios verificables de cerdo, pollo, huevo y res alrededor del mundo. Muestra país, categoría, etapa, moneda/unidad, fecha y fuente; separa referencias regionales de precios locales y señala brechas.', icono: 'fa-globe', titulo: 'Precios de proteínas', nota: 'Cerdo, pollo, huevo y res' },
-  { prompt: 'Dame las tendencias y comentarios públicos más recientes de Mercolleida sobre porcino y cereales, con fechas y fuentes', icono: 'fa-wheat-awn', titulo: 'Mercolleida', nota: 'Tendencias y comentarios públicos' },
-  { prompt: 'Resume los análisis públicos disponibles de Rabobank sobre proteínas y granos, con fechas, enlaces y diferencias entre datos y pronósticos', icono: 'fa-book-open', titulo: 'Rabobank', nota: 'Análisis sectorial y perspectivas' },
-  { prompt: 'Investiga las noticias internacionales recientes sobre cerdo, pollo, huevo y res, y los acuerdos entre países que afectan su comercio. Contrasta fuentes oficiales, Mercolleida y Rabobank; distingue anuncios, permisos sanitarios y medidas vigentes, con fechas y enlaces.', icono: 'fa-handshake', titulo: 'Proteínas y comercio', nota: 'Noticias, acuerdos y riesgos' },
-  { prompt: 'Compara petróleo, gas natural y metales industriales', icono: 'fa-oil-well', titulo: 'Materias primas', nota: 'Comparación estructurada' },
-  { prompt: 'Dime qué datos, informes ejecutivos, fuentes de proteínas y modelos ML tienes activos ahorita mismo en tiempo real', icono: 'fa-database', titulo: 'Datos y modelos activos', nota: 'Inventario en vivo y Loopus' },
-  { prompt: 'Dame las noticias financieras globales de hoy, con fuentes y riesgos a vigilar', icono: 'fa-newspaper', titulo: 'Noticias globales', nota: 'Hechos, fuentes y contexto' },
-  { prompt: 'Crea un reporte técnico sobre renta fija global', icono: 'fa-file-lines', titulo: 'Reporte técnico', nota: 'Datos, riesgos y conclusión' },
-  { prompt: 'Calcula una regresión lineal de USD/MXN para el último año y explica R², pendiente y límites estadísticos', icono: 'fa-square-poll-vertical', titulo: 'Modelo estadístico', nota: 'Regresión OLS verificable' },
+const GRUPOS_SUGERENCIAS = [
+  {
+    id: 'proteinas',
+    label: 'Proteínas y Paridad',
+    icono: 'fa-drumstick-bite',
+    items: [
+      { prompt: 'Dame un panorama visual global hoy con tabla comparativa y gráfica: cómo están el cerdo, res, pollo y huevo en México, EE. UU., Brasil y Europa, y cómo les pega hoy el dólar y el maíz.', icono: 'fa-globe', titulo: 'Precios globales de proteínas', nota: 'MX, EE. UU., Brasil y UE + maíz' },
+      { prompt: 'Compara la mediana SNIIM de México frente a la paridad de importación puesta en frontera desde EE. UU., Brasil y Europa en MXN/kg para cerdo, res, pollo y huevo.', icono: 'fa-ship', titulo: 'Paridad de importación MX', nota: 'SNIIM vs frontera en MXN/kg' },
+      { prompt: 'Compara el precio físico del cerdo y pollo en Jalisco, Puebla, Nuevo León y Sonora según los datos más recientes del SNIIM y Porcicultura.', icono: 'fa-map-location-dot', titulo: 'Proteínas por estado (MX)', nota: 'Jalisco, Puebla, NL y Sonora' },
+    ],
+  },
+  {
+    id: 'mercados',
+    label: 'Mercados y Tesorería',
+    icono: 'fa-chart-line',
+    items: [
+      { prompt: 'Quiero una matriz comparativa de mercados globales hoy: bolsas (IPC, S&P 500, Europa, Asia), bonos (CETES, Treasury 10Y), divisas, energía (WTI/gas) y metales (oro/cobre).', icono: 'fa-earth-americas', titulo: 'Matriz global de mercados', nota: 'Bolsas, bonos, FX, energía y metales' },
+      { prompt: 'Compara CETES 28 días frente al Treasury 10 años y dime cómo se mueve el WTI y el gas natural hoy; ¿conviene cubrir dólares y fletes este mes?', icono: 'fa-landmark', titulo: 'Bonos, tasas y cobertura FX', nota: 'CETES 28d, Treasury 10A y WTI' },
+      { prompt: 'Compara el comportamiento reciente del S&P/BMV IPC y S&P 500 junto con Tyson Foods, Pilgrim\'s Pride y JBS.', icono: 'fa-building-columns', titulo: 'Bolsas y emisoras de proteína', nota: 'IPC, S&P 500, TSN, PPC y JBS' },
+    ],
+  },
+  {
+    id: 'riesgos',
+    label: 'Riesgos y Noticias',
+    icono: 'fa-shield-virus',
+    items: [
+      { prompt: '¿Qué riesgos macro, energéticos y sanitarios en el mundo debo vigilar esta semana que puedan mover el costo de proteína y mi tesorería en México?', icono: 'fa-triangle-exclamation', titulo: 'Riesgos de la semana', nota: 'Macro, energía y Radar NLP' },
+      { prompt: 'Revisa el radar NLP de riesgo sanitario y comercial activo (0–100) por influenza aviar H5N1, peste porcina africana, gusano barrenador y aranceles.', icono: 'fa-shield-virus', titulo: 'Radar sanitario H5N1 / PPA', nota: 'SENASICA, brotes y aranceles' },
+      { prompt: '¿Qué acuerdos comerciales, aranceles o restricciones sanitarias recientes entre China, Estados Unidos y México afectan la carne de cerdo y res?', icono: 'fa-handshake', titulo: 'Comercio y aranceles', nota: 'China, EE. UU., México y Rabobank' },
+    ],
+  },
+  {
+    id: 'calculos',
+    label: 'Cálculos y ML',
+    icono: 'fa-microchip',
+    items: [
+      { prompt: 'Analiza con tus modelos ML si tiende a subir o bajar el precio del cerdo, res, pollo y huevo en México y EE. UU. Muestra probabilidades, bandas P80 y factores SHAP.', icono: 'fa-microchip', titulo: 'Pronóstico ML y SHAP', nota: 'Walk-forward y bandas P80' },
+      { prompt: 'Supuesto comercial: compro 10 toneladas de cerdo en canal a 58 MXN/kg, pago 3.50 MXN/kg de flete, tengo 6% de merma y vendo a 74 MXN/kg. Calcula margen y equilibrio. No busques precios.', icono: 'fa-calculator', titulo: 'Calcular margen y merma', nota: 'Costo vendible y equilibrio' },
+      { prompt: 'Si el cutout de cerdo en EE. UU. está en 70.63 USD/cwt (por 100 libras), ¿cuánto equivale en MXN/kg usando el tipo de cambio actual?', icono: 'fa-scale-balanced', titulo: 'Convertir USD/cwt a MXN/kg', nota: 'Masa + tipo de cambio vigente' },
+    ],
+  },
 ];
 
 const HERRAMIENTAS_EDITOR = [
@@ -84,7 +112,36 @@ function OrionWorkspace({user}) {
   const [persistenceNotice,setPersistenceNotice]=useState('');
   const [ready,setReady]=useState(false);
   const [loadError,setLoadError]=useState(false);
+  const [orionMlLive,setOrionMlLive]=useState(null);
+  const [promptTab,setPromptTab]=useState('proteinas');
   usePageStyles(HOJAS);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch('/api/marranas', { signal: ctrl.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!ctrl.signal.aborted && json?.available) {
+          setOrionMlLive({
+            activeModels: json.stats?.activeModels || 0,
+            wfAcc: json.stats?.avgWalkForwardDirectionalAccuracyPct ?? null,
+            nlpCount: json.nlpEvents?.stats?.relevantEventsDetected || 0,
+          });
+        }
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
+  const triggerOrionMlBoard = () => {
+    const sidebar = document.getElementById('vaiSidebar');
+    if (sidebar?.classList.contains('open')) sidebar.classList.remove('open');
+    const input = document.getElementById('vaiInput');
+    if (!input || input.disabled) return;
+    input.value = 'Entrégame el tablero ejecutivo de ORION apoyado en tus modelos ML para cerdo, res, pollo y huevo en México y el mundo: consenso direccional, factores SHAP, paridad de importación MXN/kg y alertas activas del radar NLP sanitario/comercial.';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  };
 
   useEffect(() => {
     document.body.classList.add('vall-ai-body');
@@ -175,6 +232,16 @@ function OrionWorkspace({user}) {
             <button className="vai-new" id="vaiNew" type="button" title="Nueva conversación"><i className="fas fa-plus" /><span>Nueva conversación</span></button>
             <button className="vai-sidebar-command" id="vaiQuickSearch" type="button" title="Buscar conversaciones"><i className="fas fa-magnifying-glass" /><span>Buscar chats</span></button>
             <button className="vai-sidebar-command vai-reports-command" id="vaiOpenReportStudio" type="button" title="Abrir editor de reportes"><i className="fas fa-file-pen" aria-hidden="true" /><span>Editor de reportes</span></button>
+            <button
+              className="vai-sidebar-command"
+              type="button"
+              disabled={!ready}
+              onClick={triggerOrionMlBoard}
+              title={orionMlLive ? `ORION asistido por ML: ${orionMlLive.activeModels} modelos activos · WF ${orionMlLive.wfAcc}% · ${orionMlLive.nlpCount} eventos NLP` : 'Abrir tablero cuantitativo ML de ORION'}
+            >
+              <i className="fas fa-microchip" aria-hidden="true" />
+              <span>{orionMlLive ? `Tablero ML (${orionMlLive.activeModels})` : 'Tablero ML de ORION'}</span>
+            </button>
             <div className="vai-export-wrap" id="vaiExportWrap">
               <button className="vai-sidebar-command vai-export-chat" id="vaiExportChat" type="button" title="Exportar conversación completa" aria-haspopup="menu" aria-expanded="false" disabled>
                 <i className="fas fa-download" aria-hidden="true" /><span>Exportar chat</span>
@@ -219,13 +286,29 @@ function OrionWorkspace({user}) {
               <h1>¿Qué quieres analizar hoy?</h1>
               <p>Conecta mercados y proteínas: precios de cerdo, pollo, huevo y res, noticias internacionales y comercio entre países, con fuentes y contexto.</p>
               <div className="vai-welcome-signals" aria-label="Capacidades de ORION">
+                <span><i className="fas fa-microchip" /> {orionMlLive ? `ORION + ML activo (${orionMlLive.activeModels} modelos · WF ${orionMlLive.wfAcc}%)` : 'ORION + Motores ML integrados'}</span>
                 <span><i className="fas fa-database" /> Datos y contexto</span>
                 <span><i className="fas fa-chart-column" /> Análisis estructurado</span>
                 <span><i className="fas fa-diagram-project" /> Tablas, gráficas y mapas</span>
                 <span><i className="fas fa-file-arrow-down" /> Reportes exportables</span>
               </div>
+              <div className="vai-prompt-tabs" role="tablist" aria-label="Categorías de consultas rápidas">
+                {GRUPOS_SUGERENCIAS.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={promptTab === g.id}
+                    className={`vai-prompt-tab${promptTab === g.id ? ' is-active' : ''}`}
+                    onClick={() => setPromptTab(g.id)}
+                  >
+                    <i className={`fas ${g.icono}`} aria-hidden="true" />
+                    <span>{g.label}</span>
+                  </button>
+                ))}
+              </div>
               <div className="vai-prompts">
-                {SUGERENCIAS.map((s) => (
+                {(GRUPOS_SUGERENCIAS.find((g) => g.id === promptTab) || GRUPOS_SUGERENCIAS[0]).items.map((s) => (
                   <button key={s.titulo} type="button" data-prompt={s.prompt} disabled={!ready}>
                     <i className={`fas ${s.icono}`} />
                     <span><b>{s.titulo}</b><small>{s.nota}</small></span>
@@ -243,7 +326,7 @@ function OrionWorkspace({user}) {
               <div className="vai-compose-head">
                 <div className="vai-compose-identity">
                   <ConstelacionOrion id="vaiConversationFace" className="vai-conversation-face" label="ORION disponible" />
-                  <span><strong>Consulta con ORION</strong><small>Inteligencia económica en contexto</small></span>
+                  <span><strong>ORION</strong><small>Inteligencia económica asistida por modelos ML</small></span>
                 </div>
                 <span className="vai-compose-mode"><i className="fas fa-wand-magic-sparkles" /> Análisis adaptativo</span>
               </div>

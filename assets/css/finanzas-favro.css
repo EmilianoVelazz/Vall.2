@@ -1137,7 +1137,7 @@ body.ff-detail-rentafija #bonds-panel .debt-global-block { order: 2; }
 .ff-segmented button:disabled { opacity: .42; cursor: not-allowed; }
 .ff-select-label, .ff-date-label { display: grid; gap: 4px; min-width: 145px; }
 .ff-select-label span, .ff-date-label span { font-size: 0.625rem; color: var(--ff-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
-.ff-select-label select, .ff-date-label input, .ff-compact-select select { min-height: 32px; border: 1px solid var(--ff-line); border-radius: 8px; background: white; color: var(--ff-ink); padding: 0 9px; font-size: 0.75rem; }
+.ff-select-label select, .ff-date-label input, .ff-compact-select select { height: 34px; min-height: 34px; line-height: 1.25; box-sizing: border-box; border: 1px solid var(--ff-line); border-radius: 8px; background: white; color: var(--ff-ink); padding: 4px 10px; font-size: 0.75rem; vertical-align: middle; }
 .ff-date-label { margin-left: auto; min-width: 130px; }
 .ff-chart-modes { display: flex; gap: 4px; padding: 3px; border-radius: 9px; background: #e8eef2; }
 .ff-chart-modes button { width: 30px; min-height: 30px; padding: 0; border: 0; border-radius: 7px; color: var(--ff-muted); background: transparent; cursor: pointer; }
@@ -1637,4 +1637,23 @@ body.ff-detail-bolsa .eq-thesis p { max-width: 1050px; font-size: .88rem; line-h
 @media (max-width: 470px) {
     body.ff-detail-bolsa .ff-supplement-kpis,
     body.ff-detail-bolsa .eq-region-grid { grid-template-columns: 1fr !important; }
+}
+
+
+/* QA visual Finanzas: alinear selects y evitar recorte de botones de región */
+.fbm-country-picker select,
+#cur-base,
+.fin-select,
+.debt-pro select {
+    line-height: 1.35 !important;
+    padding-top: .38rem !important;
+    padding-bottom: .38rem !important;
+    height: auto !important;
+    min-height: 36px;
+}
+.fbm-filters,
+.eq-region-filters,
+.bm-region-tabs {
+    flex-wrap: wrap !important;
+    overflow: visible !important;
 }

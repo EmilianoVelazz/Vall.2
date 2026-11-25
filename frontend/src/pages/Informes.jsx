@@ -65,8 +65,8 @@ export default function Informes() {
           </div>
 
           <div className="informes-hero-meta" aria-label={t('Características de los informes')}>
-            <span><i className="fas fa-clock" aria-hidden="true" /><small>{t('Cortes de datos')}</small><strong>{dailyHours} · CDMX</strong><small>{t('Finanzas y México')}</small></span>
-            <span><i className="fas fa-calendar-week" aria-hidden="true" /><small>{t('Mercados · semanal')}</small><strong>{weekday} {String(refreshPolicy.markets.hour).padStart(2,'0')}:00 · CDMX</strong></span>
+            <span><i className="fas fa-clock" aria-hidden="true" /><small>{t('Finanzas y México')}</small><strong>{dailyHours} · CDMX</strong></span>
+            <span><i className="fas fa-calendar-day" aria-hidden="true" /><small>{t(refreshPolicy.markets.frequency==='daily' ? 'Mercados · diario' : 'Mercados · semanal')}</small><strong>{refreshPolicy.markets.frequency==='daily' ? `${String(refreshPolicy.markets.hour).padStart(2,'0')}:00 · CDMX` : `${weekday} ${String(refreshPolicy.markets.hour).padStart(2,'0')}:00 · CDMX`}</strong></span>
             <span><i className="fas fa-wand-magic-sparkles" aria-hidden="true" /><small>{t('Personalización')}</small><strong>{t('Con ORION')}</strong></span>
             <span><i className="fas fa-file-export" aria-hidden="true" /><small>{t('Salidas')}</small><strong>{exportFormats.map(item=>item.value==='xlsx' ? 'Excel' : item.label).join(' · ')}</strong></span>
           </div>

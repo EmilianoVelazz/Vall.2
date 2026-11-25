@@ -75,6 +75,13 @@ function quoteMatchesRecord(line, record, citations, fxRates = null) {
 
 function guardProteinPrices(plan = {}, evidence = {}, text = '') {
     if (!(plan.needsProteinPrices || plan.needsProteinResearch) || plan.providedInputsOnly || plan.proteinProfile?.futures || plan.asksCoverageExplanation || plan.asksDataInventory) return { text, blocked: false };
+    // Cuando el usuario NO pidió cotizaciones físicas de proteínas (sino radar sanitario/ML,
+    // pronósticos, panorama ejecutivo o comercio) y no hay registros físicos cargados,
+    // no reemplazar su análisis por una tabla vacía "No pude validar los precios solicitados".
+    const hasPhysicalRecords = (evidence.proteinPriceRecords || []).length > 0;
+    if (!plan.needsProteinPrices && !hasPhysicalRecords && (plan.needsMarranasML || plan.asksForecast || plan.asksExecutiveBrief || plan.needsExecutiveReport || plan.needsTradeResearch)) {
+        return { text, blocked: false };
+    }
     const profile = plan.proteinProfile || { products: [], countries: [] };
     const isMexicoLocal = profile.countries.length === 1 && profile.countries[0] === 'MX' && (!profile.specificPrice || profile.priceBasis === 'live'
         || profile.commercialStages?.length || evidence.proteinPrices?.coverage?.some(report=>report.stage)

@@ -144,6 +144,32 @@
       "decimals": 1
     },
     {
+      "ticker": "SI=F",
+      "provider": "yahoo",
+      "bucket": "energy",
+      "label": "Plata COMEX · referencia global",
+      "unit": "USD/oz troy",
+      "currency": "USD",
+      "region": "América",
+      "market": "Global · contrato estadounidense",
+      "exchange": "COMEX",
+      "match": "Silver",
+      "decimals": 2
+    },
+    {
+      "ticker": "HO=F",
+      "provider": "yahoo",
+      "bucket": "energy",
+      "label": "Diésel ULSD NYMEX · fletes y transporte",
+      "unit": "USD/gal",
+      "currency": "USD",
+      "region": "América",
+      "market": "Estados Unidos",
+      "exchange": "NYMEX",
+      "match": "Heating Oil",
+      "decimals": 3
+    },
+    {
       "ticker": "BZ=F",
       "provider": "yahoo",
       "bucket": "energy",

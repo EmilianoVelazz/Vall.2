@@ -19,6 +19,7 @@ const { createTrainingRun, updateTrainingRunProgress, finishTrainingRun, persist
 const { evaluateQueries } = require('./brain-worker');
 const { runIntegrityPipeline } = require('./ml-unsupervised');
 const { updateReasoningPlaybook } = require('./loopus-knowledge');
+const { distillClosedLoopProposals } = require('./closed-loop-feedback');
 
 const DEFAULT_TRAINING_MINUTES = 60;
 const DEFAULT_INTERVAL_SECONDS = 35;
@@ -444,6 +445,7 @@ async function runTrainingLoop() {
             if (Date.now() - lastFeedbackReviewAt >= 10 * 60 * 1000) {
                 lastFeedbackReviewAt = Date.now();
                 await evaluateQueries().catch(() => {});
+                await distillClosedLoopProposals({ limit: 8, provider: ai }).catch(() => {});
             }
             if (Date.now() - lastIntegrityReviewAt >= 15 * 60 * 1000) {
                 lastIntegrityReviewAt = Date.now();

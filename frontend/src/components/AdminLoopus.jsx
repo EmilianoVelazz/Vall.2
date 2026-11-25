@@ -206,9 +206,15 @@ export default function AdminLoopus() {
   const [rows, setRows] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [showcase, setShowcase] = useState(null);
+  const [intelligence, setIntelligence] = useState(null);
   const [selectedSymbol, setSelectedSymbol] = useState('ZC=F');
   const [selectedHorizon, setSelectedHorizon] = useState(3);
   const [trainingPredictions, setTrainingPredictions] = useState(false);
+  const [reindexingVector, setReindexingVector] = useState(false);
+  const [exportingSft, setExportingSft] = useState(false);
+  const [marranasHealth, setMarranasHealth] = useState(null);
+  const [marranasJob, setMarranasJob] = useState(null);
+  const [marranasBusy, setMarranasBusy] = useState('');
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('pending_human_review');
   const [domainFilter, setDomainFilter] = useState('');
@@ -232,11 +238,17 @@ export default function AdminLoopus() {
     setLoading(true);
     setError('');
     if (view === 'predictions') {
-      apiGet('/api/admin/loopus-predictions', { signal: controller.signal })
-        .then(({ ok, data }) => {
-          if (!ok || !data?.success) throw Error(data?.error || 'No se pudieron cargar las predicciones de Loopus ML.');
-          const sc = data.showcase || null;
+      Promise.all([
+        apiGet('/api/admin/loopus-predictions', { signal: controller.signal }),
+        apiGet('/api/admin/loopus-intelligence', { signal: controller.signal }).catch(() => ({ ok: false })),
+      ])
+        .then(([predRes, intelRes]) => {
+          if (!predRes.ok || !predRes.data?.success) throw Error(predRes.data?.error || 'No se pudieron cargar las predicciones de Loopus ML.');
+          const sc = predRes.data.showcase || null;
           setShowcase(sc);
+          if (intelRes.ok && intelRes.data?.success) {
+            setIntelligence(intelRes.data.intelligence || null);
+          }
           if (sc?.assets?.length) {
             setSelectedSymbol(cur => {
               const found = sc.assets.find(a => a.symbol === cur) || sc.assets[0];
@@ -245,6 +257,22 @@ export default function AdminLoopus() {
               return found.symbol;
             });
           }
+        })
+        .catch(e => {
+          if (!controller.signal.aborted) setError(e.message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+      return () => controller.abort();
+    }
+
+    if (view === 'marranas') {
+      apiGet('/api/admin/marranas/health', { signal: controller.signal })
+        .then(({ ok, data }) => {
+          if (!ok || !data?.success) throw Error(data?.error || 'No se pudo cargar el tablero de salud de MARRANAS.');
+          setMarranasHealth(data.health || null);
+          setMarranasJob(data.jobStatus || null);
         })
         .catch(e => {
           if (!controller.signal.aborted) setError(e.message);
@@ -289,6 +317,52 @@ export default function AdminLoopus() {
     return () => controller.abort();
   }, [view, filter, domainFilter, debouncedSearch, revision]);
 
+  useEffect(() => {
+    if (view !== 'marranas' || !marranasJob?.running) return undefined;
+    const timer = setInterval(() => {
+      apiGet('/api/admin/marranas/health')
+        .then(({ ok, data }) => {
+          if (ok && data?.success) {
+            setMarranasHealth(data.health || null);
+            setMarranasJob(data.jobStatus || null);
+            if (!data.jobStatus?.running) {
+              setNotice(
+                data.jobStatus?.lastError
+                  ? `Re-entrenamiento MARRANAS finalizado con error: ${data.jobStatus.lastError}`
+                  : `MARRANAS re-entrenado con éxito (${data.jobStatus?.lastSummary?.activeModels || 0} modelos · WF ${data.jobStatus?.lastSummary?.avgWalkForwardDirectionalAccuracyPct ?? '—'}%).`
+              );
+            }
+          }
+        })
+        .catch(() => {});
+    }, 12000);
+    return () => clearInterval(timer);
+  }, [view, marranasJob?.running]);
+
+  async function triggerMarranasAction(mode) {
+    if (marranasBusy || marranasJob?.running) return;
+    setMarranasBusy(mode);
+    setError('');
+    setNotice('');
+    try {
+      const { ok, data } = await apiPost('/api/admin/marranas/retrain', { mode }, { timeoutMs: 45_000 });
+      if (!ok || !data?.success) throw Error(data?.error || 'No se pudo ejecutar la acción de MARRANAS.');
+      if (data.health) setMarranasHealth(data.health);
+      if (data.jobStatus) setMarranasJob(data.jobStatus);
+      if (mode === 'full') {
+        setNotice(data.message || 'Re-entrenamiento completo de MARRANAS iniciado en segundo plano.');
+      } else if (mode === 'nlp') {
+        setNotice(`Radar NLP actualizado: ${data.nlpEvents?.stats?.relevantEventsDetected || 0} eventos detectados (${data.nlpEvents?.stats?.sanitaryAlertsCount || 0} sanitarios).`);
+      } else if (mode === 'audit') {
+        setNotice(`Auditoría Closed-Loop en Dokploy completada (${data.auditResult?.totalEvaluated || 0} evaluaciones · P80 ${data.auditResult?.conformal80CoveragePct ?? '—'}% · MAPE ${data.auditResult?.avgMapePct ?? '—'}%).`);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setMarranasBusy('');
+    }
+  }
+
   async function review(row, nextStatus) {
     if (savingId !== null || batchApproving) return;
     setSavingId(row.id);
@@ -330,7 +404,7 @@ export default function AdminLoopus() {
       if (!ok || !data?.success) throw Error(data?.error || 'No se pudo completar la aprobación en lote.');
       setNotice(
         data.approvedCount > 0
-          ? `Se aprobaron ${data.approvedCount} reglas de alta confianza (≥90%) en Supabase.`
+          ? `Se aprobaron ${data.approvedCount} reglas de alta confianza (≥90%) en PostgreSQL (Dokploy).`
           : 'No había reglas pendientes con confianza ≥90% en este filtro.'
       );
       setRevision(v => v + 1);
@@ -360,6 +434,56 @@ export default function AdminLoopus() {
     }
   }
 
+  async function reindexKnowledge() {
+    if (reindexingVector || trainingPredictions || savingId !== null || batchApproving) return;
+    setReindexingVector(true);
+    setError('');
+    setNotice('');
+    try {
+      const { ok, data } = await apiPost('/api/admin/loopus-knowledge/reindex', {}, { timeoutMs: 60_000 });
+      if (!ok || !data?.success) throw Error(data?.error || 'No se pudo re-indexar la base vectorial RAG.');
+      setIntelligence(cur => ({
+        ...(cur || {}),
+        vectorIndex: data.vectorIndex || cur?.vectorIndex,
+        feedback: data.feedback || cur?.feedback,
+      }));
+      setNotice(
+        `RAG vectorial actualizado: ${data.indexResult?.totalDocs || 0} documentos (${data.indexResult?.embeddedCount || 0} con embeddings); Closed-Loop: +${data.closedLoopResult?.proposalsCreated || 0} reglas, +${data.closedLoopResult?.exemplarsPromoted || 0} ejemplares.`
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setReindexingVector(false);
+    }
+  }
+
+  async function downloadSft(format = 'gemini') {
+    if (exportingSft) return;
+    setExportingSft(true);
+    setError('');
+    setNotice('');
+    try {
+      const res = await fetch(`/api/admin/loopus-sft-export?format=${encodeURIComponent(format)}`, { credentials: 'include' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw Error(body.error || 'No se pudo exportar el dataset SFT.');
+      }
+      const blob = await res.blob();
+      const count = res.headers.get('x-vall-sft-count') || '';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vallnews-orion-sft-${format}.jsonl`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice(`Dataset SFT (${format}) exportado${count ? ` con ${count} ejemplos curados` : ''}.`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setExportingSft(false);
+    }
+  }
+
   const activeAsset = showcase?.assets?.find(a => a.symbol === selectedSymbol) || showcase?.assets?.[0] || null;
   const activeHorizonModel = activeAsset?.horizons?.find(h => h.horizon === Number(selectedHorizon))
     || activeAsset?.horizons?.find(h => h.eligible)
@@ -371,7 +495,8 @@ export default function AdminLoopus() {
       <div className="ap-intro">
         <div>
           <h3>Propuestas y Validaciones de Proyecto Loopus</h3>
-          <p>Supervisa el conocimiento almacenado en Supabase para Chat ORION e Informes, inspecciona cadenas causales y valida auditorías de mercado.</p>
+          <p>Supervisa el conocimiento almacenado en PostgreSQL (Dokploy) para Chat ORION e Informes, inspecciona cadenas causales y valida auditorías de mercado.</p>
+          <p>La aprobación de una regla y el permiso para compartirla son revisiones distintas. Las conversaciones privadas y las preguntas de evaluación quedan fuera del conocimiento compartido.</p>
           <div className="ap-loopus-tabs" role="tablist" aria-label="Vistas de Loopus">
             <button
               type="button"
@@ -399,6 +524,15 @@ export default function AdminLoopus() {
               onClick={() => setView('predictions')}
             >
               Predicciones y Demostraciones ML {showcase?.summary ? `(${showcase.summary.eligibleModelsCount}/${showcase.summary.totalModelsEvaluated})` : ''}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'marranas'}
+              className={`ap-tab-btn${view === 'marranas' ? ' is-active' : ''}`}
+              onClick={() => setView('marranas')}
+            >
+              ORION ML · Proteínas {marranasHealth?.stats?.activeModels ? `(${marranasHealth.stats.activeModels})` : ''}
             </button>
           </div>
         </div>
@@ -454,10 +588,34 @@ export default function AdminLoopus() {
             <button
               type="button"
               className="ac-btn"
-              disabled={loading || trainingPredictions}
+              disabled={loading || trainingPredictions || reindexingVector}
               onClick={() => void retrainPredictions()}
             >
               {trainingPredictions ? 'Entrenando modelos walk-forward…' : 'Re-entrenar Modelos ML'}
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading || trainingPredictions || reindexingVector}
+              onClick={() => void reindexKnowledge()}
+            >
+              {reindexingVector ? 'Indexando RAG…' : 'Re-indexar RAG Vectorial'}
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading || exportingSft}
+              onClick={() => void downloadSft('gemini')}
+            >
+              Exportar SFT Gemini (.jsonl)
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading || exportingSft}
+              onClick={() => void downloadSft('openai_chat')}
+            >
+              Exportar SFT LoRA (.jsonl)
             </button>
             <button
               type="button"
@@ -466,6 +624,41 @@ export default function AdminLoopus() {
               onClick={() => setRevision(v => v + 1)}
             >
               Recargar demostraciones
+            </button>
+          </div>
+        ) : view === 'marranas' ? (
+          <div className="ap-actions">
+            <button
+              type="button"
+              className="ac-btn"
+              disabled={loading || Boolean(marranasBusy) || Boolean(marranasJob?.running)}
+              onClick={() => void triggerMarranasAction('full')}
+            >
+              {marranasJob?.running || marranasBusy === 'full' ? 'Re-entrenando ORION ML…' : 'Re-entrenar ORION ML'}
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading || Boolean(marranasBusy) || Boolean(marranasJob?.running)}
+              onClick={() => void triggerMarranasAction('audit')}
+            >
+              {marranasBusy === 'audit' ? 'Auditando Dokploy DB…' : 'Auditar Closed-Loop'}
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading || Boolean(marranasBusy) || Boolean(marranasJob?.running)}
+              onClick={() => void triggerMarranasAction('nlp')}
+            >
+              {marranasBusy === 'nlp' ? 'Escaneando noticias…' : 'Refrescar Radar NLP'}
+            </button>
+            <button
+              type="button"
+              className="ac-btn ac-btn-secondary"
+              disabled={loading}
+              onClick={() => setRevision(v => v + 1)}
+            >
+              Actualizar
             </button>
           </div>
         ) : (
@@ -483,9 +676,9 @@ export default function AdminLoopus() {
       </div>
 
       {stats && (
-        <div className="ap-loopus-kpis" aria-label="Resumen en Supabase">
+        <div className="ap-loopus-kpis" aria-label="Resumen en PostgreSQL">
           <article className="ap-loopus-kpi">
-            <span>Acervo en Supabase</span>
+            <span>Acervo en PostgreSQL</span>
             <strong>{stats.total}</strong>
             <small>{stats.runsCount} corridas · {stats.eventsCount} eventos</small>
           </article>
@@ -497,7 +690,7 @@ export default function AdminLoopus() {
           <article className="ap-loopus-kpi">
             <span>Cobertura por canal</span>
             <strong>{(stats.byDomain?.chat || 0) + (stats.byDomain?.both || 0)} / {(stats.byDomain?.reports || 0) + (stats.byDomain?.both || 0)}</strong>
-            <small>Activas en Chat / Informes</small>
+            <small>Propuestas para Chat / Informes</small>
           </article>
           <article className="ap-loopus-kpi">
             <span>Validación humana</span>
@@ -507,7 +700,7 @@ export default function AdminLoopus() {
         </div>
       )}
 
-      {loading && <p role="status">Consultando información de Loopus en Supabase…</p>}
+      {loading && <p role="status">Consultando información de Loopus en PostgreSQL (Dokploy)…</p>}
       {error && <p className="ap-error" role="alert">{error}</p>}
       {notice && <p className="ap-notice" role="status">{notice}</p>}
 
@@ -518,7 +711,7 @@ export default function AdminLoopus() {
       {view === 'rules' && !!rows.length && (
         <div className="ap-table-wrap" tabIndex={0} role="region" aria-label="Tabla de propuestas Loopus">
           <table>
-            <caption>Mostrando {rows.length} reglas sincronizadas con Supabase</caption>
+            <caption>Mostrando {rows.length} reglas sincronizadas con PostgreSQL (Dokploy)</caption>
             <thead>
               <tr>
                 <th scope="col">Tema / Disparador</th>
@@ -620,7 +813,7 @@ export default function AdminLoopus() {
       )}
 
       {view === 'reviews' && !loading && !reviews.length && !error && (
-        <p>No hay auditorías de integridad de mercado registradas aún en Supabase.</p>
+        <p>No hay auditorías de integridad de mercado registradas aún en PostgreSQL (Dokploy).</p>
       )}
 
       {view === 'reviews' && !!reviews.length && (
@@ -699,6 +892,26 @@ export default function AdminLoopus() {
               <strong>{showcase.summary?.avgIntervalCoveragePct != null ? `${fmtNum(showcase.summary.avgIntervalCoveragePct, 1)}%` : '—'}</strong>
               <small>Observaciones dentro de banda empírica</small>
             </article>
+            <article className="ap-loopus-kpi">
+              <span>Vectores RAG</span>
+              <strong>{intelligence?.vectorIndex?.total ?? 0}</strong>
+              <small>{intelligence?.vectorIndex?.withEmbedding ?? 0} embeddings · {intelligence?.vectorIndex?.hasSupabase ? 'pgvector+local' : 'BM25+RRF local'}</small>
+            </article>
+            <article className="ap-loopus-kpi">
+              <span>Modelos ARX Multivariables</span>
+              <strong>{showcase.summary?.multivariateModelsCount ?? intelligence?.multivariateCount ?? 0}</strong>
+              <small>{showcase.summary?.multivariateBeatsUnivariateCount ?? 0} superan al AR univariado</small>
+            </article>
+            <article className="ap-loopus-kpi">
+              <span>Anomalías no supervisadas</span>
+              <strong>{showcase.unsupervisedDiagnostics?.anomalyCount ?? intelligence?.unsupervised?.anomalyCount ?? 0}</strong>
+              <small>Isolation Forest + z-MAD ({showcase.unsupervisedDiagnostics?.regimeCount ?? intelligence?.unsupervised?.regimeCount ?? 0} regímenes)</small>
+            </article>
+            <article className="ap-loopus-kpi">
+              <span>Ejemplos SFT curados</span>
+              <strong>{intelligence?.sftReadiness?.count ?? '—'}</strong>
+              <small>Closed-Loop: {intelligence?.feedback?.pendingLoopusCount ?? 0} eventos pendientes</small>
+            </article>
           </div>
 
           <div className="ap-pred-asset-bar" role="tablist" aria-label="Activos entrenados">
@@ -774,6 +987,18 @@ export default function AdminLoopus() {
                         : '—'}
                     </strong>
                     <small>{activeAsset.unit} (errores históricos conocidos)</small>
+                    {activeHorizonModel.forecast?.conformal90 && (
+                      <div className="ap-conformal-row">
+                        <span className="ap-pill">
+                          Conformal 90%: {fmtNum(activeHorizonModel.forecast.conformal90.lowerBound, 3)}–{fmtNum(activeHorizonModel.forecast.conformal90.upperBound, 3)} ({fmtNum((activeHorizonModel.forecast.conformal90.empiricalCoverage || 0) * 100, 1)}%)
+                        </span>
+                        {activeHorizonModel.forecast?.conformal80 && (
+                          <span className="ap-pill">
+                            80%: {fmtNum(activeHorizonModel.forecast.conformal80.lowerBound, 3)}–{fmtNum(activeHorizonModel.forecast.conformal80.upperBound, 3)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="ap-pred-stat">
                     <span>Validación MAE (Modelo vs Baseline)</span>
@@ -903,6 +1128,266 @@ export default function AdminLoopus() {
               </div>
             </div>
           )}
+
+          {Array.isArray(showcase.multivariateModels) && showcase.multivariateModels.length > 0 && (
+            <div className="ap-pred-card ap-pred-card--cross">
+              <h4>Modelos Multivariables (Ridge-ARX) vs Univariado y Conformal</h4>
+              <p className="ap-pred-sub">
+                Alineación estricta sin fuga futura (<code>exog.date ≤ target.date</code>) con estacionalidad Fourier y calibración conformal adaptativa.
+              </p>
+              <div className="ap-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Modelo / Objetivo</th>
+                      <th scope="col">Último -&gt; ARX (h=1)</th>
+                      <th scope="col">MAE ARX vs Uni vs Base</th>
+                      <th scope="col">Conformal 80% / 90%</th>
+                      <th scope="col">Principales Impulsores Exógenos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {showcase.multivariateModels.map(mv => (
+                      <tr key={mv.id}>
+                        <th scope="row">
+                          <strong>{mv.label}</strong>
+                          <span>{mv.observations} obs. alineadas · corte {mv.cutoff}</span>
+                        </th>
+                        <td data-label="Proyección">
+                          <strong>{fmtNum(mv.lastValue, 3)} -&gt; {fmtNum(mv.forecast?.value, 3)}</strong>
+                          {mv.forecast && <small className="ap-reviewed-at">{mv.forecast.changePct >= 0 ? '+' : ''}{fmtNum(mv.forecast.changePct, 2)}%</small>}
+                        </td>
+                        <td data-label="MAE">
+                          {fmtNum(mv.evaluation?.multivariateMae, 4)} vs {fmtNum(mv.evaluation?.univariateMae, 4)} vs {fmtNum(mv.evaluation?.baselineMae, 4)}
+                          <small className="ap-reviewed-at">
+                            {mv.beatsUnivariate ? `Supera univariado (+${fmtNum(mv.evaluation?.improvementVsUnivariatePct, 2)}%)` : `vs baseline (${fmtNum(mv.evaluation?.improvementVsBaselinePct, 2)}%)`}
+                          </small>
+                        </td>
+                        <td data-label="Conformal">
+                          80%: {mv.evaluation?.conformal80CoveragePct != null ? `${fmtNum(mv.evaluation.conformal80CoveragePct, 1)}%` : '—'}
+                          {' · '}
+                          90%: {mv.evaluation?.conformal90CoveragePct != null ? `${fmtNum(mv.evaluation.conformal90CoveragePct, 1)}%` : '—'}
+                        </td>
+                        <td data-label="Drivers">
+                          {(mv.topDrivers || []).slice(0, 3).map(d => `${d.feature} (${d.importancePct}%)`).join(', ') || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {(showcase.unsupervisedDiagnostics || intelligence?.unsupervised) && (
+            <div className="ap-pred-card ap-pred-card--cross">
+              <h4>Anomalías y Regímenes (Isolation Forest + z-MAD + K-Means++)</h4>
+              {(() => {
+                const unsup = showcase.unsupervisedDiagnostics || intelligence.unsupervised;
+                const anomalies = unsup?.anomalies || [];
+                const regimes = unsup?.regimes || [];
+                return (
+                  <div className="ap-intel-grid">
+                    <div>
+                      <p className="ap-pred-sub">Anomalías estadísticas detectadas: <strong>{anomalies.length}</strong></p>
+                      {anomalies.length ? (
+                        <ul className="ap-anomaly-list">
+                          {anomalies.slice(0, 8).map((a, idx) => (
+                            <li key={idx}>
+                              <span className={`ap-pill ${a.severity === 'warning' ? 'is-warning' : ''}`}>{a.metric}</span>
+                              <span>{a.detail}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="ap-pred-sub">Sin anomalías estadísticas severas en SNIIM ni series históricas.</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="ap-pred-sub">Clústeres de volatilidad actuales ({regimes.length} series):</p>
+                      <ul className="ap-regime-list">
+                        {regimes.slice(0, 8).map((r, idx) => (
+                          <li key={idx}>
+                            <span>{r.symbol} ({r.cutoff})</span>
+                            <strong>{r.currentRegime}{r.regimeShift ? ' ↺ cambio' : ''}</strong>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === 'marranas' && !loading && marranasHealth && (
+        <div className="ap-predictions">
+          <div className="ap-pred-card ap-pred-card--cross">
+            <h4>ORION ML · Motor Cuantitativo de Proteínas Animales ({marranasHealth.version || 'sin versión'})</h4>
+            <p className="ap-pred-sub">
+              Motor cuantitativo integrado en ORION para <strong>Cerdo, Res, Pollo y Huevo</strong>, con persistencia en PostgreSQL de Dokploy.
+              Último corte entrenado: <strong>{formatDate(marranasHealth.generatedAt)}</strong>.
+            </p>
+            {marranasJob?.running && (
+              <p className="ap-notice" role="status">
+                Re-entrenamiento completo en curso desde {formatDate(marranasJob.startedAt)} (actualización automática cada 12 s).
+              </p>
+            )}
+            {marranasJob?.lastError && !marranasJob?.running && (
+              <p className="ap-error" role="alert">Último error de re-entrenamiento: {marranasJob.lastError}</p>
+            )}
+            <div className="ap-loopus-kpis" aria-label="Indicadores de salud MARRANAS">
+              <article className="ap-loopus-kpi">
+                <span>Modelos activos</span>
+                <strong>{marranasHealth.stats?.activeModels || 0}</strong>
+                <small>{marranasHealth.stats?.conformalAndAdaptiveModels || 0} Conformal P80 · {(marranasHealth.stats?.totalObservationsIngested || 0).toLocaleString('es-MX')} obs</small>
+              </article>
+              <article className="ap-loopus-kpi">
+                <span>Exactitud Walk-Forward</span>
+                <strong>{marranasHealth.stats?.avgWalkForwardDirectionalAccuracyPct != null ? `${marranasHealth.stats.avgWalkForwardDirectionalAccuracyPct}%` : '—'}</strong>
+                <small>México SNIIM: {marranasHealth.summary?.byRegion?.MX?.avgDirectionalAccuracyPct ?? '—'}% · {marranasHealth.stats?.exogenousDriverSeries || 0} drivers</small>
+              </article>
+              <article className="ap-loopus-kpi">
+                <span>Calibración y MAE</span>
+                <strong>Brier {marranasHealth.stats?.avgBrierScore ?? '—'}</strong>
+                <small>Mejora MAE vs baseline: {marranasHealth.stats?.avgMaeImprovementPct != null ? `+${marranasHealth.stats.avgMaeImprovementPct}%` : '—'}</small>
+              </article>
+              <article className="ap-loopus-kpi">
+                <span>Auditoría Real (Dokploy DB)</span>
+                <strong>{marranasHealth.closedLoopAudit?.summary?.conformal80CoveragePct != null ? `P80 ${marranasHealth.closedLoopAudit.summary.conformal80CoveragePct}%` : '—'}</strong>
+                <small>{marranasHealth.closedLoopAudit?.summary?.totalEvaluated || 0} evals · MAPE {marranasHealth.closedLoopAudit?.summary?.avgMapePct ?? '—'}% · Acierto {marranasHealth.closedLoopAudit?.summary?.directionalHitRatePct ?? '—'}%</small>
+              </article>
+              <article className="ap-loopus-kpi">
+                <span>Paridad Importación MX</span>
+                <strong>USD/MXN {fmtNum(marranasHealth.importParity?.fxRates?.usdMxn, 3)}</strong>
+                <small>EUR/MXN {fmtNum(marranasHealth.importParity?.fxRates?.eurMxn, 3)} · BRL/MXN {fmtNum(marranasHealth.importParity?.fxRates?.brlMxn, 3)}</small>
+              </article>
+              <article className="ap-loopus-kpi">
+                <span>Radar NLP Sanidad/Comercio</span>
+                <strong>{marranasHealth.nlpEvents?.stats?.relevantEventsDetected || 0} eventos</strong>
+                <small>{marranasHealth.nlpEvents?.stats?.sanitaryAlertsCount || 0} sanitarios · {marranasHealth.nlpEvents?.stats?.tradeEventsCount || 0} comerciales</small>
+              </article>
+            </div>
+          </div>
+
+          <div className="ap-pred-card ap-pred-card--cross">
+            <h4>Salud por Especie (Walk-Forward · Auditoría Closed-Loop · Riesgo NLP)</h4>
+            <div className="ap-table-wrap">
+              <table className="ap-table">
+                <thead>
+                  <tr>
+                    <th>Especie</th>
+                    <th>Mercados</th>
+                    <th>Consenso ML</th>
+                    <th>Exactitud WF</th>
+                    <th>Auditoría Real (Dokploy)</th>
+                    <th>Riesgo NLP (0–100)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {['cerdo', 'res', 'pollo', 'huevo'].map(sp => {
+                    const sum = marranasHealth.summary?.bySpecies?.[sp];
+                    const aud = marranasHealth.closedLoopAudit?.bySpecies?.[sp];
+                    const nlp = marranasHealth.nlpEvents?.bySpecies?.[sp];
+                    if (!sum) return null;
+                    return (
+                      <tr key={sp}>
+                        <th scope="row"><strong>{sum.label}</strong></th>
+                        <td>{sum.seriesCount}</td>
+                        <td>
+                          <strong>{sum.consensusDirection}</strong>{' '}
+                          <small className="ap-reviewed-at">(Subida {sum.avgProbUpPct}% · Alza {sum.counts?.alza}/Baja {sum.counts?.baja}/Lat {sum.counts?.lateral})</small>
+                        </td>
+                        <td>{sum.avgDirectionalAccuracyPct != null ? `${sum.avgDirectionalAccuracyPct}%` : '—'}</td>
+                        <td>
+                          {aud ? `P80 ${aud.conformal80CoveragePct}% · MAPE ${aud.avgMapePct}% (${aud.evaluations} evals)` : 'Sin evals aún'}
+                        </td>
+                        <td>
+                          {nlp ? (
+                            <>
+                              <strong>{nlp.riskScore}/100 ({nlp.riskLevel})</strong>
+                              <small className="ap-reviewed-at"> · {nlp.bias} · {nlp.dominantType || 'activo'}</small>
+                            </>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {marranasHealth.importParity?.bySpecies && (
+            <div className="ap-pred-card ap-pred-card--cross">
+              <h4>Monitor de Paridad de Importación → México (MXN/kg)</h4>
+              <div className="ap-table-wrap">
+                <table className="ap-table">
+                  <thead>
+                    <tr>
+                      <th>Especie</th>
+                      <th>Mediana SNIIM MX</th>
+                      <th>Origen Principal Puesto</th>
+                      <th>Diferencial</th>
+                      <th>Señal Comercial</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['cerdo', 'res', 'pollo', 'huevo'].map(sp => {
+                      const p = marranasHealth.importParity.bySpecies[sp];
+                      if (!p) return null;
+                      const prim = p.primaryParity;
+                      return (
+                        <tr key={sp}>
+                          <th scope="row"><strong>{p.speciesLabel}</strong></th>
+                          <td>
+                            <strong>${fmtNum(p.mexicoBenchmark.priceMxnKg, 2)} MXN/kg</strong>
+                            <small className="ap-reviewed-at"> ({p.mexicoBenchmark.plazasCount || 1} plazas)</small>
+                          </td>
+                          <td>
+                            {prim ? `${prim.originCountry}: $${fmtNum(prim.landedMxnKg, 2)} MXN/kg (${prim.rawPrice} ${prim.rawUnit})` : '—'}
+                          </td>
+                          <td>{prim ? `${prim.spreadPct > 0 ? '+' : ''}${prim.spreadPct}% (${prim.spreadMxnKg > 0 ? '+' : ''}${prim.spreadMxnKg} MXN)` : '—'}</td>
+                          <td><span className="ap-pill">{prim?.signal || '—'}</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="ap-pred-card ap-pred-card--cross">
+            <h4>Persistencia Dokploy PostgreSQL y Alertas Tempranas Activas ({marranasHealth.alertsSummary?.total || 0})</h4>
+            <div className="ap-intel-grid">
+              <div>
+                <p className="ap-pred-sub">Tablas alimentadas en Dokploy (`vallnews.com/_data`):</p>
+                <ul className="ap-regime-list">
+                  <li><span>orion_market_observations</span><strong>{(marranasHealth.stats?.dokployPersistence?.persistedObservations || 0).toLocaleString('es-MX')} filas</strong></li>
+                  <li><span>forecast_observations</span><strong>{(marranasHealth.stats?.dokployPersistence?.persistedForecastObs || 0).toLocaleString('es-MX')} filas</strong></li>
+                  <li><span>forecast_runs (MARRANAS)</span><strong>{marranasHealth.stats?.dokployPersistence?.persistedForecastRuns || 0} corridas</strong></li>
+                  <li><span>forecast_predictions (1w + 1m)</span><strong>{marranasHealth.stats?.dokployPersistence?.persistedPredictions || 0} pronósticos</strong></li>
+                  <li><span>forecast_evaluations (Closed-Loop)</span><strong>{marranasHealth.closedLoopAudit?.summary?.totalEvaluated || 0} verificadas</strong></li>
+                </ul>
+              </div>
+              <div>
+                <p className="ap-pred-sub">
+                  Alertas activas: <strong>{marranasHealth.alertsSummary?.critica || 0} críticas</strong> · <strong>{marranasHealth.alertsSummary?.alta || 0} altas</strong> · <strong>{marranasHealth.alertsSummary?.vigilancia || 0} vigilancia</strong>
+                </p>
+                <ul className="ap-anomaly-list">
+                  {(marranasHealth.alertsSummary?.topAlerts || []).map(al => (
+                    <li key={al.id}>
+                      <span className={`ap-pill ${al.severity === 'CRÍTICA' ? 'is-warning' : ''}`}>{al.severity} · {al.species.toUpperCase()}</span>
+                      <span><strong>{al.title}</strong> — {al.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </section>

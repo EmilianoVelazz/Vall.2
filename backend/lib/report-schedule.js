@@ -54,12 +54,14 @@ function latestReportCutAt(from=new Date()) {
 
 function marketCutAt(from,direction){
     const now=from instanceof Date ? from : new Date(from),here=partsAt(now);
+    const isDaily = policy.markets?.frequency === 'daily';
     for(let offset=0;offset<=7;offset++){
-        const day=new Date(Date.UTC(here.year,here.month-1,here.day+offset*direction));if(day.getUTCDay()!==MARKET_REPORT_DAY)continue;
+        const day=new Date(Date.UTC(here.year,here.month-1,here.day+offset*direction));
+        if(!isDaily && day.getUTCDay()!==MARKET_REPORT_DAY)continue;
         const candidate=atMexicoTime(day.getUTCFullYear(),day.getUTCMonth()+1,day.getUTCDate(),MARKET_REPORT_HOUR);
         if(direction>0 ? candidate>now : candidate<=now)return candidate;
     }
-    throw Error('No se pudo calcular el corte semanal de Mercados.');
+    throw Error('No se pudo calcular el corte de Mercados.');
 }
 const nextMarketReportRefreshAt=(from=new Date())=>marketCutAt(from,1);
 const latestMarketReportCutAt=(from=new Date())=>marketCutAt(from,-1);

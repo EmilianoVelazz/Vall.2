@@ -274,6 +274,102 @@ function fitLogReturnReversion(values, { ridge = 1.0, horizon = 1, direct = fals
     };
 }
 
+// Regresión autorregresiva directa multi-horizonte con encogimiento (James-Stein / Empirical Bayes)
+// hacia el último valor observado y reversión EMA multiescala (estrictamente causal).
+function fitDirectShrinkageAR(values, { horizon = 1, ridge = 1.5, shrinkage = 0.55, decay = 0.99 } = {}) {
+    checkedHorizon(horizon);
+    if (!Number.isFinite(ridge) || ridge <= 0 || !Number.isFinite(shrinkage) || shrinkage <= 0 || shrinkage > 1) {
+        throw new TypeError('Configuración direct_shrink inválida.');
+    }
+    const series = finiteSeries(values);
+    if (series.length < Math.max(32, 16 + horizon)) return null;
+
+    const emaSpan = (arr, span) => {
+        const k = 2 / (span + 1);
+        const out = [arr[0]];
+        for (let i = 1; i < arr.length; i++) out.push(arr[i] * k + out[i - 1] * (1 - k));
+        return out;
+    };
+    const ema6 = emaSpan(series, 6);
+    const ema18 = emaSpan(series, 18);
+    const oldModel = fitAutoregressive(series, { targetMode: 'level', ridge: 0.35 });
+
+    const featAt = idx => {
+        const last = series[idx - 1];
+        const d1 = last - series[idx - 2];
+        const d3 = (last - series[Math.max(0, idx - 4)]) / 3;
+        const rev6 = ema6[idx - 1] - last;
+        const rev18 = ema18[idx - 1] - last;
+        return [d1, d3, rev6, rev18];
+    };
+
+    const rawRows = [];
+    const targets = [];
+    const startIdx = 6;
+    for (let t = startIdx; t + horizon - 1 < series.length; t++) {
+        rawRows.push(featAt(t));
+        targets.push(series[t + horizon - 1] - series[t - 1]);
+    }
+    if (rawRows.length < 14) return null;
+
+    const featureMeans = rawRows[0].map((_, col) => mean(rawRows.map(row => row[col])));
+    const featureScales = rawRows[0].map((_, col) => {
+        const s = stdDev(rawRows.map(row => row[col]), featureMeans[col]);
+        return s > 1e-9 ? s : 1;
+    });
+    const rows = rawRows.map(row => [1, ...row.map((val, col) => (val - featureMeans[col]) / featureScales[col])]);
+    const dims = rows[0].length;
+    const gram = Array.from({ length: dims }, () => Array(dims).fill(0));
+    const cross = Array(dims).fill(0);
+    for (let r = 0; r < rows.length; r++) {
+        const w = decay < 1 ? Math.pow(decay, rows.length - 1 - r) : 1;
+        for (let i = 0; i < dims; i++) {
+            cross[i] += w * rows[r][i] * targets[r];
+            for (let j = 0; j < dims; j++) gram[i][j] += w * rows[r][i] * rows[r][j];
+        }
+    }
+    for (let i = 1; i < dims; i++) gram[i][i] += ridge;
+    const coefficients = solveLinearSystem(gram, cross);
+    if (!coefficients) return null;
+
+    const absTargets = targets.map(Math.abs).sort((a, b) => a - b);
+    const cap = (absTargets[Math.ceil(absTargets.length * 0.92) - 1] || Math.abs(series.at(-1)) * 0.15) * 1.15;
+
+    const predictDelta = feat => {
+        const row = [1, ...feat.map((val, col) => (val - featureMeans[col]) / featureScales[col])];
+        const rawDelta = row.reduce((sum, val, idx) => sum + val * coefficients[idx], 0);
+        const shrunk = rawDelta * shrinkage;
+        return Math.max(-cap, Math.min(cap, shrunk));
+    };
+
+    const residuals = rawRows.map((row, idx) => targets[idx] - predictDelta(row));
+    return {
+        algorithm: `direct_shrinkage_ar_h${horizon}`,
+        targetMode: 'direct_shrink',
+        lags: 4,
+        ridge,
+        coefficients,
+        featureMeans,
+        featureScales,
+        residualStdDev: stdDev(residuals),
+        trainingMae: mean(residuals.map(Math.abs)),
+        predictNext() { return this.predictSteps(horizon); },
+        predictSteps(steps = horizon) {
+            checkedHorizon(steps);
+            const last = series.at(-1);
+            const delta = predictDelta(featAt(series.length)) * (steps / horizon);
+            const directPred = Math.max(1e-9, last + delta);
+            if (oldModel) {
+                const oldPred = oldModel.predictSteps(steps);
+                if (Number.isFinite(oldPred) && oldPred > 0) {
+                    return 0.5 * directPred + 0.5 * oldPred;
+                }
+            }
+            return directPred;
+        },
+    };
+}
+
 function walkForwardEvaluation(values, { minTrainingPoints = MIN_TRAINING_POINTS, horizon = 1 } = {}) {
     checkedHorizon(horizon);
     const series = finiteSeries(values);
@@ -343,5 +439,5 @@ function trainAndAssess(values, { horizon = 1 } = {}) {
 
 module.exports = {
     LAGS, MIN_TRAINING_POINTS, MIN_EVALUATION_POINTS, MIN_IMPROVEMENT,
-    fitAutoregressive, fitDampedHolt, fitLogReturnReversion, walkForwardEvaluation, trainAndAssess,
+    fitAutoregressive, fitDampedHolt, fitLogReturnReversion, fitDirectShrinkageAR, walkForwardEvaluation, trainAndAssess,
 };

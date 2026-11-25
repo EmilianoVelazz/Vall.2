@@ -13,9 +13,11 @@ let rateCache = null;
 function parseAmount(raw) {
     const compact = String(raw || '').replace(/\s/g, '');
     if (!compact) return null;
-    const normalized = compact.includes(',') && compact.includes('.')
+    const normalized = /^\d{1,3}(?:,\d{3})+$/.test(compact)
         ? compact.replace(/,/g, '')
-        : compact.replace(',', '.');
+        : compact.includes(',') && compact.includes('.')
+            ? (compact.lastIndexOf(',') > compact.lastIndexOf('.') ? compact.replace(/\./g, '').replace(',', '.') : compact.replace(/,/g, ''))
+            : compact.replace(',', '.');
     const amount = Number(normalized);
     return Number.isFinite(amount) && amount > 0 ? amount : null;
 }
@@ -36,10 +38,41 @@ function parseCurrencyPair(message) {
     return null;
 }
 
+const UNIT_KG = Object.freeze({
+    cwt: 45.359237,
+    lb: 0.45359237,
+    kg: 1,
+    ton: 1000,
+    arroba: 15,
+});
+
+function parseWeightUnit(raw) {
+    const u = String(raw || '').toLowerCase();
+    if (/^cwt$/.test(u)) return 'cwt';
+    if (/^(?:lb|lbs|libra|libras)$/.test(u)) return 'lb';
+    if (/^(?:kg|kilo|kilos|kilogramo|kilogramos)$/.test(u)) return 'kg';
+    if (/^(?:ton|t|tonelada|toneladas)$/.test(u)) return 'ton';
+    if (/^arroba$/.test(u)) return 'arroba';
+    return null;
+}
+
+function parseUnitPair(text) {
+    const matches = [...String(text || '').matchAll(/\/\s*(cwt|lbs?|libras?|kg|kilos?|kilogramos?|ton(?:eladas?)?|arroba)\b/gi)]
+        .map(m => parseWeightUnit(m[1]))
+        .filter(Boolean);
+    if (matches.length >= 2) return { fromUnit: matches[0], toUnit: matches[1] };
+    return null;
+}
+
 function parseCurrencyConversion(message) {
     const text = String(message || '').toLowerCase();
-    const amountMatch = text.match(/(?:^|\s|\$)(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?=\s|$|[a-záéíóú])/i);
-    const amount = parseAmount(amountMatch?.[1]);
+    // Ignorar números que claramente son plazos o porcentajes ("30 días", "5%", "12 meses")
+    const amountMatches = [...text.matchAll(/(?:^|\s|\$)(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?=\s|$|[a-záéíóú%])/gi)];
+    const validAmountMatch = amountMatches.find(m => {
+        const after = text.slice(m.index + m[0].length);
+        return !/^\s*(?:%|por\s+ciento|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?|horas?|minutos?)\b/i.test(after);
+    });
+    const amount = parseAmount(validAmountMatch?.[1]);
     const currencies = findCurrencies(text);
     if (!amount || currencies.length < 2) return null;
     const [from, to] = currencies;
@@ -50,7 +83,8 @@ function parseCurrencyConversion(message) {
     const betweenCurrencies = text.slice(from.index, to.index);
     const explicitIntent = /\b(?:conviert[a-záéíóú]*|convert[a-záéíóú]*|conversi[oó]n|equivale?|cu[aá]nto(?:s)?|pas[a-záéíóú]*|son)\b/i.test(text);
     if (!explicitIntent && !/\b(?:a|en)\b/i.test(betweenCurrencies)) return null;
-    return { amount, from: from.code, to: to.code };
+    const units = parseUnitPair(text);
+    return units ? { amount, from: from.code, to: to.code, ...units } : { amount, from: from.code, to: to.code };
 }
 
 function calculateConversion(request, rates) {
@@ -58,7 +92,14 @@ function calculateConversion(request, rates) {
     const toRate = request.to === 'USD' ? 1 : Number(rates?.[request.to]);
     if (!Number.isFinite(fromRate) || !Number.isFinite(toRate) || fromRate <= 0 || toRate <= 0) return null;
     const rate = toRate / fromRate;
-    return { ...request, rate, result: request.amount * rate };
+    const baseResult = request.amount * rate;
+    if (request.fromUnit && request.toUnit && UNIT_KG[request.fromUnit] && UNIT_KG[request.toUnit]) {
+        const kgFactor = UNIT_KG[request.toUnit] / UNIT_KG[request.fromUnit];
+        const unitResult = baseResult * kgFactor;
+        const unitUsd = request.from === 'USD' ? request.amount * kgFactor : (request.amount / fromRate) * kgFactor;
+        return { ...request, rate, result: unitResult, rawCurrencyResult: baseResult, kgFactor, fromUnitKg: UNIT_KG[request.fromUnit], toUnitKg: UNIT_KG[request.toUnit], unitUsd };
+    }
+    return { ...request, rate, result: baseResult };
 }
 
 async function latestRates(get = externalGet) {
@@ -112,20 +153,33 @@ async function getCurrencyQuote(from = 'USD', to = 'MXN', get) {
 function conversionContext(conversion) {
     if (!conversion) return '';
     const decimals = conversion.to === 'MXN' ? 2 : 4;
+    if (conversion.fromUnit && conversion.toUnit) {
+        return `[CONVERSIÓN DE DIVISAS Y UNIDAD VERIFICADA]\nSolicitud: ${conversion.amount} ${conversion.from}/${conversion.fromUnit} a ${conversion.to}/${conversion.toUnit}.\nEquivalencia de masa: 1 ${conversion.fromUnit} = ${conversion.fromUnitKg} kg; 1 ${conversion.toUnit} = ${conversion.toUnitKg} kg.\nResultado de referencia: ${conversion.result.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${conversion.to}/${conversion.toUnit} (${conversion.unitUsd.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} USD/${conversion.toUnit}).\nTipo usado: 1 ${conversion.from} = ${conversion.rate.toLocaleString('en-US', { maximumFractionDigits: decimals })} ${conversion.to}.\nFuente: ${conversion.source}${conversion.updatedAt ? `; actualización del proveedor: ${conversion.updatedAt}.` : ''}\nIndica primero este resultado exacto por ${conversion.toUnit} y aclara que flete, aranceles y spread bancario no están incluidos.`;
+    }
     return `[CONVERSIÓN DE DIVISAS VERIFICADA]\nSolicitud: ${conversion.amount} ${conversion.from} a ${conversion.to}.\nResultado de referencia: ${conversion.result.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${conversion.to}.\nTipo usado: 1 ${conversion.from} = ${conversion.rate.toLocaleString('en-US', { maximumFractionDigits: decimals })} ${conversion.to}.\nFuente: ${conversion.source}${conversion.updatedAt ? `; actualización del proveedor: ${conversion.updatedAt}.` : ''}\nIndica primero este resultado y aclara que bancos, tarjetas y casas de cambio pueden aplicar un spread o comisión.`;
 }
 
 function isSimpleCurrencyConversion(message, conversion) {
     if (!conversion || String(message || '').length > 220) return false;
-    // Estas señales indican que el usuario pide análisis, tendencia o un caso
-    // operativo, donde Gemini debe conservar el control de la explicación.
-    return !/\b(?:hist[oó]ric|tendencia|an[aá]lis|reporte|informe|escenario|riesgo|impacto|proyecci[oó]n|cobertura|spread|comisi[oó]n|por qu[eé])\b/i.test(message);
+    // Si la pregunta incluye unidades de peso/mercancía sin par de unidades resuelto,
+    // no usar respuesta corta de divisas puras.
+    if (!conversion.fromUnit && /\b(?:cwt|lbs?|kg|kilos?|kilogramos?|toneladas?|cutout|canal|por\s+100\s+libras?)\b|\/(?:cwt|lb|kg|ton)\b/i.test(message)) return false;
+    // Si es una consulta larga sin conversión explícita de unidad comercial, no secuestrarla.
+    if (!conversion.fromUnit && String(message || '').trim().split(/\s+/).length > 16) return false;
+    // Estas señales indican que el usuario pide análisis, pronóstico, ML, paridad,
+    // proteínas, escenarios o un caso operativo, donde ORION debe conservar el control.
+    return !/\b(?:hist[oó]ric|tendencia|an[aá]lis|reporte|informe|escenario|riesgo|impacto|proyecci[oó]n|pron[oó]stic|paridad|importaci[oó]n|arbitraje|cobertura|spread|comisi[oó]n|por qu[eé]|ml|machine learning|marranas|sanitari|h5n1|influenza|ma[ií]z|soya|cetes|treasury|bolsa|ipc|s&p|flete|merma|costo|margen)\b|\b\d+\s*(?:%|por\s+ciento|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)\b/i.test(message)
+        && (Boolean(conversion.fromUnit) || !/\b(?:cerdos?|pollos?|huevos?|res|bovinos?|prote[ií]nas?)\b/i.test(message));
 }
 
 function conversionAnswer(conversion) {
     const amount = conversion.amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const result = conversion.result.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const rate = conversion.rate.toLocaleString('en-US', { maximumFractionDigits: conversion.to === 'MXN' ? 4 : 6 });
+    if (conversion.fromUnit && conversion.toUnit) {
+        const unitUsd = conversion.unitUsd.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+        return `**${amount} ${conversion.from}/${conversion.fromUnit} = ${result} ${conversion.to}/${conversion.toUnit}**\n\nCálculo:\n- Conversión de masa: ${amount} ${conversion.from}/${conversion.fromUnit} ÷ ${conversion.fromUnitKg} kg/${conversion.fromUnit} = **${unitUsd} USD/${conversion.toUnit}** (base 1 ${conversion.fromUnit} = ${conversion.fromUnitKg} kg).\n- Conversión cambiaria: ${unitUsd} × ${rate} = **${result} ${conversion.to}/${conversion.toUnit}**.\n\nTipo de cambio de referencia: **1 ${conversion.from} = ${rate} ${conversion.to}**. Fuente: ${conversion.source}${conversion.updatedAt ? `; actualización del proveedor: ${conversion.updatedAt}.` : ''}\n\n> [!TIP] Es una equivalencia directa de precio base; no incluye flete, aranceles, mermas ni spread bancario.`;
+    }
     return `**${amount} ${conversion.from} = ${result} ${conversion.to}**\n\nCálculo: ${amount} × ${rate} = **${result} ${conversion.to}**.\n\nTipo de cambio de referencia: **1 ${conversion.from} = ${rate} ${conversion.to}**. Fuente: ${conversion.source}${conversion.updatedAt ? `; actualización del proveedor: ${conversion.updatedAt}.` : ''}\n\n> [!TIP] Bancos, tarjetas y casas de cambio pueden aplicar una comisión o spread distinto a esta referencia.`;
 }
 

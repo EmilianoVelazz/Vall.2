@@ -38,7 +38,10 @@
 .nt-dialog .nt-reader-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 64px; padding: 12px 22px; border-bottom: 1px solid var(--nt-line); background: #172131; }
 .nt-dialog .nt-reader-bar > span { display: flex; gap: 10px; align-items: center; color: var(--nt-muted); font-size: .74rem; }
 .nt-dialog .nt-reader-bar b { color: #ededed; font-size: .72rem; margin-left: 10px; }
+.nt-dialog .nt-reader-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .nt-dialog .nt-reader-bar button { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; padding: 0; border: 1px solid var(--nt-line); border-radius: 10px; color: #ededed; background: #293548; }
+.nt-dialog .nt-reader-bar button.nt-reader-save { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; height: 40px; padding: 0 14px; white-space: nowrap; font-size: .74rem; font-weight: 600; }
+.nt-dialog .nt-reader-bar button.nt-reader-save:hover { border-color: #9fdac8; background: #334155; }
 .nt-dialog .nt-photo { position: relative; height: 265px; overflow: hidden; background: #253142; }
 .nt-dialog .nt-photo img { width: 100%; height: 100%; object-fit: cover; }
 .nt-dialog .nt-photo-placeholder { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 100%; color: #a8c7c1; background: radial-gradient(ellipse at 70% 50%, rgba(159,218,200,.07), transparent 75%), #253142; }

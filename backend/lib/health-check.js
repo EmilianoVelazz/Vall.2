@@ -104,7 +104,8 @@ async function buildHealthPayload({ deep = false } = {}) {
             countFn: data => (Array.isArray(data?.reports) ? data.reports.length : 0),
         }),
         markets: inspectJsonCache('market_executive_reports.json', {
-            maxAgeHours: REPORT_MAX_AGE_HOURS,
+            // Mercados conserva el corte semanal de los viernes a las 14:00.
+            maxAgeHours: 7 * 24,
             countFn: data => (Array.isArray(data?.reports) ? data.reports.length : 0),
         }),
         mexico: inspectJsonCache('mexico-executive-reports.json', {

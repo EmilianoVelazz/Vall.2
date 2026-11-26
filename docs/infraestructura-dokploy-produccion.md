@@ -70,7 +70,7 @@ El backend expone `GET /api/health` (exento de rate limit y con `Cache-Control: 
 | Modo | URL | Uso |
 | --- | --- | --- |
 | Liveness Docker | `http://127.0.0.1:3101/api/health` | `HEALTHCHECK` del contenedor (siempre `< 20 ms`, HTTP `200`). |
-| Alerta externa | `https://vallnews.com/api/health?deep=1&strict=1` | Uptime Kuma cada 5 min: valida frescura de los 3 informes (`<= 26h`), artefacto ML y conectividad real a PostgREST; devuelve HTTP `503` si algún chequeo entra en `degraded`. |
+| Alerta externa | `https://vallnews.com/api/health?deep=1&strict=1` | Uptime Kuma cada 5 min: valida Finanzas/México (`<= 26h`), Mercados semanal (`<= 168h`), artefacto ML y conectividad a PostgREST; devuelve HTTP `503` si algún chequeo entra en `degraded`. |
 
 Configuración sugerida en Uptime Kuma:
 - **Tipo**: HTTP(s) - JSON Query (o Keyword)

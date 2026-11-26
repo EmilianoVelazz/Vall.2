@@ -694,7 +694,7 @@ async function persistToDokploy(seriesCatalog, artifact) {
             training_end: f.lastDate,
             cutoff_at: f.lastDate,
             algorithm: p.modelUsed,
-            status: p.confidence === 'Cautela' ? 'rejected_baseline' : 'accepted',
+            status: p.eligible === true ? 'accepted' : 'rejected_baseline',
             parameters: {
                 species: f.species,
                 region: f.region,
@@ -726,17 +726,13 @@ async function persistToDokploy(seriesCatalog, artifact) {
         horizonsToSave.push(p);
 
         for (const h of horizonsToSave) {
-            const targetDateObj = new Date(Date.parse(f.lastDate + 'T00:00:00Z') + (
-                f.cadence === 'daily' ? Math.round(h.steps * 1.4) * 86400000
-                    : f.cadence === 'weekly' ? h.steps * 7 * 86400000
-                        : h.steps * 30 * 86400000
-            ));
+            if (!h.eligible || h.targetDate <= nowIso.slice(0, 10)) continue;
             const predRow = {
                 forecast_run_id: runData.id,
                 symbol: symCode,
                 interval_code: intervalCode,
                 generated_at: nowIso,
-                target_at: targetDateObj.toISOString().slice(0, 10),
+                target_at: h.targetDate,
                 horizon_code: h.code || `${h.steps}-step`,
                 predicted_value: h.projectedValue,
                 predicted_change_pct: h.expectedChangePct,
@@ -941,13 +937,17 @@ async function runProteinTrainingPipeline({ closedLoopFeedback = null, seedOutOf
         console.log(`      NLP Eventos: ${nlpEvents.stats.relevantEventsDetected} eventos (${nlpEvents.stats.sanitaryAlertsCount} sanitarios, ${nlpEvents.stats.tradeEventsCount} comerciales) de ${nlpEvents.stats.rawArticlesScanned} artículos.`);
     }
 
-    console.log('[4/5] Entrenando modelos ML Walk-Forward v6.0 (Ridge-ARX + GBDT + Panel Transfer + Paridad + NLP Eventos + SHAP)...');
+    const corpusFile = path.resolve(__dirname, '../backend/cache/protein-ml-training-corpus.json');
+    fs.mkdirSync(path.dirname(corpusFile), {recursive: true});
+    fs.writeFileSync(corpusFile, JSON.stringify({generatedAt: new Date(now).toISOString(), seriesCatalog, exogenousPools}), 'utf8');
+    console.log('[4/5] Entrenando modelos con separación temporal y comparación contra referencia...');
     const artifact = buildProteinMLReport({
         seriesCatalog,
         exogenousPools,
         closedLoopFeedback: activeFeedback,
         nlpEvents,
         now,
+        onProgress: ({completed,total,symbol}) => console.log(`[ML] ${completed+1}/${total} ${symbol}`),
         ingestionStats: {
             mexicoSniimSeries: mxSniim.length,
             usAmsAndCmeSeries: usAms.length + cmeSeries.length,
@@ -958,6 +958,8 @@ async function runProteinTrainingPipeline({ closedLoopFeedback = null, seedOutOf
     });
 
     // ── D) Persistencia en Disco + Dokploy PostgreSQL ────────────────────────
+    artifact.trainingCutoffAt = new Date(now).toISOString();
+    artifact.generatedAt = new Date().toISOString();
     const savedFile = saveProteinMLArtifact(artifact);
     console.log(`[5/5] Guardando observaciones y pronósticos entrenados en PostgreSQL de Dokploy...`);
     const dbStats = await persistToDokploy(seriesCatalog, artifact);

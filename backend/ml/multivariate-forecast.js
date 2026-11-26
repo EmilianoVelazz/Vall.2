@@ -274,7 +274,7 @@ function assessMultivariateForecast(targetPoints, exogenousMap = {}, { horizon =
     let c90Hits = 0;
     let conformalSamples = 0;
 
-    for (let idx = startEval; idx < samples.length; idx++) {
+    for (let idx = startEval; idx < samples.length; idx += horizon) {
         // Estrictamente muestras cuyo targetDate ya es observable antes o igual a cutoffDate actual.
         const cutoffMs = Date.parse(samples[idx].cutoffDate);
         const trainRows = [];
@@ -306,9 +306,13 @@ function assessMultivariateForecast(targetPoints, exogenousMap = {}, { horizon =
         const uniErr = Math.abs(actual - predUni);
         const naiveErr = Math.abs(actual - base);
 
-        if (residualsPast.length >= 8) {
-            const conf80 = computeConformalInterval(residualsPast, { alpha: 0.2, scales: scalesPast, currentScale: samples[idx].scale });
-            const conf90 = computeConformalInterval(residualsPast, { alpha: 0.1, scales: scalesPast, currentScale: samples[idx].scale });
+        const matured = multiEval.map((row, index) => ({row, index}))
+            .filter(({row}) => Date.parse(row.targetDate) <= cutoffMs);
+        const knownResiduals = matured.map(({index}) => residualsPast[index]);
+        const knownScales = matured.map(({index}) => scalesPast[index]);
+        if (knownResiduals.length >= 8) {
+            const conf80 = computeConformalInterval(knownResiduals, { alpha: 0.2, scales: knownScales, currentScale: samples[idx].scale });
+            const conf90 = computeConformalInterval(knownResiduals, { alpha: 0.1, scales: knownScales, currentScale: samples[idx].scale });
             if (conf80.radius != null && multiErr <= conf80.radius) c80Hits++;
             if (conf90.radius != null && multiErr <= conf90.radius) c90Hits++;
             conformalSamples++;
@@ -326,6 +330,8 @@ function assessMultivariateForecast(targetPoints, exogenousMap = {}, { horizon =
             error: multiErr,
             naiveError: naiveErr,
             directionCorrect: Math.sign(predMulti - base) === Math.sign(actual - base),
+            latestTrainingTarget: trainRows.at(-1).targetDate,
+            latestCalibrationTarget: matured.at(-1)?.row.targetDate || null,
         });
         uniEval.push({ error: uniErr, naiveError: naiveErr });
     }
@@ -409,6 +415,10 @@ function assessMultivariateForecast(targetPoints, exogenousMap = {}, { horizon =
             },
         },
         evaluation: {
+            protocol: 'purged_prequential_v1',
+            nonOverlappingWindows: true,
+            temporalWindows: multiEval.map(row => ({cutoff: row.cutoff, targetDate: row.targetDate,
+                latestTrainingTarget: row.latestTrainingTarget, latestCalibrationTarget: row.latestCalibrationTarget})),
             evaluationPoints: multiEval.length,
             multivariateMae: round(multiMae, 4),
             univariateMae: round(uniMae, 4),

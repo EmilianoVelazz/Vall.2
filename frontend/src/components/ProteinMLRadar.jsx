@@ -149,7 +149,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
       <div className="mp-ml-head">
         <div>
           <span className="mp-ml-kicker">
-            <i className="fas fa-microchip" /> ORION · MOTOR ML INTEGRADO DE PROTEÍNAS (PARIDAD + NLP SANIDAD/COMERCIO + SHAP + CFTC COT + CONFORMAL)
+            <i className="fas fa-microchip" /> ORION · PROTEÍNAS · PRONÓSTICOS Y CONTEXTO DE MERCADO
           </span>
           <h2>ORION ML · Pronóstico Direccional de Proteínas (Subida / Baja)</h2>
           <p>
@@ -160,11 +160,11 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
         </div>
         <div className="mp-ml-badges">
           <span className="mp-ml-badge">
-            <b>{stats.activeModels || 0}</b> modelos ({stats.conformalAndAdaptiveModels || 0} Conformal)
+            <b>{stats.activeModels || 0}</b> series con pronóstico validado
           </span>
           {stats.avgWalkForwardDirectionalAccuracyPct != null && (
             <span className="mp-ml-badge accent">
-              Exactitud WF: <b>{stats.avgWalkForwardDirectionalAccuracyPct}%</b>
+              Acierto histórico: <b>{stats.avgWalkForwardDirectionalAccuracyPct}%</b>
             </span>
           )}
           {stats.avgBrierScore != null && (
@@ -190,6 +190,11 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
           </button>
         </div>
       </div>
+
+      <p className="mp-ml-cell-sub">
+        La validación histórica no equivale a resultados comprobados en producción. {stats.abstainedSeries || 0} series
+        {' '}quedaron sin pronóstico por datos atrasados o evidencia insuficiente. Noticias y paridad aportan contexto.
+      </p>
 
       <div className="mp-ml-species-grid">
         {ESPECIES_ORDEN.map((sp) => {
@@ -328,7 +333,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
                               className="mp-ml-shap-btn"
                               onClick={() => setExpandedSym(isOpen ? null : row.symbol)}
                             >
-                              {isOpen ? 'Ocultar SHAP ▲' : 'Por qué (SHAP) ▼'}
+                              {isOpen ? 'Ocultar factores ▲' : 'Ver factores asociados ▼'}
                             </button>
                           </>
                         )}
@@ -358,7 +363,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
                       <td colSpan={7}>
                         <div className="mp-ml-shap-panel">
                           <div className="mp-ml-shap-head">
-                            <strong><i className="fas fa-diagram-project" /> Explicabilidad Causal ORION ML (Logit + TreeSHAP)</strong>
+                            <strong><i className="fas fa-diagram-project" /> Factores asociados al pronóstico · ORION ML</strong>
                             <div className="mp-ml-shap-right">
                               <span>Base neutra 50% → Prob. Subida <b>{exp.finalProbUpPct}%</b> ({exp.netDeltaPts > 0 ? '+' : ''}{exp.netDeltaPts} pts)</span>
                               <button
@@ -398,7 +403,9 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
             {!visibleRows.length && (
               <tr>
                 <td colSpan={7} className="mp-ml-empty">
-                  No hay series para la combinación seleccionada de especie y región.
+                  {stats.activeModels === 0
+                    ? 'Las series se revisaron, pero ningún modelo supera todavía la referencia con datos recientes y validación suficiente. Se conserva el histórico sin emitir una señal de compra o venta.'
+                    : 'No hay pronósticos validados para la combinación seleccionada de especie y región.'}
                 </td>
               </tr>
             )}
@@ -571,7 +578,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
                 <i className="fas fa-shield-virus" /> RADAR NLP DE EVENTOS SANITARIOS Y COMERCIALES (H5N1 · PPA · GUSANO BARRENADOR · ARANCELES)
               </span>
               <p className="mp-nlp-sub">
-                Clasificación automática de noticias internacionales recientes (ventana {data.nlpEvents.windowDays || 35} días) que ajusta con límite acotado (±6 pts) el 8.º factor SHAP de ORION ML.
+                Noticias internacionales recientes (ventana {data.nlpEvents.windowDays || 35} días) para contextualizar riesgos sanitarios y comerciales. Este contexto no modifica las probabilidades validadas del modelo.
               </p>
             </div>
             <div className="mp-nlp-stats">

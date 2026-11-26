@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { databaseConfig, connectDatabase, isMariaDbConfigured } = require('./database-connection');
+const {MODEL_VERSION} = require('../ml/protein-forecast-policy');
 
 const CACHE_DIR = path.join(__dirname, '..', 'cache');
 const REPORT_MAX_AGE_HOURS = 26;
@@ -28,7 +29,7 @@ function inspectJsonCache(filename, { maxAgeHours = REPORT_MAX_AGE_HOURS, countF
         const count = typeof countFn === 'function' ? countFn(parsed) : null;
         return {
             exists: true,
-            fresh: ageHours <= maxAgeHours,
+            fresh: ageHours <= maxAgeHours && effectiveMs <= Date.now() + 60000,
             generatedAt: new Date(effectiveMs).toISOString(),
             ageHours: round1(ageHours),
             ...(count !== null ? { count } : {}),
@@ -74,20 +75,22 @@ async function probeStorageDeep() {
     if (baseUrl && apiKey) {
         const start = Date.now();
         try {
-            const response = await fetch(`${baseUrl}/rest/v1/`, {
-                method: 'HEAD',
+            const response = await fetch(`${baseUrl}/rest/v1/app_profiles?select=id&limit=0`, {
+                method: 'GET',
                 headers: {
                     apikey: apiKey,
                     Authorization: `Bearer ${apiKey}`,
                 },
                 signal: AbortSignal.timeout(DEEP_PROBE_TIMEOUT_MS),
             });
-            // PostgREST responde 200 con Bearer válido (o 401/404 según esquema); cualquier 2xx-4xx confirma conectividad.
+            // Consultar cero filas comprueba permiso y esquema sin leer perfiles.
+            // Un 401/403/404 es una conexión inutilizable para la aplicación.
             result.supabaseRest = {
-                ok: response.status >= 200 && response.status < 500,
+                ok: response.ok,
                 statusCode: response.status,
                 latencyMs: Date.now() - start,
             };
+            await response.body?.cancel().catch(() => {});
         } catch {
             result.supabaseRest = { ok: false, statusCode: null, latencyMs: Date.now() - start };
         }
@@ -115,9 +118,9 @@ async function buildHealthPayload({ deep = false } = {}) {
     };
 
     const proteinMl = inspectJsonCache('protein-ml-forecasts.json', {
-        maxAgeHours: 168,
+        maxAgeHours: REPORT_MAX_AGE_HOURS,
         countFn: data => {
-            if (Array.isArray(data?.forecasts)) return data.forecasts.length;
+            if (Array.isArray(data?.forecasts)) return data.forecasts.filter(item => item.available).length;
             if (data?.forecasts && typeof data.forecasts === 'object') return Object.keys(data.forecasts).length;
             return 0;
         },
@@ -138,14 +141,34 @@ async function buildHealthPayload({ deep = false } = {}) {
     for (const [key, item] of Object.entries(reports)) {
         if (!item.exists) degradedReasons.push(`reports.${key}:missing`);
         else if (!item.fresh) degradedReasons.push(`reports.${key}:stale`);
+        else if (item.count === 0) degradedReasons.push(`reports.${key}:empty`);
     }
     if (!proteinMl.exists) degradedReasons.push('proteinMl:missing');
+    else if (proteinMl.version !== MODEL_VERSION) degradedReasons.push('proteinMl:requires_retraining');
+    else if (!proteinMl.fresh) degradedReasons.push('proteinMl:stale');
+    proteinMl.trainingState = !proteinMl.exists ? 'missing' : proteinMl.version !== MODEL_VERSION
+        ? 'requires_retraining' : proteinMl.count ? 'ready' : 'abstained';
 
     let connectivity = null;
+    let mail = null;
     if (deep) {
         connectivity = await probeStorageDeep();
         if (connectivity.postgres && !connectivity.postgres.ok) degradedReasons.push('postgres:unreachable');
         if (connectivity.supabaseRest && !connectivity.supabaseRest.ok) degradedReasons.push('supabaseRest:unreachable');
+        const mailer = require('../services/report-mailer');
+        if (config.backgroundJobsEnabled && mailer.mailAutomationEnabled()) {
+            const worker = require('./report-email-worker').reportEmailWorkerStatus();
+            const recentFailure = Number.isFinite(Date.parse(worker.lastFailureAt))
+                && Date.now() - Date.parse(worker.lastFailureAt) <= 15 * 60_000;
+            const heartbeatHealthy = worker.active && Number.isFinite(Date.parse(worker.lastCheckedAt))
+                && Date.now() - Date.parse(worker.lastCheckedAt) <= 3 * 60_000;
+            mail = {configured: mailer.reportMailStatus().configured, workerActive: worker.active,
+                heartbeatHealthy: Boolean(heartbeatHealthy), recentFailure,
+                lastCheckedAt: worker.lastCheckedAt, lastCompletedAt: worker.lastCompletedAt};
+            if (!mail.configured) degradedReasons.push('mail:not_configured');
+            if (recentFailure) degradedReasons.push('mail:recent_delivery_failure');
+            if (process.uptime() > 180 && !heartbeatHealthy) degradedReasons.push('mail:worker_unresponsive');
+        }
     }
 
     const mem = process.memoryUsage();
@@ -161,6 +184,7 @@ async function buildHealthPayload({ deep = false } = {}) {
             proteinMl,
             config,
             ...(connectivity ? { connectivity } : {}),
+            ...(mail ? { mail } : {}),
         },
         ...(degradedReasons.length ? { degradedReasons } : {}),
         memoryMb: {

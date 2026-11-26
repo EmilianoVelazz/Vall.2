@@ -343,7 +343,7 @@ function buildMarranasChart({ message = '' } = {}) {
             subtitle: `${artifact.stats?.activeModels || 0} modelos activos · Exactitud WF ${artifact.stats?.avgWalkForwardDirectionalAccuracyPct ?? '—'}% · Corte ${String(artifact.generatedAt || '').slice(0, 10)}`,
             insight: rows.map(r => `${r.label}: ${r.sum.consensusDirection} (Subida ${r.sum.avgProbUpPct}%)`).join(' · '),
             unit: '%',
-            source: `ORION ML (${artifact.version}) · Walk-Forward + SHAP + Conformal P80`,
+            source: `ORION ML (${artifact.version}) · Validación histórica temporal · Factores asociados`,
             labels: rows.map(r => r.label),
             datasets: [
                 { label: 'Prob. Subida (%)', data: rows.map(r => r.sum.avgProbUpPct) },

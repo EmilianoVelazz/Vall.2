@@ -10,40 +10,60 @@ const {
 } = require('../backend/ml/protein-ml-engine');
 const { getPredictiveContextForQuery } = require('../backend/ml/predictive-showcase');
 const { getReportReasoningContext } = require('../backend/ai/loopus-knowledge');
+const {MODEL_VERSION, VALIDATION_PROTOCOL, MIN_VALIDATION_WINDOWS} = require('../backend/ml/protein-forecast-policy');
 
 const artifact = loadCachedProteinML();
-assert(artifact && artifact.version, 'Debe existir el artefacto entrenado protein-ml-forecasts.json');
-assert(artifact.stats.activeModels >= 60, `Se esperaban >=60 modelos activos, encontrados ${artifact.stats.activeModels}`);
-assert(artifact.stats.totalObservationsIngested >= 10000, `Se esperaban >=10000 observaciones reales, encontradas ${artifact.stats.totalObservationsIngested}`);
+assert(artifact, 'Ejecuta train-protein-ml.cjs antes de esta prueba de integración con datos reales');
+assert.equal(artifact.version, MODEL_VERSION);
+assert.equal(artifact.validationProtocol, VALIDATION_PROTOCOL);
+assert.match(artifact.dataFingerprint, /^[a-f0-9]{64}$/);
+const active = artifact.forecasts.filter(item => item.available);
+assert.equal(artifact.stats.activeModels, active.length);
+assert.equal(artifact.stats.abstainedSeries, artifact.forecasts.length - active.length);
 
-// Verificar las 4 especies y 5 regiones
+// La cobertura refleja solo modelos que superaron la validación, sin cuotas artificiales.
 for (const sp of Object.keys(SPECIES_META)) {
     const sum = artifact.summary.bySpecies[sp];
-    assert(sum && sum.seriesCount >= 10, `Especie ${sp} debe tener >=10 series (actual: ${sum?.seriesCount})`);
-    assert(['ALZA', 'BAJA', 'LATERAL'].includes(sum.consensusDirection), `Dirección válida para ${sp}`);
+    assert.equal(sum?.seriesCount || 0, active.filter(item => item.species === sp).length);
+    if (sum) assert(['ALZA', 'BAJA', 'LATERAL'].includes(sum.consensusDirection));
 }
 for (const reg of Object.keys(REGION_META)) {
     const sum = artifact.summary.byRegion[reg];
-    assert(sum && sum.seriesCount >= 5, `Región ${reg} debe tener >=5 series (actual: ${sum?.seriesCount})`);
+    assert.equal(sum?.seriesCount || 0, active.filter(item => item.region === reg).length);
 }
 
 // Validar integridad matemática de cada pronóstico activo
 for (const item of artifact.forecasts.filter(f => f.available)) {
     const p = item.primaryForecast;
     assert(['ALZA', 'BAJA', 'LATERAL'].includes(p.direction), `Dirección inválida en ${item.symbol}`);
-    assert(p.probUpPct >= 10 && p.probUpPct <= 90, `Probabilidad fuera de rango en ${item.symbol}`);
+    assert(p.probUpPct >= 0 && p.probUpPct <= 100, `Probabilidad fuera de rango en ${item.symbol}`);
     assert(Math.abs(p.probUpPct + p.probDownPct - 100) < 0.2, `Probabilidades no suman 100 en ${item.symbol}`);
     assert(p.low80 > 0 && p.high80 >= p.low80, `Banda P80 inválida en ${item.symbol}`);
     assert(p.low90 > 0 && p.high90 >= p.low90, `Banda P90 inválida en ${item.symbol}`);
     assert(Number.isFinite(p.projectedValue) && p.projectedValue > 0, `Objetivo inválido en ${item.symbol}`);
-    assert(p.explainability && typeof p.explainability.narrative === 'string' && p.explainability.narrative.length > 20, `Explicabilidad SHAP ausente en ${item.symbol}`);
-    assert(Array.isArray(p.explainability.factors) && p.explainability.factors.length >= 1, `Factores SHAP ausentes en ${item.symbol}`);
+    assert(p.explainability && typeof p.explainability.narrative === 'string' && p.explainability.narrative.length > 20, `Factores asociados ausentes en ${item.symbol}`);
+    assert(Array.isArray(p.explainability.factors) && p.explainability.factors.length >= 1);
+    for (const h of item.horizons) {
+        assert(h.eligible && h.targetDate > new Date().toISOString().slice(0, 10));
+        assert.equal(h.validation.protocol, VALIDATION_PROTOCOL);
+        assert(h.validation.evalWindows >= MIN_VALIDATION_WINDOWS);
+        assert(h.validation.walkForwardDirectionalAccuracyPct > h.validation.baselineAccuracyPct + 1);
+        assert(h.validation.brierSkillPct > 0 && h.validation.maeImprovementPct > 0);
+        assert(!/heuristic|fallback|baseline/.test(h.modelUsed));
+        if (h.validation.intervalCoverageScope === 'calibration_only') assert.equal(h.validation.conformal80CoveragePct, null);
+    }
+}
+for (const item of artifact.forecasts.filter(f => !f.available)) {
+    assert.equal(item.primaryForecast, null);
+    assert.equal((item.horizons || []).length, 0);
 }
 
 // Verificar contexto para ORION Chat (con cifras y probabilidades) y trigger "MARRANAS"
 const chatMxPork = getProteinMLContextForQuery('¿Qué dice MARRANAS sobre si va a subir o bajar el precio del cerdo en México?');
 assert(chatMxPork.includes('MARRANAS · MOTOR ML DEDICADO DE PROTEÍNAS'), 'Debe incluir cabecera de MARRANAS');
-assert(/Prob\. Subida|Subida \d+/.test(chatMxPork), 'Debe incluir probabilidades de subida/baja en modo chat');
+const mxPork = active.filter(item => item.species === 'cerdo' && item.region === 'MX');
+assert(mxPork.length ? /Subida \d+/.test(chatMxPork) : chatMxPork.includes('No hay pronósticos validados'), 'Debe mostrar cobertura real para México');
+if (!mxPork.length) assert(!/^- .*\[.*\]: último=/m.test(chatMxPork), 'No sustituir silenciosamente el mercado solicitado');
 assert(/México|SNIIM/i.test(chatMxPork), 'Debe priorizar series de México');
 
 const chatEuEgg = getProteinMLContextForQuery('Tendencia del huevo y pollo en Europa y Latinoamérica');
@@ -65,16 +85,22 @@ const synthetic = Array.from({ length: 30 }, (_, i) => ({
 const unitTest = forecastProteinSeries({
     symbol: 'TEST-MX-PORK', label: 'Prueba Cerdo', species: 'cerdo', region: 'MX', country: 'México', unit: 'MXN/kg', cadence: 'weekly', source: 'Test', points: synthetic,
 });
-assert(unitTest.available && unitTest.primaryForecast.projectedValue > 55, 'Tendencia alcista sintética debe proyectar encima del nivel inicial');
+assert.equal(unitTest.available, false, 'Una serie histórica atrasada debe abstenerse');
+assert.equal(unitTest.primaryForecast, null);
 
 const { loadCachedClosedLoopAudit } = require('../backend/ml/protein-ml-closed-loop');
 const audit = loadCachedClosedLoopAudit();
-assert(audit && audit.summary && audit.summary.totalEvaluated >= 40, `Se esperaban >=40 evaluaciones reales Closed-Loop (actual: ${audit?.summary?.totalEvaluated})`);
-assert(audit.summary.conformal80CoveragePct >= 65, `Cobertura P80 real fuera de rango: ${audit.summary.conformal80CoveragePct}`);
-assert(audit.summary.avgMapePct > 0 && audit.summary.avgMapePct < 15, `MAPE real fuera de rango: ${audit.summary.avgMapePct}`);
+assert(audit?.summary, 'Debe existir auditoría, aunque los objetivos futuros todavía no hayan vencido');
+assert.equal(audit.summary.modelVersion, MODEL_VERSION);
+assert.equal(audit.summary.evaluationScope, 'prospective_current_model_only');
+assert(audit.summary.totalEvaluated >= 0);
+if (!audit.summary.totalEvaluated) {
+    assert.equal(audit.summary.conformal80CoveragePct, null);
+    assert.equal(audit.summary.avgMapePct, null);
+}
 
 const alerts = buildMarranasAlerts(artifact);
-assert(Array.isArray(alerts) && alerts.length >= 5, `Se esperaban >=5 alertas tempranas MARRANAS (actual: ${alerts.length})`);
+assert(Array.isArray(alerts), 'La ausencia de señales no debe producir alertas inventadas');
 assert(alerts.every(a => ['CRÍTICA', 'ALTA', 'VIGILANCIA'].includes(a.severity) && a.title && a.detail), 'Formato válido de alertas tempranas');
 
 // Verificar Paridad de Importación → México (MARRANAS v5.0)
@@ -105,7 +131,7 @@ const evStale = classifyProteinEvent({ title: 'African swine fever outbreak in B
 assert.equal(evStale, null, 'Artículos antiguos (>35 días) deben descartarse');
 
 assert(artifact.nlpEvents && artifact.nlpEvents.bySpecies, 'Debe existir artifact.nlpEvents.bySpecies en MARRANAS v6.0');
-assert((artifact.nlpEvents.stats?.relevantEventsDetected || 0) >= 5, 'Debe detectar eventos sanitarios/comerciales reales');
+assert((artifact.nlpEvents.stats?.relevantEventsDetected || 0) >= 0, 'No exigir un mínimo artificial de noticias');
 const chatNlp = getProteinMLContextForQuery('¿Cómo afectan los brotes de H5N1 y gusano barrenador a los precios de res y pollo en México?');
 assert(chatNlp.includes('Radar NLP de Eventos Sanitarios y Comerciales'), 'ORION Chat debe inyectar contexto NLP sanitario/comercial');
 const reportNlpSafe = getProteinMLContextForQuery('Riesgo de influenza aviar H5N1 y gusano barrenador en México', { stripNumbers: true });
@@ -126,11 +152,12 @@ assert(buildDataInventoryContext().includes('MARRANAS'), 'Inventario en vivo de 
 const cDir = buildMarranasChart({ message: 'Pronóstico MARRANAS para proteínas' });
 const cPar = buildMarranasChart({ message: 'Paridad de importación hacia México en MXN/kg' });
 const cNlp = buildMarranasChart({ message: 'Riesgo sanitario NLP por H5N1 y gusano barrenador' });
-assert(cDir && cDir.datasets.length === 2 && cDir.labels.length === 4, 'Gráfica direccional MARRANAS válida');
+const coveredSpecies = Object.values(artifact.summary.bySpecies).filter(sum => sum.seriesCount > 0).length;
+assert(coveredSpecies < 2 ? cDir === null : cDir && cDir.datasets.length === 2 && cDir.labels.length === coveredSpecies, 'Gráfica direccional refleja cobertura validada');
 assert(cPar && cPar.unit === 'MXN/kg' && cPar.labels.length === 4, 'Gráfica de paridad MXN/kg MARRANAS válida');
 assert(cNlp && cNlp.labels.length === 4, 'Gráfica de riesgo NLP MARRANAS válida');
 
 const orionChatFull = getChatReasoningContext({ message: '¿Qué dice MARRANAS sobre si sube o baja el cerdo y la res en México, la paridad de importación y el gusano barrenador?' });
-assert(orionChatFull.includes('MARRANAS') && orionChatFull.includes('SHAP') && orionChatFull.includes('Paridad de Importación') && orionChatFull.includes('Radar NLP'), 'ORION Chat debe recibir MARRANAS completo sin truncar');
+assert(orionChatFull.includes('MARRANAS') && orionChatFull.includes('Paridad de Importación') && orionChatFull.includes('Radar NLP'), 'ORION Chat debe recibir el contexto disponible sin inventar pronósticos');
 
-console.log(`Protein ML Engine: OK · ${artifact.version} · ${artifact.stats.activeModels} modelos activos, ${artifact.stats.totalObservationsIngested} obs reales, 4 especies x 5 regiones, exactitud WF ${artifact.stats.avgWalkForwardDirectionalAccuracyPct}%, Paridad 4/4 especies (USD/MXN=${artifact.importParity.fxRates.usdMxn}), NLP Eventos ${artifact.nlpEvents.stats.relevantEventsDetected} detectados, Closed-Loop Audit ${audit.summary.totalEvaluated} evals (P80 ${audit.summary.conformal80CoveragePct}%, MAPE ${audit.summary.avgMapePct}%), ${alerts.length} alertas tempranas MARRANAS, integración nativa ORION (MCP + Auto-Charts + Chat + Informes sin cifras) verificada.`);
+console.log(`Protein ML Engine: OK · ${artifact.version} · ${active.length} series publicadas de ${artifact.forecasts.length}, ${artifact.stats.totalObservationsIngested} observaciones, acierto histórico ${artifact.stats.avgWalkForwardDirectionalAccuracyPct}%, ${audit.summary.totalEvaluated} evaluaciones prospectivas, ${alerts.length} alertas contextuales/validadas. Cobertura real y ausencia de predicciones locales no acreditadas verificadas.`);

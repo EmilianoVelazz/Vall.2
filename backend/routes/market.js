@@ -186,7 +186,7 @@ function serveProteinMLForecasts(req, res) {
         summary: artifact.summary,
         importParity: artifact.importParity || null,
         livestockMargins: buildLivestockMarginReport({ proteinArtifact: artifact }),
-        nlpEvents: artifact.nlpEvents || require('../ml/protein-nlp-events').loadCachedNlpEvents() || null,
+        nlpEvents: artifact.nlpEvents || null,
         transmission: artifact.transmission,
         closedLoopAudit: audit ? {
             generatedAt: audit.generatedAt,

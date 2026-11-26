@@ -288,6 +288,7 @@ app.use(safeErrorHandler);
 // ── Commodity warmer ──────────────────────────────────────────────────────────
 // Pasa true si server.js se ejecuta directamente (no como módulo serverless)
 const RUN_BACKGROUND_JOBS = String(process.env.RUN_BACKGROUND_JOBS || 'true').toLowerCase() !== 'false'; // false en réplicas que solo sirven HTTP
+if (require.main === module) require('./ml/protein-ml-engine').installBundledProteinModel();
 initCommodityWarmer(require.main === module && RUN_BACKGROUND_JOBS);
 // ── SNIIM warmer ──────────────────────────────────────────────────────────────
 if (require.main === module && RUN_BACKGROUND_JOBS) {

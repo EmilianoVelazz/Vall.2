@@ -1,0 +1,11 @@
+{
+  "version": "orion-protein-ml-v7.0-purged",
+  "validationProtocol": "purged_prequential_v1",
+  "generatedAt": "2026-11-26T19:55:15.678Z",
+  "dataFingerprint": "ca4ca3480ded240ea0fb5c2e14b353259ecc380d5fb4638d65a3bd9a53234eff",
+  "sha256": "cfa91478164059ff89b6368df4bbec68b22b31ef2d4ed7834559ac55ee1c64b1",
+  "totalSeries": 90,
+  "publishedSeries": 14,
+  "abstainedSeries": 76,
+  "notice": "Validación histórica interna; no equivale a resultados prospectivos ni garantiza rendimientos."
+}

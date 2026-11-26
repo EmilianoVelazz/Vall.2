@@ -29,9 +29,10 @@ const { assessAdaptiveForecast } = require('./adaptive-forecast');
 const { assessMultivariateForecast, alignMultivariateSeries, estimateCrossAssetElasticities } = require('./multivariate-forecast');
 const { analyzeMarketAnomalies } = require('./anomaly-detector');
 const { loadCachedNlpEvents, computeNlpEventOverlay } = require('./protein-nlp-events');
+const {MODEL_VERSION, VALIDATION_PROTOCOL, targetDate, seriesFreshness, publicationReasons} = require('./protein-forecast-policy');
 
 const PROTEIN_ML_BRAND = 'MARRANAS';
-const PROTEIN_ML_VERSION = 'marranas-ml-v6.0-nlp-events';
+const PROTEIN_ML_VERSION = MODEL_VERSION;
 const PROTEIN_ML_CACHE_FILE = path.resolve(__dirname, '../cache/protein-ml-forecasts.json');
 
 const SPECIES_META = Object.freeze({
@@ -592,6 +593,7 @@ function selectExogenousForSeries(seriesDef, exogenousPools = {}) {
 // ── Transfer Learning: Panel Global por Especie (De-biased Local Intercept) ─
 function buildSpeciesPanelPriors(seriesCatalog = [], enrichedExog = {}, now = Date.now()) {
     const priors = {};
+    const historical = new Map();
     for (const sp of Object.keys(SPECIES_META)) {
         const rows = [];
         const labels = [];
@@ -640,6 +642,21 @@ function buildSpeciesPanelPriors(seriesCatalog = [], enrichedExog = {}, now = Da
             priors[sp] = {
                 sampleSize: rows.length,
                 sourceSeries: spSeries.length,
+                trainedThrough: new Date(now).toISOString(),
+                at(cutoff) {
+                    const cutoffMs = Date.parse(cutoff);
+                    if (!Number.isFinite(cutoffMs) || cutoffMs > now) return null;
+                    // El panel global se reajusta con el mes ya cerrado. Se
+                    // comparte entre series y se limita su memoria histórica.
+                    const date = new Date(cutoffMs);
+                    const asOf = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1) - 1;
+                    const key = String(asOf);
+                    if (!historical.has(key)) {
+                        if (historical.size >= 96) historical.delete(historical.keys().next().value);
+                        historical.set(key, buildSpeciesPanelPriors(seriesCatalog, enrichedExog, asOf));
+                    }
+                    return historical.get(key)[sp] || null;
+                },
                 predictProba(vector, localBaseRate = 0.5) {
                     const pL = logitPrior ? logitPrior.predictProba(vector) : 0.5;
                     const pG = gbdtPrior ? gbdtPrior.predictProba(vector) : 0.5;
@@ -740,7 +757,8 @@ function buildCausalExplanation({ featureContribs = [], baseLogOdds = 0, probUpP
     }
 
     return {
-        method: 'additive_logit_treeshap_v4.1',
+        method: 'weighted_log_odds_attribution_approximate',
+        interpretation: 'Asociaciones estadísticas aproximadas; no demuestran causas ni efectos de una intervención.',
         neutralBaselinePct: 50,
         finalProbUpPct: probUpPct,
         netDeltaPts,
@@ -755,6 +773,7 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
     const startIdx = 6;
     const allX = [];
     const allY = [];
+    const allCutoffs = [], allTargets = [];
 
     for (let t = startIdx; t < n - horizonSteps; t++) {
         const cur = aligned[t].value;
@@ -763,15 +782,19 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
         const { vector } = buildUnifiedFeatures(aligned, t, { feedLag, cadence, fxDriver, fxInvert, upstreamKey, cotKey, spreadKey, parityKey });
         allX.push(vector);
         allY.push(fut > cur ? 1 : 0);
+        allCutoffs.push(aligned[t].date);
+        allTargets.push(aligned[t + horizonSteps].date);
     }
 
     const latestFeat = buildUnifiedFeatures(aligned, n - 1, { feedLag, cadence, fxDriver, fxInvert, upstreamKey, cotKey, spreadKey, parityKey });
     const latestX = latestFeat.vector;
+    const matchingPanel = horizonSteps === ({daily: 20, weekly: 4, monthly: 1})[cadence] ? panelPrior : null;
+    const finalPanel = typeof matchingPanel?.at === 'function' ? matchingPanel.at(aligned.at(-1).date) : null;
 
     // Anti-overfitting guard: series with < 28 causal samples (e.g. CEPEA 26d, LatAm 17w)
     // MUST use the de-biased Species Panel Transfer + Local Causal Recency blend instead of fitting 14 weights on ~10 rows!
     if (allX.length < 28) {
-        if (!panelPrior || allX.length < 4) {
+        if (!finalPanel || allX.length < 4) {
             return {
                 available: false,
                 reason: 'Serie corta sin suficientes ventanas causales',
@@ -784,29 +807,37 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
         let upCount = 0;
         let evalN = 0;
         const evalFrom = Math.max(2, Math.floor(allX.length * 0.35));
-        for (let i = evalFrom; i < allX.length; i++) {
-            const prevY = allY.slice(0, i);
+        let baselineHits = 0, baselineBrier = 0;
+        const evaluationWindows = [];
+        for (let i = evalFrom; i < allX.length; i += horizonSteps) {
+            const prevY = allY.filter((_, k) => k < i && allTargets[k] <= allCutoffs[i]);
+            if (prevY.length < 2) continue;
+            const prior = matchingPanel.at(allCutoffs[i]);
+            if (!prior) continue;
             const causalBase = (prevY.reduce((a, b) => a + b, 0) + 1.5) / (prevY.length + 3);
-            const pPanel = panelPrior.predictProba(allX[i], causalBase);
+            const pPanel = prior.predictProba(allX[i], causalBase);
             // Smooth 65% calibrated panel + 35% smoothed causal local base rate
             const p = clamp(0.65 * pPanel + 0.35 * causalBase, 0.12, 0.88);
             if ((p >= 0.5 ? 1 : 0) === allY[i]) hits += 1;
             brierSum += (p - allY[i]) ** 2;
             if (allY[i] === 1) upCount += 1;
+            baselineHits += Number(Number(causalBase >= 0.5) === allY[i]);
+            baselineBrier += (causalBase - allY[i]) ** 2;
+            evaluationWindows.push({cutoff: allCutoffs[i], targetDate: allTargets[i], panelTrainedThrough: prior.trainedThrough});
             evalN += 1;
         }
         const finalLocalBase = (allY.reduce((a, b) => a + b, 0) + 1.5) / (allY.length + 3);
-        const pPanelFinal = panelPrior.predictProba(latestX, finalLocalBase);
+        const pPanelFinal = finalPanel.predictProba(latestX, finalLocalBase);
         const probUp = clamp(0.65 * pPanelFinal + 0.35 * finalLocalBase, 0.12, 0.88);
-        const pExplain = panelPrior.explainLogOdds
-            ? panelPrior.explainLogOdds(latestX, finalLocalBase)
+        const pExplain = finalPanel.explainLogOdds
+            ? finalPanel.explainLogOdds(latestX, finalLocalBase)
             : { baseLogOdds: Math.log(finalLocalBase / (1 - finalLocalBase)), contribs: Array(latestX.length).fill(0) };
         const localBaseLogit = Math.log(clamp(finalLocalBase, 0.15, 0.85) / (1 - clamp(finalLocalBase, 0.15, 0.85)));
         const shortBaseLogOdds = 0.65 * pExplain.baseLogOdds + 0.35 * localBaseLogit;
         const shortContribs = pExplain.contribs.map(v => 0.65 * v);
         const brier = brierSum / Math.max(1, evalN);
-        const baseRate = Math.max(upCount / Math.max(1, evalN), 1 - upCount / Math.max(1, evalN));
-        const climBrier = Math.max(0.05, (upCount / Math.max(1, evalN)) * (1 - upCount / Math.max(1, evalN)));
+        const baseRate = Math.max(baselineHits / Math.max(1, evalN), upCount / Math.max(1, evalN), 1 - upCount / Math.max(1, evalN));
+        const climBrier = baselineBrier / Math.max(1, evalN);
         return {
             available: true,
             mode: 'panel_transfer_calibrated',
@@ -816,8 +847,9 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
             directionalAccuracyPct: round((hits / Math.max(1, evalN)) * 100, 1),
             baselineAccuracyPct: round(baseRate * 100, 1),
             brierScore: round(brier, 4),
-            brierSkillPct: round((1 - brier / climBrier) * 100, 1),
+            brierSkillPct: climBrier > 0 ? round((1 - brier / climBrier) * 100, 1) : null,
             evalWindows: evalN,
+            validationProtocol: VALIDATION_PROTOCOL, evaluationWindows,
             modelWeights: { logit: 0, gbdt: 0, panelPrior: 0.65, recencyBase: 0.35 },
             marginZ: latestFeat.marginZ,
             feedImpPct: latestFeat.feedImpPct,
@@ -830,9 +862,8 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
     }
 
     const minTrain = Math.max(20, Math.min(36, Math.floor(allX.length * 0.52)));
-    const maxEval = Math.min(64, allX.length - minTrain);
+    const maxEval = Math.min(64 * horizonSteps, allX.length - minTrain);
     const evalStart = allX.length - maxEval;
-    const shrinkLocal = allX.length / (allX.length + 42);
 
     // Compact 5-feature slice (cadence-aware: monthly prioritizes YoY + seasonality + upstream)
     const compactSlice = v => (cadence === 'monthly'
@@ -864,9 +895,12 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
     let hitsStack = 0;
     let upCount = 0;
     let evalCount = 0;
+    let baselineHits = 0, baselineBrierSum = 0;
+    const evaluationWindows = [];
 
     // Helper: exponential causal Brier-pruned softmax weights
-    const computeCausalWeights = (bMap, hasGbdt, hasPanel) => {
+    const computeCausalWeights = (bMap, hasGbdt, hasPanel, sampleCount = allX.length) => {
+        const shrinkLocal = sampleCount / (sampleCount + 42);
         const active = candidates.filter(c => (c !== 'gbdt' || hasGbdt) && (c !== 'panel' || hasPanel));
         const minB = Math.min(...active.map(c => bMap[c]));
         const raw = {};
@@ -883,9 +917,15 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
         return norm;
     };
 
-    for (let i = evalStart; i < allX.length; i++) {
-        const subX = allX.slice(0, i);
-        const subY = allY.slice(0, i);
+    for (let i = evalStart; i < allX.length; i += horizonSteps) {
+        const knownIndices = allY.map((_, k) => k).filter(k => k < i && allTargets[k] <= allCutoffs[i]);
+        if (knownIndices.length < 20) continue;
+        const subX = knownIndices.map(k => allX[k]);
+        const subY = knownIndices.map(k => allY[k]);
+        const prior = typeof matchingPanel?.at === 'function' ? matchingPanel.at(allCutoffs[i]) : null;
+        const knownEvaluations = evaluationWindows.filter(row => row.targetDate <= allCutoffs[i]);
+        for (const c of candidates) runBrier[c] = knownEvaluations.length
+            ? mean(knownEvaluations.map(row => row.candidateErrors[c])) : 0.24;
         const localRate = (subY.reduce((a, b) => a + b, 0) + 1.5) / (subY.length + 3);
         const logitFullM = fitLogisticL2(subX, subY, { lambda: 2.4 });
         const logitCompactM = fitLogisticL2(subX.map(compactSlice), subY, { lambda: 1.6 });
@@ -897,11 +937,11 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
             logitCompact: logitCompactM ? logitCompactM.predictProba(compactSlice(allX[i])) : localRate,
             supplySeasonal: supplyM ? supplyM.predictProba(supplySeasonalSlice(allX[i])) : localRate,
             gbdt: gbdtM ? gbdtM.predictProba(allX[i]) : localRate,
-            panel: panelPrior ? panelPrior.predictProba(allX[i], localRate) : localRate,
+            panel: prior ? prior.predictProba(allX[i], localRate) : localRate,
             recency: predictRecencyBase(subY, allX[i]),
         };
 
-        const w = computeCausalWeights(runBrier, Boolean(gbdtM), Boolean(panelPrior));
+        const w = computeCausalWeights(runBrier, Boolean(gbdtM), Boolean(prior), subY.length);
         let pStack = 0;
         for (const c of candidates) pStack += w[c] * preds[c];
         pStack = clamp(pStack, 0.08, 0.92);
@@ -914,9 +954,16 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
         brierStack += (pStack - y) ** 2;
         if ((pStack >= 0.5 ? 1 : 0) === y) hitsStack += 1;
         if (y === 1) upCount += 1;
+        baselineHits += Number(Number(localRate >= 0.5) === y);
+        baselineBrierSum += (localRate - y) ** 2;
+        evaluationWindows.push({cutoff: allCutoffs[i], targetDate: allTargets[i],
+            probabilityUp: pStack, baselineProbabilityUp: localRate,
+            latestTrainingTarget: allTargets[knownIndices.at(-1)],
+            latestWeightTarget: knownEvaluations.at(-1)?.targetDate || null,
+            panelTrainedThrough: prior?.trainedThrough || null,
+            candidateErrors: Object.fromEntries(candidates.map(c => [c, (preds[c] - y) ** 2]))});
         evalCount += 1;
 
-        for (const c of candidates) runBrier[c] = brierSums[c] / evalCount;
     }
 
     if (evalCount < 3) {
@@ -937,11 +984,11 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
         logitCompact: finalLogitCompact ? finalLogitCompact.predictProba(compactSlice(latestX)) : finalLocalRate,
         supplySeasonal: finalSupply ? finalSupply.predictProba(supplySeasonalSlice(latestX)) : finalLocalRate,
         gbdt: finalGbdt ? finalGbdt.predictProba(latestX) : finalLocalRate,
-        panel: panelPrior ? panelPrior.predictProba(latestX, finalLocalRate) : finalLocalRate,
+        panel: finalPanel ? finalPanel.predictProba(latestX, finalLocalRate) : finalLocalRate,
         recency: predictRecencyBase(allY, latestX),
     };
 
-    const finalW = computeCausalWeights(avgBrier, Boolean(finalGbdt), Boolean(panelPrior));
+    const finalW = computeCausalWeights(avgBrier, Boolean(finalGbdt), Boolean(finalPanel));
     let probUp = 0;
     for (const c of candidates) probUp += finalW[c] * finalPreds[c];
     probUp = clamp(probUp, 0.08, 0.92);
@@ -975,8 +1022,8 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
         stackedBase += finalW.gbdt * ex.baseLogOdds;
         for (let f = 0; f < numFeats; f++) stackedContribs[f] += finalW.gbdt * (ex.contribs[f] || 0);
     }
-    if (panelPrior && panelPrior.explainLogOdds && finalW.panel > 0) {
-        const ex = panelPrior.explainLogOdds(latestX, finalLocalRate);
+    if (finalPanel && finalPanel.explainLogOdds && finalW.panel > 0) {
+        const ex = finalPanel.explainLogOdds(latestX, finalLocalRate);
         stackedBase += finalW.panel * ex.baseLogOdds;
         for (let f = 0; f < numFeats; f++) stackedContribs[f] += finalW.panel * (ex.contribs[f] || 0);
     }
@@ -995,8 +1042,8 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
     }
 
     const stackAcc = hitsStack / evalCount;
-    const baseRate = Math.max(upCount / evalCount, 1 - upCount / evalCount);
-    const climBrier = Math.max(0.05, (upCount / evalCount) * (1 - upCount / evalCount));
+    const baseRate = Math.max(baselineHits / evalCount, upCount / evalCount, 1 - upCount / evalCount);
+    const climBrier = baselineBrierSum / evalCount;
 
     const topSignals = finalGbdt && finalW.gbdt >= 0.15
         ? finalGbdt.featureImportances(PANEL_FEATURE_NAMES).slice(0, 4)
@@ -1015,8 +1062,9 @@ function runWalkForwardMetaStack(aligned, { horizonSteps, feedLag, cadence, fxDr
         directionalAccuracyPct: round(stackAcc * 100, 1),
         baselineAccuracyPct: round(baseRate * 100, 1),
         brierScore: round(avgBS, 4),
-        brierSkillPct: round((1 - avgBS / climBrier) * 100, 1),
+        brierSkillPct: climBrier > 0 ? round((1 - avgBS / climBrier) * 100, 1) : null,
         evalWindows: evalCount,
+        validationProtocol: VALIDATION_PROTOCOL, evaluationWindows,
         modelWeights: {
             logitFull: round(finalW.logitFull, 2),
             logitCompact: round(finalW.logitCompact, 2),
@@ -1108,10 +1156,12 @@ function extractPointForecast(res, isArx = false) {
     const high80 = Number(f.conformal80?.upperBound ?? f.high80 ?? f.upperBound ?? f.high);
     const low90 = Number(f.conformal90?.lowerBound ?? f.low90 ?? low80);
     const high90 = Number(f.conformal90?.upperBound ?? f.high90 ?? high80);
-    const imp = isArx
-        ? Number(res?.evaluation?.improvementVsBaselinePct)
-        : Number(res?.evaluation?.improvementPct);
-    const cov80 = Number(f.conformal80?.empiricalCoveragePct ?? res?.evaluation?.conformal80CoveragePct);
+    const imp = isArx ? res?.evaluation?.improvementVsBaselinePct
+        : res?.evaluation?.improvementPct ?? (Number.isFinite(res?.evaluation?.improvement)
+            ? Math.min(res.evaluation.improvement, res.evaluation.nonOverlapping?.improvement ?? Infinity) * 100 : null);
+    const calibration80 = f.conformal80?.empiricalCoveragePct
+        ?? (Number.isFinite(f.conformal80?.empiricalCoverage) ? f.conformal80.empiricalCoverage * 100 : null);
+    const cov80 = isArx ? res?.evaluation?.conformal80CoveragePct : null;
     return {
         value: val,
         low80: Number.isFinite(low80) && low80 > 0 ? low80 : null,
@@ -1120,6 +1170,8 @@ function extractPointForecast(res, isArx = false) {
         high90: Number.isFinite(high90) && high90 > 0 ? high90 : null,
         improvementPct: Number.isFinite(imp) ? imp : null,
         conformal80CoveragePct: Number.isFinite(cov80) ? cov80 : null,
+        calibration80CoveragePct: Number.isFinite(calibration80) ? calibration80 : null,
+        evaluationPoints: isArx ? res?.evaluation?.evaluationPoints : res?.evaluation?.nonOverlapping?.evaluationPoints,
     };
 }
 
@@ -1146,6 +1198,13 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
         : { ...exogenousPools, FEED_INDEX: buildCompositeFeedSeries(exogenousPools, now) };
 
     const last = points.at(-1);
+    const freshness = seriesFreshness(last.date, seriesDef.cadence, now);
+    if (!freshness.fresh) return {symbol: seriesDef.symbol, label: seriesDef.label, species: seriesDef.species,
+        region: seriesDef.region, country: seriesDef.country, unit: seriesDef.unit, cadence: seriesDef.cadence,
+        available: false, observations: points.length, lastDate: last.date, freshness,
+        reason: 'Observaciones atrasadas; se conserva la referencia histórica sin publicar un pronóstico.',
+        publicationReasons: ['stale_observations'], baselineReference: {value: last.value, observedAt: last.date},
+        primaryForecast: null, horizons: []};
     const first = points[0];
     const regime = computeSeriesRegime(points);
     const speciesMeta = SPECIES_META[seriesDef.species] || SPECIES_META.cerdo;
@@ -1214,103 +1273,31 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
             panelPrior,
         });
 
-        const arxPt = arx?.eligible ? extractPointForecast(arx, true) : null;
-        const arxAny = extractPointForecast(arx, true);
-        const adapPt = adaptive?.eligible ? extractPointForecast(adaptive, false) : null;
-        const adapAny = extractPointForecast(adaptive, false);
-
-        let predictedValue = last.value;
-        let low80 = null;
-        let high80 = null;
-        let low90 = null;
-        let high90 = null;
-        let modelUsed = 'damped_regime_panel';
-        let maeImprovementPct = null;
-        let conformal80CoveragePct = null;
-
-        if (arxPt && adapPt) {
-            const wArx = (arxPt.improvementPct ?? 0) >= (adapPt.improvementPct ?? 0) ? 0.65 : 0.45;
-            predictedValue = wArx * arxPt.value + (1 - wArx) * adapPt.value;
-            low80 = arxPt.low80 ?? adapPt.low80;
-            high80 = arxPt.high80 ?? adapPt.high80;
-            low90 = arxPt.low90 ?? adapPt.low90;
-            high90 = arxPt.high90 ?? adapPt.high90;
-            modelUsed = 'ridge_arx_adaptive_conformal';
-            maeImprovementPct = round(Math.max(arxPt.improvementPct ?? 0, adapPt.improvementPct ?? 0), 2);
-            conformal80CoveragePct = round(arxPt.conformal80CoveragePct, 1);
-        } else if (arxPt) {
-            predictedValue = arxPt.value;
-            low80 = arxPt.low80;
-            high80 = arxPt.high80;
-            low90 = arxPt.low90;
-            high90 = arxPt.high90;
-            modelUsed = 'ridge_arx_conformal';
-            maeImprovementPct = round(arxPt.improvementPct, 2);
-            conformal80CoveragePct = round(arxPt.conformal80CoveragePct, 1);
-        } else if (adapPt) {
-            predictedValue = adapPt.value;
-            low80 = adapPt.low80;
-            high80 = adapPt.high80;
-            low90 = adapPt.low90;
-            high90 = adapPt.high90;
-            modelUsed = `adaptive_${adaptive.selectedStrategy || 'ensemble'}`;
-            maeImprovementPct = round(adapPt.improvementPct, 2);
-        } else if (arxAny || adapAny) {
-            const src = arxAny || adapAny;
-            // Cautious shrinkage toward last observed level when neither beats random-walk MAE cleanly
-            predictedValue = 0.55 * src.value + 0.45 * last.value;
-            low80 = src.low80;
-            high80 = src.high80;
-            low90 = src.low90;
-            high90 = src.high90;
-            modelUsed = arxAny ? 'ridge_arx_cautious_conformal' : 'adaptive_cautious';
-            maeImprovementPct = null;
-            conformal80CoveragePct = round(src.conformal80CoveragePct, 1);
-        } else {
-            const recentChg = clamp((regime?.change4Pct || 0) / 100, -0.07, 0.07) * 0.3;
-            predictedValue = last.value * (1 + recentChg);
-            const band = Math.max(0.025, ((regime?.volatilityShortPct || 3) / 100) * Math.sqrt(hSpec.steps) * 1.15);
-            low80 = predictedValue * (1 - band);
-            high80 = predictedValue * (1 + band);
-            low90 = predictedValue * (1 - band * 1.35);
-            high90 = predictedValue * (1 + band * 1.35);
-        }
-
-        predictedValue = clamp(predictedValue, last.value * 0.68, last.value * 1.42);
-        let expectedChangePct = ((predictedValue - last.value) / last.value) * 100;
-
-        // Combine Brier-Pruned Meta-Stack probability with continuous ARX/Adaptive Z-signal
-        const volScale = Math.max(1.2, (regime?.volatilityShortPct || 2.5) * Math.sqrt(Math.min(6, hSpec.steps)));
-        const continuousProbUp = sigmoid((expectedChangePct / volScale) * 1.2) * 100;
-        let probUpPct = continuousProbUp;
-        if (meta.available) {
-            const wMeta = meta.directionalAccuracyPct >= 62 ? 0.82 : meta.directionalAccuracyPct >= 54 ? 0.7 : 0.56;
-            probUpPct = wMeta * meta.probUpPct + (1 - wMeta) * continuousProbUp;
-        }
-        probUpPct = round(clamp(probUpPct, 10, 90), 1);
-        // Closed-loop real-world probability calibration when live realized Brier was noisy
-        const liveShrink = Number(feedback?.calibration?.probShrinkage || 0);
-        if (liveShrink > 0 && liveShrink <= 0.3) {
-            probUpPct = round(clamp(50 + (probUpPct - 50) * (1 - liveShrink), 12, 88), 1);
-        }
-        const probDownPct = round(100 - probUpPct, 1);
-        const direction = classifyDirectionCoherent(probUpPct, expectedChangePct);
-
-        if (direction === 'BAJA' && expectedChangePct > 0 && expectedChangePct < 0.8 && probUpPct <= 38) {
-            const tilt = -Math.min(1.2, ((50 - probUpPct) / 50) * (regime?.volatilityShortPct || 1.5) * 0.45);
-            expectedChangePct = tilt;
-            predictedValue = last.value * (1 + tilt / 100);
-        } else if (direction === 'ALZA' && expectedChangePct < 0 && expectedChangePct > -0.8 && probUpPct >= 62) {
-            const tilt = Math.min(1.2, ((probUpPct - 50) / 50) * (regime?.volatilityShortPct || 1.5) * 0.45);
-            expectedChangePct = tilt;
-            predictedValue = last.value * (1 + tilt / 100);
-        }
-
-        const dirAcc = meta.available ? meta.directionalAccuracyPct : (adaptive?.evaluation?.directionAccuracyPct ?? null);
+        const point = [
+            arx?.eligible ? {...extractPointForecast(arx, true), model: 'ridge_arx_conformal'} : null,
+            adaptive?.eligible ? {...extractPointForecast(adaptive), model: 'adaptive_' + (adaptive.selectedStrategy || 'ensemble')} : null,
+        ].filter(item => item && Number.isFinite(item.value))
+            .sort((a, b) => (b.improvementPct ?? -Infinity) - (a.improvementPct ?? -Infinity))[0] || null;
+        const predictedValue = point?.value ?? last.value;
+        const low80 = point?.low80 ?? null, high80 = point?.high80 ?? null;
+        const low90 = point?.low90 ?? null, high90 = point?.high90 ?? null;
+        const modelUsed = point?.model || 'abstained_baseline';
+        const maeImprovementPct = point?.improvementPct ?? null;
+        const conformal80CoveragePct = point?.conformal80CoveragePct ?? null;
+        const expectedChangePct = ((predictedValue - last.value) / last.value) * 100;
+        const probUpPct = meta.available ? meta.probUpPct : null;
+        const probDownPct = meta.available ? meta.probDownPct : null;
+        const direction = meta.available ? classifyDirectionCoherent(probUpPct, expectedChangePct) : 'LATERAL';
+        const dirAcc = meta.available ? meta.directionalAccuracyPct : null;
         const brierSkill = meta.available ? meta.brierSkillPct : null;
-        const confidence = (points.length >= 35 && dirAcc != null && dirAcc >= 62 && (brierSkill == null || brierSkill >= -4))
-            ? 'Alta'
-            : (points.length >= 16 && (dirAcc == null || dirAcc >= 54) ? 'Media' : 'Cautela');
+        const target = targetDate(last.date, hSpec.steps, seriesDef.cadence);
+        const rejected = publicationReasons({point, directional: meta, freshness, target, now});
+        if (![low80, high80, low90, high90].every(Number.isFinite)
+            || !(low90 <= low80 && low80 <= predictedValue && predictedValue <= high80 && high80 <= high90)) {
+            rejected.push('invalid_prediction_interval');
+        }
+        const confidence = rejected.length ? 'Sin validar'
+            : meta.evalWindows >= 24 && brierSkill >= 5 && dirAcc >= meta.baselineAccuracyPct + 5 ? 'Alta' : 'Media';
 
         const marginState = meta.marginZ != null
             ? (meta.marginZ <= -1.0 ? 'Margen comprimido vs ración (presión alcista futura)'
@@ -1318,15 +1305,8 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
                     : 'Margen equilibrado vs ración')
             : null;
 
-        const liveBandScale = clamp(Number(feedback?.calibration?.bandScale || 1), 0.9, 1.35);
-        const baseLow80 = Number.isFinite(low80) && low80 > 0 ? Math.min(low80, predictedValue * 0.995) : predictedValue * 0.95;
-        const baseHigh80 = Number.isFinite(high80) && high80 > 0 ? Math.max(high80, predictedValue * 1.005) : predictedValue * 1.05;
-        const safeLow80 = predictedValue - (predictedValue - baseLow80) * liveBandScale;
-        const safeHigh80 = predictedValue + (baseHigh80 - predictedValue) * liveBandScale;
-        const baseLow90 = Number.isFinite(low90) && low90 > 0 ? Math.min(low90, baseLow80) : baseLow80 * 0.97;
-        const baseHigh90 = Number.isFinite(high90) && high90 > 0 ? Math.max(high90, baseHigh80) : baseHigh80 * 1.03;
-        const safeLow90 = predictedValue - (predictedValue - baseLow90) * liveBandScale;
-        const safeHigh90 = predictedValue + (baseHigh90 - predictedValue) * liveBandScale;
+        const safeLow80 = low80, safeHigh80 = high80;
+        const safeLow90 = low90, safeHigh90 = high90;
 
         const explainability = buildCausalExplanation({
             featureContribs: meta.logOddsAttribution?.contribs || [],
@@ -1337,6 +1317,9 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
 
         horizonForecasts.push({
             code: hSpec.code,
+            eligible: rejected.length === 0,
+            publicationReasons: rejected,
+            targetDate: target,
             horizonLabel: hSpec.label,
             steps: hSpec.steps,
             direction,
@@ -1356,12 +1339,16 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
             feedMarginState: marginState,
             explainability,
             validation: {
+                protocol: VALIDATION_PROTOCOL,
+                nonOverlappingWindows: true,
                 walkForwardDirectionalAccuracyPct: dirAcc,
                 baselineAccuracyPct: meta.available ? meta.baselineAccuracyPct : null,
                 brierScore: meta.available ? meta.brierScore : null,
                 brierSkillPct: brierSkill,
                 maeImprovementPct,
                 conformal80CoveragePct,
+                calibration80CoveragePct: point?.calibration80CoveragePct ?? null,
+                intervalCoverageScope: conformal80CoveragePct == null ? 'calibration_only' : 'prequential_out_of_sample',
                 evalWindows: meta.available ? meta.evalWindows : (adaptive?.evaluation?.windows || null),
             },
             drivers: (meta.topSignals?.length ? meta.topSignals : arx?.drivers || []).slice(0, 4),
@@ -1374,7 +1361,8 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
         anomaly = res?.assets?.[seriesDef.symbol] || null;
     } catch { anomaly = null; }
 
-    const primary = horizonForecasts.find(h => h.code === '1m') || horizonForecasts[0] || null;
+    const publishedHorizons = horizonForecasts.filter(h => h.eligible);
+    const primary = publishedHorizons.find(h => h.code === '1m') || publishedHorizons[0] || null;
 
     return {
         symbol: seriesDef.symbol,
@@ -1392,6 +1380,11 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
         source: seriesDef.source,
         sourceUrl: seriesDef.url || null,
         available: Boolean(primary),
+        validationProtocol: VALIDATION_PROTOCOL,
+        freshness,
+        reason: primary ? null : 'El modelo se abstiene: faltan datos recientes o ventaja validada frente a la referencia.',
+        baselineReference: {method: 'last_observed_value', value: last.value, observedAt: last.date},
+        rejectedHorizons: horizonForecasts.filter(h => !h.eligible).map(h => ({code: h.code, targetDate: h.targetDate, reasons: h.publicationReasons, validation: h.validation})),
         observations: points.length,
         dateRange: { start: first.date, end: last.date },
         lastDate: last.date,
@@ -1407,13 +1400,14 @@ function forecastProteinSeries(seriesDef, exogenousPools = {}, { now = Date.now(
             summary: anomaly.summary || null,
         } : null,
         primaryForecast: primary,
-        horizons: horizonForecasts,
+        horizons: publishedHorizons,
         closedLoopFeedback: feedback ? {
             evaluations: feedback.evaluations,
             directionalHitRatePct: feedback.directionalHitRatePct,
             conformal80CoveragePct: feedback.conformal80CoveragePct,
             avgMapePct: feedback.avgMapePct,
             calibration: feedback.calibration,
+            calibrationApplied: false,
         } : null,
     };
 }
@@ -1662,74 +1656,27 @@ function computeImportParityDashboard(seriesCatalog = [], enrichedExog = {}, now
 }
 
 function applyNlpOverlayToForecast(item, nlpEvents) {
-    if (!item?.available || !nlpEvents) return item;
+    if (!nlpEvents) return item;
     const overlay = computeNlpEventOverlay(nlpEvents, item.species, item.region);
-    if (!overlay || Math.abs(overlay.probDeltaPts) < 0.3) return item;
-
-    const patchHorizon = h => {
-        if (!h) return h;
-        const baseProb = Number(h.probUpPct);
-        if (!Number.isFinite(baseProb)) return h;
-        const nextProb = round(clamp(baseProb + overlay.probDeltaPts, 12, 88), 1);
-        const appliedDelta = round(nextProb - baseProb, 1);
-        if (Math.abs(appliedDelta) < 0.1) return h;
-        const nextDown = round(100 - nextProb, 1);
-        const nextDir = nextProb >= 55 ? 'ALZA' : nextProb <= 45 ? 'BAJA' : 'LATERAL';
-
-        let explainability = h.explainability;
-        if (explainability && Array.isArray(explainability.factors)) {
-            const nlpFactor = {
-                id: 'nlp_sanitary_trade',
-                label: 'Eventos Sanitarios / Comercio (NLP)',
-                impactPctPts: appliedDelta,
-                direction: appliedDelta >= 0 ? 'ALZA' : 'BAJA',
-                headline: overlay.leadHeadline?.title || null,
-            };
-            const factors = [...explainability.factors.filter(f => f.id !== 'nlp_sanitary_trade'), nlpFactor]
-                .sort((a, b) => Math.abs(b.impactPctPts) - Math.abs(a.impactPctPts));
-            const topPos = factors.filter(f => f.impactPctPts > 0.4).slice(0, 2);
-            const topNeg = factors.filter(f => f.impactPctPts < -0.4).slice(0, 2);
-            const posTxt = topPos.length ? `impulsado al alza por ${topPos.map(f => `${f.label.toLowerCase()} (+${f.impactPctPts} pts)`).join(' y ')}` : '';
-            const negTxt = topNeg.length ? `presionado a la baja por ${topNeg.map(f => `${f.label.toLowerCase()} (${f.impactPctPts} pts)`).join(' y ')}` : '';
-            const narrative = posTxt && negTxt
-                ? `Probabilidad de subida ${nextProb}% (base neutra 50%): ${posTxt}, contrarrestado por ${negTxt}.`
-                : posTxt
-                    ? `Probabilidad de subida ${nextProb}% (base neutra 50%): ${posTxt}.`
-                    : negTxt
-                        ? `Probabilidad de subida ${nextProb}% (base neutra 50%): ${negTxt}.`
-                        : explainability.narrative;
-            explainability = {
-                ...explainability,
-                finalProbUpPct: nextProb,
-                netDeltaPts: round(nextProb - 50, 1),
-                narrative,
-                factors,
-            };
-        }
-
-        return {
-            ...h,
-            probUpPct: nextProb,
-            probDownPct: nextDown,
-            direction: nextDir,
-            nlpOverlay: { ...overlay, appliedDeltaPts: appliedDelta },
-            explainability,
-        };
-    };
-
-    const horizons = Array.isArray(item.horizons) ? item.horizons.map(patchHorizon) : item.horizons;
-    const primaryCode = item.primaryForecast?.code;
-    const primaryForecast = (Array.isArray(horizons) && primaryCode && horizons.find(h => h.code === primaryCode))
-        || patchHorizon(item.primaryForecast);
-    return {
-        ...item,
-        nlpRisk: overlay,
-        primaryForecast,
-        horizons,
-    };
+    if (!overlay) return item;
+    // El clasificador aporta contexto; no modifica probabilidades sin evaluar
+    // primero esa modificación en una validación temporal independiente.
+    const context = {...overlay, appliedDeltaPts: 0, calibrated: false, contextOnly: true};
+    const horizons = (item.horizons || []).map(h => ({...h, nlpOverlay: context}));
+    return {...item, nlpRisk: context, horizons,
+        primaryForecast: horizons.find(h => h.code === item.primaryForecast?.code) || item.primaryForecast};
 }
 
-function buildProteinMLReport({ seriesCatalog = [], exogenousPools = {}, ingestionStats = {}, closedLoopFeedback = null, nlpEvents = null, now = Date.now() } = {}) {
+function nlpSnapshotAsOf(snapshot, now) {
+    if (!snapshot || !Number.isFinite(Date.parse(snapshot.generatedAt)) || Date.parse(snapshot.generatedAt) > now) return null;
+    if (now - Date.parse(snapshot.generatedAt) > 2 * 86_400_000) return null;
+    const headlines = [...(snapshot.topEvents || []), ...Object.values(snapshot.bySpecies || {}).flatMap(bucket => bucket.topHeadlines || []),
+        ...Object.values(snapshot.bySpeciesRegion || {}).flatMap(regions => Object.values(regions)).flatMap(bucket => bucket.topHeadlines || [])];
+    if (headlines.some(item => !Number.isFinite(Date.parse(item.publishedAt)) || Date.parse(item.publishedAt) > now)) return null;
+    return snapshot;
+}
+
+function buildProteinMLReport({ seriesCatalog = [], exogenousPools = {}, ingestionStats = {}, closedLoopFeedback = null, nlpEvents = null, now = Date.now(), onProgress = null } = {}) {
     const feedComposite = buildCompositeFeedSeries(exogenousPools, now);
     const enrichedExog = {
         ...exogenousPools,
@@ -1771,11 +1718,12 @@ function buildProteinMLReport({ seriesCatalog = [], exogenousPools = {}, ingesti
 
     const panelPriors = buildSpeciesPanelPriors(seriesCatalog, enrichedExog, now);
 
-    const activeNlpEvents = nlpEvents || loadCachedNlpEvents() || null;
+    const activeNlpEvents = nlpSnapshotAsOf(nlpEvents || loadCachedNlpEvents(), now);
 
     const fbBySym = closedLoopFeedback?.feedbackBySymbol || {};
     const fbBySp = closedLoopFeedback?.bySpecies || {};
-    const results = seriesCatalog.map(def => {
+    const results = seriesCatalog.map((def, index) => {
+        onProgress?.({completed: index, total: seriesCatalog.length, symbol: def.symbol});
         const raw = forecastProteinSeries(def, enrichedExog, {
             now,
             panelPrior: panelPriors[def.species] || null,
@@ -1795,12 +1743,18 @@ function buildProteinMLReport({ seriesCatalog = [], exogenousPools = {}, ingesti
 
     return {
         model: PROTEIN_ML_BRAND,
-        displayName: 'MARRANAS · Motor ML de Proteínas',
+        displayName: 'ORION ML · Proteínas · validación temporal',
         version: PROTEIN_ML_VERSION,
+        validationProtocol: VALIDATION_PROTOCOL,
+        dataFingerprint: require('node:crypto').createHash('sha256').update(JSON.stringify({
+            series: seriesCatalog.map(def => ({symbol: def.symbol, unit: def.unit, cadence: def.cadence, points: sanitizeSeries(def.points, now)})),
+            drivers: Object.fromEntries(Object.entries(enrichedExog).map(([key, points]) => [key, sanitizeSeries(points, now)])),
+        })).digest('hex'),
         generatedAt: new Date(now).toISOString(),
         stats: {
             totalSeriesEvaluated: seriesCatalog.length,
             activeModels: valid.length,
+            abstainedSeries: results.length - valid.length,
             conformalAndAdaptiveModels: conformalModels,
             totalObservationsIngested: totalObservations,
             exogenousDriverSeries: Object.keys(enrichedExog).length,
@@ -1826,21 +1780,63 @@ function buildProteinMLReport({ seriesCatalog = [], exogenousPools = {}, ingesti
 
 function saveProteinMLArtifact(artifact, filePath = PROTEIN_ML_CACHE_FILE) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(artifact, null, 2), 'utf8');
+    const temporary = filePath + '.' + require('node:crypto').randomUUID() + '.tmp';
+    try {
+        fs.writeFileSync(temporary, JSON.stringify(artifact, null, 2), {encoding: 'utf8', mode: 0o600});
+        fs.renameSync(temporary, filePath);
+    } finally {
+        if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+    }
     return filePath;
+}
+
+function installBundledProteinModel({cacheFile = PROTEIN_ML_CACHE_FILE,
+    seedDirectory = path.join(__dirname, 'models'), now = Date.now()} = {}) {
+    try {
+        const manifest = JSON.parse(fs.readFileSync(path.join(seedDirectory, 'protein-v7.seed.json'), 'utf8'));
+        const packed = fs.readFileSync(path.join(seedDirectory, 'protein-v7.seed.json.gz'));
+        if (require('node:crypto').createHash('sha256').update(packed).digest('hex') !== manifest.sha256) return false;
+        const seed = JSON.parse(require('node:zlib').gunzipSync(packed, {maxOutputLength: 8 * 1024 * 1024}).toString('utf8'));
+        const generatedAt = Date.parse(seed.generatedAt);
+        if (seed.version !== PROTEIN_ML_VERSION || seed.validationProtocol !== VALIDATION_PROTOCOL
+            || !Number.isFinite(generatedAt) || generatedAt > now || now - generatedAt > 26 * 3600000
+            || !Array.isArray(seed.forecasts)) return false;
+        try {
+            const current = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+            if (current.version === PROTEIN_ML_VERSION && current.validationProtocol === VALIDATION_PROTOCOL
+                && Date.parse(current.generatedAt) >= generatedAt && Date.parse(current.generatedAt) <= now) return false;
+        } catch { /* Primera instalación o caché anterior ilegible. */ }
+        saveProteinMLArtifact(seed, cacheFile);
+        return true;
+    } catch { return false; }
 }
 
 let cachedArtifact = null;
 let cachedMtime = 0;
+let cachedFile = null;
 
 function loadCachedProteinML(filePath = PROTEIN_ML_CACHE_FILE) {
     try {
         if (!fs.existsSync(filePath)) return null;
         const stat = fs.statSync(filePath);
-        if (cachedArtifact && stat.mtimeMs === cachedMtime) return cachedArtifact;
-        cachedArtifact = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-        cachedMtime = stat.mtimeMs;
-        return cachedArtifact;
+        if (!cachedArtifact || stat.mtimeMs !== cachedMtime || filePath !== cachedFile) {
+            cachedArtifact = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            cachedMtime = stat.mtimeMs;
+            cachedFile = filePath;
+        }
+        if (cachedArtifact.version !== PROTEIN_ML_VERSION || cachedArtifact.validationProtocol !== VALIDATION_PROTOCOL) return null;
+        if (!Number.isFinite(Date.parse(cachedArtifact.generatedAt)) || Date.parse(cachedArtifact.generatedAt) > Date.now()) return null;
+        const now = Date.now(), today = new Date(now).toISOString().slice(0, 10);
+        const forecasts = (cachedArtifact.forecasts || []).map(item => {
+            const freshness = seriesFreshness(item.lastDate, item.cadence, now);
+            const horizons = freshness.fresh ? (item.horizons || []).filter(h => h.eligible && h.targetDate > today
+                && h.validation?.protocol === VALIDATION_PROTOCOL) : [];
+            const primaryForecast = horizons.find(h => h.code === item.primaryForecast?.code) || horizons[0] || null;
+            return {...item, freshness, horizons, primaryForecast, available: Boolean(primaryForecast)};
+        });
+        const activeModels = forecasts.filter(item => item.available).length;
+        return {...cachedArtifact, forecasts, summary: buildSpeciesRegionSummary(forecasts),
+            stats: {...cachedArtifact.stats, activeModels, abstainedSeries: forecasts.length - activeModels}};
     } catch {
         return null;
     }
@@ -1869,10 +1865,11 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
 
     let pool = artifact.forecasts.filter(f => f.available && f.primaryForecast);
     if (wantedSpecies.length) pool = pool.filter(f => wantedSpecies.includes(f.species));
-    if (wantedRegions.length) {
-        const regFiltered = pool.filter(f => wantedRegions.includes(f.region));
-        if (regFiltered.length) pool = regFiltered;
-    }
+    if (wantedRegions.length && !/global|mundo|mundial|internacional/.test(q)) pool = pool.filter(f => wantedRegions.includes(f.region));
+    const countryPatterns = [/china/, /canada|quebec/, /brasil|brazil|cepea/, /alemania/, /francia|rnm/,
+        /paises bajos|holanda/, /espana|mercolleida/, /polonia/, /italia/, /dinamarca/];
+    const requestedCountries = countryPatterns.filter(pattern => pattern.test(q));
+    if (requestedCountries.length) pool = pool.filter(item => requestedCountries.some(pattern => pattern.test(String(item.country || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase())));
 
     const scoreItem = item => {
         let s = Math.min(40, (item.observations || 0) / 6);
@@ -1894,8 +1891,8 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
         picked.push(item);
         if (picked.length >= limit) break;
     }
-    if (!picked.length) return '';
-
+    const coverageNotice = !picked.length ? 'No hay pronósticos validados para la especie y región solicitadas. Las referencias internacionales y las noticias siguientes son contexto; no sustituyen un pronóstico local.' : '';
+    const selectedSummary = buildSpeciesRegionSummary(picked);
     if (stripNumbers) {
         const cleanQual = txt => String(txt || '')
             .replace(/H5N1/gi, 'influenza aviar')
@@ -1905,16 +1902,17 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
             .trim();
         const lines = [
             'MARRANAS · RADAR ML ESPECIALIZADO EN PROTEÍNAS (SEÑALES CUALITATIVAS DE DIRECCIÓN, MARGEN RACIÓN Y RÉGIMEN, SIN CIFRAS AJENAS):',
+            coverageNotice,
         ];
         for (const sp of (wantedSpecies.length ? wantedSpecies : Object.keys(SPECIES_META))) {
-            const sum = artifact.summary?.bySpecies?.[sp];
+            const sum = selectedSummary.bySpecies?.[sp];
             if (!sum || !sum.seriesCount) continue;
             const bias = sum.consensusDirection === 'ALZA'
                 ? 'sesgo alcista condicional'
                 : sum.consensusDirection === 'BAJA'
                     ? 'sesgo bajista condicional'
                     : 'equilibrio lateral con vigilancia';
-            lines.push(cleanQual(`- ${sum.label}: consenso global de ${bias}; ciclo biológico activo; impulsores dominantes: ${(sum.topDrivers || []).join(', ') || 'insumos, flete y estacionalidad'}.`));
+            lines.push(cleanQual(`- ${sum.label}: consenso en los mercados seleccionados de ${bias}; impulsores dominantes: ${(sum.topDrivers || []).join(', ') || 'insumos, flete y estacionalidad'}.`));
         }
         if (artifact.importParity?.bySpecies && /paridad|importaci|arbitraje|mexico|mx|ee\.\s*uu|brasil|europa|frontera/.test(q)) {
             for (const sp of (wantedSpecies.length ? wantedSpecies : Object.keys(SPECIES_META))) {
@@ -1928,7 +1926,7 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
                 lines.push(cleanQual(`- Paridad internacional ${pSp.speciesLabel} (${pSp.primaryParity.originCountry} hacia México): ${sigTxt}.`));
             }
         }
-        const nlpQual = artifact.nlpEvents || loadCachedNlpEvents();
+        const nlpQual = artifact.nlpEvents;
         if (nlpQual?.bySpecies) {
             for (const sp of (wantedSpecies.length ? wantedSpecies : Object.keys(SPECIES_META))) {
                 const ev = nlpQual.bySpecies[sp];
@@ -1949,11 +1947,12 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
 
     const lines = [
         `[MARRANAS · MOTOR ML DEDICADO DE PROTEÍNAS · ${artifact.version} · Corte ${artifact.generatedAt.slice(0, 10)} · ${artifact.stats.activeModels} modelos activos (${artifact.stats.conformalAndAdaptiveModels} con Ridge-ARX/Conformal) · ${artifact.stats.totalObservationsIngested} obs reales · Exactitud WF ${artifact.stats.avgWalkForwardDirectionalAccuracyPct}% · Brier ${artifact.stats.avgBrierScore}]:`,
-        'Usa estas probabilidades de SUBIDA/BAJA de MARRANAS (modelo independiente de Loopus) calibradas por Meta-Stacking con poda causal Brier (GBDT + L2-Logit + Transfer Learning por especie + Ridge-ARX Conformal P80) como señal estadística (nunca certeza absoluta):',
+        'Las probabilidades son señales estadísticas con validación histórica temporal; todavía no equivalen a resultados prospectivos. El contexto de noticias y paridad no modifica las probabilidades validadas. Los factores explicativos muestran asociaciones, sin demostrar causalidad.',
+        coverageNotice,
     ];
 
     for (const sp of (wantedSpecies.length ? wantedSpecies : Object.keys(SPECIES_META))) {
-        const sum = artifact.summary?.bySpecies?.[sp];
+        const sum = selectedSummary.bySpecies?.[sp];
         if (!sum || !sum.seriesCount) continue;
         lines.push(`* Consenso ${sum.label}: ${sum.consensusDirection} (Prob. Subida ${sum.avgProbUpPct}% / Baja ${sum.avgProbDownPct}%, cambio medio ${sum.avgExpectedChangePct > 0 ? '+' : ''}${sum.avgExpectedChangePct}% en ${sum.seriesCount} mercados, Exactitud WF ${sum.avgDirectionalAccuracyPct}%; Alza: ${sum.counts.alza}, Baja: ${sum.counts.baja}, Lateral: ${sum.counts.lateral}).`);
     }
@@ -1985,7 +1984,7 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
         }
     }
 
-    const activeNlp = artifact.nlpEvents || loadCachedNlpEvents();
+    const activeNlp = artifact.nlpEvents;
     if (activeNlp?.bySpecies) {
         const nlpLines = [];
         for (const sp of (wantedSpecies.length ? wantedSpecies : Object.keys(SPECIES_META))) {
@@ -2007,9 +2006,10 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
         const maeTxt = p.validation?.maeImprovementPct != null ? ` | MAE vs baseline: ${p.validation.maeImprovementPct > 0 ? '+' : ''}${p.validation.maeImprovementPct}%` : '';
         const marginTxt = p.feedMarginState ? ` | ${p.feedMarginState}` : '';
         const shockTxt = item.anomaly?.isAnomaly ? ' | ALERTA CHOQUE ACTIVO' : '';
-        const shapTxt = p.explainability?.narrative ? ` | Explicación SHAP: ${p.explainability.narrative}` : '';
+        const shapTxt = p.explainability?.narrative ? ` | Factores asociados: ${p.explainability.narrative}` : '';
+        const intervalNote = p.validation?.intervalCoverageScope === 'calibration_only' ? ' | Banda P80 calibrada; cobertura fuera de muestra no acreditada' : '';
         lines.push(
-            `- ${item.label} [${item.regionLabel} · ${item.species}]: último=${item.lastValue} ${item.unit} (${item.lastDate}) -> ${p.horizonLabel}: ${p.direction} (Subida ${p.probUpPct}% vs Baja ${p.probDownPct}%, objetivo ${p.projectedValue} ${item.unit}, ${p.expectedChangePct > 0 ? '+' : ''}${p.expectedChangePct}%, P80 [${p.low80}, ${p.high80}])${accTxt}${maeTxt}${marginTxt}${shockTxt}${shapTxt}`
+            `- ${item.label} [${item.regionLabel} · ${item.species}]: último=${item.lastValue} ${item.unit} (${item.lastDate}) -> ${p.horizonLabel} (objetivo ${p.targetDate}): ${p.direction} (Subida ${p.probUpPct}% vs Baja ${p.probDownPct}%, objetivo ${p.projectedValue} ${item.unit}, ${p.expectedChangePct > 0 ? '+' : ''}${p.expectedChangePct}%, P80 [${p.low80}, ${p.high80}])${accTxt}${maeTxt}${intervalNote}${marginTxt}${shockTxt}${shapTxt}`
         );
     }
 
@@ -2142,8 +2142,9 @@ function buildMarranasAlerts(artifact = loadCachedProteinML(), { species = null,
                 lastValue: spData.mexicoBenchmark.priceMxnKg,
                 lastDate: spData.mexicoBenchmark.observedAt,
                 direction: isExpensiveMx ? 'BAJA' : 'ALZA',
-                probUpPct: isExpensiveMx ? 35 : 65,
-                probDownPct: isExpensiveMx ? 65 : 35,
+                probUpPct: null,
+                probDownPct: null,
+                contextOnly: true,
                 title: isExpensiveMx
                     ? `Paridad de importación: México +${c.spreadPct}% arriba de ${c.originCountry}`
                     : `Paridad de importación: México ${c.spreadPct}% debajo de ${c.originCountry}`,
@@ -2153,7 +2154,7 @@ function buildMarranasAlerts(artifact = loadCachedProteinML(), { species = null,
     }
 
     // Add Active Sanitary & Trade NLP Event Alerts (H5N1, PPA, Gusano Barrenador, Aranceles/Fronteras)
-    const activeNlpAlerts = artifact.nlpEvents || loadCachedNlpEvents();
+    const activeNlpAlerts = artifact.nlpEvents;
     if (activeNlpAlerts?.bySpecies) {
         for (const [sp, ev] of Object.entries(activeNlpAlerts.bySpecies)) {
             if (species && species !== 'all' && sp !== species) continue;
@@ -2177,8 +2178,9 @@ function buildMarranasAlerts(artifact = loadCachedProteinML(), { species = null,
                 lastValue: target.riskScore,
                 lastDate: lead.publishedAt?.slice(0, 10) || activeNlpAlerts.generatedAt?.slice(0, 10),
                 direction: target.bias === 'ALCISTA' ? 'ALZA' : target.bias === 'BAJISTA' ? 'BAJA' : 'LATERAL',
-                probUpPct: target.bias === 'ALCISTA' ? 62 : target.bias === 'BAJISTA' ? 38 : 50,
-                probDownPct: target.bias === 'ALCISTA' ? 38 : target.bias === 'BAJISTA' ? 62 : 50,
+                probUpPct: null,
+                probDownPct: null,
+                contextOnly: true,
                 title: `${target.dominantType || 'Evento Sanitario/Comercial'} (Riesgo NLP ${target.riskScore}/100 · ${target.bias})`,
                 detail: `${lead.title} (${lead.source}, ${lead.publishedAt?.slice(0, 10)}). ${target.eventCount} noticias recientes detectadas en ventana de ${activeNlpAlerts.windowDays || 35} días.`,
                 url: lead.url,
@@ -2202,9 +2204,11 @@ module.exports = {
     forecastProteinSeries,
     buildProteinMLReport,
     saveProteinMLArtifact,
+    installBundledProteinModel,
     loadCachedProteinML,
     getProteinMLContextForQuery,
     runWalkForwardMetaStack,
     buildCausalExplanation,
     buildMarranasAlerts,
+    extractPointForecast, applyNlpOverlayToForecast, nlpSnapshotAsOf,
 };

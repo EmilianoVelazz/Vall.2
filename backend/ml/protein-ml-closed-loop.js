@@ -62,7 +62,7 @@ async function evaluateDueProteinPredictions({ supabase = getDokployClient(), no
         .from('forecast_predictions')
         .select('id, forecast_run_id, symbol, interval_code, generated_at, target_at, horizon_code, predicted_value, predicted_change_pct, lower_bound, upper_bound, probability_up, evidence, forecast_runs!inner(model_name, model_version, parameters)')
         .lte('target_at', todayIso)
-        .or('model_version.ilike.marranas-ml%,model_version.ilike.protein-ml%', { foreignTable: 'forecast_runs' })
+        .or('model_version.ilike.marranas-ml%,model_version.ilike.protein-ml%,model_version.ilike.orion-protein-ml%', { foreignTable: 'forecast_runs' })
         .order('target_at', { ascending: false })
         .limit(limit);
 
@@ -100,6 +100,7 @@ async function evaluateDueProteinPredictions({ supabase = getDokployClient(), no
             .eq('interval_code', pred.interval_code)
             .gte('observed_at', pred.target_at)
             .lte('observed_at', maxDate)
+            .lte('observed_at', todayIso)
             .order('observed_at', { ascending: true })
             .limit(1)
             .maybeSingle();
@@ -155,12 +156,12 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
         .select(`
             id, actual_value, absolute_error, percentage_error, interval_covered, evaluated_observation_at, created_at,
             forecast_predictions!inner(
-                id, symbol, interval_code, horizon_code, target_at, predicted_value, predicted_change_pct,
+                id, symbol, interval_code, horizon_code, generated_at, target_at, predicted_value, predicted_change_pct,
                 lower_bound, upper_bound, probability_up, evidence,
-                forecast_runs!inner(model_name, model_version, parameters)
+                forecast_runs!inner(model_name, model_version, parameters, created_at)
             )
         `)
-        .or('model_version.ilike.marranas-ml%,model_version.ilike.protein-ml%', { foreignTable: 'forecast_predictions.forecast_runs' })
+        .or('model_version.ilike.marranas-ml%,model_version.ilike.protein-ml%,model_version.ilike.orion-protein-ml%', { foreignTable: 'forecast_predictions.forecast_runs' })
         .order('evaluated_observation_at', { ascending: false })
         .limit(limit);
 
@@ -170,10 +171,21 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
     const FLAT_ACTUAL_THRESHOLD = 0.0005; // < 0.05% es precio plano: no es alza ni baja
     const seenWindows = new Set();
     let duplicatesRemoved = 0;
+    let excludedUnverified = 0;
+    const {PROTEIN_ML_VERSION} = require('./protein-ml-engine');
     const records = [];
     for (const row of rows) {
         const pred = row.forecast_predictions;
         const run = pred?.forecast_runs;
+        const issuedAt = Date.parse(pred?.generated_at), targetAt = Date.parse(pred?.target_at);
+        const createdAt = Date.parse(run?.created_at), evaluatedAt = Date.parse(row.created_at);
+        const observedAt = Date.parse(row.evaluated_observation_at);
+        if (run?.model_version !== PROTEIN_ML_VERSION || ![issuedAt, targetAt, createdAt, evaluatedAt, observedAt].every(Number.isFinite)
+            || Math.max(issuedAt, createdAt) >= targetAt || targetAt > now || evaluatedAt > now
+            || observedAt < targetAt || observedAt > evaluatedAt) {
+            excludedUnverified++;
+            continue;
+        }
         const params = run?.parameters && typeof run.parameters === 'object' ? run.parameters : {};
         const ev = pred?.evidence && typeof pred.evidence === 'object' ? pred.evidence : {};
 
@@ -306,6 +318,9 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
         summary: {
             totalEvaluated: records.length,
             rawEvaluations: rows.length,
+            excludedUnverified,
+            modelVersion: PROTEIN_ML_VERSION,
+            evaluationScope: 'prospective_current_model_only',
             duplicatesRemoved,
             uniqueSymbolsEvaluated: symGroups.size,
             ...overall,
@@ -443,7 +458,10 @@ async function runStrictOutOfTimeBacktestAudit({
 function loadCachedClosedLoopAudit() {
     try {
         if (!fs.existsSync(AUDIT_CACHE_FILE)) return null;
-        return JSON.parse(fs.readFileSync(AUDIT_CACHE_FILE, 'utf8'));
+        const audit = JSON.parse(fs.readFileSync(AUDIT_CACHE_FILE, 'utf8'));
+        const {PROTEIN_ML_VERSION} = require('./protein-ml-engine');
+        return audit?.summary?.modelVersion === PROTEIN_ML_VERSION
+            && audit.summary.evaluationScope === 'prospective_current_model_only' ? audit : null;
     } catch {
         return null;
     }

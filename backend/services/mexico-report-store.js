@@ -6,7 +6,7 @@ const {CACHE_DIR}=require('../lib/config');
 // El formato anterior omitía gráficas en panorama y bolsa. Reconstruir sólo
 // el catálogo base; las ediciones guardadas por el usuario no se modifican.
 const SCHEMA_VERSION=3;
-function createMexicoReportStore({file=path.join(CACHE_DIR,'mexico-executive-reports.json')}={}) {
+function createMexicoReportStore({file=path.join(CACHE_DIR,'mexico-executive-reports.json'),localOnly=process.env.VALL_REPORT_STORAGE_LOCAL_ONLY==='true'}={}) {
     let memory;
     async function load() {
         if(memory) return memory;
@@ -18,7 +18,7 @@ function createMexicoReportStore({file=path.join(CACHE_DIR,'mexico-executive-rep
         } catch {return null;}
     }
     async function save(snapshot) {
-        if(process.env.NODE_ENV!=='test' && path.resolve(file)===path.resolve(CACHE_DIR,'mexico-executive-reports.json'))await require('./report-history-store').reportHistory.archive(snapshot.reports,'mexico').catch(()=>console.warn('[report-history] No se confirmó el archivo de México.'));
+        if(!localOnly && process.env.NODE_ENV!=='test' && path.resolve(file)===path.resolve(CACHE_DIR,'mexico-executive-reports.json'))await require('./report-history-store').reportHistory.archive(snapshot.reports,'mexico').catch(()=>console.warn('[report-history] No se confirmó el archivo de México.'));
         memory={...snapshot,schemaVersion:SCHEMA_VERSION,persistence:'memory'};
         const temporary=file+'.'+crypto.randomUUID()+'.tmp';
         try {

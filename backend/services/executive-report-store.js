@@ -9,7 +9,7 @@ const {nextReportRefreshAt,nextMarketReportRefreshAt} = require('../lib/report-s
 const {reportDeadline} = require('../lib/report-deadline');
 const {configureSystemTrust} = require('../lib/tls-trust');
 
-function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table+'.json'), clientFactory=createClient, connect=connectDatabase, timeoutMs=4000, writeTimeoutMs=Math.max(timeoutMs, 20000)}={}) {
+function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table+'.json'), clientFactory=createClient, connect=connectDatabase, timeoutMs=4000, writeTimeoutMs=Math.max(timeoutMs, 20000),localOnly=process.env.VALL_REPORT_STORAGE_LOCAL_ONLY==='true'}={}) {
     if(!['finance_executive_reports','market_executive_reports'].includes(table)) throw Error('Colección de informes inválida.');
     let memory=null, client=null, loading=null, writing=Promise.resolve();
     const valid=value=>value && Number.isFinite(Date.parse(value.generatedAt)) && Array.isArray(value.reports) && value.reports.length>0
@@ -48,6 +48,7 @@ function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table
                 if(value.schemaVersion===1 && valid(value)) {if(!memory || Date.parse(value.generatedAt)>Date.parse(memory.generatedAt))memory={...value,persistence:'disk'};return memory;}
             }
         } catch { /* Un caché ausente o incompleto no sustituye el almacén remoto. */ }
+        if(localOnly)return memory;
         for(const [persistence,readRows] of [
             ['supabase-service-role',async signal=>{const service=serviceClient();if(!service) return null;const {data,error}=await requestWithSignal(service.from(table).select('report, generated_at').order('generated_at',{ascending:false}),signal);signal.throwIfAborted();if(error) throw error;return data;}],
             ['supabase-postgres',databaseRead],
@@ -80,8 +81,9 @@ function createExecutiveReportStore({table, keys, file=path.join(CACHE_DIR,table
     async function persist(snapshot) {
         if(memory!==snapshot)return memory;
         const {reports,generatedAt}=snapshot;
-        if(process.env.NODE_ENV!=='test' && path.resolve(file)===path.resolve(CACHE_DIR,table+'.json'))await require('./report-history-store').reportHistory.archive(reports,table==='finance_executive_reports'?'finance':'markets').catch(()=>console.warn('[report-history] No se confirmó el archivo del corte.'));
+        if(!localOnly && process.env.NODE_ENV!=='test' && path.resolve(file)===path.resolve(CACHE_DIR,table+'.json'))await require('./report-history-store').reportHistory.archive(reports,table==='finance_executive_reports'?'finance':'markets').catch(()=>console.warn('[report-history] No se confirmó el archivo del corte.'));
         if(await diskSave(snapshot)) snapshot.persistence='disk';
+        if(localOnly)return memory;
         if(memory!==snapshot)return memory;
         const nextRefresh=table==='market_executive_reports' ? nextMarketReportRefreshAt : nextReportRefreshAt;
         const updatedAt=new Date().toISOString();

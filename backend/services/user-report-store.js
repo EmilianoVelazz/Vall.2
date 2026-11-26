@@ -56,6 +56,7 @@ function normalizeReport(input) {
         ...(panorama ? {panoramaVersion:require('../../shared/report-panorama.mjs').PANORAMA_VERSION,panoramaParts:require('../../shared/report-panorama.mjs').safePanoramaParts(input.panoramaParts,input.generatedAt),panoramaMissing:Array.isArray(input.panoramaMissing) ? input.panoramaMissing.slice(0,3).map(item=>text(item,20)) : []} : {}),
         generatedAt:Number.isFinite(Date.parse(input.generatedAt)) ? new Date(input.generatedAt).toISOString() : new Date().toISOString(),
         ...require('../../shared/report-annual-evidence.mjs').annualEvidence(input),
+        ...require('../../shared/report-structural-evidence.mjs').structuralEvidence(input),
         ...require('../../shared/report-market-analysis.mjs').focusedEvidence(evidence,{saved:true}),
         ...(require('../../shared/report-market-news.mjs').isMarketNews(input) ? {marketNewsVersion:1,marketNews:require('../../shared/report-market-news.mjs').marketNewsEvidence(input)} : {}),
         ...(require('../../shared/report-financial-news.mjs').isFinancialNews(input) ? {newsVersion:1,newsStatus:['current','empty','unavailable'].includes(input.newsStatus) ? input.newsStatus : 'current',financialNews:require('../../shared/report-financial-news.mjs').financialNewsEvidence(input)} : {}),

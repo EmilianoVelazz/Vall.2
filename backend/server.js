@@ -225,35 +225,13 @@ app.get([
     '/api/executive-reports/refresh',
     '/api/executive-reports/refresh/morning',
     '/api/executive-reports/refresh/afternoon',
-], async (req, res) => {
-    if (!hasBearerSecret(req, process.env.CRON_SECRET)) {
-        return res.status(401).json({ success: false, error: 'No autorizado.' });
-    }
-    try {
-        const [finanzas, mercados, mexico] = await Promise.all([
-            finanzasRouter.refreshExecutiveReports(),
-            refreshMarketExecutiveReports(),
-            mexicoReports.refresh(),
-        ]);
-        // Las ediciones que el usuario pidió “en cada corte” salen después de
-        // preparar los cortes que corresponden a cada colección.
-        // Esperar el envío antes de responder: Vercel puede suspender el trabajo
-        // pendiente cuando finaliza la petición del cron.
-        await exportRouter.runScheduledReportEmails?.().catch(error => {
-            console.warn('[report-email-schedules] No se procesaron los envíos tras el corte:', error.message);
-        });
-        const forecastReview=await require('./ml/forecast-review-job').runForecastReview().catch(()=>({checked:0,failed:1,status:'unavailable'}));
-        res.json({
-            success: true,
-            generatedAt: new Date().toISOString(),
-            reports: { finanzas: finanzas.reports.length, mercados: mercados.reports.length, mexico:mexico.reports.length },
-            forecastReview,
-        });
-    } catch (error) {
-        console.error('/api/executive-reports/refresh:', error.message);
-        res.status(502).json({ success: false, error: 'No se pudieron actualizar los informes programados.' });
-    }
-});
+], require('./lib/report-refresh-handler').createReportRefreshHandler({
+    finance:()=>finanzasRouter.refreshExecutiveReports(),
+    markets:options=>refreshMarketExecutiveReports(undefined,options),
+    mexico:()=>mexicoReports.refresh(),
+    deliver:()=>exportRouter.runScheduledReportEmails?.(),
+    review:()=>require('./ml/forecast-review-job').runForecastReview(),
+}));
 
 // Corte semanal de los complementos estatales: Vercel lo invoca los domingos
 // a las 17:00 UTC, equivalentes a las 11:00 de Ciudad de México.

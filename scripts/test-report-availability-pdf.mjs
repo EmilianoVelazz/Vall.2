@@ -6,6 +6,7 @@ import {weeklyReport} from '../shared/report-weekly.mjs';
 import {hasPublishedReportData} from '../shared/report-available-data.mjs';
 const require=createRequire(import.meta.url);process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';
 const {_test}=require('../backend/routes/export');
+const {derivativePageAllowance}=require('../backend/lib/report-pdf-page-limit');
 await assert.rejects(_test.makeExecutivePdf('Sin datos',{key:'grains',collection:'markets',title:'Sin datos',generatedAt:'2026-10-28T18:00:00Z',sections:[],tables:[],visuals:[],metrics:[],sources:[],sourceLinks:[],watchlist:[],takeaways:[]}),error=>error.status===422 && error.code==='REPORT_DATA_UNAVAILABLE','The real export renderer rejects empty reports');
 const directory='output/report-availability';await fs.mkdir(directory,{recursive:true});
 const stats=[];
@@ -19,7 +20,7 @@ for(const [collection,name] of [['finance','finance_executive_reports'],['market
    stats.push({key:collection+'/'+report.key,status:'unavailable',exportStatus:422});continue;
   }
   const bytes=await _test.makeExecutivePdf(report.title,report),task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,isEvalSupported:false}),pdf=await task.promise;
-  const pageLimit=model.panorama ? Infinity : model.bondExecutive ? 5 : model.equityExecutive ? 4 : collection==='markets' && report.key==='proteins' ? 6 : 3;
+  const pageLimit=model.panorama ? Infinity : (model.bondExecutive ? 5 : model.equityExecutive ? 4 : collection==='markets' && report.key==='proteins' ? 6 : 3)+derivativePageAllowance(model);
   assert(pdf.numPages<=pageLimit,report.key+' fits its page limit');let cells=0;
   for(let number=1;number<=pdf.numPages;number++){
    const page=await pdf.getPage(number),items=(await page.getTextContent()).items;

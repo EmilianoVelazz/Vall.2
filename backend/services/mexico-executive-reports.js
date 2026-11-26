@@ -30,7 +30,7 @@ function annualPoints(item,year) {
 }
 function edition(key,title,generatedAt,body) {
     const derivedSources=Array.isArray(body?.sources) && body.sources.length ? body.sources : [...new Set((body?.sourceLinks || []).map(item=>String(item?.label || '').split(' · ')[0].trim()).filter(Boolean))];
-    return {...normalizeReport({title,eyebrow:'México · Informe nacional',generatedAt,...body,sources:derivedSources}),userEdition:false,collection:'mexico',key};
+    return {...normalizeReport({title,collection:'mexico',key,eyebrow:'México · Informe nacional',generatedAt,...body,sources:derivedSources}),userEdition:false,collection:'mexico',key};
 }
 function buildMexicoReports({macro,bmv,proteins,sourceErrors=[]},time=new Date()) {
     const generatedAt=time.toISOString(),today=generatedAt.slice(0,10);
@@ -154,7 +154,7 @@ function buildMexicoReports({macro,bmv,proteins,sourceErrors=[]},time=new Date()
         return [name,format(total),String(available.length),top.map(row=>row.state).join(', '),format(topVolume),total>0 ? format(topVolume/total*100)+' %' : 'No calculable'];
     });
     const production=edition('mx_production','Producción estatal: granos y minería',generatedAt,{
-        dailyReferences:[...crops.map(([,name])=>({label:name+' · producción',unit:'toneladas',points:[]})),{label:'Minería · valor de producción',unit:'MXN',points:[]}],
+        structuralReferences:[...crops.map(([key,name])=>({label:name+' · producción',unit:'toneladas',value:grains.reduce((sum,row)=>sum+(finite(row[key]) ? row[key] : 0),0),period:catalog.GRAIN_SOURCE.period,source:catalog.GRAIN_SOURCE.label,url:catalog.GRAIN_SOURCE.url})),{label:'Minería · valor de producción',unit:'MXN',value:mining.reduce((sum,row)=>sum+(finite(row.value) ? row.value : 0),0),period:catalog.MINING_SOURCE.period,source:catalog.MINING_SOURCE.label,url:catalog.MINING_SOURCE.url}],
         objective:'Identificar concentración territorial de la producción histórica y la información necesaria para evaluar abastecimiento.',
         takeaways:[`Granos: cierre ${catalog.GRAIN_SOURCE.period}; minería: ${catalog.MINING_SOURCE.period}. Los periodos describen producción histórica, no precios actuales.`,'Para priorizar orígenes de compra, contrastar volumen registrado con cosecha, calidad, inventario y costo logístico disponibles.'],
         closing:'Definir los orígenes a evaluar y solicitar disponibilidad comercial vigente. Usar la producción histórica como contexto territorial, sin tratarla como inventario vendible ni pronóstico de oferta.',

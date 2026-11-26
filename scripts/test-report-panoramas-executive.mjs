@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {getDocument} from '../node_modules/pdfjs-dist/legacy/build/pdf.mjs';
 import {weeklyReport} from '../shared/report-weekly.mjs';
-import {availablePresentationModel,missingReportValue} from '../shared/report-available-data.mjs';
+import {availablePresentationModel,missingReportValue,hasPublishedReportData} from '../shared/report-available-data.mjs';
 import {createReportDraft} from '../frontend/src/lib/reportCreation.js';
 import {panoramaSignals} from '../shared/report-panorama-signals.mjs';
 const require=createRequire(import.meta.url);process.env.NODE_ENV='test';process.env.VALL_REPORT_EMAIL_AUTOMATION_ENABLED='false';process.env.JWT_SECRET||='panorama-test-fixture-only-at-least-32-bytes';
@@ -15,8 +15,15 @@ assert.equal(JSON.stringify(snapshots),original,'Source cuts remain immutable');
 const folder='output/panoramas-completos';await fs.mkdir(folder,{recursive:true});await fs.mkdir('output/pdf',{recursive:true});const results=[];
 for(const [area,snapshot,key] of [['finance',finance,'overview'],['markets',markets,'overview'],['mexico',mexico,'mx_overview']]){
  const report=snapshot.reports.find(item=>item.key===key),model=weeklyReport(report),desk=availablePresentationModel(model).panorama;
- assert(desk);assert.equal(desk.scope,area);assert.equal(desk.chapters.length,area==='finance' ? 12 : 4);assert(desk.signals.length>=5);
- assert.equal(desk.chapters.length,report.panoramaParts.length,'Every specialized report has its own chapter, including each news report');
+ assert(desk);assert.equal(desk.scope,area);assert.equal(model.panorama.chapters.length,area==='finance' ? 12 : 4);assert(desk.signals.length>=5);
+ assert.equal(model.panorama.chapters.length,report.panoramaParts.length,'Canonical evidence retains every specialized report, including empty news chapters');
+ const shownIds=new Set(desk.chapters.map(chapter=>chapter.id)),omitted=[];
+ assert.equal(shownIds.size,desk.chapters.length,'No duplicate visible chapters');
+ for(const chapter of model.panorama.chapters){
+  const published=chapter.kind==='news' ? chapter.news.length>0 : hasPublishedReportData(chapter.model);
+  assert.equal(shownIds.has(chapter.id),published,chapter.id+': presentation includes published evidence and omits empty chapters');
+  if(!published)omitted.push(chapter.id);
+ }
  assert.equal(new Set(desk.signals.map(item=>item.id)).size,desk.signals.length);
  if(area!=='finance')assert(desk.chapters.every(chapter=>chapter.componentReport?.collection===area || chapter.kind==='news'),'No cross-area contamination');
  for(const signal of desk.signals){assert(Number.isFinite(signal.numericValue));assert(signal.value && signal.unit && signal.date);assert(desk.chapters.some(chapter=>chapter.id===signal.chapterId));assert(signal.points.every(point=>Number.isFinite(point.value) && point.date>='2020'));if(signal.change){assert(signal.baseDate<signal.date);const expected=signal.changeUnit==='pb' || signal.changeUnit==='p. p.' ? (signal.numericValue-signal.baseValue)*(signal.changeUnit==='pb' ? 100 : 1) : (signal.numericValue/signal.baseValue-1)*100;assert(Math.abs(signal.numericChange-expected)<1e-8,'Correct % / pb / percentage-point arithmetic');}if(signal.kind==='structural'){assert.equal(signal.cadence,'annual');assert(/^20\d{2}$/.test(signal.date));}}
@@ -39,7 +46,7 @@ for(const [area,snapshot,key] of [['finance',finance,'overview'],['markets',mark
  await fs.writeFile(folder+'/'+area+'.pdf',bytes);await fs.writeFile('output/pdf/panorama-completo-'+area+'.pdf',bytes);await fs.writeFile(folder+'/'+area+'.json',JSON.stringify(report));await task.destroy();
  const workbook=await makeReportWorkbook(report),rows=await publicXlsxSheet(workbook,'Señales del panorama',{maxRows:100,maxColumns:12});assert.equal(rows.length,desk.signals.length+1);for(const [index,signal] of desk.signals.entries())assert.equal(rows[index+1][1],signal.numericValue);await fs.writeFile(folder+'/'+area+'.xlsx',workbook);
  const weeklyBytes=await _test.makeExecutivePdf(report.title,{...report,analysisPeriod:'weekly'});assert(weeklyBytes.reportPageCount>3 && weeklyBytes.reportPageCount<=200);await fs.writeFile(folder+'/'+area+'-semanal.pdf',weeklyBytes);
- results.push({area,chapters:desk.chapters.length,signals:desk.signals.length,pages:pdf.numPages,weeklyPages:weeklyBytes.reportPageCount,bytes:bytes.length});console.log(JSON.stringify(results.at(-1)));
+ results.push({area,canonicalChapters:model.panorama.chapters.length,chapters:desk.chapters.length,omittedEmptyChapters:omitted,signals:desk.signals.length,pages:pdf.numPages,weeklyPages:weeklyBytes.reportPageCount,bytes:bytes.length});console.log(JSON.stringify(results.at(-1)));
 }
 const stale={label:'WTI',symbol:'EIA-WTI-SPOT',last:{date:'2018-01-01',value:50},points:[],periods:{},cadence:'daily'};
 assert.equal(panoramaSignals([{id:'test',componentReport:{collection:'markets'},model:{references:[stale]}}],{scope:'markets',cutoff:'2026-11-05T18:00:00Z'}).length,0,'Stale prices never enter the executive signals');

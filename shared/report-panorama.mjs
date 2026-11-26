@@ -6,6 +6,7 @@ import {compactBondPoints} from './report-bond-evidence.mjs';
 import {weeklyReport} from './report-weekly.mjs';
 import {panoramaSignals,panoramaImplications} from './report-panorama-signals.mjs';
 import {distinctNewsEvents} from './report-news-events.mjs';
+import {structuralEvidence} from './report-structural-evidence.mjs';
 
 export const PANORAMA_VERSION=3,PANORAMA_MAX_BYTES=3*1024*1024;
 const permitted=new Set(['finance:equities','finance:bonds','finance:fx','finance:daily_news','markets:grains','markets:energy_metals','markets:proteins','markets:market_news','mexico:mx_overview','mexico:mx_bolsa','mexico:mx_proteins','mexico:mx_production']);
@@ -27,6 +28,7 @@ export function compactPanoramaPart(input,collection,cutoff){
  }else if(key==='fx'){part.metrics=[];part.tables=[];part.sections=[];}
  else if(collection==='markets' && !key.endsWith('news')){part.sessionObservations=sessionEvidence(src);part.sessionNews=safeMarketNews(src.sessionNews || [],src.generatedAt);part.tables=[];part.metrics=[];if(key==='proteins')part.proteinScope=input.proteinScope;}
  else if(collection==='mexico'){part.dailyReferences=list(input.dailyReferences);part.sessionObservations=sessionEvidence(src);part.visuals=list(input.visuals);}
+ Object.assign(part,structuralEvidence(src));
  if(key==='daily_news')part.financialNews=financialNewsEvidence(src);
  if(key==='market_news')part.marketNews=marketNewsEvidence(src);
  if(key.endsWith('news'))part.headlines=list(input.headlines || input.sourceSnapshot?.headlines || input.sessionNews).slice(0,40).flatMap(item=>finite(Date.parse(item.publishedAt)) && Date.parse(item.publishedAt)<=Date.parse(cutoff) && link(item.url) ? [{title:text(item.title,600),description:text(item.description || item.insight,1200),source:text(item.source,240),publishedAt:item.publishedAt,url:link(item.url),categoryLabel:text(item.categoryLabel,140)}] : []);

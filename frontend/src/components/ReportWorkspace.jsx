@@ -29,7 +29,7 @@ const PdfReportPreview = lazy(loadPdfPreview);
 function ReportHealth({report}){
   const t=useReportText();if(report?.userEdition&&!report.baseReport)return null;
   const health=readReportHealth(report);
-  return <span className={'erh-data-health is-'+health.state}><b>{t(health.label)}</b>{health.asOf && <small>{t('Último dato')}: {health.asOf}</small>}{health.generatedAt && <small>{t('Corte')}: {new Date(health.generatedAt).toLocaleString(t.locale,{timeZone:'America/Mexico_City',dateStyle:'short',timeStyle:'short'})}</small>}</span>;
+  return <span className={'erh-data-health is-'+health.state}><b>{t(health.label)}</b>{health.asOf && <small>{t(health.periodLabel ? 'Periodo de los datos' : 'Último dato')}: {health.periodLabel || health.asOf}</small>}{health.state==='partial' && health.coverage?.total>0 && <small>{health.coverage.available}/{health.coverage.total} {t('referencias con dato')}{health.coverage.missing>0 && ` · ${health.coverage.missing} ${t('sin dato')}`}{health.coverage.stale>0 && ` · ${health.coverage.stale} ${t('rezagadas')}`}{health.coverage.preserved>0 && ` · ${health.coverage.preserved} ${t('conservadas')}`}</small>}{health.generatedAt && <small>{t('Corte')}: {new Date(health.generatedAt).toLocaleString(t.locale,{timeZone:'America/Mexico_City',dateStyle:'short',timeStyle:'short'})}</small>}</span>;
 }
 
 function ReportDialog({ open, onClose, title, children }) {

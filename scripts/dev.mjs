@@ -104,6 +104,7 @@ lanzar('backend', [path.join(ROOT, 'backend', 'server.js')], ROOT, {
     // la actualización programada se ejecutan en producción; activar aquí sólo
     // cuando se quiera probar esos trabajos expresamente.
     RUN_BACKGROUND_JOBS: process.env.RUN_BACKGROUND_JOBS || 'false',
+    VALL_REPORT_STORAGE_LOCAL_ONLY: process.env.VALL_REPORT_STORAGE_LOCAL_ONLY || 'true',
 });
 lanzar('react', [VITE, '--host', HOST_WEB, '--port', String(PUERTO_WEB)], path.join(ROOT, 'frontend'), {
     VN_WEB_PORT: String(PUERTO_WEB),

@@ -990,7 +990,7 @@ async function marketRawNewsSnapshot() {
     return {articles:selected,source:sourceList(selected.map(item=>item.source)).join(' · ')};
 }
 
-async function marketNewsSnapshot(){const cutoff=new Date().toISOString(),data=await require('../lib/report-market-news').loadMarketNews({cutoff,other:marketRawNewsSnapshot().then(result=>result.articles).catch(()=>[])});return {articles:data.stories,source:[...new Set(data.stories.map(item=>item.source))].join(' · ')};}
+async function marketNewsSnapshot(){const cutoff=new Date().toISOString(),data=await require('../lib/report-market-news').loadMarketNews({cutoff,other:reportDeadline(marketRawNewsSnapshot,5000).then(result=>result.articles).catch(()=>[])});return {articles:data.stories,source:[...new Set(data.stories.map(item=>item.source))].join(' · ')};}
 
 function marketExecutiveDocument(report) {
     const metrics = (report.metrics || []).map(metric => `- **${metric.label}:** ${metric.value}${metric.change ? ` (${metric.change})` : ''}`).join('\n');

@@ -1,5 +1,6 @@
 'use strict';
 const path=require('node:path');
+const {availableReportTables}=require('../../shared/report-available-data.mjs');
 const INK='#193758',MUTED='#586b78',LINE='#dce4ea';
 function makeBondExecutivePdf(title,report,helpers){
     const {PDFDocument,weekly:model,pdfPageHeader,pdfExecutiveFooter,pdfPersonalization,chartGeometry}=helpers,{t=value=>value}=helpers.localization || {},desk=model.bondExecutive;
@@ -82,8 +83,9 @@ function makeBondExecutivePdf(title,report,helpers){
             }
             if(!desk.compactInternational && flags.tables!==false && international?.table){
                 next();
-                for(const table of [international.table]){
-                    const cols=[.19,.075,.12,.135,.115,.115,.14,.11].map(fraction=>fraction*width);
+                for(const table of availableReportTables([international.table],{t,source:t.source || (value=>value)})){
+                    const weights=table.columns.map(column=>[.19,.075,.12,.135,.115,.115,.14,.11][international.table.columns.indexOf(column)] || .12),sum=weights.reduce((a,b)=>a+b,0);
+                    const cols=weights.map(fraction=>fraction/sum*width);
                     const tableHeader=()=>{heading(t('Bonos internacionales · rendimientos mensuales por país'));const h=Math.max(19,...table.columns.map((label,index)=>measure(label,cols[index]-6,7.1,true)+5));let x=left;doc.rect(left,y,width,h).fill('#e8eef3');table.columns.forEach((label,index)=>{write(label,x+3,y+3,cols[index]-6,7.1,true);x+=cols[index];});y+=h+1;};
                     tableHeader();
                     const rows=table.rows.map(row=>({row,reference:international.references.find(item=>item.label===row[0])})).sort((a,b)=>(a.reference?.region || '').localeCompare(b.reference?.region || '','es') || (a.reference?.market || a.row[0]).localeCompare(b.reference?.market || b.row[0],'es'));
@@ -96,7 +98,7 @@ function makeBondExecutivePdf(title,report,helpers){
                         cells.forEach((cell,column)=>{write(cell,x+3,y+1.5,cols[column]-6,7.1,column===0,INK,{align:column>1 && column<cols.length-1 ? 'right' : 'left'});if(column===cols.length-1 && reference?.url?.startsWith('https://'))doc.link(x,y,cols[column],h,reference.url);x+=cols[column];});y+=h;
                     });
                 }
-                const note=t('Promedios mensuales, no sesiones diarias. Mes/año: cambio en puntos base frente al mes anterior o hace doce meses. Dic. 2020: promedio de ese mes. —: sin base publicada comparable. Fuentes enlazadas por país.');
+                const note=t('Promedios mensuales, no sesiones diarias. Mes/año: cambio en puntos base frente al mes anterior o hace doce meses. Dic. 2020: promedio de ese mes. Se muestran únicamente bases publicadas comparables. Fuentes enlazadas por país.');
                 y+=6;write(note,left,y,width,6.8,false,MUTED);y+=measure(note,width,6.8)+4;check();
             }
             const europe=desk.compactInternational ? international : international?.europe;

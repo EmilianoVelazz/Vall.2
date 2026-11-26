@@ -100,7 +100,7 @@ function withPreviousDailyEvidence(report,previous) {
         if(references.has(key)) {
             const target=references.get(key),dates=new Set(target.points.map(point=>day(point.date)));
             target.points.push(...item.points.filter(point=>!dates.has(day(point.date))));
-        } else references.set(key,item);
+        } else if(item.points.length) references.set(key,item);
     }
     // Re-filter against the new cut, rather than retaining yesterday's window.
     return withDailyEvidence({...report,dailyReferences:[...references.values()]});

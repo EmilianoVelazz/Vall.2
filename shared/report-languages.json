@@ -32,6 +32,11 @@
     }
   },
   "labels": {
+    "Periodo de los datos": ["Data period", "Période des données", "Periodo dei dati", "Datenzeitraum", "データ対象期間"],
+    "referencias con dato": ["references with data", "références avec données", "riferimenti con dati", "Referenzen mit Daten", "データのある参照"],
+    "sin dato": ["without data", "sans donnée", "senza dati", "ohne Daten", "データなし"],
+    "rezagadas": ["outdated", "anciennes", "non aggiornati", "veraltet", "更新遅延"],
+    "conservadas": ["retained", "conservées", "conservati", "beibehalten", "保持済み"],
     "Qué cambió": ["What changed", "Ce qui a changé", "Cosa è cambiato", "Was sich geändert hat", "変化したこと"],
     "Cuánto importa": ["Why it matters", "Pourquoi c’est important", "Perché conta", "Was es bedeutet", "影響の大きさ"],
     "Qué revisar primero": ["What to review first", "Quoi vérifier en priorité", "Cosa verificare prima", "Was zuerst zu prüfen ist", "優先して確認すること"],

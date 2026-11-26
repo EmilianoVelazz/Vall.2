@@ -3,8 +3,8 @@ const assert=require('node:assert/strict');
 const newsPath=require.resolve('../backend/lib/report-financial-news');
 const translationPath=require.resolve('../backend/lib/report-financial-news-translation');
 const originalNews=require(newsPath),originalTranslation=require(translationPath);
-let fixture={stories:[],status:'empty'};
-require.cache[newsPath].exports={...originalNews,loadFinancialNews:async()=>fixture};
+let fixture={stories:[],status:'empty'},loaderOptions;
+require.cache[newsPath].exports={...originalNews,loadFinancialNews:async options=>{loaderOptions=options;return fixture;}};
 require.cache[translationPath].exports={...originalTranslation,translateFinancialNews:async stories=>stories};
 const {loadMarketNews,buildMarketNewsReport}=require('../backend/lib/report-market-news');
 const cutoff='2026-11-26T18:00:00Z';
@@ -15,6 +15,7 @@ async function main(){
   for(const status of ['current','empty','unavailable']){
    fixture={stories:[old],status};
    const loaded=await loadMarketNews({cutoff,previous:[old]});
+   assert.equal(loaderOptions.lookbackDays,1,'Seleccionar noticias del mismo día desde la recuperación, antes de aplicar el límite de historias');
    assert.equal(loaded.stories.length,0);assert.equal(loaded.status,status==='unavailable'?'unavailable':'empty');
    const report=buildMarketNewsReport({stories:fixture.stories,generatedAt:cutoff,status});
    assert.equal(report.marketNews.length,0);assert.equal(report.newsStatus,loaded.status);

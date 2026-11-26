@@ -3,8 +3,8 @@ const {loadFinancialNews,buildFinancialNewsReport}=require('./report-financial-n
 const {translateFinancialNews}=require('./report-financial-news-translation');
 const {safeMarketNews}=require('../../shared/report-market-news.mjs');
 async function loadMarketNews({cutoff=new Date().toISOString(),previous=[],other=[]}={}){
- const loaded=await loadFinancialNews({cutoff,previous,other,area:'markets',searches:['granos cosechas maíz trigo soya','proteínas ganado cerdo pollo huevo Estados Unidos USDA','energía petróleo gas metales demanda','comercio granos exportaciones aranceles logística','sanidad animal aviar porcina','cosecha sequía clima agricultura mundial'],feeds:[{source:'Agroinformación',url:'https://agroinformacion.com/feed/'},{source:'El País · Economía',url:'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada'},{source:'El Economista · Empresas',url:'https://www.eleconomista.com.mx/rss/empresas.xml'},{source:'El Economista · Mercados',url:'https://www.eleconomista.com.mx/rss/mercados.xml'}],select:safeMarketNews});
- const translated=await translateFinancialNews(loaded.stories);
+ const loaded=await loadFinancialNews({cutoff,previous,other,area:'markets',lookbackDays:1,searches:['granos cosechas maíz trigo soya','proteínas ganado cerdo pollo huevo Estados Unidos USDA','energía petróleo gas metales demanda','comercio granos exportaciones aranceles logística','sanidad animal aviar porcina','cosecha sequía clima agricultura mundial'],feeds:[{source:'Agroinformación',url:'https://agroinformacion.com/feed/'},{source:'El País · Economía',url:'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada'},{source:'El Economista · Empresas',url:'https://www.eleconomista.com.mx/rss/empresas.xml'},{source:'El Economista · Mercados',url:'https://www.eleconomista.com.mx/rss/mercados.xml'}],select:safeMarketNews});
+ const translated=await translateFinancialNews(loaded.stories,{timeoutMs:2500});
  const stories=safeMarketNews(translated,cutoff);
  return {...loaded,status:stories.length ? 'current' : loaded.status==='unavailable' ? 'unavailable' : 'empty',stories};
 }

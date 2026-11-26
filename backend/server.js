@@ -225,6 +225,7 @@ app.get([
     '/api/executive-reports/refresh',
     '/api/executive-reports/refresh/morning',
     '/api/executive-reports/refresh/afternoon',
+    '/api/executive-reports/refresh-content',
 ], require('./lib/report-refresh-handler').createReportRefreshHandler({
     finance:()=>finanzasRouter.refreshExecutiveReports(),
     markets:options=>refreshMarketExecutiveReports(undefined,options),

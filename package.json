@@ -67,7 +67,7 @@
     "check:schedules": "node scripts/check-report-schedules.cjs",
     "check:orion:storage": "node scripts/check-orion-storage.cjs",
     "check:production": "node --use-system-ca scripts/check-production-operations.cjs",
-    "test:operations": "node scripts/test-production-operations.cjs && node scripts/test-health-check.cjs && node scripts/test-report-email-worker-health.cjs && node scripts/test-report-refresh-only.cjs",
+    "test:operations": "node scripts/test-production-operations.cjs && node scripts/test-health-check.cjs && node scripts/test-report-email-worker-health.cjs && node scripts/test-report-refresh-only.cjs && node scripts/test-report-content-upgrade.cjs",
     "evaluate:orion": "node scripts/evaluate-orion-answers.cjs",
     "evaluate:orion:heldout": "node scripts/evaluate-orion-answers.cjs --dataset=scripts/lib/orion-evaluation-v2.json",
     "test:orion:evaluation": "node scripts/test-orion-answer-evaluation.cjs && node scripts/test-orion-storage-health.cjs",

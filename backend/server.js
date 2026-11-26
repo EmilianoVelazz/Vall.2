@@ -271,6 +271,13 @@ if (require.main === module) require('./ml/protein-ml-engine').installBundledPro
 initCommodityWarmer(require.main === module && RUN_BACKGROUND_JOBS);
 // ── SNIIM warmer ──────────────────────────────────────────────────────────────
 if (require.main === module && RUN_BACKGROUND_JOBS) {
+    // Persistent cuts can predate the newly deployed content schema.
+    void require('./lib/report-content-upgrade').upgradeReportContent({
+        loadMarkets:()=>require('./services/market-report-store').load(),
+        refreshNews:snapshot=>require('./routes/market').ensureMarketNewsCoverage(snapshot,{force:true}),
+        loadMexico:()=>require('./services/mexico-report-store').load(),
+        refreshMexico:()=>mexicoReports.refresh(),
+    }).then(result=>console.log('[report-content-upgrade]',JSON.stringify(result))).catch(()=>console.warn('[report-content-upgrade] Se revisará en el siguiente corte.'));
     finanzasRouter.startExecutiveReportsScheduler?.();
     startMarketExecutiveReportsScheduler?.();
     finanzasRouter.initDailyNewsWarmer?.();

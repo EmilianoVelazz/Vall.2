@@ -16,7 +16,7 @@ function round1(value) {
     return Number.isFinite(value) ? Number(value.toFixed(1)) : null;
 }
 
-function inspectJsonCache(filename, { maxAgeHours = REPORT_MAX_AGE_HOURS, countFn = null } = {}) {
+function inspectJsonCache(filename, { maxAgeHours = REPORT_MAX_AGE_HOURS, countFn = null, detailsFn = null } = {}) {
     const filePath = path.join(CACHE_DIR, filename);
     try {
         const stat = fs.statSync(filePath);
@@ -33,6 +33,7 @@ function inspectJsonCache(filename, { maxAgeHours = REPORT_MAX_AGE_HOURS, countF
             generatedAt: new Date(effectiveMs).toISOString(),
             ageHours: round1(ageHours),
             ...(count !== null ? { count } : {}),
+            ...(detailsFn ? detailsFn(parsed) : {}),
             ...(parsed?.model ? { model: String(parsed.model) } : {}),
             ...(parsed?.version ? { version: String(parsed.version) } : {}),
         };
@@ -110,10 +111,12 @@ async function buildHealthPayload({ deep = false } = {}) {
             // Mercados conserva el corte semanal de los viernes a las 14:00.
             maxAgeHours: 7 * 24,
             countFn: data => (Array.isArray(data?.reports) ? data.reports.length : 0),
+            detailsFn: data => ({newsCount:data?.reports?.find(item=>item.key==='market_news')?.marketNews?.length || 0}),
         }),
         mexico: inspectJsonCache('mexico-executive-reports.json', {
             maxAgeHours: REPORT_MAX_AGE_HOURS,
             countFn: data => (Array.isArray(data?.reports) ? data.reports.length : 0),
+            detailsFn: data => ({productionPeriods:[...new Set((data?.reports?.find(item=>item.key==='mx_production')?.structuralReferences || []).map(item=>item.period).filter(period=>/^\d{4}$/.test(period)))].sort()}),
         }),
     };
 

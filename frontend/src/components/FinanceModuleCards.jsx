@@ -4,7 +4,7 @@ const MODULOS = [
   {
     id: 'bolsa', titulo: 'Bolsa', categoria: 'Renta variable', numero: '01',
     descripcion: 'Sigue los índices y descubre qué mueve a las empresas y a los mercados del mundo.',
-    referencia: 'S&P 500', unidad: 'puntos', accion: 'Explorar Bolsa',
+    referencia: 'S&P 500', unidad: 'puntos', accion: 'Explorar bolsa',
     grafica: 'Evolución reciente', delta: true,
     imagen: '/assets/img/finance/bolsa.webp', ancho: 900, alto: 600,
   },

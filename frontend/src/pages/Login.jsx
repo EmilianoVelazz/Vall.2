@@ -139,7 +139,7 @@ export default function Login() {
               <button type="submit" className={`lx-submit${exito ? ' lx-success' : ''}`} disabled={enviando || exito}><span>{exito ? 'Bienvenido' : enviando ? 'Verificando…' : 'Entrar a la plataforma'}</span><Icon name={exito ? 'check' : enviando ? 'spinner' : 'arrow'} className={enviando ? 'lx-spin' : ''} /></button>
             </form>
             <p className="lx-security"><Icon name="shield" /> Acceso privado. Tu información, protegida.</p>
-            <div className="lx-invitation"><p>¿Aún no tienes una cuenta?</p><button type="button" onClick={() => avisar('Para solicitar una cuenta, contacta al administrador de tu organización.')}>Solicitar acceso <span aria-hidden="true">↗</span></button></div>
+            <div className="lx-invitation"><p>¿Aún no tienes una cuenta?</p><button type="button" onClick={() => avisar('Para solicitar una cuenta, contacta al administrador de tu organización.')}>Solicitar acceso <Icon name="info" /></button></div>
           </div>
           </div>
           <div className="lx-access-bottom"><span className="lx-mini-brand">VN</span><span>EL CONTEXTO HACE LA DIFERENCIA.</span></div>

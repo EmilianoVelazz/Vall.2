@@ -1726,9 +1726,11 @@ html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker::after {
     background: linear-gradient(90deg, rgba(31, 41, 55, 0), #1f2937 82%) !important;
 }
 html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label {
-    border-right-color: #4b5563 !important;
-    background: #4b5563 !important;
-    color: #ededed !important;
+    position: relative !important;
+    z-index: 4 !important;
+    border-right-color: #3b4b61 !important;
+    background: #1c2a3e !important;
+    color: #f1f5f9 !important;
 }
 html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label::after {
     background: linear-gradient(90deg, rgba(75, 85, 99, .8), rgba(31, 41, 55, 0)) !important;
@@ -3754,4 +3756,29 @@ html.vn-dark-pilot body.vn-dark-finanzas[class*="ff-detail-"] :is(
     background: var(--fin-panel) !important;
     border-color: var(--fin-line) !important;
     color: var(--fin-text-main) !important;
+}
+
+
+/* Aislamiento opaco del badge MERCADOS LIVE para evitar colisión con el ticker. */
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-label {
+  position: relative !important;
+  z-index: 20 !important;
+  flex: 0 0 auto !important;
+  background: #142236 !important;
+  opacity: 1 !important;
+  box-shadow: 10px 0 18px #142236 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas .vn-ticker .vn-ticker-track {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+
+/* Armonización de temperatura cromática: grafito Tailwind -> Navy VALLNews */
+html.vn-dark-pilot body.vn-dark-finanzas {
+  background: #0e1829 !important;
+}
+html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-hero {
+  background: linear-gradient(145deg, #132236, #0d192b) !important;
+  border-color: rgba(144, 190, 255, .2) !important;
 }

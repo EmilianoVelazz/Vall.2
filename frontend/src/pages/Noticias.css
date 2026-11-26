@@ -32,7 +32,7 @@ body.vn-noticias .footer-copy { color: #93a5bb; }
 /* Masthead y navegación editorial. */
 .noticias-page .nt-hero { display: flex; justify-content: space-between; align-items: center; gap: 28px; padding-bottom: 25px; }
 .noticias-page .nt-hero-copy { min-width: 0; }
-.noticias-page .nt-hero h1 { margin: 6px 0 10px; font: 500 clamp(2.7rem, 4vw, 3.9rem)/1 Georgia, 'Times New Roman', serif; letter-spacing: -.055em; }
+.noticias-page .nt-hero h1 { margin: 6px 0 10px; font: 600 clamp(2.5rem, 3.8vw, 3.6rem)/1.05 'Inter', system-ui, sans-serif; letter-spacing: -.04em; }
 .noticias-page .nt-hero-period { color: var(--nt-accent); }
 .noticias-page .nt-hero-copy p { max-width: 630px; color: var(--nt-muted); line-height: 1.65; font-size: .82rem; }
 .noticias-page .nt-edition { flex-shrink: 0; padding-left: 24px; border-left: 1px solid var(--nt-line); }
@@ -98,6 +98,8 @@ body.vn-noticias .footer-copy { color: #93a5bb; }
 /* Fotos, atribución y tarjetas del archivo. */
 .noticias-page .nt-photo { position: relative; flex-shrink: 0; width: 100%; height: 215px; overflow: hidden; border-radius: 8px; background: #132640; }
 .noticias-page .nt-photo img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .55s cubic-bezier(.2,.6,.3,1); }
+.noticias-page .nt-photo img[src*="reuters" i],
+.noticias-page .nt-photo img[src*="logo" i] { object-fit: contain; padding: 18px; background: linear-gradient(145deg, #14243b, #0c1728); }
 .noticias-page .nt-photo-placeholder { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 18px; background: #142b48; color: #a9c5ee; }
 .noticias-page .nt-photo-placeholder > i { font-size: 2rem; }
 .noticias-page .nt-photo-placeholder > span { font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; }
@@ -278,8 +280,9 @@ body.vn-noticias .nt-dialog .nt-reader-related > button:hover { border-color: #9
 
 .noticias-page .nt-news-metrics { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: .72rem; color: var(--nt-muted); }
 .noticias-page .nt-story-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.noticias-page .nt-save-btn { position: relative; z-index: 4; border: 1px solid var(--nt-line); background: rgba(255,255,255,.85); color: var(--nt-ink); border-radius: 999px; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-.noticias-page .nt-save-btn--active { background: var(--nt-accent, #0f172a); color: #fff; border-color: transparent; }
+.noticias-page .nt-save-btn { position: relative; z-index: 4; border: 1px solid rgba(148,179,214,.32); background: rgba(15,29,48,.78); color: #dbeafe; border-radius: 999px; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background .2s, border-color .2s; }
+.noticias-page .nt-save-btn:hover { background: rgba(37,99,235,.32); border-color: #60a5fa; color: #fff; }
+.noticias-page .nt-save-btn--active { background: #2563eb; color: #fff; border-color: #3b82f6; }
 .noticias-page .nt-stories--compact { grid-template-columns: 1fr; gap: 16px; }
 .noticias-page .nt-stories--compact .nt-story { display: grid; grid-template-columns: 120px minmax(0,1fr); gap: 16px; align-items: start; }
 .noticias-page .nt-retry-library { margin-left: auto; padding: 6px 12px; border: 1px solid var(--nt-line); background: #fff; border-radius: 6px; cursor: pointer; font-size: .72rem; }
@@ -289,4 +292,14 @@ body.vn-noticias .nt-dialog .nt-reader-related > button:hover { border-color: #9
 .nt-reader-original summary { cursor: pointer; font-weight: 600; }
 @media (max-width: 720px) {
   .noticias-page .nt-stories--compact .nt-story { grid-template-columns: 84px minmax(0,1fr); gap: 12px; }
+}
+
+
+/* Ocultar scrollbar nativa en la barra de temas móvil. */
+.noticias-page .nt-topics {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.noticias-page .nt-topics::-webkit-scrollbar {
+  display: none;
 }

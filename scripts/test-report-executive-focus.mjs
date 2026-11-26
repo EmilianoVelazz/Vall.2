@@ -13,13 +13,13 @@ assert.equal(executiveSessionFact([]),'');
 assert(executiveSessionFact(refs,{period:'week'}).includes('A: -8'));
 const points=[{date:'2020-01-02',value:50},{date:'2025-10-23',value:65},{date:'2025-12-31',value:70},{date:'2026-04-23',value:75},{date:'2026-07-23',value:80},{date:'2026-09-23',value:85},{date:'2026-10-16',value:90},{date:'2026-10-22',value:95},{date:'2026-10-23',value:100}];
 for(const [collection,key] of [['finance','equities'],['finance','fx'],['markets','proteins'],['markets','grains'],['markets','energy_metals']]){
-  const quote={label:key==='fx' ? 'USD/MXN' : 'Referencia Estados Unidos',unit:key==='fx' ? 'MXN por 1 USD' : key==='equities' ? 'puntos' : 'USD/kg',market:'Estados Unidos',region:'América',cadence:'daily',series:points,quoteCurrency:'MXN'};
+  const quote={label:key==='fx' ? 'USD/MXN' : key==='proteins' ? 'Canal porcina · Estados Unidos' : 'Referencia Estados Unidos',unit:key==='fx' ? 'MXN por 1 USD' : key==='equities' ? 'puntos' : 'USD/kg',market:'Estados Unidos',region:'América',cadence:'daily',series:points,quoteCurrency:'MXN',...(key==='proteins' ? {symbol:'AMS-PORK-CUTOUT',quoteStatus:'verified',source:'Fuente de prueba',url:'https://example.invalid/proteins',basis:'Cutout de canal'} : {})};
   const snapshot=key==='fx' ? {fxHistories:[quote,{...quote,label:'USD/BRL',quoteCurrency:'BRL'}]} : {[key==='energy_metals' ? 'energy' : key]:[quote]};
   const report={collection,key,title:key,generatedAt:'2026-10-24T12:00:00Z',sourceSnapshot:snapshot,metrics:[],sections:[],tables:[],visuals:[]};
   const before=JSON.stringify(report),model=weeklyReport(report);
   assert.equal(JSON.stringify(report),before);
   assert.equal(model.metrics.length,0);
-  assert.equal(model.summaryPanels[0].heading,key==='fx' ? 'Brasil · movimiento y detonante' : 'Qué pasó');
+  assert.equal(model.summaryPanels[0].heading,'Qué cambió');
   assert(!model.blocks.some(block=>['results','causes','sessionContext'].includes(block.key)));
   if(key==='equities'){
     assert(model.equityExecutive);
@@ -28,7 +28,8 @@ for(const [collection,key] of [['finance','equities'],['finance','fx'],['markets
     assert(model.visuals.filter(visual=>visual.type==='line').every(visual=>visual.series.length<=4));
   }else if(key==='fx'){assert(model.fxExecutive);assert(model.blocks.some(block=>block.key==='fxTreasury'));assert.equal(model.visuals.length,0,'No se inventa DXY para una gráfica incompleta');}else{
     assert.equal(model.visuals.filter(visual=>visual.executiveLead).length,1);
-    assert(model.blocks.findIndex(block=>block.key==='leadChart')<model.blocks.findIndex(block=>block.key==='comparisons'));
+    const comparisons=model.blocks.findIndex(block=>block.key==='comparisons'),charts=model.blocks.findIndex(block=>block.key==='charts');
+    assert(comparisons>=0 && charts>comparisons,'Las tablas de respaldo preceden la sección de comparativas e historia');
   }
   assert(model.visuals.every(visual=>visual.dataInTables));
   assert.deepEqual(model.blocks.map(block=>block.number),model.blocks.map((_,index)=>String(index+1)));
@@ -42,4 +43,4 @@ const filtered=filteredReportModel({focusedMarket:true,references:[{label:'A',co
 assert.equal(filtered.visuals[0].executiveLead,true,'Filtering reassigns a remaining chart to the lead position');
 assert(!filtered.blocks.some(block=>block.key==='charts'),'No empty detail section after filtering');
 assert.deepEqual(filtered.blocks.map(block=>block.number),['1','2','3']);
-console.log('Executive focus: OK · observed facts, both directions, dates, visual-first order, no KPI cards or duplicated chart results, complete evidence and immutable inputs.');
+console.log('Executive focus: OK · observed facts, both directions, dates, tables before chart details, no KPI cards or duplicated chart results, complete evidence and immutable inputs.');

@@ -34,15 +34,15 @@ const LIBS = [
   ...DATOS,
 ];
 
-const CLAVE_CACHE = 'prot_v13-puebla';
+const CLAVE_CACHE = 'prot_v14-puebla';
 const MS_REFRESCO = 30 * 60 * 1000;
 
 const CATEGORIAS = [
   { id: 'all', texto: 'TODOS' },
-  { id: 'cerdo', texto: '🐖 CERDO' },
-  { id: 'pollo', texto: '🐔 POLLO' },
-  { id: 'res', texto: '🐄 RES' },
-  { id: 'huevo', texto: '🥚 HUEVO' },
+  { id: 'cerdo', texto: 'CERDO' },
+  { id: 'pollo', texto: 'POLLO' },
+  { id: 'res', texto: 'RES' },
+  { id: 'huevo', texto: 'HUEVO' },
 ];
 
 const ETIQUETA = { cerdo: 'Cerdo · Mercado', pollo: 'Pollo · Tendencias', res: 'Res · Comercio' };
@@ -52,10 +52,10 @@ const ESPECIES_PRECIO = ['cerdo', 'pollo', 'res', 'huevo'];
 const CLAVE_COMERCIAL = { cerdo: 'pork', pollo: 'chicken', res: 'beef', huevo: 'egg' };
 
 const NOMBRE_PRECIO = {
-  cerdo: '🐖 Cerdo vivo',
-  pollo: '🐔 Pollo entero o canal',
-  res: '🐄 Bovino vivo',
-  huevo: '🥚 Huevo blanco',
+  cerdo: 'Cerdo vivo',
+  pollo: 'Pollo entero o canal',
+  res: 'Bovino vivo',
+  huevo: 'Huevo blanco',
 };
 
 const ESTADO_FUENTE = {
@@ -68,10 +68,10 @@ const ESTADO_FUENTE = {
 const IMGS = ['/assets/img/fallback/ganaderia.webp', '/assets/img/fallback/materias-primas.webp', '/assets/img/fallback/finanzas.webp'];
 
 const DESTINOS = [
-  { clave: 'japon', etiqueta: '🇯🇵 Japón (ref. 40% USDA)', pct: 40, extra: 0.35 },
-  { clave: 'corea', etiqueta: '🇰🇷 Corea del Sur (ref. 25% USDA)', pct: 25, extra: 0.25 },
-  { clave: 'china', etiqueta: '🇨🇳 China (ref. 15% USDA)', pct: 15, extra: 0.45, acento: true },
-  { clave: 'otros', etiqueta: '🌎 Otros (20%)', pct: 20, extra: 0.15, tenue: true },
+  { clave: 'japon', etiqueta: 'JP · Japón (ref. 40% USDA)', pct: 40, extra: 0.35 },
+  { clave: 'corea', etiqueta: 'KR · Corea del Sur (ref. 25% USDA)', pct: 25, extra: 0.25 },
+  { clave: 'china', etiqueta: 'CN · China (ref. 15% USDA)', pct: 15, extra: 0.45, acento: true },
+  { clave: 'otros', etiqueta: 'GLB · Otros (20%)', pct: 20, extra: 0.15, tenue: true },
 ];
 
 const SISTEMA_IA =
@@ -85,10 +85,11 @@ const REF = { corn: 4.82, soy: 342.0, cerdo: 2.45, res: 4.8 };
 
 function clasificar(titulo) {
   const t = (titulo || '').toLowerCase();
-  if (/\b(?:pork|hog|hogs|cerdo|porcino|swine|bacon|jam[oó]n)\b/.test(t)) return 'cerdo';
+  if (/\b(?:anthropic|openai|millionaires?|billionaires?|mecca|saudi|pakistan|ankara|erdogan|nato|missile|gaza|israel|syria|iran|ukraine|election|crypto|bitcoin|nvidia|apple|google|meta|tesla)\b/.test(t)) return null;
+  if (/\b(?:pork|hog|hogs|cerdo|porcin[oa]s?|swine|bacon|jam[oó]n|lean hogs?)\b/.test(t)) return 'cerdo';
   if (/\b(?:egg|eggs|huevo|huevos|ponedora|postura)\b/.test(t)) return 'huevo';
-  if (/\b(?:poultry|chicken|broiler|pollo|aviar|av[ií]cola|turkey|pavo)\b/.test(t)) return 'pollo';
-  if (/\b(?:beef|cattle|bovine|bovino|res|ganado|vacuno|angus|feedlot|carne de res)\b/.test(t)) return 'res';
+  if (/\b(?:poultry|chicken|broiler|pollo|aviar|av[ií]cola|pavo|turkey\s+(?:meat|flock|farm|price|prices|production|breast))\b/.test(t)) return 'pollo';
+  if (/\b(?:beef|cattle|bovine|bovino|vacuno|angus|feedlot|carne de res|res en canal|ganado bovino|live cattle)\b/.test(t)) return 'res';
   return null;
 }
 
@@ -462,7 +463,11 @@ export default function MercadoProteinas() {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span className="mp-price-name" style={{ fontWeight: 600 }}>{priceData?.label || NOMBRE_PRECIO[especie]}</span>
                       <span style={{ fontSize: '0.7rem', color: '#64748B', lineHeight: '1.2', marginTop: '2px' }}>
-                        {priceData?.available ? `${priceData.market} · ${priceData.date} · ${priceData.level}` : (priceData?.error || 'Consultando evidencia local…')}
+                        {priceData?.available
+                          ? `${priceData.market} · ${priceData.date} · ${priceData.level}`
+                          : (!priceData?.error || /\{|"error"|402|quota|credits|ai\.studio|API_KEY/i.test(String(priceData.error))
+                            ? 'Cotización local temporalmente no disponible.'
+                            : priceData.error)}
                       </span>
                       {priceData?.available && <span style={{ fontSize: '0.7rem', color: '#64748B', lineHeight: '1.2', marginTop: '2px' }}>{priceData.note}</span>}
                     </div>

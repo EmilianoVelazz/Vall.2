@@ -126,7 +126,10 @@ function mexicoPriceTable(plan, evidence) {
     const incomplete = [...new Map(coverage.filter(report=>report.failedReports > 0).map(report=>[report.productId+report.source,report])).values()];
     for (const report of incomplete) lines.push('', `Cobertura parcial de ${PRODUCTS.find(product=>product.id===report.productId)?.name || report.productId} (${cell(report.source)}): ${report.failedReports} de ${report.reports.length} reportes mensuales fallaron. Los precios recuperados conservan su fecha; el dato más reciente podría estar en un reporte pendiente.`);
     if (records.some(record=>(Date.parse(evidence.proteinPrices?.fetchedAt)-Date.parse(record.date))/86_400_000 > 14)) lines.push('', '«Dato rezagado» indica más de 14 días entre la observación publicada y esta consulta. No equivale a una oferta vigente.');
-    lines.push('', 'No se extrapolan precios de otros estados por cercanía. Para estimar canal a partir de cerdo vivo hacen falta rendimiento de sacrificio/despiece, costos de transformación y flete; la merma de distribución no sustituye ese rendimiento. No recalculo tu margen de carne usando un precio por kg vivo.');
+    const porkLiveNote = profile.products.includes('pork')
+        ? ' Para estimar canal a partir de cerdo vivo hacen falta rendimiento de sacrificio/despiece, costos de transformación y flete; la merma de distribución no sustituye ese rendimiento. No recalculo tu margen de carne usando un precio por kg vivo.'
+        : ' Para estimar carne en canal o cortes a partir de animal en pie hacen falta rendimiento de sacrificio/despiece, costos de transformación y flete.';
+    lines.push('', `No se extrapolan precios de otros estados por cercanía.${porkLiveNote}`);
     if (!records.length) lines.push('', 'En esta consulta el conector no recuperó registros utilizables. La falta de datos no acredita que no existan cotizaciones.');
     return lines.join('\n');
 }

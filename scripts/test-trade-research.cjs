@@ -20,6 +20,7 @@ assert.equal(plan.requiresWebResearch, true);
 assert.equal(plan.needsTradeResearch, true);
 assert.equal(plan.needsMercolleida, false);
 assert.equal(plan.needsLiveQuote, false);
+assert.equal(plan.needsProteinPrices, false, 'Los acuerdos comerciales no solicitan precios físicos implícitos');
 assert.equal(shouldUseGoogleSearch(plan), true);
 assert.match(planContext(plan), /seis meses/);
 assert.match(planContext(plan), /entrada en vigor/);

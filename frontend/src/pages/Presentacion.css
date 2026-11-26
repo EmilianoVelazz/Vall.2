@@ -13,3 +13,20 @@
 @media(max-width:700px) { .sx-navigation { top: 12px; gap: 0; padding: 4px; margin-bottom: -48px; }.sx-navigation :is(a,button) { font-size: 9px; min-height: 38px; padding: 7px 10px; }.sx-footer { padding: 30px 7%; gap: 22px; }.sx-footer p { width: 100%; order: 1; } }
 @media(prefers-reduced-motion:reduce) { html:has(.vn-presentacion) { scroll-behavior: auto !important; } }
 @media(max-width:360px) { .sx-navigation :is(a,button) { font-size: 8px; padding-inline: 8px; } }
+
+
+/* Contraste legible en micro-etiquetas sobre fondo oscuro y ajuste móvil. */
+.pres-eyebrow,
+.pres-meta,
+.pres-kicker,
+.pres-caption,
+.pres-step-num {
+  color: rgba(203, 221, 245, .82);
+}
+@media (max-width: 600px) {
+  .pres-cut-detail,
+  .pres-protein-detail,
+  .pres-cut-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

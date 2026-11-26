@@ -6,11 +6,11 @@ import MarranasSimulator from './MarranasSimulator.jsx';
 
 const REGIONES = [
   { id: 'ALL', label: 'Todas las regiones' },
-  { id: 'MX', label: '🇲🇽 México' },
-  { id: 'US', label: '🇺🇸 EE. UU.' },
-  { id: 'EU', label: '🇪🇺 Europa' },
-  { id: 'LATAM', label: '🌎 Latinoamérica' },
-  { id: 'GLOBAL', label: '🌍 Global / Asia' },
+  { id: 'MX', label: 'MX · México' },
+  { id: 'US', label: 'US · EE. UU.' },
+  { id: 'EU', label: 'EU · Europa' },
+  { id: 'LATAM', label: 'LATAM' },
+  { id: 'GLOBAL', label: 'Global / Asia' },
 ];
 
 const HORIZONTES = [
@@ -20,10 +20,10 @@ const HORIZONTES = [
 ];
 
 const ESPECIES_ORDEN = [
-  { id: 'cerdo', icono: '🐖', nombre: 'Cerdo' },
-  { id: 'res', icono: '🐄', nombre: 'Res' },
-  { id: 'pollo', icono: '🐔', nombre: 'Pollo' },
-  { id: 'huevo', icono: '🥚', nombre: 'Huevo' },
+  { id: 'cerdo', icono: '', nombre: 'Cerdo' },
+  { id: 'res', icono: '', nombre: 'Res' },
+  { id: 'pollo', icono: '', nombre: 'Pollo' },
+  { id: 'huevo', icono: '', nombre: 'Huevo' },
 ];
 
 function dirClass(dir) {
@@ -358,7 +358,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
                       <td colSpan={7}>
                         <div className="mp-ml-shap-panel">
                           <div className="mp-ml-shap-head">
-                            <strong><i className="fas fa-diagram-project" /> Explicabilidad Causal MARRANAS (Logit + TreeSHAP)</strong>
+                            <strong><i className="fas fa-diagram-project" /> Explicabilidad Causal ORION ML (Logit + TreeSHAP)</strong>
                             <div className="mp-ml-shap-right">
                               <span>Base neutra 50% → Prob. Subida <b>{exp.finalProbUpPct}%</b> ({exp.netDeltaPts > 0 ? '+' : ''}{exp.netDeltaPts} pts)</span>
                               <button
@@ -571,7 +571,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
                 <i className="fas fa-shield-virus" /> RADAR NLP DE EVENTOS SANITARIOS Y COMERCIALES (H5N1 · PPA · GUSANO BARRENADOR · ARANCELES)
               </span>
               <p className="mp-nlp-sub">
-                Clasificación automática de noticias internacionales recientes (ventana {data.nlpEvents.windowDays || 35} días) que ajusta con límite acotado (±6 pts) el 8.º factor SHAP de MARRANAS.
+                Clasificación automática de noticias internacionales recientes (ventana {data.nlpEvents.windowDays || 35} días) que ajusta con límite acotado (±6 pts) el 8.º factor SHAP de ORION ML.
               </p>
             </div>
             <div className="mp-nlp-stats">

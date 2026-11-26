@@ -2063,7 +2063,7 @@ export default function Mercados() {
 
               <div className="mkt-detail-heading">
                 <span className="mkt-detail-eyebrow">{activo.sub}</span>
-                <h1 id="mkt-detail-title">{activo.titulo}</h1>
+                <h2 id="mkt-detail-title">{activo.titulo}</h2>
                 <p>{activo.desc}</p>
               </div>
 

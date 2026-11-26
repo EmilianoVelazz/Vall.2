@@ -328,3 +328,21 @@ html:has(body.vn-dark-inicio) { scroll-behavior:smooth; }
 @media (max-width: 960px) {
   .ih-pulse-grid, .ih-pulse-moves { grid-template-columns: 1fr; }
 }
+
+
+/* Correcciones de contraste WCAG AA y legibilidad mínima en /inicio */
+.ih-asset-head > i {
+  opacity: 0.92 !important;
+  color: #96b2d4 !important;
+}
+.ih-explore-number {
+  color: #96b2d4 !important;
+}
+.ih-data-note {
+  color: #96b2d4 !important;
+  font-size: 0.7rem !important;
+}
+.ih-orion-coordinate {
+  color: #96b2d4 !important;
+  font-size: 0.68rem !important;
+}

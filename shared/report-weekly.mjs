@@ -78,7 +78,9 @@ export function weeklyReport(report,options={}){
   }
   // Las ediciones especializadas y anuales pasan por la misma limpieza. La
   // nota completa se conserva para restaurarla cuando se filtran las tablas.
-  const presentation={...model,results:uniqueTableNotes(model.results)};
+  const presentation={...model,results:uniqueTableNotes(model.results),
+    ...(report.personalization?.sections?.tables===false
+      ? {visuals:(model.visuals || []).map(visual=>({...visual,dataInTables:false}))} : {})};
   return report.periodType==='annual' ? editorialModel(report,presentation,options) : options.equitySession===false ? presentation : withDecisionSummary(report,presentation,options);
 }
 function baseWeeklyReport(report,{t=value=>value,source=value=>value,number=defaultNumber,equitySession=true}={}) {

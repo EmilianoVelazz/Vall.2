@@ -38,8 +38,11 @@ html.vn-dark-pilot body.vn-dark-finanzas #favro-finance .ff-modules.finance-modu
   & .fmc-card::before {
     content: ""; position: absolute !important; inset: 0 !important;
     width: auto !important; height: auto !important; z-index: 1 !important;
-    background: linear-gradient(180deg,rgba(9,26,48,.48),rgba(9,26,48,.76) 46%,rgba(9,26,48,.96) 76%,#0d1d33) !important;
+    background: linear-gradient(180deg,rgba(9,26,48,.52),rgba(9,26,48,.78) 46%,rgba(9,26,48,.96) 76%,#0d1d33) !important;
     opacity: 1 !important; pointer-events: none;
+  }
+  & .fmc-card[data-module="divisas"]::before {
+    background: linear-gradient(180deg,rgba(9,26,48,.74),rgba(9,26,48,.88) 46%,rgba(9,26,48,.97) 76%,#0d1d33) !important;
   }
   & .fmc-card::after { display: none !important; }
   & .fmc-card:hover, & .fmc-card:focus-within {

@@ -10,6 +10,7 @@ const { CACHE_DIR } = require('../lib/config');
 const { normalizeRecipient } = require('../lib/report-email-recipient');
 const { REPORT_HOURS, REPORT_TIME_ZONE } = require('../lib/report-schedule');
 const {atomicFileReplace}=require('../lib/atomic-file-replace');
+const {acquireScheduleFileLock}=require('../lib/schedule-file-lock');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), quiet: true });
 dotenv.config({ path: path.resolve(__dirname, '../.env'), quiet: true });
@@ -124,6 +125,7 @@ function createScheduleStore({ file=FILE, clock=()=>new Date(), remote=client, d
 let localMode=localOnly;
 let remoteSelected=false;
 let mutation=Promise.resolve();
+let localLock=null;
 async function localRows() {
     try {
         const rows=JSON.parse(await fs.readFile(file, 'utf8'));
@@ -137,24 +139,17 @@ async function saveLocal(rows) {
     try {
         const handle=await fs.open(temp,'wx',0o600);
         try {await handle.writeFile(JSON.stringify(rows,null,2));await handle.sync();}finally{await handle.close();}
+        localLock.assertOwned();
         await atomicFileReplace(temp,file);
     } finally {await fs.unlink(temp).catch(()=>{});}
 }
 function serialize(operation) {
     const locked=async()=>{
         await fs.mkdir(path.dirname(file),{recursive:true});
-        const lockPath=file+'.lock',until=Date.now()+2500;
-        let handle;
-        while(!handle) {
-            try {handle=await fs.open(lockPath,'wx',0o600);await handle.writeFile(JSON.stringify({pid:process.pid}));}
-            catch(error) {
-                if(error.code!=='EEXIST') throw error;
-                try {const info=JSON.parse(await fs.readFile(lockPath,'utf8'));try{process.kill(info.pid,0);}catch(dead){if(dead.code==='ESRCH') {await fs.unlink(lockPath);continue;}}} catch(readError) {if(readError.code==='ENOENT') continue;}
-                if(Date.now()>=until) throw Object.assign(Error('Almacén de programaciones ocupado; reintenta.'),{status:503});
-                await new Promise(resolve=>setTimeout(resolve,25));
-            }
-        }
-        try {return await operation();} finally {await handle.close();await fs.unlink(lockPath);}
+        const lock=await acquireScheduleFileLock(file);
+        localLock=lock;
+        try {lock.assertOwned();const result=await operation();lock.assertOwned();return result;}
+        finally {localLock=null;await lock.release();}
     };
     const result=mutation.then(locked,locked);
     mutation=result.catch(()=>{});

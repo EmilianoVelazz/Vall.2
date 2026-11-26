@@ -13,7 +13,7 @@ const { PROTEIN_ISSUERS } = require('../services/protein-equities');
 
 // Incluye la variante frecuente «regreción/regrecion». El clasificador no
 // debe dejar fuera un cálculo OLS sólo por ese error de teclado.
-const REQUEST_RE = /\b(?:regre[sc]i[oó]n(?:es)?|modelo\s+lineal|m[ií]nimos\s+cuadrados|\bols\b|an[aá]lisis\s+estad[ií]stic[oa]|estad[ií]stic[oa]\s+(?:del|de la|de los)|tendencia\s+lineal)\b/i;
+const REQUEST_RE = /\b(?:regre[sc]i[oó]n(?:es)?|correlaci[oó]n(?:\s+(?:estad[ií]stica|lineal|de\s+pearson|entre))?|modelo\s+lineal|m[ií]nimos\s+cuadrados|\bols\b|an[aá]lisis\s+estad[ií]stic[oa]|estad[ií]stic[oa]\s+(?:del|de la|de los)|tendencia\s+lineal)\b/i;
 const MIN_OBSERVATIONS = 8;
 const SERIES_TTL = 15 * 60 * 1000;
 const MAX_SERIES_CACHE = 40;

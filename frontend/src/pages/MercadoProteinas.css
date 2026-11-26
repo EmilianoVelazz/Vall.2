@@ -1023,3 +1023,102 @@
     flex-wrap: wrap;
     gap: .55rem;
 }
+
+
+/* ── Unificación Dark Mode para toda la vista /mercado-proteinas ───────────── */
+.mp-container {
+  color: #e2edf8;
+}
+.mp-container .mp-page-title {
+  color: #f1f6ff;
+  border-bottom-color: rgba(148, 179, 214, .2);
+}
+.mp-container .mp-page-title i,
+.mp-container .mp-section-lbl {
+  color: #93c5fd;
+}
+.mp-container .mp-section-lbl::after {
+  background: rgba(148, 179, 214, .18);
+}
+.mp-container .mp-fpill {
+  background: #132238;
+  border-color: rgba(148, 179, 214, .24);
+  color: #cbd8e8;
+}
+.mp-container .mp-fpill:hover {
+  border-color: #60a5fa;
+  color: #ffffff;
+}
+.mp-container .mp-fpill.active {
+  background: #1b3556;
+  border-color: #90beff;
+  color: #eef6ff;
+}
+.mp-container .mp-catalog summary {
+  color: #93c5fd !important;
+}
+.mp-container .mp-news-card,
+.mp-container .mp-panel,
+.mp-container .mp-stat-box {
+  background: #122033;
+  border-color: rgba(148, 179, 214, .18);
+  color: #e2edf8;
+  box-shadow: 0 8px 24px rgba(2, 8, 20, .28);
+}
+.mp-container .mp-nc-title,
+.mp-container .mp-price-name,
+.mp-container .mp-price-val,
+.mp-container .mp-stat-val,
+.mp-container .mp-bar-label,
+.mp-container .mp-source-row strong {
+  color: #f1f6ff !important;
+}
+.mp-container .mp-nc-cat { color: #7dd3fc; }
+.mp-container .mp-nc-date,
+.mp-container .mp-nc-desc,
+.mp-container .mp-sources-intro,
+.mp-container .mp-ratio-note,
+.mp-container .mp-stat-lbl,
+.mp-container .mp-stat-chg,
+.mp-container .mp-stat-note,
+.mp-container .mp-consume-para,
+.mp-container .mp-export-insight,
+.mp-container .mp-source-row span,
+.mp-container .mp-source-row small {
+  color: #a9bdd6;
+}
+.mp-container .mp-price-row,
+.mp-container .mp-source-row {
+  border-color: rgba(148, 179, 214, .14);
+}
+.mp-container .mp-bar-bg {
+  background: rgba(148, 179, 214, .16);
+}
+.mp-container .mp-bar-label b,
+.mp-container .mp-ratio-note b {
+  color: #f1f6ff !important;
+}
+.mp-container .mp-bar-fill {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa) !important;
+}
+.mp-container .mp-bar-fill.accent {
+  background: linear-gradient(90deg, #10b981, #4ade80) !important;
+}
+.mp-container .mp-price-row a,
+.mp-container .mp-panel a {
+  color: #93c5fd !important;
+}
+.mp-container .mp-ratio-note {
+  background: rgba(30, 58, 95, .35);
+  border-color: rgba(148, 179, 214, .2);
+}
+.mp-container .mp-ratio-note i { color: #60a5fa !important; }
+.mp-container .mp-tag-src { background: #1e3a5f; color: #dbeafe; }
+.mp-container .mp-catalog-state {
+  background: rgba(148, 179, 214, .14);
+  color: #cbd8e8;
+}
+.mp-container .mp-catalog-state.active {
+  background: rgba(34, 197, 94, .18);
+  color: #86efac;
+}

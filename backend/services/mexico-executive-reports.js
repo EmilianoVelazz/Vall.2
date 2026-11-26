@@ -29,7 +29,8 @@ function annualPoints(item,year) {
     return [...points].filter(([period])=>!conflicts.has(period)).sort(([a],[b])=>a.localeCompare(b)).slice(-8).map(([period,value])=>({period,value}));
 }
 function edition(key,title,generatedAt,body) {
-    return {...normalizeReport({title,eyebrow:'México · Informe nacional',generatedAt,...body}),userEdition:false,collection:'mexico',key};
+    const derivedSources=Array.isArray(body?.sources) && body.sources.length ? body.sources : [...new Set((body?.sourceLinks || []).map(item=>String(item?.label || '').split(' · ')[0].trim()).filter(Boolean))];
+    return {...normalizeReport({title,eyebrow:'México · Informe nacional',generatedAt,...body,sources:derivedSources}),userEdition:false,collection:'mexico',key};
 }
 function buildMexicoReports({macro,bmv,proteins,sourceErrors=[]},time=new Date()) {
     const generatedAt=time.toISOString(),today=generatedAt.slice(0,10);

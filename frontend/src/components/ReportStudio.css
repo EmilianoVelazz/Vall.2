@@ -5,7 +5,7 @@
 .erh-studio .erh-switch button { min-height:42px; border-radius:9px; }
 .erh-studio .erh-switch button[aria-selected="true"] { background:#29496d; box-shadow:inset 0 1px #b5d4ff20; }
 .erh-studio .erh-next-cut { margin-left:auto; }
-.erh-library-actions { display:grid; gap:8px; }
+.erh-library-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .erh-studio .erh-library-actions button { min-height:40px; }
 .erh-studio .erh-program-button { border-color:#57968f; color:#c0eee4; background:#1c3d43; }
 .erh-send-dialog { margin:auto; width:min(920px,calc(100vw - 32px)); max-height:min(900px,calc(100dvh - 40px)); border:1px solid #537488; border-radius:18px; padding:0; overflow:hidden; background:#142638; color:#e7f0f9; box-shadow:0 24px 80px #0007; }

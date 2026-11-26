@@ -48,18 +48,19 @@ const draft=createReportDraft('finance',report),saved=normalizeReport(draft.repo
 assert.equal(saved.equityObservations.length,15);assert.equal(savedModel.visuals.length,4);assert.equal(savedModel.references[0].previous.date,'2026-10-16');
 assert.equal(_test.executivePayload(report).equityObservations.length,15);
 const csv=reportCsv(report);assert(csv.includes('"S&P 500","América","2026-10-19","1048"'));assert(csv.includes('https://example.invalid/bolsa'));
-const content=await reportExportContent(report);assert(content.includes('Qué pasó'));assert(content.includes('Implicaciones para el negocio'));assert(!content.includes('Ejemplo de contexto fechado'),'Undated source prose is not a verified catalyst');assert(!content.includes('undefined'));
+const content=await reportExportContent(report);assert(content.includes('Qué cambió'));assert(content.includes('Implicaciones para el negocio'));assert(!content.includes('Ejemplo de contexto fechado'),'Undated source prose is not a verified catalyst');assert(!content.includes('undefined'));
 assert(!content.includes('Causas y consecuencias'));assert(content.indexOf('Implicaciones para el negocio')>content.indexOf('Comparación visual por bloques'));
 const {createReportTranslator}=require('../backend/services/report-translation');
 const translator=createReportTranslator({provider:{isConfigured:()=>true,generate:async request=>{
   const input=JSON.parse(request.prompt);
   // Transport fixture: check protected observations and display mapping. It
   // does not pretend that prefixing Spanish prose is a valid translation.
-  return {text:JSON.stringify({language:input.language,translations:input.translations.map(item=>({id:item.id,text:'Translated: observed market data '+(item.text.match(/__VNT_\w+_\d+_\d+__/g) || []).join(' ')}))})};
+  return {text:JSON.stringify({language:input.language,translations:input.translations.map(item=>({id:item.id,text:'Translated: '+Array.from({length:4},(_,index)=>String.fromCharCode(65+Math.floor(item.id/26**index)%26)).join('')+' observed market data '+(item.text.match(/__VNT_\w+_\d+_\d+__/g) || []).join(' ')}))})};
 }}});
 const localized=await translator.localize({report:_test.executivePayload(report),language:'en'});
 const translatedModel=weeklyReport(localized.report);
-assert(translatedModel.summary.startsWith('Translated: '));assert(translatedModel.summaryPanels.every(item=>item.body.startsWith('Translated: ')));
+assert(translatedModel.summary.startsWith('Translated: '));
+assert.deepEqual(translatedModel.summaryPanels.map(item=>item.body),weeklyReport(report).summaryPanels.map(item=>localized.translateText(item.body)),'Cada panel utiliza la traducción solicitada o el catálogo localizado');
 assert(translatedModel.visuals.every(item=>item.note.startsWith('Translated: ')));
 assert.deepEqual(translatedModel.references[0].points,weeklyReport(report).references[0].points,'Translation leaves observed prices intact');
 // The exchange map and report catalogue must cover the same venues.
@@ -97,10 +98,9 @@ assert.equal(old.references[0].change,null);assert(old.results[0].rows[0].includ
 const bytes=await _test.makeExecutivePdf(world.title,_test.executivePayload(world));
 const {getDocument}=await import('../frontend/node_modules/pdfjs-dist/legacy/build/pdf.mjs');
 const task=getDocument({data:new Uint8Array(bytes),useSystemFonts:true,disableFontFace:true}),pdf=await task.promise;
-const historyPages=require('../backend/lib/report-equity-history-pdf').equityHistoryPages(weeklyReport(world).equityExecutive.globalHistory).length;
-assert(pdf.numPages<=2+historyPages,'Dos páginas ejecutivas más el anexo visual que contiene todas las trayectorias');
+assert(pdf.numPages<=4,'La edición mundial respeta el presupuesto de cuatro páginas e incluye todas las trayectorias: '+pdf.numPages);
 let text='';
-for(let n=1;n<=pdf.numPages;n++) {const page=await pdf.getPage(n),items=(await page.getTextContent()).items;text+=items.map(item=>item.str).join(' ')+'\n';for(const item of items.filter(item=>item.str.trim() && !item.str.startsWith('USO INTERNO') && !item.str.startsWith('PAGINA'))) assert(item.transform[5]>=55,'Contenido sobre el pie: '+item.str);}
+for(let n=1;n<=pdf.numPages;n++) {const page=await pdf.getPage(n),items=(await page.getTextContent()).items;text+=items.map(item=>item.str).join(' ')+'\n';for(const item of items.filter(item=>item.str.trim() && !/^(?:USO INTERNO|P[ÁA]GINA)/.test(item.str))) assert(item.transform[5]>=55,'Contenido sobre el pie: '+item.str);}
 assert(text.indexOf('Tabla maestra')<text.indexOf('Implicaciones para el negocio'));
 for(const token of ['Tabla maestra','Día %','Mes %','YTD %','Implicaciones para el negocio','Nasdaq','2026-10-19']) assert(text.toLocaleLowerCase().includes(token.toLocaleLowerCase()),'PDF conserva '+token);
 assert(!text.includes('CONTEXTO Y SEGUIMIENTO'));

@@ -142,12 +142,13 @@ function normalizeProviderError(error) {
     const wrapped = new Error(message);
     if (error?.cause) wrapped.cause = error.cause;
     if(Number.isInteger(status) && status>=400 && status<=599)wrapped.providerStatus=status;
-    wrapped.code = status === 429 || lower.includes('429') || lower.includes('quota') ? 'AI_RATE_LIMIT'
+    wrapped.code = status === 402 || lower.includes('prepayment credits are depleted') || (lower.includes('402') && lower.includes('billing')) ? 'AI_BILLING'
+        : status === 429 || lower.includes('429') || lower.includes('quota') ? 'AI_RATE_LIMIT'
         : lower.includes('safety') || lower.includes('blocked') ? 'AI_SAFETY'
         : [408, 504].includes(status) || error?.name === 'AbortError' || lower.includes('timeout') || lower.includes('deadline') ? 'AI_TIMEOUT'
         : [401, 403].includes(status) || lower.includes('401') || lower.includes('api key') ? 'AI_AUTH'
         : 'AI_PROVIDER_ERROR';
-    wrapped.status = wrapped.code === 'AI_RATE_LIMIT' ? 429 : wrapped.code === 'AI_AUTH' ? 503 : wrapped.code === 'AI_TIMEOUT' ? 504 : wrapped.code === 'AI_SAFETY' ? 400 : 502;
+    wrapped.status = wrapped.code === 'AI_BILLING' ? 402 : wrapped.code === 'AI_RATE_LIMIT' ? 429 : wrapped.code === 'AI_AUTH' ? 503 : wrapped.code === 'AI_TIMEOUT' ? 504 : wrapped.code === 'AI_SAFETY' ? 400 : 502;
     return wrapped;
 }
 
@@ -278,7 +279,7 @@ class GeminiProvider {
                 lastError = signal?.aborted ? timeoutError(true) : normalizeProviderError(error);
                 if(!responseReceived)await reservation?.fail(lastError);
                 if (signal?.aborted) throw lastError;
-                if (['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                if (['AI_AUTH', 'AI_SAFETY', 'AI_BILLING'].includes(lastError.code)) throw lastError;
                 markModelRateLimited(this.client, model, lastError, hasTools);
                 console.warn(`[Gemini] ${model} no disponible (${lastError.code}${lastError.providerStatus ? ` ${lastError.providerStatus}` : ''}: ${String(lastError.message).slice(0, 160)}${lastError.cause ? ` · ${lastError.cause.code || lastError.cause.message}` : ''}); se evalúa el respaldo dentro del plazo restante.`);
             } finally { attempt.dispose(); }
@@ -338,7 +339,7 @@ class GeminiProvider {
                 await reservation?.fail(lastError);
                 if (signal?.aborted) throw lastError;
                 // Nunca concatenar otra respuesta después de entregar texto visible al cliente.
-                if ((text && !allowFallbackBeforeDelivery) || ['AI_AUTH', 'AI_SAFETY'].includes(lastError.code)) throw lastError;
+                if ((text && !allowFallbackBeforeDelivery) || ['AI_AUTH', 'AI_SAFETY', 'AI_BILLING'].includes(lastError.code)) throw lastError;
                 markModelRateLimited(this.client, model, lastError, hasTools);
                 console.warn(`[Gemini] ${model} no inició; se evalúa el respaldo dentro del plazo restante.`);
             } finally {

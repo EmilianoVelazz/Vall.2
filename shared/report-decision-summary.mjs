@@ -1,4 +1,4 @@
-import {mapReportText} from './report-localized-text.mjs';
+import {mapReportText,reportSourceText} from './report-localized-text.mjs';
 const finite=Number.isFinite;
 const n=value=>value.toLocaleString('es-MX',{maximumFractionDigits:2});
 const short=(value,max=150)=>String(value || '').length<=max ? String(value || '') : String(value).slice(0,max).replace(/\s+\S*$/,'')+'…';
@@ -45,6 +45,10 @@ export function referenceImpact(reference,change,{kind='physical'}={}){
 
 export function withDecisionSummary(report,model,{t=value=>value}={}){
  if(report.periodType==='annual' || report.userEdition || report.aiEdition)return model;
+ const displayModel=model;
+ // Construir sobre las etiquetas originales permite resolver unidades y
+ // localizar también las frases derivadas, sin mezclar dos idiomas.
+ if(report.causeText)model=mapReportText(model,reportSourceText(report));
  const key=report.baseReport?.key || report.key,main=report.analysisPeriod==='weekly' ? 'week' : 'day',refs=model.references || [],cutoff=report.generatedAt;
  let changeBody=model.summary || '',impact='',priority='',illustration=null,requiredInputs=[],context=[];
  const illustrative=(reference,kind)=>referenceImpact(reference,observedChange(reference,cutoff,main),{kind});
@@ -111,8 +115,9 @@ export function withDecisionSummary(report,model,{t=value=>value}={}){
   if(panel.summaryKind==='watch' && typeof brief.committeeQuestion==='string' && brief.committeeQuestion.length<=260)panel.body=brief.committeeQuestion;
  }
  const localized=mapReportText({panels,illustration,requiredInputs},value=>report.causeText?.[value] || t(value));
- const result={...model,decisionSummary:localized,summaryPanels:[...localized.panels,...context],commentary:[...localized.panels,...context]};
- if(model.fxExecutive)result.fxExecutive={...model.fxExecutive,bullets:localized.panels};
- if(model.panorama)result.panorama={...model.panorama,implications:report.personalization?.sections?.risks===false ? [] : localized.panels};
+ const localizedContext=mapReportText(context,value=>report.causeText?.[value] || t(value));
+ const result={...displayModel,decisionSummary:localized,summaryPanels:[...localized.panels,...localizedContext],commentary:[...localized.panels,...localizedContext]};
+ if(model.fxExecutive)result.fxExecutive={...displayModel.fxExecutive,bullets:localized.panels};
+ if(model.panorama)result.panorama={...displayModel.panorama,implications:report.personalization?.sections?.risks===false ? [] : localized.panels};
  return result;
 }

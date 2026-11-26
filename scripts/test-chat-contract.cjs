@@ -6,10 +6,10 @@ const { domainDecision } = require('../backend/ai/domain-policy');
 const { parseCurrencyConversion, parseCurrencyPair, calculateConversion, conversionContext, isSimpleCurrencyConversion, conversionAnswer } = require('../backend/ai/currency-converter');
 const { planQuery, planContext, mergeEvidence } = require('../backend/ai/query-planner');
 const { rulesForMessage } = require('../backend/ai/live-data-grounder');
-const { auditResponse, appendDisclosure } = require('../backend/ai/response-quality');
+const { auditResponse, appendDisclosure, citationDisclosure } = require('../backend/ai/response-quality');
 const { isLikelyFollowUp, conversationAnchor, conversationInstruction, conversationFocus } = require('../backend/ai/conversation-context');
 const { buildPrompt } = require('../backend/ai/prompt-builder');
-const { retrievalQuestion } = require('../backend/ai/orchestrator');
+const { retrievalQuestion, attachEvidence } = require('../backend/ai/orchestrator');
 
 const fromMessage = chatRouter.structuredInput({ message: '  Hola VALL AI  ' });
 const fromPrompt = chatRouter.structuredInput({ prompt: '  Analiza mercados  ' });
@@ -68,6 +68,28 @@ assert.match(mergedEvidence.context, /Dato en vivo/);
 assert.equal(mergedEvidence.evidenceCount, 1);
 const unavailableAudit = auditResponse({ text: 'El precio actual es 100.', plan: oilPlan, liveData: { available: false }, evidence: {} });
 assert.match(appendDisclosure('El precio actual es 100.', unavailableAudit), /Cotización sin confirmar/);
+
+// Las reglas y ejemplos del RAG orientan la redacción; no acreditan cifras
+// ni deben aparecer como fuentes verificadas de un ejercicio ficticio.
+const internalCitations = ['loopus_rule', 'few_shot_exemplar', 'vector_knowledge'].map(type => ({
+    type, title: `Ejemplo interno ${type}`, source: 'VALLNews Vector Index', url: null,
+}));
+const exampleText = 'Ingresos de 1,000 menos costos de 850: utilidad de 150.';
+assert.equal(citationDisclosure(internalCitations), '');
+const exampleAudit = auditResponse({ text: exampleText, plan: { needsSources: true }, evidence: { citations: internalCitations } });
+assert.equal(exampleAudit.disclosure, '');
+assert.deepEqual(exampleAudit.warnings, []);
+const realCitation = { type: 'economic_indicator', title: 'Indicador observado', source: 'Fuente estadística', date: '2026-11-26', url: 'https://example.invalid/indicator' };
+const mixedAudit = auditResponse({ text: exampleText, plan: { needsSources: true }, evidence: { citations: [...internalCitations, realCitation] } });
+assert.match(mixedAudit.disclosure, /Fuente estadística/);
+assert.doesNotMatch(mixedAudit.disclosure, /Ejemplo interno/);
+assert.match(citationDisclosure([{ ...realCitation, url: null }]), /Fuente estadística/);
+for (const citations of [internalCitations, [...internalCitations, realCitation]]) {
+    const response = { blocks: [{ type: 'markdown', content: exampleText }], markdown: exampleText, meta: {} };
+    attachEvidence(response, { citations });
+    assert.deepEqual(response.meta.citations, citations.includes(realCitation) ? [realCitation] : []);
+}
+assert.match(auditResponse({ text: exampleText, plan: oilPlan, liveData: { available: false }, evidence: { citations: internalCitations } }).disclosure, /Cotización sin confirmar/);
 
 const liveConfig = chatRouter.liveSessionConfig();
 assert.deepEqual(liveConfig.responseModalities, ['AUDIO']);

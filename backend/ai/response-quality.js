@@ -15,6 +15,9 @@ function textMentionsSource(text, citations = []) {
 }
 
 const INTERNAL_CITATION_TYPES = new Set(['loopus_rule', 'few_shot_exemplar', 'vector_knowledge']);
+function isEvidenceCitation(item) {
+    return Boolean(item) && !INTERNAL_CITATION_TYPES.has(item.type);
+}
 const HUMAN_SOURCE_LABELS = {
     executive_report_cache: 'Informe ejecutivo VALLNews',
     loopus_ml_walkforward: 'Modelo ML walk-forward VALLNews',
@@ -22,8 +25,9 @@ const HUMAN_SOURCE_LABELS = {
 };
 
 function citationDisclosure(citations = []) {
-    const visible = citations.filter(item => !INTERNAL_CITATION_TYPES.has(item?.type));
-    const list = visible.length ? visible : citations;
+    // Las instrucciones y ejemplos de redacción ayudan al modelo, pero no
+    // verifican los datos de la respuesta, incluso si son lo único recuperado.
+    const list = citations.filter(isEvidenceCitation);
     const sources = list.slice(0, 4).map(item => {
         const date = item.date ? ` · corte: ${item.date}` : '';
         const sourceName = HUMAN_SOURCE_LABELS[item.source] || item.source || 'fuente verificada';
@@ -111,7 +115,7 @@ function auditResponse({ text = '', plan = {}, liveData = null, evidence = {} } 
     }
     if (priceCheck.blocked) return { warnings: ['Se retiraron cotizaciones sin fecha de observación y fuente trazable.'], replacement: priceCheck.text, disclosure: '> Las cifras sin trazabilidad quedaron excluidas de esta respuesta.' };
     let disclosure = '';
-    const citations = evidence.citations || [];
+    const citations = (evidence.citations || []).filter(isEvidenceCitation);
     const mercolleida = liveData?.mercolleida || liveData;
     if (plan.needsProteinPrices && !liveData?.proteinPrices?.available && !citations.some(item => item.type === 'google_search_grounding')) {
         warnings.push('No se obtuvo un precio físico verificable para el producto y mercado solicitado.');
@@ -165,4 +169,4 @@ function appendDisclosure(text, audit) {
     return `${String(text || '').trim()}\n\n${audit.disclosure}`.trim();
 }
 
-module.exports = { auditResponse, appendDisclosure, citationDisclosure, textMentionsSource, hasTradeResearchSources, guardTradeResearch, scopeTradeEvidence, guardNewsCoverage };
+module.exports = { auditResponse, appendDisclosure, citationDisclosure, textMentionsSource, isEvidenceCitation, hasTradeResearchSources, guardTradeResearch, scopeTradeEvidence, guardNewsCoverage };

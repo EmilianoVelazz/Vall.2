@@ -18,7 +18,7 @@ async function inspect(input){
 }
 for(const analysisPeriod of ['daily','weekly']){
  const result=await inspect({...report,analysisPeriod}),atlas=result.text.filter(page=>page.includes('Evolución de todas las bolsas'));
- assert(result.pages<=3);assert.equal(atlas.length,1,'The downloaded PDF itself must contain the complete historical atlas');
+ assert(result.pages<=4,'La edición respeta el presupuesto vigente de cuatro páginas');assert.equal(atlas.length,1,'The downloaded PDF itself must contain the complete historical atlas');
  for(const series of model.equityExecutive.globalHistory.series){assert(atlas[0].includes(series.label),series.label+' must be drawn in the PDF appendix');assert(atlas[0].includes(series.points[0].date));assert(atlas[0].includes(series.points.at(-1).date));}
  assert(atlas[0].includes('2024-02-01'));assert(!atlas[0].includes('NaN')&&!atlas[0].includes('Infinity'));assert(atlas[0].includes('Escala logarítmica común'));assert(!atlas[0].includes('su propia escala'));
 }

@@ -128,6 +128,7 @@ function liveSessionConfig(fxConversion = null) {
 
 function publicAiError(err) {
     if(err?.code?.startsWith('CHAT_'))return {status:err.status || 503,message:err.message,details:{code:err.code,resetsAt:err.resetsAt,usage:err.usage}};
+    if (err?.code === 'AI_BILLING' || err?.providerStatus === 402) return { status: 503, message: 'Los créditos de IA en el proveedor están agotados temporalmente. Recarga tu cuenta o intenta más tarde.' };
     if (err?.code === 'AI_RATE_LIMIT' || /429|quota/i.test(err?.message || '')) return { status: 429, message: 'Cuota de IA agotada temporalmente. Intenta más tarde.' };
     if (err?.code === 'AI_SAFETY') return { status: 400, message: 'El proveedor no pudo procesar esta solicitud de forma segura.' };
     if (err?.code === 'AI_NOT_CONFIGURED' || err?.code === 'AI_AUTH') return { status: 503, message: 'IA no configurada correctamente en el servidor.' };

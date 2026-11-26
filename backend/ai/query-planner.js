@@ -84,9 +84,12 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
         protein.products = [...new Set(namedIssuers.flatMap(issuer => issuer.ticker === 'CALM' ? ['eggs']
             : issuer.ticker === 'PPC' ? ['poultry'] : ['poultry', 'pork', 'beef']))];
     }
+    const asksSanitaryRadar = /\b(?:radar\s+(?:nlp|sanitario)|riesgo\s+sanitario|influenza\s+aviar|h5n1|gripe\s+aviar|peste\s+porcina|gusano\s+barrenador|screwworm|senasica)\b/i.test(text);
+    const explicitBilateralTrade = /\b(?:acuerdos?\s+comerciales?|tratados?\s+comerciales?|t-?mec|china.{0,30}(?:ee\.?\s*uu\.?|estados?\s+unidos)|(?:ee\.?\s*uu\.?|estados?\s+unidos).{0,30}china)\b/i.test(text);
     const tradeSubject = followsThread ? `${text} ${activeAnchor}` : text;
     const needsTradeResearch = isTradeResearchQuery(tradeSubject)
-        && (!TRADE_DEFINITION.test(text) || FRESHNESS.test(text));
+        && (!TRADE_DEFINITION.test(text) || FRESHNESS.test(text))
+        && (!asksSanitaryRadar || explicitBilateralTrade);
     const needsMercolleida = isMercolleidaQuery(text) || (followsThread && isMercolleidaQuery(activeAnchor));
     const explicitRabobank = isRabobankQuery(text) || (followsThread && isRabobankQuery(activeAnchor));
     const rabobankQuery = (followsThread && !requestedResearchTopics(text).length
@@ -150,7 +153,7 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     const impliedProteinComparison = (protein.products.length >= 2 && (asksComparison || asksCurrentData) && (protein.countries.length > 0 || protein.global || protein.european))
         || (protein.products.length >= 1 && asksComparison && (protein.mexicoStates.length > 0 || protein.countries.length > 0))
         || (protein.products.length >= 1 && /\b(?:cutout|usda\s+ams|cuesta\s+\d+|como\s+esta(?:n)?\s+(?:hoy\s+)?(?:el\s+|la\s+)?(?:cerdo|pollo|res|huevo|cutout))\b/i.test(text));
-    const proteinPhysicalPrice = !suppressMetaResearch && protein.products.length > 0 && (protein.asksPrices || impliedProteinComparison) && !protein.futures
+    const proteinPhysicalPrice = !suppressMetaResearch && protein.products.length > 0 && (protein.asksPrices || !needsTradeResearch && impliedProteinComparison) && !protein.futures
         && (!equitySubject || physicalPriceClause);
     const localPhysicalPrice = proteinPhysicalPrice || !suppressMetaResearch && topic === 'commodities'
         && LOCAL_PRICE_SIGNAL.test(text)
@@ -186,10 +189,11 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
     // frentes o pide una decisión. No usamos sólo longitud como señal.
     const recommendedTier = needsTradeResearch || asksAnalysis || asksExecutiveBrief || complexity >= 2 || mode === 'executive' || mode === 'technical' ? 'pro' : 'flash';
     const needsExecutiveReport = !providedInputsOnly && !suppressMetaResearch && (
-        /\b(?:informes?\s+ejecutivos?|nuestros?\s+informes|los\s+informes|informe\s+(?:de\s+)?(?:finanzas|mercados|mexico|bonos|divisas|fx|acciones|proteinas|granos|energia|bolsa|noticias|produccion)|panorama\s+(?:ejecutivo|nacional|financiero|de\s+mercados|visual|global)|(?:el|los)\s+reportes?\s+(?:de\s+)?(?:finanzas|mercados|mexico)|report\s*reader)\b/i.test(text)
+        /\b(?:informes?\s+ejecutivos?|nuestros?\s+informes|los\s+informes|biblioteca\s+de\s+informes|informe\s+(?:de\s+)?(?:finanzas|mercados|mexico|bonos|divisas|fx|acciones|proteinas|granos|energia|bolsa|noticias|produccion)|panorama\s+(?:ejecutivo|nacional|financiero|de\s+mercados|visual|global|economico)|reportes?\s+(?:(?:mas\s+)?recientes?\s+)?(?:del\s+apartado\s+de\s+|de\s+)?(?:finanzas|mercados|mexico)|report\s*reader)\b/i.test(text)
+        || topic === 'macro'
         || asksExecutiveBrief
         || (topics.length >= 2 && (asksComparison || asksCurrentData || asksDecision || /\b(?:matriz|global(?:es)?|mundo|mercados?\s+globales?|esta\s+semana|riesgos?)\b/i.test(text)))
-        || /\b(?:cetes|tiie|embig|riesgo\s+pais|bonos?\s+soberanos?|\bvix\b)\b/i.test(text)
+        || /\b(?:cetes|tiie|embig|riesgo\s+pais|bonos?\s+soberanos?|\bvix\b|inpc|inflacion|banxico|remesas)\b/i.test(text)
         || /\b(?:riesgos?\s+(?:macro|sanitari|energ|de\s+la\s+semana)|vigilar\s+esta\s+semana|esta\s+semana\s+que\s+puedan)\b/i.test(text)
     );
     const needsMarranasML = !providedInputsOnly && (

@@ -19,6 +19,7 @@ export default function Footer() {
           sigue existiendo y se llega por la paleta ⌘K. */}
       <nav className="footer-nav">
         <Link to="/inicio">Inicio</Link>
+        <Link to="/informes">Informes</Link>
         <Link to="/finanzas">Finanzas</Link>
         <Link to="/mercados">Mercados</Link>
         <Link to="/mexico">México</Link>

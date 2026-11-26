@@ -17,7 +17,8 @@ function parseCommercialInputs(message, previous = {}) {
     if (quantity) result.purchasedKg = number(quantity[1]) * (/^(?:ton|t$)/.test(quantity[2]) ? 1000 : 1);
     const buy = match('\\b(?:compro|compramos|compra|adquiero)\\b.{0,100}?\\ba\\s*\\$?\\s*' + NUM + '\\s*(?:mxn|usd|eur|pesos)?\\s*(?:/|por\\s+)(?:kg|kilo)')
         || match('(?:precio|costo)\\s*(?:(?:cif|fob|dap|ddp|exw|cfr|fca)\\s*)?(?:de\\s*)?compra\\s*'+LINK+'\\$?\\s*' + NUM)
-        || match('\\bcompra\\s*(?:es|de|:|a|baja a|sube a)?\\s*\\$?\\s*'+NUM+'\\s*(?:mxn|usd|eur|pesos)?\\s*(?:/|por\\s+)(?:kg|kilo)');
+        || match('\\bcompra\\s*(?:es|de|:|a|baja a|sube a)?\\s*\\$?\\s*'+NUM+'\\s*(?:mxn|usd|eur|pesos)?\\s*(?:/|por\\s+)(?:kg|kilo)')
+        || match('\\b(?:partiendo\\s+de|costo\\s+base\\s*(?:de|:)?|base\\s*(?:de|:)?)\\s*\\$?\\s*'+NUM+'\\s*(?:mxn|usd|eur|pesos)?\\s*(?:/|por\\s+)(?:kg|kilo)');
     const sell = match('\\b(?:vendo|vendemos|venta|precio de venta)\\s*(?:en\\s+(?:canal|pie|cortes?)\\s*)?'+LINK+'\\$?\\s*' + NUM + '\\s*(?:mxn|usd|eur|pesos)?');
     if (buy) result.buyPricePerKg = number(buy[1]);
     if (sell && !/^\s*(?:kg|kilos?|toneladas?|t)\b/.test(text.slice(sell.index+sell[0].length))) result.sellPricePerKg = number(sell[1]);

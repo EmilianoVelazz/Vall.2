@@ -42,12 +42,20 @@ const fixtureGet = async () => ({
         const headlines = await liveNews('Noticias de bonos Australia entre 2026-09-01 y 2026-09-30', async () => ({
             ok: true,
             json: async () => ({ articles: [{
-                title: 'Banco central publica actualización', domain: 'official.example',
+                title: 'Banco central de Australia mantiene la tasa de interés', domain: 'official.example',
                 url: 'https://official.example/release', seendate: '20260917T120000Z',
             }] }),
         }));
         assert.equal(headlines.length, 1);
         assert.equal(headlines[0].sourceName, 'official.example');
+        assert.equal(headlines[0].publishedAt, null, 'La indexación no acredita fecha de publicación');
+        assert.equal(headlines[0].indexedAt, '2026-09-17T12:00:00Z');
+        const unrelated = await liveNews('Noticias de bonos Australia entre 2026-09-01 y 2026-09-30', async () => ({
+            ok: true,
+            json: async () => ({ articles: [{ title: 'Banco central publica actualización', domain: 'official.example',
+                url: 'https://official.example/release', seendate: '20260917T120000Z' }] }),
+        }));
+        assert.equal(unrelated.length, 0, 'Un titular genérico no prueba relevancia financiera');
     } finally {
         if (savedNewsKey === undefined) delete process.env.NEWSAPI_KEY;
         else process.env.NEWSAPI_KEY = savedNewsKey;

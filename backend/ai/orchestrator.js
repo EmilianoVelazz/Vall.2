@@ -16,7 +16,7 @@ const { resolveCurrencyConversion, conversionContext, isSimpleCurrencyConversion
 const { planQuery, planContext, mergeEvidence } = require('./query-planner');
 const { buildDataInventoryContext } = require('./data-inventory');
 const { groundLiveData } = require('./live-data-grounder');
-const { auditResponse, appendDisclosure, guardTradeResearch, scopeTradeEvidence, guardNewsCoverage } = require('./response-quality');
+const { auditResponse, appendDisclosure, guardTradeResearch, scopeTradeEvidence, guardNewsCoverage, isEvidenceCitation } = require('./response-quality');
 const { buildStatisticalModel, mergeStatisticalEvidence, attachStatisticalModel, wantsStatisticalAnalysis } = require('./statistical-analysis');
 const { conversationFocus, balancedExcerpt } = require('./conversation-context');
 const { attachAnswerStrategy } = require('./answer-strategy');
@@ -284,17 +284,27 @@ function buildExecutiveSnapshotContext(plan = {}) {
     return `[CORTES VERIFICADOS DE INFORMES EJECUTIVOS · FINANZAS Y MERCADOS]\nUsa estas cifras fechadas exactas cuando el usuario pida CETES, TIIE, Treasury 10A, EMBIG, bolsas globales, divisas, WTI, gas natural, oro o cobre. No entregues definiciones genéricas ni "Pendiente corte" si el dato aparece aquí.\n${matrix}`;
 }
 
-function buildDeterministicEvidenceFallback({ plan = {}, evidence = {}, liveData = null, reportEvidence = null, marranasML = null, forecastAnalysis = null, error = null }) {
+function buildDeterministicEvidenceFallback({ plan = {}, evidence = {}, liveData = null, reportEvidence = null, marranasML = null, forecastAnalysis = null, dataInventory = null, error = null }) {
     const sections = [];
     const quotes = Array.isArray(liveData?.quotes) ? liveData.quotes : [];
     const proteins = Array.isArray(evidence?.proteinPriceRecords) ? evidence.proteinPriceRecords : [];
+    const citations = Array.isArray(evidence?.citations) ? evidence.citations : [];
+    const newsCitations = citations.filter(c => c?.type === 'live_news' || c?.type === 'rabobank_public_research' || c?.type?.startsWith('mercolleida_public_'));
     const hasReports = Boolean(reportEvidence?.available && reportEvidence?.context);
     const hasMl = Boolean(marranasML?.available && marranasML?.context);
     const hasForecast = Boolean(forecastAnalysis?.available && forecastAnalysis?.context);
-    const execMatrix = (plan.needsExecutiveReport || (plan.topics?.length >= 2) || plan.topics?.some(t => ['commodities', 'bonds', 'equities', 'fx'].includes(t))) ? buildExecutiveMarketsMatrixTable() : '';
-    if (!quotes.length && !proteins.length && !hasReports && !hasMl && !hasForecast && !execMatrix) return null;
+    const hasInventory = Boolean(dataInventory && (plan.asksDataInventory || plan.asksCoverageExplanation));
+    const wantsGlobalMatrix = !plan.asksDataInventory && !plan.asksCoverageExplanation
+        && (plan.asksExecutiveBrief || (plan.topics?.length >= 2) || /\b(?:matriz|mercados?\s+globales?|cetes|tiie|treasury|embig|bonos?)\b/i.test(plan.marketQuery || ''));
+    const execMatrix = wantsGlobalMatrix ? buildExecutiveMarketsMatrixTable() : '';
+    if (!quotes.length && !proteins.length && !hasReports && !hasMl && !hasForecast && !hasInventory && !newsCitations.length && !execMatrix) return null;
 
-    sections.push('> [!NOTE] **Modo de respaldo verificado:** el modelo generativo alcanzó temporalmente su límite de cuota o tiempo de espera (`' + (error?.code || 'AI_RATE_LIMIT') + '`). A continuación se presentan directamente las cifras, tablas y alertas verificadas recuperadas por ORION sin texto inventado.');
+    sections.push('> [!NOTE] **Modo de respaldo verificado:** el modelo generativo alcanzó temporalmente su límite de cuota, créditos o tiempo de espera (`' + (error?.code || 'AI_RATE_LIMIT') + '`). A continuación se presentan directamente las cifras, tablas y alertas verificadas recuperadas por ORION sin texto inventado.');
+
+    if (hasInventory) {
+        const invLines = String(dataInventory).split('\n').filter(l => l.trim() && !/^\[/.test(l.trim())).slice(0, 24);
+        if (invLines.length) sections.push(`### Inventario y cobertura activa de ORION\n\n${invLines.join('\n')}`);
+    }
 
     if (quotes.length) {
         const rows = quotes.slice(0, 12).map(q => {
@@ -326,9 +336,17 @@ function buildDeterministicEvidenceFallback({ plan = {}, evidence = {}, liveData
         if (mlLines.length) sections.push(`### Motor ORION ML (Paridad, Pronóstico y Radar Sanitario NLP)\n\n${mlLines.map(l => `- ${l}`).join('\n')}`);
     }
 
-    if (hasReports && !execMatrix) {
-        const repLines = String(reportEvidence.context).split('\n').filter(l => l.trim() && !/^\[/.test(l.trim()) && !INTERNAL_PROMPT_RE.test(l.trim())).slice(0, 18);
+    if (hasReports) {
+        const repLines = String(reportEvidence.context).split('\n').filter(l => l.trim() && !/^\[/.test(l.trim()) && !INTERNAL_PROMPT_RE.test(l.trim())).slice(0, 22);
         if (repLines.length) sections.push(`### Datos de Informes Ejecutivos (cortes verificados)\n\n${repLines.join('\n')}`);
+    }
+
+    if (newsCitations.length) {
+        const newsLines = newsCitations.slice(0, 8).map(c => {
+            const label = [c.source, c.title, c.date].filter(Boolean).join(' · ');
+            return c.url ? `- [${label}](${c.url})` : `- ${label}`;
+        });
+        if (newsLines.length) sections.push(`### Titulares y cobertura reciente verificada\n\n${newsLines.join('\n')}`);
     }
 
     if (hasForecast) {
@@ -408,7 +426,7 @@ function attachEvidence(response, evidence, plan = {}) {
         if (!autoChart && response.meta.forecastAnalysis?.available) {
             autoChart = buildForecastRecordChart(response.meta.forecastAnalysis);
         }
-        if (!autoChart && plan.needsMarranasML) {
+        if (!autoChart && plan.needsMarranasML && (!plan.needsProteinPrices || evidence.proteinPriceRecords?.length > 0)) {
             autoChart = buildMarranasChart({ message: queryText, plan });
         }
         if (!autoChart && (plan.needsExecutiveReport || (plan.topics?.length >= 2 && (plan.asksComparison || plan.asksExecutiveBrief)))) {
@@ -434,7 +452,8 @@ function attachEvidence(response, evidence, plan = {}) {
         type: 'forecast_historical_series', source: record.source, title: `${record.name} (${record.ticker}) · ${record.cutoff}`,
         date: record.cutoff, url: record.sourceUrl,
     }));
-    const citations = [...forecastSources, ...(evidence.citations || [])].filter((item, index, all) => all.findIndex(other => other.url === item.url) === index).slice(0, 24);
+    const citations = [...forecastSources, ...(evidence.citations || [])].filter(isEvidenceCitation)
+        .filter((item, index, all) => all.findIndex(other => other.url === item.url) === index).slice(0, 24);
     response.meta.citations = citations;
     response.meta.retrievalStrategy = evidence.retrievalStrategy;
     response.meta.evidenceCount = evidence.evidenceCount;
@@ -907,8 +926,8 @@ class AIOrchestrator {
                 maxOutputTokens: plan.asksAnalysis || plan.asksNews || plan.needsTradeResearch ? 8192 : 4096 }, resolvedTier, deliver));
         } catch (err) {
             const fallbackMd = process.env.NODE_ENV !== 'test' && this.provider.name === 'gemini'
-                && ['AI_RATE_LIMIT', 'AI_TIMEOUT', 'AI_PROVIDER_ERROR'].includes(err?.code)
-                ? buildDeterministicEvidenceFallback({ plan, evidence, liveData, reportEvidence, marranasML, forecastAnalysis, error: err })
+                && ['AI_RATE_LIMIT', 'AI_TIMEOUT', 'AI_PROVIDER_ERROR', 'AI_BILLING'].includes(err?.code)
+                ? buildDeterministicEvidenceFallback({ plan, evidence, liveData, reportEvidence, marranasML, forecastAnalysis, dataInventory: inventorySection, error: err })
                 : null;
             if (!fallbackMd) throw err;
             console.warn('[Orchestrator] Proveedor IA sin cuota/tiempo; se entrega respaldo determinista con evidencia verificada.');
@@ -1053,8 +1072,8 @@ class AIOrchestrator {
             }, resolvedTier));
         } catch (err) {
             const fallbackMd = process.env.NODE_ENV !== 'test' && this.provider.name === 'gemini'
-                && ['AI_RATE_LIMIT', 'AI_TIMEOUT', 'AI_PROVIDER_ERROR'].includes(err?.code)
-                ? buildDeterministicEvidenceFallback({ plan, evidence, liveData, reportEvidence, marranasML, forecastAnalysis, error: err })
+                && ['AI_RATE_LIMIT', 'AI_TIMEOUT', 'AI_PROVIDER_ERROR', 'AI_BILLING'].includes(err?.code)
+                ? buildDeterministicEvidenceFallback({ plan, evidence, liveData, reportEvidence, marranasML, forecastAnalysis, dataInventory: inventorySection, error: err })
                 : null;
             if (!fallbackMd) throw err;
             console.warn('[Orchestrator] Proveedor IA sin cuota/tiempo; se entrega respaldo determinista con evidencia verificada.');

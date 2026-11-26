@@ -96,3 +96,21 @@
 @media (prefers-reduced-motion:reduce) {
   .lx-login *, .lx-login *::before, .lx-login *::after { animation: none !important; transition: none !important; }.lx-market-line { stroke-dashoffset: 0; }
 }
+
+
+/* Contraste de pie de página y enlace de regreso en una sola línea en móvil. */
+.lx-footer span {
+  color: rgba(214, 228, 246, .82) !important;
+}
+.lx-access-bottom span {
+  color: #475569 !important;
+}
+.lx-return {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .lx-return {
+    font-size: .74rem;
+    gap: 5px;
+  }
+}

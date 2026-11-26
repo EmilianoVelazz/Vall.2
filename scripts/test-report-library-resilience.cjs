@@ -53,7 +53,7 @@ async function main() {
    calls++;
    if(url.includes('finance/chart/')) return {ok:true,json:async()=>({chart:{result:[{timestamp:[1791806400,1791892800,1791979200],indicators:{quote:[{close:[38,38.5,39]}]}}]}})};
    if(url.includes('open.er-api.com')) return {ok:true,json:async()=>({rates:{MXN:18.2,EUR:.9,JPY:140,GBP:.8,CAD:1.3}})};
-   if(url.includes('finnhub.io/api/v1/news')) return {ok:true,json:async()=>[{headline:'Protein trade fixture',summary:'Verified fixture text',source:'Fixture publisher',url:'https://example.invalid/news',datetime:Math.floor(Date.now()/1000)}]};
+   if(url.includes('finnhub.io/api/v1/news')) return {ok:true,json:async()=>[{headline:'Corn exports increase after the new harvest',summary:'Verified fixture text',source:'Fixture publisher',url:'https://example.invalid/news',datetime:Math.floor(Date.now()/1000)}]};
    if(url.includes('newsapi.org')) return never();
    if(url.includes('gdeltproject.org')) return {ok:true,json:async()=>({articles:[]})};
    return {ok:false,status:503,json:async()=>({})};

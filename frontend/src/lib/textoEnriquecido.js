@@ -31,11 +31,25 @@
 const ETIQUETAS_PERMITIDAS = 'b|strong|em|i|u|br';
 
 export default function textoEnriquecido(bruto) {
-  return String(bruto ?? '')
+  // Retira bloques crudos ```chart ... ``` o ```json ... ``` que no deben verse como código.
+  const limpio = String(bruto ?? '')
+    .replace(/```(?:chart|json|mermaid)?[\s\S]*?```/gi, '')
+    .replace(/^>\s*\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/gim, '')
+    .replace(/^>\s?/gm, '')
+    .replace(/^#{1,4}\s+(.+)$/gm, '<b>$1</b>')
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/^\s*\|[\s:|-]+\|\s*$/gm, '')
+    .replace(/^\s*\|(.+)\|\s*$/gm, (_, row) => row.split('|').map(c => c.trim()).filter(Boolean).join(' · '))
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return limpio
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(new RegExp(`&lt;(/?)(${ETIQUETAS_PERMITIDAS})\\s*/?&gt;`, 'gi'), '<$1$2>');
+    .replace(new RegExp(`&lt;(/?)(${ETIQUETAS_PERMITIDAS})\\s*/?&gt;`, 'gi'), '<$1$2>')
+    .replace(/\r?\n/g, '<br>');
 }
 
 /* Punto único de renderizado para el marcado saneado. Al no exponer el

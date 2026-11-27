@@ -8,8 +8,12 @@ const require=createRequire(import.meta.url);
 process.env.JWT_SECRET='isolated-report-quality-secret-at-least-32-bytes';
 delete process.env.USER_PASSWORD;
 const {_test}=require('../backend/routes/export');
+const {renderIndividualReportPdf}=require('../backend/lib/report-pdf-page-limit');
 const {input,time}=require('./lib/mexico-report-fixture.cjs');
 const {buildMexicoReports}=require('../backend/services/mexico-executive-reports');
+const publishedModel={metrics:[{label:'Dato publicado',value:'10'}]},fourPagePdf=async()=>({reportPageCount:4});
+assert.equal((await renderIndividualReportPdf({report:{executiveBrief:{traceability:{}}},model:publishedModel,render:fourPagePdf,renderCompact:fourPagePdf})).reportPageCount,4,'A cited appendix may use one additional executive page');
+await assert.rejects(renderIndividualReportPdf({report:{},model:publishedModel,render:fourPagePdf,renderCompact:fourPagePdf}),/No se pudo componer un PDF legible/,'Reports without evidence links retain the original page limit');
 
 const duplicate={title:'Título',summary:'Lectura del corte.',takeaways:['Señal principal','  Señal principal '],watchlist:['Confirmar inventario'],
   executiveBrief:{generated:true,mode:'deterministic',headline:'Título',thesis:'Lectura del corte.',drivers:['Señal principal'],risks:['Confirmar inventario']}};
@@ -19,6 +23,10 @@ assert.deepEqual(reading.risks,['Confirmar inventario']);
 assert.equal(reading.brief.thesis,'','El resumen determinista no se repite');
 assert.equal(reportOutline(duplicate).find(block=>block.key==='risks').count,1);
 assert.equal(duplicate.takeaways.length,2,'La presentación no sobrescribe el documento');
+const tracedReading=executiveReading({takeaways:[],watchlist:[],executiveBrief:{generated:true,mode:'ai',thesis:'Lectura de prueba.',drivers:['Señal trazable.'],risks:['Dato pendiente.'],traceability:{thesis:{kind:'interpretation',evidenceIds:['metric-1']},drivers:[{kind:'observed',evidenceIds:['metric-1']}],risks:[{kind:'pending',evidenceIds:[]}]},evidence:[{id:'metric-1',label:'Indicador',excerpt:'Valor observado',date:'2026-11-12',unit:'MXN',source:'Fuente',url:'https://example.org/indicador'}]}});
+assert.deepEqual(tracedReading.highlightTraceability,[{kind:'observed',evidenceIds:['metric-1']}]);
+assert.deepEqual(tracedReading.riskTraceability,[{kind:'pending',evidenceIds:[]}]);
+assert.equal(tracedReading.brief.evidence[0].url,'https://example.org/indicador');
 const mexico=buildMexicoReports(input,time);
 assert(mexico.every(report=>report.objective && report.takeaways.length && report.closing),'Cada informe mexicano prepara una decisión');
 
@@ -45,6 +53,32 @@ for(const token of ['FUENTES Y TRAZABILIDAD','FUENTEDECLARADA7','https://example
 assert(text.indexOf('ANALISISANTESDELOS')<text.indexOf('VALORMETRICA0'));
 assert(text.indexOf('CIERREANTESDELOSDATOS')<text.indexOf('VALORMETRICA14'));
 await task.destroy();
+const traceUrl='https://example.org/evidencia-ejecutiva';
+const tracedReport={...base,title:'Lectura con trazabilidad',executiveBrief:{
+  generated:true,mode:'ai',headline:'Referencia para revisión',context:'Corte de simulación.',thesis:'La referencia es 20 MXN por USD; el efecto depende de la exposición real.',
+  drivers:['La cifra disponible requiere validación operativa.'],risks:['Confirmar vigencia antes de usarla.'],committeeQuestion:'¿Qué exposición debe confirmarse?',
+  traceability:{thesis:{kind:'interpretation',evidenceIds:['metric-1']},drivers:[{kind:'observed',evidenceIds:['metric-1']}],risks:[{kind:'pending',evidenceIds:[]}]},
+  evidence:[{id:'metric-1',label:'USD/MXN · Fuente primaria',excerpt:'USD/MXN: 20 MXN por USD',date:'2026-11-12',unit:'MXN por USD',source:'Fuente de simulación',url:traceUrl}],
+}};
+const tracedPayload=_test.executivePayload(tracedReport);
+assert.equal(tracedPayload.executiveBrief.evidence[0].url,traceUrl);
+const danglingPayload=_test.executivePayload({...tracedReport,executiveBrief:{...tracedReport.executiveBrief,traceability:{...tracedReport.executiveBrief.traceability,thesis:{kind:'observed',evidenceIds:['news-999']}}}});
+assert.deepEqual(danglingPayload.executiveBrief.traceability.thesis,{kind:'pending',evidenceIds:[]},'An export cannot retain a claim category without its linked evidence');
+const tracedBytes=await _test.makeExecutivePdf(tracedReport.title,tracedPayload);
+const tracedTask=getDocument({data:new Uint8Array(tracedBytes),useSystemFonts:true,disableFontFace:true});
+const tracedPdf=await tracedTask.promise;
+let tracedText='',linkAnnotations=[];
+for(let number=1;number<=tracedPdf.numPages;number++){
+ const page=await tracedPdf.getPage(number);tracedText+=(await page.getTextContent()).items.map(item=>item.str).join(' ');
+ linkAnnotations.push(...(await page.getAnnotations()).filter(item=>item.subtype==='Link'));
+}
+assert.match(tracedText,/TRAZABILIDAD POR CONCLUSIÓN/);
+assert.match(tracedText,/INTERPRETACIÓN CONDICIONAL/);
+assert.match(tracedText,/DATO OBSERVADO/);
+assert.match(tracedText,/PENDIENTE DE VALIDAR/);
+assert(tracedText.includes(traceUrl),'The PDF shows the exact evidence URL');
+assert(linkAnnotations.some(item=>item.url===traceUrl),'The PDF source reference is clickable');
+await tracedTask.destroy();
 if(process.argv.includes('--preview')) {
   const output='output/pdf';await fs.mkdir(output,{recursive:true});
   const sample=mexico.find(report=>report.key==='mx_overview');

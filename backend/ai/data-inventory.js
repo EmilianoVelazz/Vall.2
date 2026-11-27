@@ -81,13 +81,13 @@ function buildDataInventoryContext({ plan = {}, liveData = null, evidence = null
         const mAudit = loadCachedClosedLoopAudit();
         if (marranas?.stats?.activeModels) {
             lines.push(
-                `2b) **Motor ML Independiente de Proteínas Animales (MARRANAS · ${marranas.version}, corte ${String(marranas.generatedAt || '').slice(0, 10)}):**`,
+                `2b) **VALL-Proteínas · Modelo ML exclusivo de predicción de proteínas animales (${marranas.version}, corte ${String(marranas.generatedAt || '').slice(0, 10)}):**`,
                 `- ${marranas.stats.activeModels} modelos activos (${marranas.stats.conformalAndAdaptiveModels || 0} Conformal P80) entrenados con ${(marranas.stats.totalObservationsIngested || 0).toLocaleString('es-MX')} observaciones reales y ${marranas.stats.exogenousDriverSeries || 0} drivers exógenos (CFTC COT, IBGE Brasil, spreads USDA, ración, FX, paridad MXN/kg).`,
                 `- Desempeño: Exactitud Walk-Forward ${marranas.stats.avgWalkForwardDirectionalAccuracyPct}% (México SNIIM ${marranas.summary?.byRegion?.MX?.avgDirectionalAccuracyPct ?? '—'}%), Brier ${marranas.stats.avgBrierScore}, mejora MAE +${marranas.stats.avgMaeImprovementPct}%.`,
                 `- Módulos integrados: factores estadísticos asociados (sin inferencia causal), Paridad de Importación → México (USD/MXN=${marranas.importParity?.fxRates?.usdMxn ?? '—'}), Radar NLP Sanitario/Comercial (${marranas.nlpEvents?.stats?.relevantEventsDetected || 0} eventos contextuales) y evaluación prospectiva del modelo vigente (${mAudit?.summary?.totalEvaluated || 0} evals · P80 ${mAudit?.summary?.conformal80CoveragePct ?? '—'}% · MAPE ${mAudit?.summary?.avgMapePct ?? '—'}%). La validación histórica no es exactitud comprobada en producción.`,
             );
         }
-    } catch { /* MARRANAS opcional */ }
+    } catch { /* Modelo especializado de proteínas opcional. */ }
 
     const commFile = fs.existsSync(path.join(CACHE_DIR, 'commodity-cache.json'))
         ? path.join(CACHE_DIR, 'commodity-cache.json')

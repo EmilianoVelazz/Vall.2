@@ -26,6 +26,59 @@ function list(value, maxItems, maxLength) {
         : [];
 }
 
+const TRACE_KINDS=new Set(['observed','interpretation','pending']);
+function normalizeTraceItem(item, claim, facts, issues, path) {
+    const kind=String(item?.kind||'');
+    const requested=Array.isArray(item?.evidenceIds) ? [...new Set(item.evidenceIds.filter(value=>typeof value==='string'))].slice(0,6) : [];
+    const evidenceById=new Map((facts.evidence||[]).map(record=>[record.id,record]));
+    const evidenceIds=requested.filter(id=>evidenceById.has(id));
+    if(!TRACE_KINDS.has(kind))issues.push(`${path}: clasificar como observed, interpretation o pending`);
+    if(requested.length!==evidenceIds.length)issues.push(`${path}: usar únicamente IDs de evidencia existentes`);
+    if(kind!=='pending'&&!evidenceIds.length)issues.push(`${path}: vincular evidencia o clasificar como pending`);
+    const claimNumbers=numericTokens(claim);
+    if(claimNumbers.size && (!evidenceIds.length || [...claimNumbers].some(number=>
+        !evidenceIds.some(id=>numericTokens(evidenceById.get(id)?.excerpt||'').has(number))))) {
+        issues.push(`${path}: vincular referencias que contengan las cifras literales de la afirmación`);
+    }
+    return {kind:TRACE_KINDS.has(kind)?kind:'pending',evidenceIds};
+}
+
+function deterministicTraceItem(claim, defaultKind, facts) {
+    const records=facts.evidence||[];
+    const claimNumbers=numericTokens(claim);
+    const words=new Set(String(claim||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').match(/[\p{L}]{4,}/gu)||[]);
+    let best=null,bestScore=0;
+    for(const record of records) {
+        const excerpt=`${record.label||''} ${record.excerpt||''}`;
+        const numbers=numericTokens(excerpt);
+        if(claimNumbers.size && [...claimNumbers].some(number=>!numbers.has(number)))continue;
+        const evidenceWords=new Set(excerpt.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').match(/[\p{L}]{4,}/gu)||[]);
+        const overlap=[...words].filter(word=>evidenceWords.has(word)).length;
+        const score=overlap/Math.max(1,words.size);
+        if((claimNumbers.size ? overlap>0 : overlap>=2)&&score>bestScore){best=record;bestScore=score;}
+    }
+    if(!best)return {kind:'pending',evidenceIds:[]};
+    return {kind:defaultKind,evidenceIds:[best.id]};
+}
+
+function deterministicTraceability(brief,facts) {
+    const conditional=/\b(?:si|depende|podr[ií]a|requiere|confirmar|contrastar|validar)\b/i;
+    const thesisKind=conditional.test(brief.thesis||'')?'interpretation':'observed';
+    return {
+        thesis:deterministicTraceItem(brief.thesis,thesisKind,facts),
+        drivers:(brief.drivers||[]).map(item=>deterministicTraceItem(item,'observed',facts)),
+        risks:(brief.risks||[]).map(item=>deterministicTraceItem(item,'pending',facts)),
+    };
+}
+
+function unlinkedTraceability(brief) {
+    return {
+        thesis:{kind:'pending',evidenceIds:[]},
+        drivers:(brief.drivers||[]).map(()=>({kind:'pending',evidenceIds:[]})),
+        risks:(brief.risks||[]).map(()=>({kind:'pending',evidenceIds:[]})),
+    };
+}
+
 // Validate the complete answer before publishing. Cutting a field to length
 // can leave its condition or conclusion unfinished even when the JSON is valid.
 function checkedBrief(draft, facts) {
@@ -44,12 +97,25 @@ function checkedBrief(draft, facts) {
     const allowed=numericTokens(JSON.stringify(facts));
     const unsupported=[...numericTokens(JSON.stringify(brief))].filter(value=>!allowed.has(value));
     if(unsupported.length)issues.push('Conservar las cifras literales del material; eliminar cifras nuevas, redondeos o conteos derivados: '+unsupported.slice(0,20).join(', '));
+    const rawTrace=draft?.traceability||{};
+    const thesis=normalizeTraceItem(rawTrace.thesis,brief.thesis,facts,issues,'thesis');
+    const drivers=brief.drivers.map((claim,index)=>normalizeTraceItem(rawTrace.drivers?.[index],claim,facts,issues,`drivers[${index}]`));
+    const risks=brief.risks.map((claim,index)=>normalizeTraceItem(rawTrace.risks?.[index],claim,facts,issues,`risks[${index}]`));
+    if(!Array.isArray(rawTrace.drivers)||rawTrace.drivers.length!==brief.drivers.length)issues.push('traceability.drivers: una referencia por impulsor');
+    if(!Array.isArray(rawTrace.risks)||rawTrace.risks.length!==brief.risks.length)issues.push('traceability.risks: una referencia por riesgo');
+    brief.traceability={thesis,drivers,risks};
+    const referenced=new Set([thesis,...drivers,...risks].flatMap(item=>item.evidenceIds));
+    brief.evidence=(facts.evidence||[]).filter(record=>referenced.has(record.id));
     return {brief,issues};
 }
 
 function factsFor(report) { return editorialFacts(report); }
 
 function compactFactsForPrompt(fact) {
+    const evidence=(fact.evidence||[]).slice().sort((left,right)=>{
+        const weight=item=>Number(Boolean(item.url))*4+Number(Boolean(item.date))*2+Number(Boolean(item.source))+Number(Boolean(item.unit));
+        return weight(right)-weight(left);
+    }).slice(0,60);
     return {
         ...fact,
         sections: (fact.sections || []).slice(0, 6).map(s => ({ heading: s.heading, text: cleanText(s.text, 700) })),
@@ -59,6 +125,7 @@ function compactFactsForPrompt(fact) {
         })),
         sources: (fact.sources || []).slice(0, 10),
         sourceLinks: (fact.sourceLinks || []).slice(0, 8),
+        evidence: evidence.map(item => ({ ...item, excerpt: cleanText(item.excerpt, 500) })),
     };
 }
 
@@ -75,9 +142,10 @@ const QUESTIONS_BY_KEY = {
 };
 
 function deterministicBrief(report) {
+    const facts=editorialFacts(report);
     const key = report.baseReport?.key || report.key;
     const committeeQuestion = QUESTIONS_BY_KEY[key] || '¿Qué dato del corte confirmaría o cambiaría esta lectura antes de comprometer inventario o liquidez?';
-    return {
+    const brief={
         generated: true,
         mode: 'deterministic',
         agent: 'VALL Executive Desk',
@@ -89,6 +157,13 @@ function deterministicBrief(report) {
         committeeQuestion,
         evidenceNote: 'Síntesis ejecutiva elaborada a partir de los datos verificados del corte.',
     };
+    brief.traceability=deterministicTraceability(brief,facts);
+    brief.evidence=facts.evidence.filter(record=>new Set([
+        ...brief.traceability.thesis.evidenceIds,
+        ...brief.traceability.drivers.flatMap(item=>item.evidenceIds),
+        ...brief.traceability.risks.flatMap(item=>item.evidenceIds),
+    ]).has(record.id));
+    return brief;
 }
 
 class ExecutiveReportAgent {
@@ -105,7 +180,15 @@ class ExecutiveReportAgent {
         // credencial ausente. Primero construimos una síntesis reproducible y
         // luego la IA puede enriquecerla, identificándose explícitamente.
         const sectorReports=reports.map(report=>enrichSectorReport(report,area==='Finanzas' ? 'finance' : area==='Mercados' ? 'markets' : 'mexico'));
-        const fallbackReports = sectorReports.map(report => report?.executiveBrief ? report : ({ ...report, executiveBrief: deterministicBrief(report) }));
+        const fallbackReports = sectorReports.map(report => report?.executiveBrief ? ({
+            ...report,
+            executiveBrief:report.executiveBrief.traceability ? report.executiveBrief : {
+                ...report.executiveBrief,
+                traceability:unlinkedTraceability(report.executiveBrief),
+                evidence:[],
+                traceabilityNote:'Informe anterior: sus conclusiones aún no tienen referencias individuales vinculadas.',
+            },
+        }) : ({ ...report, executiveBrief: deterministicBrief(report) }));
         if (!this.provider.isConfigured()) return fallbackReports;
         const facts = sectorReports.map(factsFor);
         const promptFacts = facts.map(compactFactsForPrompt);
@@ -118,11 +201,13 @@ Reglas no negociables:
 4. La tesis y cada señal deben diferenciar hecho observado de implicación condicional; evita adjetivos promocionales y frases genéricas. El contexto explica la exposición del negocio sin repetir la tesis ni el resumen. Cada impulsor une evidencia e implicación; cada riesgo identifica la condición y el dato a contrastar. La pregunta de comité debe ser específica para el informe, sin inventar responsables, umbrales ni plazos.
 5. Si faltan hechos, dilo de forma explícita y breve.
 Las preguntas e información a solicitar de la guía sectorial son criterios de análisis, no datos observados. Úsalas para precisar qué debe validarse; no afirmes que esa evidencia o exposición ya existe.
-6. Devuelve JSON válido, sin Markdown ni texto adicional. Sintetiza dentro de los límites de cada campo; todas las frases deben quedar completas y cerrar con puntuación. No copies todas las filas de las tablas.`;
+6. Clasifica cada tesis, impulsor y riesgo: observed = dato literal visible en el corte; interpretation = implicación condicional apoyada por datos; pending = dato que falta o que requiere validación. Cada punto no pendiente debe enlazar uno o más IDs exactos de DATOS VERIFICADOS.evidence. No inventes IDs; si no hay apoyo específico, usa pending y una lista vacía. Las cifras de cada punto deben aparecer en los extractos de sus IDs vinculados.
+7. Devuelve JSON válido, sin Markdown ni texto adicional. Sintetiza dentro de los límites de cada campo; todas las frases deben quedar completas y cerrar con puntuación. No copies todas las filas de las tablas.`;
         const loopusGuidance = getReportReasoningContext({ area, key: fallbackReports.map(r => r.key).join(' '), depth: 'detailed' });
         if (loopusGuidance) systemInstruction += `\n\n${loopusGuidance}`;
         const buildAreaPrompt = (selectedFacts, repairNote = '') => `Área: ${area}. Para cada informe, entrega profundidad analítica de comité conectando cifras literales, fechas, unidades, dispersión regional o entre activos y mecanismos de transmisión (FX, tasas, insumos, energía o abasto) usando únicamente DATOS VERIFICADOS. Devuelve exactamente este esquema:
-{"reports":[{"key":"","headline":"máximo 130 caracteres; describe el hecho rector con precisión sin sensacionalismo","context":"máximo 440 caracteres; explica exposición del negocio, corte y relevancia operativa sin repetir la tesis","thesis":"máximo 560 caracteres; hecho observado con cifra/unidad literal, mecanismo causal y lectura condicional","drivers":["máximo 3, hasta 320 caracteres c/u; señal observable con cifra/fuente del corte, mecanismo e implicación práctica"],"risks":["máximo 3, hasta 320 caracteres c/u; condición específica de riesgo y dato concreto a contrastar para confirmarla"],"committeeQuestion":"máximo 340 caracteres; pregunta accionable y específica para comité"}]}
+{"reports":[{"key":"","headline":"máximo 130 caracteres; describe el hecho rector con precisión sin sensacionalismo","context":"máximo 440 caracteres; explica exposición del negocio, corte y relevancia operativa sin repetir la tesis","thesis":"máximo 560 caracteres","drivers":["máximo 3 frases, hasta 320 caracteres c/u"],"risks":["máximo 3 frases, hasta 320 caracteres c/u"],"committeeQuestion":"máximo 340 caracteres","traceability":{"thesis":{"kind":"observed|interpretation|pending","evidenceIds":["metric-1"]},"drivers":[{"kind":"observed|interpretation|pending","evidenceIds":["table-1-row-2"]}],"risks":[{"kind":"observed|interpretation|pending","evidenceIds":["news-1"]}]}}]}
+Cada arreglo de trazabilidad debe tener un elemento por punto en el mismo orden. Los IDs sólo pueden tomarse de DATOS VERIFICADOS.evidence.
 
 DATOS VERIFICADOS:
 ${JSON.stringify(selectedFacts)}${repairNote}`;

@@ -47,3 +47,56 @@
   .sx-orion .sx-lead { display: none; }.sx-model-detail { order: 4; margin: 0; padding-left: 12px; }.vn-presentacion .sx-model-detail h3 { font-size: 15px; margin-top: 5px; }.sx-model-detail p { display: none; }.sx-primary { order: 5; align-self: flex-start; min-height: 42px; margin: 0; padding: 10px 17px; font-size: 10px; }.sx-access-note { display: none; }.sx-demo-header { padding: 10px 13px; font-size: 6px; }.sx-demo-tabs { padding: 9px 11px 0; }.vn-presentacion .sx-demo-tabs button { font-size: 7px; padding: 6px 10px; }.sx-demo-content { padding: 11px 14px; }.vn-presentacion .sx-demo-question { font-size: 10px; }.sx-demo-answer { gap: 8px; margin-top: 9px; }.vn-presentacion .sx-demo-answer p { font-size: 8px; line-height: 1.7; }.sx-demo-tags { margin-top: 10px; padding-left: 23px; gap: 5px; }.sx-demo-tags > span { font-size: 6px; padding: 4px 6px; }.sx-demo-note { font-size: 6px; padding: 0 14px 10px; }
 }
 @media(max-width:360px) { .vn-presentacion .sx-scene-copy h2 { font-size: 33px; }.sx-scene-layout { gap: 12px; }.vn-presentacion .sx-cut-picker button { padding-inline: 5px; font-size: 6px; }.sx-periods { border: 0; }.sx-chart-readout > span { font-size: 5px; }.sx-orion .sx-scene-layout { gap: 11px; } }
+
+.sx-scene-top { font-size: 10px; letter-spacing: 1.1px; color: #b6c4d6; }
+.vn-presentacion .sx-eyebrow { font-size: 10px; }
+.vn-presentacion .sx-lead { max-width: 410px; color: #bdc9d8; font-size: 15px; }
+.vn-presentacion :is(.sx-choice-group,.sx-model-picker) button { font-size: 12px; }
+.sx-micro { color: #a9bfdc; font-size: 9px; }
+.vn-presentacion :is(.sx-market-detail,.sx-model-detail) p { color: #b5c3d4; font-size: 13px; }
+.vn-presentacion .sx-periods button { font-size: 10px; }
+.sx-chart-readout > span { color: #b3c0d0; font-size: 10px; }
+.sx-chart-bottom { color: #b3c0d0; font-size: 10px; }
+.sx-data-nodes > span { color: #b7c5d6; font-size: 10px; }
+.sx-data-nodes small { color: #a9bfdc; font-size: 8px; }
+.sx-demo-header { color: #aec4e0; font-size: 9px; }
+.sx-demo-header > span:last-child { color: #b2bfd0; font-size: 8px; }
+.vn-presentacion .sx-demo-tabs button { font-size: 10px; }
+.vn-presentacion .sx-demo-question { font-size: 14px; }
+.vn-presentacion .sx-demo-answer p { color: #c0cad8; font-size: 12px; }
+.sx-demo-tags > span { color: #b4c9e3; font-size: 9px; }
+.sx-demo-note { color: #a5b4c7; font-size: 9px; }
+.vn-presentacion .sx-cut-picker button { font-size: 10px; }
+.sx-cut-picker button > span { color: #91afd2; font-size: 8px; }
+.vn-presentacion .sx-cut-detail p { color: #b5c3d4; font-size: 12px; }
+.sx-cut-products { color: #c2d7f2; font-size: 10px; }
+.sx-cut-zone { color: #b2bfd0; font-size: 9px; }
+.vn-presentacion .sx-visual-note { color: #aab8ca; font-size: 9px; }
+
+@media(max-width:700px) {
+  .sx-scene-top { font-size: 9px; }
+  .vn-presentacion .sx-eyebrow { font-size: 9px; }
+  .vn-presentacion .sx-lead { font-size: 13px; }
+  .vn-presentacion :is(.sx-choice-group,.sx-model-picker) button { font-size: 10px; }
+  .sx-micro { font-size: 8px; }
+  .vn-presentacion :is(.sx-market-detail,.sx-model-detail) p { font-size: 12px; }
+  .vn-presentacion .sx-periods button { font-size: 9px; }
+  .sx-chart-readout > span,.sx-chart-bottom { font-size: 8px; }
+  .sx-data-nodes > span { font-size: 8px; }
+  .sx-data-nodes small { font-size: 7px; }
+  .sx-demo-header { font-size: 8px; }
+  .sx-demo-header > span:last-child { font-size: 7px; }
+  .vn-presentacion .sx-demo-tabs button { font-size: 9px; }
+  .vn-presentacion .sx-demo-question { font-size: 12px; }
+  .vn-presentacion .sx-demo-answer p { font-size: 10px; }
+  .sx-demo-tags > span,.sx-demo-note { font-size: 8px; }
+  .vn-presentacion .sx-cut-picker button { font-size: 9px; }
+  .sx-cut-picker button > span,.sx-cut-zone { font-size: 7px; }
+  .vn-presentacion .sx-cut-detail p { font-size: 11px; }
+  .sx-cut-products,.vn-presentacion .sx-visual-note { font-size: 9px; }
+}
+
+@media(max-width:360px) {
+  .vn-presentacion .sx-cut-picker button { font-size: 8px; }
+  .sx-chart-readout > span,.sx-data-nodes small,.sx-cut-picker button > span { font-size: 7px; }
+}

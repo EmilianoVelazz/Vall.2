@@ -31,7 +31,7 @@ const { analyzeMarketAnomalies } = require('./anomaly-detector');
 const { loadCachedNlpEvents, computeNlpEventOverlay } = require('./protein-nlp-events');
 const {MODEL_VERSION, VALIDATION_PROTOCOL, targetDate, seriesFreshness, publicationReasons} = require('./protein-forecast-policy');
 
-const PROTEIN_ML_BRAND = 'MARRANAS';
+const PROTEIN_ML_BRAND = 'VALL-Proteínas';
 const PROTEIN_ML_VERSION = MODEL_VERSION;
 const PROTEIN_ML_CACHE_FILE = path.resolve(__dirname, '../cache/protein-ml-forecasts.json');
 
@@ -1699,7 +1699,7 @@ function buildProteinMLReport({ seriesCatalog = [], exogenousPools = {}, ingesti
         }
     }
 
-    // Build historical MXN/kg Import Parity series to feed directly into Mexican MARRANAS models!
+    // Build historical MXN/kg import-parity series for Mexican VALL-Proteínas forecasts.
     const usdMxn = enrichedExog.USDMXN || [];
     const globalPoultry = seriesCatalog.find(s => s.symbol === 'GLOBAL-IMF-POULTRY')?.points || [];
     const usEggs = seriesCatalog.find(s => s.symbol === 'US-BLS-EGGS-RETAIL')?.points || [];
@@ -1835,7 +1835,9 @@ function loadCachedProteinML(filePath = PROTEIN_ML_CACHE_FILE) {
             return {...item, freshness, horizons, primaryForecast, available: Boolean(primaryForecast)};
         });
         const activeModels = forecasts.filter(item => item.available).length;
-        return {...cachedArtifact, forecasts, summary: buildSpeciesRegionSummary(forecasts),
+        return {...cachedArtifact, model: PROTEIN_ML_BRAND,
+            displayName: 'VALL-Proteínas · Modelo ML de predicción de proteínas',
+            forecasts, summary: buildSpeciesRegionSummary(forecasts),
             stats: {...cachedArtifact.stats, activeModels, abstainedSeries: forecasts.length - activeModels}};
     } catch {
         return null;
@@ -1847,7 +1849,7 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
     if (!artifact || !Array.isArray(artifact.forecasts) || !artifact.forecasts.length) return '';
 
     const q = foldText(queryText);
-    const isProteinQuery = /marrana|paridad|importaci|arbitraje|h5n1|influenza aviar|gripe aviar|peste porcina|barrenador|screwworm|sanidad|brote|senasica|protein|cerdo|porcin|pork|hog|res|bovin|vacun|beef|cattle|pollo|avicol|chicken|broiler|huevo|egg|carne|pecuar|rastro|sniim|mercolleida|cepea|dg agri|usda|canal|granja/.test(q);
+    const isProteinQuery = /vall[- ]?prote[ií]nas?|marrana|paridad|importaci|arbitraje|h5n1|influenza aviar|gripe aviar|peste porcina|barrenador|screwworm|sanidad|brote|senasica|protein|cerdo|porcin|pork|hog|res|bovin|vacun|beef|cattle|pollo|avicol|chicken|broiler|huevo|egg|carne|pecuar|rastro|sniim|mercolleida|cepea|dg agri|usda|canal|granja/.test(q);
     if (!isProteinQuery) return '';
 
     const wantedSpecies = [];
@@ -1901,7 +1903,7 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
             .replace(/\s{2,}/g, ' ')
             .trim();
         const lines = [
-            'MARRANAS · RADAR ML ESPECIALIZADO EN PROTEÍNAS (SEÑALES CUALITATIVAS DE DIRECCIÓN, MARGEN RACIÓN Y RÉGIMEN, SIN CIFRAS AJENAS):',
+            'VALL-PROTEÍNAS · RAZONAMIENTO ML ESPECIALIZADO EN PROTEÍNAS (SEÑALES CUALITATIVAS DE DIRECCIÓN, MARGEN DE RACIÓN Y RÉGIMEN, SIN CIFRAS AJENAS):',
             coverageNotice,
         ];
         for (const sp of (wantedSpecies.length ? wantedSpecies : Object.keys(SPECIES_META))) {
@@ -1946,7 +1948,7 @@ function getProteinMLContextForQuery(queryText = '', { stripNumbers = false, lim
     }
 
     const lines = [
-        `[MARRANAS · MOTOR ML DEDICADO DE PROTEÍNAS · ${artifact.version} · Corte ${artifact.generatedAt.slice(0, 10)} · ${artifact.stats.activeModels} modelos activos (${artifact.stats.conformalAndAdaptiveModels} con Ridge-ARX/Conformal) · ${artifact.stats.totalObservationsIngested} obs reales · Exactitud WF ${artifact.stats.avgWalkForwardDirectionalAccuracyPct}% · Brier ${artifact.stats.avgBrierScore}]:`,
+        `[VALL-PROTEÍNAS · MODELO ML EXCLUSIVO DE PREDICCIÓN DE PROTEÍNAS · ${artifact.version} · Corte ${artifact.generatedAt.slice(0, 10)} · ${artifact.stats.activeModels} mercados con pronóstico activo (${artifact.stats.conformalAndAdaptiveModels} Ridge-ARX/Conformal) · ${artifact.stats.totalObservationsIngested} observaciones · Exactitud WF ${artifact.stats.avgWalkForwardDirectionalAccuracyPct}% · Brier ${artifact.stats.avgBrierScore}]:`,
         'Las probabilidades son señales estadísticas con validación histórica temporal; todavía no equivalen a resultados prospectivos. El contexto de noticias y paridad no modifica las probabilidades validadas. Los factores explicativos muestran asociaciones, sin demostrar causalidad.',
         coverageNotice,
     ];

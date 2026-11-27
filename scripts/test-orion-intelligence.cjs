@@ -124,6 +124,23 @@ async function main() {
     check(()=>assert.equal(buildAnswerStrategy({ message: 'dime que datos tienes ahorita mismo', plan: inventoryPlan }).intent, 'inventory'));
     check(()=>assert.equal(buildAnswerStrategy({ message: 'por que solo me diste de estados unidos', plan: coveragePlan }).intent, 'coverage'));
     check(()=>assert.match(buildAnswerStrategy({ message: 'dime que datos tienes ahorita mismo', plan: inventoryPlan }).followUps[0].label, /prote[ií]nas/i));
+    const reportDate = new Date().toISOString().slice(0, 10);
+    const reportUrl = 'https://example.invalid/verified-announcement';
+    const reportText = 'La autoridad anunció 120 toneladas de exportación.';
+    const reportEvidence = {
+        citations: [{ type: 'verified_trade_document', title: 'Anuncio oficial', url: reportUrl, date: reportDate }],
+        tradeDocuments: [{ verified: true, title: 'Anuncio oficial', source: 'Autoridad', url: reportUrl, date: reportDate, excerpts: reportText }],
+        tradePeriod: { start: reportDate, end: reportDate },
+    };
+    const reviewOrchestrator = new AIOrchestrator({
+        provider: { name: 'fixture', generate: async () => ({ text: `${reportText.slice(0, -1)} el ${reportDate} [Anuncio oficial](${reportUrl}).`, model: 'fixture' }) },
+    });
+    const reviewed = await reviewOrchestrator.validateTradeAnswer({
+        built: { prompt: 'Revisa el anuncio verificado.' }, plan: { asksNews: true }, evidence: reportEvidence,
+        result: { text: reportText }, tier: 'balanced', attachments: [], tools: null,
+    });
+    check(()=>assert.match(reviewed.result.text, /\[Anuncio oficial\]\(https:\/\/example\.invalid\/verified-announcement\)/));
+    check(()=>assert.doesNotMatch(reviewed.result.text, /No se pudo confirmar cobertura/));
     const snapClient = createProteinPriceClient({
         fetchPage: async () => { throw new Error('offline'); },
         now: () => Date.parse('2026-11-19T12:00:00Z'),

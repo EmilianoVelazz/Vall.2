@@ -25,21 +25,22 @@ app.use('/api',(req,res)=>{
  if(req.path==='/report-export'){exportRequests.push(req.body);return res.type('text/csv').set('Content-Language',req.body.language).send('Year,Value\n2025,123');}
  for(const [area,endpoint] of [['finance','finance-executive-reports'],['markets','market-executive-reports'],['mexico','mexico-executive-reports']])if(req.path==='/'+endpoint){if(area==='markets')marketRequests++;return res.json({success:true,data:reports[area]});}
  return res.json({success:true,data:[]});
-});app.use('/assets',express.static(path.resolve('assets')));app.use(express.static(path.resolve('frontend/dist')));app.use((req,res)=>res.sendFile(path.resolve('frontend/dist/index.html')));
+});app.use('/assets',express.static(path.resolve('assets')));app.use(express.static(path.resolve('dist')));app.use((req,res)=>res.sendFile(path.resolve('dist/index.html')));
 try{
  server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:1440,height:1050},reducedMotion:'reduce',acceptDownloads:true}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());await page.goto('http://127.0.0.1:'+server.address().port+'/informes');
- await page.getByRole('tab',{name:/Mercados/}).click();await page.locator('.erh-book').filter({hasText:'Mercado de proteínas'}).click();await page.locator('.erh-protein-sheets').waitFor();
+ await page.getByRole('tab',{name:/Mercados/}).click();await page.locator('.erh-book').filter({hasText:'Mercado de proteínas'}).click();await page.locator('.erh-quality-details').waitFor();
  assert(await page.locator('.erh-book .erh-data-health').count()>0,'Estado del dato en la biblioteca');
- const count=marketRequests;await page.locator('.erh-workbar-actions').getByRole('button',{name:'Ver anexos',exact:true}).click();
+ assert.equal(await page.locator('.erh-quality-details').count(),1,'El informe seleccionado expone el detalle de calidad');
+ const count=marketRequests;await page.locator('.erh-workbar-actions').getByRole('button',{name:'Más opciones del informe'}).click();await page.locator('.erh-workbar-actions').getByRole('button',{name:'Ver anexos',exact:true}).click();
  const annex=page.locator('.reports-annexes');await annex.getByText('Anexos de la edición seleccionada',{exact:false}).waitFor();assert.equal(marketRequests,count,'Los anexos no sustituyen el corte seleccionado con otra consulta');assert((await annex.innerText()).includes(protein.generatedAt.slice(0,10)));
  const nav=page.locator('.reports-page-nav');await nav.getByRole('button',{name:/Historial diario/}).click();const historical=page.locator('.reports-archive').filter({has:page.getByRole('heading',{name:'Historial diario',exact:true})});
  await historical.locator('.reports-archive-book').first().click();await historical.locator('.reports-archive-document>header h3').waitFor();assert((await historical.locator('.reports-archive-document').innerText()).includes(protein.generatedAt.slice(0,4)));
  await page.evaluate(()=>localStorage.setItem('vn_lang',JSON.stringify({lang:'en'})));await page.reload();await page.locator('.reports-page-nav').getByRole('button',{name:/^Library/}).click();
  const annual=page.locator('.reports-archive').filter({has:page.getByRole('heading',{name:'Annual library',exact:true})});await annual.locator('.reports-archive-paper .erh-reader').waitFor();
  assert(!/Resumen anual|Indicadores del año|Causas y consecuencias del año/.test(await annual.locator('.reports-archive-paper').innerText()));
- const download=page.waitForEvent('download');await annual.getByRole('button',{name:'Download CSV data',exact:true}).click();await download;assert.equal(exportRequests.at(-1).language,'en');assert.equal(exportRequests.at(-1).executiveReport.reportYear,2025);
+ await annual.getByLabel('Format').selectOption('csv');const download=page.waitForEvent('download');await annual.getByRole('button',{name:'Download CSV data',exact:true}).click();await download;assert.equal(exportRequests.at(-1).language,'en');assert.equal(exportRequests.at(-1).executiveReport.reportYear,2025);
  await annual.getByRole('button',{name:'View annexes',exact:true}).click();await page.locator('.reports-annexes .reports-method-grid').waitFor();
  assert(!/Informe diario|Las comparaciones|Se conservan|Los movimientos observados/.test(await page.locator('.reports-annexes .reports-method-grid').innerText()),'Metodología en el idioma elegido');
  await fs.mkdir('output/mejoras-informes',{recursive:true});await page.screenshot({path:'output/mejoras-informes/anexos-ingles.png'});

@@ -118,7 +118,7 @@ function OrionWorkspace({user}) {
 
   useEffect(() => {
     const ctrl = new AbortController();
-    fetch('/api/marranas', { signal: ctrl.signal })
+    fetch('/api/vall-proteinas', { signal: ctrl.signal })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (!ctrl.signal.aborted && json?.available) {

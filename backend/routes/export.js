@@ -30,6 +30,7 @@ const {makeCompanyDashboardPdf}=require('../lib/report-company-dashboard-pdf');
 const {normalizeEquityEvidence}=require('../lib/report-equity-quality');
 const reportEmailSchedules = require('../services/report-email-schedule-store');
 const {normalizeScheduleSelection}=require('../lib/report-schedule-selection');
+const {normalizeDataQualityPolicy,reportHealthSummary}=require('../lib/report-data-quality-policy');
 const { reportFileStore } = require('../services/report-file-store');
 const { normalizePreferences, personalizeExecutiveReport, changed:reportPreferencesChanged } = require('../lib/executive-report-preferences');
 const { userReportAgent } = require('../ai/user-report-agent');
@@ -79,7 +80,7 @@ function safeHtml(value) {
     return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-async function deliverExecutiveEmail({ recipient, title, executive, language='es', owner='',beforeSend }) {
+async function deliverExecutiveEmail({ recipient, title, executive, health, language='es', owner='',beforeSend }) {
     recipient=normalizeRecipient(recipient);
     const sender = clean(mailSender(), 240);
     const transport = mailTransport();
@@ -93,7 +94,7 @@ async function deliverExecutiveEmail({ recipient, title, executive, language='es
     try { receipt=await transport.sendMail({
         from: `VALLNEWS <${sender}>`, to: recipient,
         headers:{'Content-Language':language},
-        ...buildReportEmail({title:localized.title,executive:localized.report,attachmentName,language}),
+        ...buildReportEmail({title:localized.title,executive:localized.report,attachmentName,language,health}),
         attachments: [{ filename: attachmentName, content: buffer, contentType: 'application/pdf' },...reportEmailAttachments()],
     });
         const accepted=receipt?.accepted?.some(value=>String(value).trim().toLowerCase()===recipient.toLowerCase())&&!receipt?.rejected?.some(value=>String(value).trim().toLowerCase()===recipient.toLowerCase());
@@ -364,12 +365,37 @@ function executivePayload(input) {
         committeeQuestion: '¿Qué dato de las fuentes del corte confirmaría o cambiaría esta lectura antes de tomar una decisión?',
         evidenceNote: 'Síntesis determinista construida con los indicadores y fuentes verificables ya incluidos en este informe; no es una respuesta generada por IA.',
     };
+    const traceKind=value=>['observed','interpretation','pending'].includes(value)?value:'pending';
+    const traceItem=value=>({kind:traceKind(value?.kind),evidenceIds:Array.isArray(value?.evidenceIds)?[...new Set(value.evidenceIds.filter(id=>typeof id==='string'&&/^(?:metric|section|table|news|source|daily|structural)-[\w-]+$/.test(id)))].slice(0,6):[]});
+    const hasTraceability=briefInput?.traceability&&typeof briefInput.traceability==='object';
+    const traceability=hasTraceability?{
+        thesis:traceItem(briefInput?.traceability?.thesis),
+        drivers:Array.isArray(briefInput?.traceability?.drivers)?briefInput.traceability.drivers.slice(0,3).map(traceItem):[],
+        risks:Array.isArray(briefInput?.traceability?.risks)?briefInput.traceability.risks.slice(0,3).map(traceItem):[],
+    }:null;
+    const referencedEvidence=traceability?new Set([traceability.thesis,...traceability.drivers,...traceability.risks].flatMap(item=>item.evidenceIds)):new Set();
+    const traceEvidence=Array.isArray(briefInput?.evidence)?briefInput.evidence.slice(0,60).flatMap(item=>{
+        if(!item||typeof item.id!=='string'||!referencedEvidence.has(item.id))return [];
+        let url='';try{const parsed=new URL(item.url);if(['http:','https:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password)url=parsed.href.slice(0,1800);}catch{}
+        return [{id:item.id,label:text(item.label||item.id,180),excerpt:text(item.excerpt,1000),date:text(item.date,40),unit:text(item.unit,60),source:text(item.source,180),url}];
+    }):[];
+    if(traceability) {
+        const availableIds=new Set(traceEvidence.map(item=>item.id));
+        const resolveTrace=item=>{
+            const evidenceIds=(item?.evidenceIds||[]).filter(id=>availableIds.has(id));
+            return {kind:evidenceIds.length?item.kind:'pending',evidenceIds};
+        };
+        traceability.thesis=resolveTrace(traceability.thesis);
+        traceability.drivers=traceability.drivers.map(resolveTrace);
+        traceability.risks=traceability.risks.map(resolveTrace);
+    }
     const executiveBrief = briefInput ? {
         generated:briefInput.generated===true,model:text(briefInput.model,160),generatedAt:text(briefInput.generatedAt,40),evidenceHash:/^[a-f0-9]{64}$/.test(briefInput.evidenceHash || '') ? briefInput.evidenceHash : '',
         mode: briefInput.mode === 'ai' ? 'ai' : 'deterministic', agent: text(briefInput.agent || 'VALL Executive Desk', 80), headline: text(briefInput.headline, 140), context: text(briefInput.context, 360), thesis: text(briefInput.thesis, 500),
         drivers: Array.isArray(briefInput.drivers) ? briefInput.drivers.slice(0, 3).map(item => text(item, 300)).filter(Boolean) : [],
         risks: Array.isArray(briefInput.risks) ? briefInput.risks.slice(0, 3).map(item => text(item, 300)).filter(Boolean) : [],
         committeeQuestion: text(briefInput.committeeQuestion, 320), evidenceNote: text(briefInput.evidenceNote, 500),
+        ...(traceability?{traceability,evidence:traceEvidence,traceabilityNote:text(briefInput.traceabilityNote,400)}:{}),
     } : null;
     const personalizationInput = input.personalization && typeof input.personalization === 'object' ? input.personalization : {};
     const personalization = {
@@ -819,6 +845,64 @@ function pdfValidationPlan(document, report) {
         y += height + 6;
     });
     pdfResetFlow(document, y + 3);
+}
+
+function pdfEditorialTraceability(document, report) {
+    const brief=report.executiveBrief;
+    if(!brief?.traceability)return;
+    const evidenceById=new Map((brief.evidence||[]).map(item=>[item.id,item]));
+    const entries=[
+        {label:'Tesis',text:brief.thesis,trace:brief.traceability.thesis},
+        ...(brief.drivers||[]).map((text,index)=>({label:`Impulsor ${index+1}`,text,trace:brief.traceability.drivers?.[index]})),
+        ...(brief.risks||[]).map((text,index)=>({label:`Riesgo ${index+1}`,text,trace:brief.traceability.risks?.[index]})),
+    ].filter(item=>item.text);
+    if(!entries.length)return;
+    pdfSection(document,'TRAZABILIDAD POR CONCLUSIÓN',brief.traceabilityNote||'Cada categoría describe el tipo de afirmación. Las referencias enlazadas pertenecen al corte utilizado; una referencia pendiente no cuenta con respaldo individual registrado.');
+    const width=document.page.width-document.page.margins.left-document.page.margins.right;
+    const x=document.page.margins.left;
+    const kindLabel={observed:'DATO OBSERVADO',interpretation:'INTERPRETACIÓN CONDICIONAL',pending:'PENDIENTE DE VALIDAR'};
+    for(const entry of entries) {
+        const trace=entry.trace||{kind:'pending',evidenceIds:[]};
+        const label=kindLabel[trace.kind]||kindLabel.pending;
+        const heading=`${label} · ${entry.label}`;
+        const claim=String(entry.text||'');
+        document.font('Helvetica-Bold').fontSize(8.2);
+        ensurePdfSpace(document,document.heightOfString(heading,{width})+12);
+        document.fillColor(PDF_COLORS.navy).text(heading,x,document.y,{width});
+        pdfResetFlow(document,document.y+3);
+        document.font('Helvetica').fontSize(8.4);
+        ensurePdfSpace(document,document.heightOfString(claim,{width})+10);
+        document.fillColor(PDF_COLORS.ink).text(claim,x,document.y,{width,lineGap:2});
+        pdfResetFlow(document,document.y+4);
+        const refs=(trace.evidenceIds||[]).map(id=>evidenceById.get(id)).filter(Boolean);
+        if(!refs.length) {
+            document.font('Helvetica-Oblique').fontSize(7.4);
+            ensurePdfSpace(document,22);
+            document.fillColor(PDF_COLORS.muted).text('No hay una referencia individual vinculada en este corte.',x+10,document.y,{width:width-10});
+            pdfResetFlow(document,document.y+5);
+            continue;
+        }
+        for(const ref of refs) {
+            const metadata=[ref.date,ref.unit,ref.source].filter(Boolean).join(' · ');
+            const title=`Referencia: ${ref.label||ref.id}${metadata?` · ${metadata}`:''}`;
+            document.font('Helvetica-Bold').fontSize(7.4);
+            ensurePdfSpace(document,document.heightOfString(title,{width:width-10})+8);
+            document.fillColor(PDF_COLORS.blue).text(title,x+10,document.y,{width:width-10});
+            pdfResetFlow(document,document.y+2);
+            if(ref.excerpt) {
+                document.font('Helvetica').fontSize(7.4);
+                ensurePdfSpace(document,document.heightOfString(ref.excerpt,{width:width-10})+7);
+                document.fillColor(PDF_COLORS.muted).text(ref.excerpt,x+10,document.y,{width:width-10,lineGap:1.5});
+                pdfResetFlow(document,document.y+2);
+            }
+            if(/^https?:\/\//i.test(ref.url||'')) {
+                document.font('Helvetica').fontSize(7.1);
+                ensurePdfSpace(document,18);
+                document.fillColor(PDF_COLORS.blue).text(ref.url,x+10,document.y,{width:width-10,link:ref.url,underline:true});
+                pdfResetFlow(document,document.y+6);
+            }
+        }
+    }
 }
 
 function pdfExecutiveCover(document, title, report) {
@@ -1362,27 +1446,27 @@ function makeEquityWeeklyPdf(title, report) {
         document.addPage({ size: 'LEGAL', margin: 34 });
         y = pdfEquityPageHeader(document, 'INFORME SEMANAL - BOLSAS GLOBALES', report.personalization?.customTitle || 'PROYECCIONES ESTADISTICAS', report.generatedAt, report);
         pdfEquitySectionBar(document, y, 2, 'ESCENARIO TECNICO DE CORTO PLAZO', 'OLS sobre 30 cierres diarios; horizonte de cinco sesiones'); y += 28;
-        document.fillColor('#4B5563').font('Helvetica').fontSize(6.85).text('La línea grafito es una extrapolación lineal de los cierres observados. Las bandas grises muestran un rango residual orientativo del 80%. No incorpora noticias, resultados corporativos, liquidez ni eventos inesperados; no es una recomendación ni un precio objetivo.', x, y, { width, height: 28, lineGap: 1.5, ellipsis: true }); y += 37;
+        document.fillColor('#4B5563').font('Helvetica').fontSize(7.5).text('La línea grafito es una extrapolación lineal de los cierres observados. Las bandas grises muestran un rango residual orientativo del 80%. No incorpora noticias, resultados corporativos, liquidez ni eventos inesperados; no es una recomendación ni un precio objetivo.', x, y, { width, height: 30, lineGap: 1.4, ellipsis: true }); y += 37;
         charts.forEach((item, index) => {
             const column = index % 2; const row = Math.floor(index / 2);
             pdfEquityMiniChart(document, item, equityLinearScenario(item.points), x + column * (cardWidth + cardGap), y + row * (chartHeight + 8), cardWidth, chartHeight, `${equityRegion(item).toUpperCase()} · ${item.label}`);
         });
         y += Math.ceil(charts.length / 2) * (chartHeight + 8) + 2;
-        document.rect(x, y, width, 52).fillAndStroke('#F3F4F6', '#D1D5DB');
-        document.fillColor('#1F2937').font('Helvetica-Bold').fontSize(5.9).text('CÓMO LEER EL ESCENARIO', x + 10, y + 9, { characterSpacing: .42 });
-        document.fillColor('#4B5563').font('Helvetica').fontSize(6.4).text('La pendiente expresa el cambio lineal estimado por sesión dentro de la muestra. Un escenario alcista o bajista sólo describe la dirección del ajuste reciente; debe contrastarse con las fuentes, el calendario económico y la exposición real antes de actuar.', x + 10, y + 20, { width: width - 20, height: 23, lineGap: 1.45, ellipsis: true });
+        document.rect(x, y, width, 54).fillAndStroke('#F3F4F6', '#D1D5DB');
+        document.fillColor('#1F2937').font('Helvetica-Bold').fontSize(7.5).text('CÓMO LEER EL ESCENARIO', x + 10, y + 8, { characterSpacing: .35 });
+        document.fillColor('#4B5563').font('Helvetica').fontSize(7.5).text('La pendiente expresa el cambio lineal estimado por sesión dentro de la muestra. Un escenario alcista o bajista sólo describe la dirección del ajuste reciente; debe contrastarse con las fuentes, el calendario económico y la exposición real antes de actuar.', x + 10, y + 20, { width: width - 20, height: 28, lineGap: 1.35, ellipsis: true });
         pdfEquityFooter(document, 2, report);
 
         document.addPage({ size: 'LEGAL', margin: 34 });
         y = pdfEquityPageHeader(document, 'INFORME SEMANAL - BOLSAS GLOBALES', report.title || 'INFORME DE BOLSA', report.generatedAt, report);
         pdfEquitySectionBar(document, y, 3, 'PANORAMA GLOBAL', 'América, Europa y Asia - cierres diarios por referencia'); y += 28;
-        document.fillColor('#4B5563').font('Helvetica').fontSize(7.15).text(report.summary || 'No hubo suficientes cierres verificables para resumir este corte.', x, y, { width, height: 27, lineGap: 1.7, ellipsis: true }); y += 34;
+        document.fillColor('#4B5563').font('Helvetica').fontSize(7.6).text(report.summary || 'No hubo suficientes cierres verificables para resumir este corte.', x, y, { width, height: 28, lineGap: 1.5, ellipsis: true }); y += 34;
         y += pdfEquityKpiStrip(document, y, marketSeries) + 10;
         pdfEquitySectionBar(document, y, 4, 'CIERRES Y DESEMPENO', 'Variaciones calculadas con cierres diarios de Yahoo Finance'); y += 26;
         y += pdfEquityPerformanceTable(document, y, marketSeries) + 9;
-        document.rect(x, y, width, 47).fillAndStroke('#F3F4F6', '#D1D5DB');
-        document.fillColor('#1F2937').font('Helvetica-Bold').fontSize(5.9).text('LECTURA DEL CORTE', x + 10, y + 9, { characterSpacing: .4 });
-        document.fillColor('#4B5563').font('Helvetica').fontSize(6.35).text(report.closing || report.objective || 'Las variaciones de sesión no equivalen por sí solas a una tendencia estructural.', x + 10, y + 20, { width: width - 20, height: 19, lineGap: 1.4, ellipsis: true });
+        document.rect(x, y, width, 50).fillAndStroke('#F3F4F6', '#D1D5DB');
+        document.fillColor('#1F2937').font('Helvetica-Bold').fontSize(7.5).text('LECTURA DEL CORTE', x + 10, y + 8, { characterSpacing: .35 });
+        document.fillColor('#4B5563').font('Helvetica').fontSize(7.5).text(report.closing || report.objective || 'Las variaciones de sesión no equivalen por sí solas a una tendencia estructural.', x + 10, y + 20, { width: width - 20, height: 24, lineGap: 1.35, ellipsis: true });
         pdfEquityFooter(document, 3, report);
 
         document.addPage({ size: 'LEGAL', margin: 34 });
@@ -1523,6 +1607,7 @@ function renderExecutivePdf(title, report,localization) {
         pdfExecutiveCover(document, title, report);
         const reportSections = report.sections.filter(section => !/^lectura complementaria de vall ai$/i.test(String(section.heading || '').trim()));
         pdfDecisionMap(document, report);
+        pdfEditorialTraceability(document, report);
         reportSections.forEach(section => pdfSection(document, section.heading.toUpperCase(), section.text));
         pdfValidationPlan(document, report);
         pdfSection(document, 'DECISION Y SEGUIMIENTO', report.closing);
@@ -1629,16 +1714,16 @@ function pdfAnalyticalFrame(document, label, page) {
     const x = document.page.margins.left;
     const width = document.page.width - document.page.margins.left - document.page.margins.right;
     const top = document.page.margins.top - 18;
-    document.fillColor('#526174').font('Helvetica-Bold').fontSize(6.8).text('VALLNEWS - INTELIGENCIA ECONOMICA', x, top, { characterSpacing: .7 });
-    document.fillColor('#64748B').font('Helvetica-Bold').fontSize(6.6).text(label, x, top, { width, align: 'right', characterSpacing: .6 });
+    document.fillColor('#526174').font('Helvetica-Bold').fontSize(7.5).text('VALLNEWS - INTELIGENCIA ECONOMICA', x, top, { characterSpacing: .5 });
+    document.fillColor('#64748B').font('Helvetica-Bold').fontSize(7.5).text(label, x, top, { width, align: 'right', characterSpacing: .4 });
     document.strokeColor('#CBD5E1').lineWidth(.7).moveTo(x, top + 16).lineTo(x + width, top + 16).stroke();
     // El pie debe quedar dentro del área util. Colocarlo debajo del margen
     // hacía que PDFKit abriera otra página mientras dibujaba el pie y entrara
     // en un ciclo de pageAdded.
     const footerY = document.page.height - document.page.margins.bottom - 18;
     document.strokeColor('#E2E8F0').lineWidth(.55).moveTo(x, footerY - 8).lineTo(x + width, footerY - 8).stroke();
-    document.fillColor('#64748B').font('Helvetica').fontSize(6.2).text('Documento informativo - Verifica cifras, unidad y fuente antes de tomar decisiones.', x, footerY, { width: width - 45 });
-    document.fillColor('#64748B').font('Helvetica-Bold').fontSize(6.2).text(`Pagina ${page}`, x + width - 45, footerY, { width: 45, align: 'right' });
+    document.fillColor('#64748B').font('Helvetica').fontSize(7.5).text('Documento informativo - Verifica cifras, unidad y fuente antes de tomar decisiones.', x, footerY, { width: width - 52 });
+    document.fillColor('#64748B').font('Helvetica-Bold').fontSize(7.5).text(`Pagina ${page}`, x + width - 52, footerY, { width: 52, align: 'right' });
     document.x = x; document.y = document.page.margins.top + 14;
 }
 
@@ -1649,7 +1734,7 @@ function pdfAnalyticalHeading(document, index, heading, caption = '') {
     document.rect(x, y, width, 25).fill('#F1F5F9');
     document.rect(x, y, 5, 25).fill('#2563EB');
     document.fillColor('#0F172A').font('Helvetica-Bold').fontSize(10).text(`${index}. ${heading.toUpperCase()}`, x + 14, y + 8, { width: width * .68, ellipsis: true });
-    if (caption) document.fillColor('#64748B').font('Helvetica').fontSize(6.8).text(caption, x + width * .55, y + 9, { width: width * .42, align: 'right', ellipsis: true });
+    if (caption) document.fillColor('#64748B').font('Helvetica').fontSize(7.5).text(caption, x + width * .55, y + 9, { width: width * .42, align: 'right', ellipsis: true });
     document.x = x; document.y = y + 35;
 }
 
@@ -1659,20 +1744,20 @@ function pdfAnalyticalMetrics(document, metrics) {
     const accents = ['#2563EB', '#059669', '#D97706', '#475569'];
     metrics.forEach((metric, index) => {
         const cardX = x + index * (cardWidth + gap);
-        document.roundedRect(cardX, y, cardWidth, 64, 5).fillAndStroke('#F8FAFC', '#D6E0EB');
-        document.rect(cardX, y, 3, 64).fill(accents[index]);
-        document.fillColor('#64748B').font('Helvetica-Bold').fontSize(5.75).text(metric.label.toUpperCase(), cardX + 10, y + 10, { width: cardWidth - 18, ellipsis: true });
+        document.roundedRect(cardX, y, cardWidth, 68, 5).fillAndStroke('#F8FAFC', '#D6E0EB');
+        document.rect(cardX, y, 3, 68).fill(accents[index]);
+        document.fillColor('#64748B').font('Helvetica-Bold').fontSize(7.5).text(metric.label.toUpperCase(), cardX + 10, y + 9, { width: cardWidth - 18, ellipsis: true });
         document.fillColor('#0F172A').font('Helvetica-Bold').fontSize(11.4).text(metric.value, cardX + 10, y + 25, { width: cardWidth - 18, ellipsis: true });
-        document.fillColor('#475569').font('Helvetica').fontSize(5.85).text(metric.note, cardX + 10, y + 47, { width: cardWidth - 18, height: 10, ellipsis: true });
+        document.fillColor('#475569').font('Helvetica').fontSize(7.5).text(metric.note, cardX + 10, y + 47, { width: cardWidth - 18, height: 14, ellipsis: true });
     });
-    document.x = x; document.y = y + 78;
+    document.x = x; document.y = y + 82;
 }
 
 function pdfAnalyticalTable(document, table) {
     const x = document.page.margins.left; const width = document.page.width - document.page.margins.left - document.page.margins.right;
     const columns = table.headers.slice(0, 6); const widths = columns.map((_, index) => index === 0 ? width * .25 : (width * .75) / Math.max(columns.length - 1, 1));
     const drawRow = (values, header = false) => {
-        const height = header ? 24 : Math.max(22, ...columns.map((_, index) => document.font(header ? 'Helvetica-Bold' : 'Helvetica').fontSize(header ? 6.7 : 7.15).heightOfString(values[index] || '', { width: widths[index] - 10, lineGap: 1.25 }) + 9));
+        const height = header ? 24 : Math.max(22, ...columns.map((_, index) => document.font(header ? 'Helvetica-Bold' : 'Helvetica').fontSize(header ? 7.5 : 7.8).heightOfString(values[index] || '', { width: widths[index] - 10, lineGap: 1.25 }) + 9));
         if (document.y + height > document.page.height - document.page.margins.bottom - 18) {
             // pageAdded ya instala cabecera, pie y contador; repetirlo aquí
             // duplicaba la composición y adelantaba el número de página.
@@ -1682,7 +1767,7 @@ function pdfAnalyticalTable(document, table) {
         columns.forEach((_, index) => { document.rect(cursor, y, widths[index], height).fillAndStroke(header ? '#0F172A' : (index % 2 ? '#FFFFFF' : '#F8FAFC'), '#D6E0EB'); cursor += widths[index]; });
         cursor = x;
         columns.forEach((_, index) => {
-            document.fillColor(header ? '#FFFFFF' : '#1E293B').font(header ? 'Helvetica-Bold' : 'Helvetica').fontSize(header ? 6.7 : 7.15).text(values[index] || '', cursor + 5, y + 7, { width: widths[index] - 10, lineGap: 1.25, ellipsis: true }); cursor += widths[index];
+            document.fillColor(header ? '#FFFFFF' : '#1E293B').font(header ? 'Helvetica-Bold' : 'Helvetica').fontSize(header ? 7.5 : 7.8).text(values[index] || '', cursor + 5, y + 7, { width: widths[index] - 10, lineGap: 1.25, ellipsis: true }); cursor += widths[index];
         });
         document.x = x; document.y = y + height;
     };
@@ -1847,7 +1932,7 @@ router.post('/report-email', verifyToken, emailAttempts, emailLimiter, boundedJs
         const content = clean(req.body?.content, 180000);
         const executive = executivePayload(req.body?.executiveReport);
         if (!content || !executive) return res.status(400).json({ success: false, error: 'El informe está vacío o no tiene una estructura válida.' });
-        const delivered = await deliverExecutiveEmail({ recipient, title, executive,language:requestReportLanguage(req),owner:req.user.email });
+        const delivered = await deliverExecutiveEmail({ recipient, title, executive,health:reportHealthSummary(executive),language:requestReportLanguage(req),owner:req.user.email });
         res.setHeader('Content-Language',delivered.language);
         const [name, domain] = recipient.split('@');
         const masked = `${name.slice(0, 2)}${'*'.repeat(Math.max(1, Math.min(5, name.length - 2)))}@${domain}`;
@@ -1884,7 +1969,7 @@ router.post('/report-email-schedules', verifyToken, scheduleLimiter, express.jso
         const schedule = await reportEmailSchedules.upsert({
             ownerEmail, area, reportKey,
             recipientEmail: normalizeRecipient(req.body?.recipientEmail,ownerEmail),
-            preferences: { ...normalizePreferences(req.body?.preferences),language:requestReportLanguage(req,req.body?.language===undefined ? req.body?.preferences?.language : req.body.language), aiCustomization: normalizeAiCustomization(req.body?.ai) },
+            preferences: { ...normalizePreferences(req.body?.preferences),dataQualityPolicy:normalizeDataQualityPolicy(req.body?.dataQualityPolicy),language:requestReportLanguage(req,req.body?.language===undefined ? req.body?.preferences?.language : req.body.language), aiCustomization: normalizeAiCustomization(req.body?.ai) },
             delivery: req.body?.delivery,
         });
         res.json({ success: true, schedule });
@@ -1904,7 +1989,7 @@ router.post('/report-email-schedules/batch', verifyToken, scheduleLimiter, expre
         const recipientEmail=normalizeRecipient(req.body?.recipientEmail,ownerEmail);
         const schedules=await reportEmailSchedules.upsertMany(selected.map(item=>({ownerEmail,area:item.area,reportKey:item.reportKey,
             recipientEmail,delivery:req.body?.delivery,
-            preferences:{...normalizePreferences(item.preferences),language,aiCustomization:normalizeAiCustomization(item.ai)}})));
+            preferences:{...normalizePreferences(item.preferences),dataQualityPolicy:normalizeDataQualityPolicy(item.preferences?.dataQualityPolicy),language,aiCustomization:normalizeAiCustomization(item.ai)}})));
         res.json({success:true,accountEmail:ownerEmail,schedules});
     } catch(error) {
         res.status(error.status||500).json({success:false,error:error.status?error.message:'No se pudo guardar la selección de informes.',...(error.code?.startsWith('REPORT_')?{code:error.code}:{})});

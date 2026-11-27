@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { buildMarranasOrionHandoff, writeOrionReportHandoff } from '../lib/orionHandoff.js';
 import MarranasSimulator from './MarranasSimulator.jsx';
+import ForecastTrackRecord from './ForecastTrackRecord.jsx';
+import FeedCostScenarios from './FeedCostScenarios.jsx';
 
 const REGIONES = [
   { id: 'ALL', label: 'Todas las regiones' },
@@ -89,13 +91,13 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
   };
   const [region, setRegion] = useState('ALL');
   const [horizon, setHorizon] = useState('1m');
-  const [expandedSym, setExpandedSym] = useState(null);
+  const [expandedSym, setExpandedSym] = useState(null);  
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const ctrl = new AbortController();
-    fetch('/api/marranas', { signal: ctrl.signal })
+    fetch('/api/vall-proteinas', { signal: ctrl.signal })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (!ctrl.signal.aborted && json?.available) setData(json);
@@ -149,11 +151,11 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
       <div className="mp-ml-head">
         <div>
           <span className="mp-ml-kicker">
-            <i className="fas fa-microchip" /> ORION · PROTEÍNAS · PRONÓSTICOS Y CONTEXTO DE MERCADO
+            <i className="fas fa-microchip" /> VALL-PROTEÍNAS · MODELO ML ESPECIALIZADO
           </span>
-          <h2>ORION ML · Pronóstico Direccional de Proteínas (Subida / Baja)</h2>
+          <h2>VALL-Proteínas · Pronóstico ML de proteínas animales</h2>
           <p>
-            Motor cuantitativo integrado de <b>ORION</b> entrenado con <b>{(stats.totalObservationsIngested || 0).toLocaleString('es-MX')}</b> observaciones reales
+            Modelo ML especializado de <b>VALL-Proteínas</b>, integrado en ORION y evaluado con <b>{(stats.totalObservationsIngested || 0).toLocaleString('es-MX')}</b> observaciones históricas
             (México SNIIM 2 años, EE. UU. USDA AMS/Primarios/PPI/CME, Europa DG AGRI 6 años, Latinoamérica y FMI Global), cruzado con
             <b> paridad de importación MXN/kg</b>, <b>radar NLP sanitario y comercial (H5N1 · PPA · Barrenador · Aranceles)</b>, <b>CFTC Commitments of Traders</b>, spreads Choice/Select y Belly/Carcass, sacrificio <b>IBGE Brasil</b>, ración balanceada, diésel, gas natural y divisas.
           </p>
@@ -184,7 +186,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
             type="button"
             className="mp-orion-cta"
             onClick={() => openInOrion({ kind: 'overview' })}
-            title="Abrir el diagnóstico completo de ORION ML en el chat interactivo"
+            title="Abrir el diagnóstico de VALL-Proteínas en el chat de ORION"
           >
             <i className="fas fa-sparkles" /> Analizar en ORION
           </button>
@@ -196,6 +198,7 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
         {' '}quedaron sin pronóstico por datos atrasados o evidencia insuficiente. Noticias y paridad aportan contexto.
       </p>
 
+      <ForecastTrackRecord audit={data.closedLoopAudit} modelVersion={data.version} />
       <div className="mp-ml-species-grid">
         {ESPECIES_ORDEN.map((sp) => {
           const item = bySpecies[sp.id];
@@ -651,9 +654,15 @@ export default function ProteinMLRadar({ activeSpecies = 'all', onSelectSpecies 
       )}
 
       <MarranasSimulator
+        key={'protein-budget-'+String(user || 'guest')}
         forecasts={data.forecasts || []}
         activeSpecies={activeSpecies}
         horizon={horizon}
+        onOpenInOrion={openInOrion}
+      />
+
+      <FeedCostScenarios
+        key={'protein-feed-scenarios-'+String(user || 'guest')}
         onOpenInOrion={openInOrion}
       />
 

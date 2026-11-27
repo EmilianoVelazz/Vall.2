@@ -17,7 +17,7 @@ let pendingFetch = null;
 function readDiskCache() {
     try {
         const parsed = JSON.parse(fs.readFileSync(DISK_CACHE_FILE, 'utf8'));
-        if (parsed?.data && Number.isFinite(parsed.ts)) return parsed;
+        if (parsed?.schemaVersion===2 && parsed?.data && Number.isFinite(parsed.ts)) return parsed;
     } catch { /* sin caché en disco todavía */ }
     return null;
 }
@@ -25,7 +25,7 @@ function readDiskCache() {
 function writeDiskCache(entry) {
     try {
         fs.mkdirSync(path.dirname(DISK_CACHE_FILE), { recursive: true });
-        fs.writeFileSync(DISK_CACHE_FILE, JSON.stringify(entry), 'utf8');
+        fs.writeFileSync(DISK_CACHE_FILE, JSON.stringify({...entry,schemaVersion:2}), 'utf8');
     } catch { /* degradación silenciosa en entornos read-only */ }
 }
 
@@ -193,10 +193,25 @@ function parseSniimDate(value) {
     return match ? `${match[3]}-${String(match[2]).padStart(2, '0')}-${String(match[1]).padStart(2, '0')}` : null;
 }
 
+const MAX_STATE_AGE_DAYS = 60;
+
+function isRecentQuoteDate(dateValue, maxDays = MAX_STATE_AGE_DAYS) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateValue || ''))) return false;
+    const parsed = Date.parse(`${dateValue}T12:00:00Z`);
+    if (!Number.isFinite(parsed)) return false;
+    const ageDays = (Date.now() - parsed) / 86_400_000;
+    return ageDays >= -1 && ageDays <= maxDays;
+}
+
 function mergeStateCoverage(primary, ...fallbacks) {
     const states = new Map();
-    fallbacks.flatMap((item) => item?.states || []).forEach((state) => states.set(state.stateCode, state));
-    (primary?.states || []).forEach((state) => states.set(state.stateCode, state));
+    fallbacks
+        .flatMap((item) => item?.states || [])
+        .filter((state) => isRecentQuoteDate(state?.date))
+        .forEach((state) => states.set(state.stateCode, state));
+    (primary?.states || [])
+        .filter((state) => !state?.date || isRecentQuoteDate(state.date))
+        .forEach((state) => states.set(state.stateCode, state));
     return { ...primary, states: [...states.values()].sort((a, b) => a.state.localeCompare(b.state, 'es')) };
 }
 
@@ -211,7 +226,7 @@ async function fetchPorciculturaPork() {
     const payload = await response.json();
     const days = Array.isArray(payload?.data) ? payload.data : [];
     const latest = days
-        .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day?.fecha) && Array.isArray(day?.estados))
+        .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day?.fecha) && day.fecha<=new Date().toISOString().slice(0,10) && Array.isArray(day?.estados))
         .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))[0];
     if (!latest) throw new Error('Porcicultura.com no devolvió un corte estatal utilizable.');
 
@@ -384,9 +399,8 @@ async function fetchFirstSalePricesFresh() {
     const egg = mergeStateCoverage(eggCurrent, eggPrevious);
 
     const weeklySupplement = await getWeeklyStateLivestockPrices().catch(() => ({ prices: {} }));
-    const porkStateCodes = new Set((porkResult.states || []).map((state) => state.stateCode));
     const supplementalFor = (product) => ({
-        states: (weeklySupplement.prices?.[product] || []).filter((state) => porkStateCodes.has(state.stateCode)),
+        states: (weeklySupplement.prices?.[product] || []).filter(state=>Object.hasOwn(MEXICO_STATES,state.stateCode) && Number.isFinite(state.price) && state.price>0 && /^\d{4}-\d{2}-\d{2}$/.test(state.date) && state.date<=new Date().toISOString().slice(0,10)),
     });
     const completedBeef = mergeStateCoverage(beef, supplementalFor('beef'));
     const completedChicken = mergeStateCoverage(chicken, supplementalFor('chicken'));
@@ -397,9 +411,9 @@ async function fetchFirstSalePricesFresh() {
         retrievedAt: new Date().toISOString(),
         prices: {
             pork: porkResult,
-            beef: { ...completedBeef, label: 'Bovino vivo · rastro', unit: 'MXN/kg vivo', level: 'Ganado en pie; mezcla de tipos publicados' },
-            chicken: { ...completedChicken, label: 'Pollo · mayoreo', unit: 'MXN/kg', level: 'Pollo físico de mayoreo; no equivale a ave viva en rastro' },
-            egg: { ...egg, label: 'Huevo blanco · mayoreo', unit: 'MXN/kg', level: 'El huevo no se comercializa en rastro' },
+            beef: { ...completedBeef, source:'SNIIM', sourceUrl:'https://www.economia-sniim.gob.mx/nuevo/', label: 'Bovino vivo · rastro', unit: 'MXN/kg vivo', level: 'Ganado en pie; mezcla de tipos publicados' },
+            chicken: { ...completedChicken, source:'SNIIM', sourceUrl:'https://www.economia-sniim.gob.mx/nuevo/', label: 'Pollo · mayoreo', unit: 'MXN/kg', level: 'Pollo físico de mayoreo; no equivale a ave viva en rastro' },
+            egg: { ...egg, source:'SNIIM', sourceUrl:'https://www.economia-sniim.gob.mx/nuevo/', label: 'Huevo blanco · mayoreo', unit: 'MXN/kg', level: 'El huevo no se comercializa en rastro' },
         },
         weeklySupplement: {
             retrievedAt: weeklySupplement.retrievedAt || null,
@@ -413,13 +427,13 @@ async function fetchFirstSalePricesFresh() {
     return data;
 }
 
-async function getFirstSalePrices() {
+async function getFirstSalePrices({force=false}={}) {
     if (!cache) cache = readDiskCache();
-    if (cache && Date.now() - cache.ts < TTL_MS) return cache.data;
+    if (!force && cache && Date.now() - cache.ts < TTL_MS) return cache.data;
 
     // Stale-while-revalidate: devolver caché en disco al instante (<5ms) para
     // que /mexico nunca quede colgado >8s mientras se refresca en segundo plano.
-    if (cache?.data) {
+    if (!force && cache?.data) {
         if (!pendingFetch) {
             pendingFetch = fetchFirstSalePricesFresh()
                 .catch(() => {})

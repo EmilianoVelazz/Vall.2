@@ -172,7 +172,7 @@ export function buildReportOrionHandoff({
 }
 
 /**
- * Packages a MARRANAS v6.0 forecast/SHAP, Import Parity, or NLP Sanitary/Trade
+ * Packages a VALL-Proteínas forecast, import-parity, or sanitary/trade NLP
  * snapshot into a structured handoff payload for interactive analysis in `/orion`.
  */
 export function buildMarranasOrionHandoff({
@@ -185,27 +185,30 @@ export function buildMarranasOrionHandoff({
 } = {}) {
   const version = cleanInline(data?.version || 'ORION ML', 60);
   const cut = cleanInline(data?.generatedAt ? String(data.generatedAt).slice(0, 16).replace('T', ' ') : '', 80);
-  let title = 'ORION ML · Inteligencia de Proteínas';
+  let title = 'VALL-Proteínas · Inteligencia de proteínas';
   let prompt = 'Con tus modelos ML integrados y el resumen adjunto, dame un diagnóstico ejecutivo de cerdo, res, pollo y huevo en México y el mundo, destacando probabilidades direccionales, factores SHAP dominantes, paridad de importación MXN/kg y riesgos sanitarios NLP.';
   const lines = [
     `# ${title} (${version})`,
     '',
-    `- **Motor:** ORION asistido por modelos ML de proteínas`,
+    `- **Motor:** VALL-Proteínas, modelo ML especializado integrado en ORION`,
     cut ? `- **Corte entrenado:** ${cut}` : '',
     data?.stats ? `- **Cobertura:** ${data.stats.activeModels || 0} modelos activos · Exactitud Walk-Forward ${data.stats.avgWalkForwardDirectionalAccuracyPct ?? '—'}% · Brier ${data.stats.avgBrierScore ?? '—'}` : '',
   ];
 
   if (kind === 'simulator' && row && horizon && simulation?.scenarios) {
     const sc = simulation.scenarios;
+    const amount=(value,digits=2)=>Number.isFinite(value)?value.toFixed(digits):'No calculado';
     title = `ORION ML · Simulación de Margen (${cleanInline(row.label, 70)})`;
     lines.push(
       '',
       `## Escenario simulado en planta (${cleanInline(horizon.horizonLabel || horizon.code, 40)})`,
       `- **Mercado de referencia:** ${cleanInline(row.label, 140)} (${cleanInline(row.regionLabel || row.region, 40)})`,
-      `- **Parámetros del lote:** Volumen ${simulation.volumeKg}, Flete ${simulation.freightPerUnit} ${sc.currency}, Merma ${simulation.shrinkagePct}%, Precio objetivo de venta ${simulation.salePrice} ${sc.currency}`,
-      `- **Spot actual:** Costo vendible ${sc.spot.costPerSellable.toFixed(2)} ${sc.currency} · Margen bruto ${sc.spot.grossMarginPct.toFixed(1)}% · Lote ${sc.spot.totalBatchCost.toFixed(0)} ${sc.currency}`,
-      `- **Base ORION ML:** Costo vendible ${sc.base.costPerSellable.toFixed(2)} ${sc.currency} · Margen bruto ${sc.base.grossMarginPct.toFixed(1)}% · Delta caja ${sc.cashFlowDeltaBase >= 0 ? '+' : ''}${sc.cashFlowDeltaBase.toFixed(0)} ${sc.currency}`,
-      `- **Estrés alcista P90:** Costo vendible ${sc.stressP90.costPerSellable.toFixed(2)} ${sc.currency} · Margen bruto ${sc.stressP90.grossMarginPct.toFixed(1)}% · Delta caja ${sc.cashFlowDeltaStress >= 0 ? '+' : ''}${sc.cashFlowDeltaStress.toFixed(0)} ${sc.currency}`,
+      `- **Parámetros supuestos del lote:** Volumen ${simulation.volumeKg} kg, Flete ${simulation.freightPerUnit} ${sc.currency}/kg, Merma ${simulation.shrinkagePct}%, Precio objetivo de venta ${amount(simulation.salePrice)} ${sc.currency}/kg`,
+      `- **Supuestos cambiarios y financieros:** USD/MXN efectivo ${amount(simulation.usdMxn)}, tasa anual ${amount(simulation.annualFinancingPct)}%, plazo ${simulation.inventoryDays} días. No son cotizaciones actuales.`,
+      `- **Presentación original:** ${cleanInline(row.unit,40)} · ${cleanInline(row.basis || row.priceBasis,180)}. Convertir la moneda y el peso no transforma vivo, canal o corte en productos equivalentes.`,
+      `- **Spot actual:** Costo vendible ${amount(sc.spot.costPerSellable)} ${sc.currency}/kg · Margen bruto ${Number.isFinite(sc.spot.grossMarginPct)?amount(sc.spot.grossMarginPct,1)+'%':'No calculado; falta precio de venta'} · Lote ${amount(sc.spot.totalBatchCost,0)} ${sc.currency}`,
+      `- **Base ORION ML:** Costo vendible ${amount(sc.base.costPerSellable)} ${sc.currency}/kg · Margen bruto ${Number.isFinite(sc.base.grossMarginPct)?amount(sc.base.grossMarginPct,1)+'%':'No calculado'} · Delta caja ${amount(sc.cashFlowDeltaBase,0)} ${sc.currency}`,
+      `- **Estrés alcista P90:** Costo vendible ${amount(sc.stressP90.costPerSellable)} ${sc.currency}/kg · Margen bruto ${Number.isFinite(sc.stressP90.grossMarginPct)?amount(sc.stressP90.grossMarginPct,1)+'%':'No calculado'} · Delta caja ${amount(sc.cashFlowDeltaStress,0)} ${sc.currency}`,
     );
     prompt = `Analiza este escenario simulado de compras y margen para "${cleanInline(row.label, 100)}" (${horizon.horizonLabel || horizon.code}). Evalúa la sensibilidad entre Spot, Base ORION ML y Estrés P90, qué umbral de precio compromete el margen bruto y qué acciones de compra o cobertura conviene revisar.`;
   } else if (kind === 'series' && row && horizon) {
@@ -237,6 +240,24 @@ export function buildMarranasOrionHandoff({
       lines.push(`- **${entry.speciesLabel}:** México SNIIM $${entry.mexicoBenchmark.priceMxnKg} MXN/kg vs ${p.originCountry} puesto $${p.landedMxnKg} MXN/kg (diferencial ${p.spreadPct > 0 ? '+' : ''}${p.spreadPct}%, señal ${p.signal}).`);
     }
     prompt = 'Con base en la Paridad de Importación adjunta de ORION ML, analiza dónde hay ventana real de arbitraje o techo de importación en cerdo, res, pollo y huevo para México, y cómo impactaría una depreciación de 5% del tipo de cambio USD/MXN.';
+  } else if (kind === 'feed-scenarios' && simulation?.result?.available) {
+    const a = simulation.result.assumptions || {};
+    title = 'Escenarios de Costo de Ración (Maíz + Soya × FCR)';
+    lines.push(
+      '',
+      '## Supuestos de ración (ingresados por el usuario)',
+      `- **Tipo de cambio:** $${a.usdMxn} MXN/USD (choque ${a.fxShockPct > 0 ? '+' : ''}${a.fxShockPct}%)`,
+      `- **Maíz:** ${a.cornUsdTon} ${a.cornUnit || 'USD/t'} · participación ${a.cornSharePct}% (choque ${a.cornShockPct > 0 ? '+' : ''}${a.cornShockPct}%)`,
+      `- **Pasta de soya:** ${a.soymealUsdTon} ${a.soyUnit || 'USD/t'} · participación ${a.soySharePct}% (choque ${a.soyShockPct > 0 ? '+' : ''}${a.soyShockPct}%)`,
+      `- **Resto de la mezcla:** $${a.otherFeedMxnKg} MXN/kg (${simulation.result.otherSharePct}%) · **FCR:** ${a.feedConversionKg} kg/kg`,
+      `- **Otros costos:** $${a.operatingCostMxnKg} MXN/kg · **Volumen:** ${Number(a.volumeKg || 0).toLocaleString('es-MX')} kg`,
+      '',
+      '## Matriz de sensibilidad',
+      ...simulation.result.rows.map(
+        (r) => `- **${r.label}:** alimento $${r.feedMxnKg.toFixed(2)} MXN/kg · costo $${r.costPerKg.toFixed(2)} MXN/kg (${r.deltaPerKg >= 0 ? '+' : ''}$${r.deltaPerKg.toFixed(2)}/kg; lote ${r.deltaTotal >= 0 ? '+' : ''}$${Math.round(r.deltaTotal).toLocaleString('es-MX')} MXN)`
+      ),
+    );
+    prompt = 'Con base en el escenario adjunto de costo de ración (maíz, pasta de soya, FCR y tipo de cambio), evalúa cuál es el principal riesgo de margen y qué estrategia de compras o cobertura conviene priorizar.';
   } else if (kind === 'nlp' && data?.nlpEvents?.bySpecies) {
     title = 'ORION ML · Radar NLP Sanitario y Comercial';
     lines.push('', `## Índices de Riesgo NLP (${data.nlpEvents.stats?.relevantEventsDetected || 0} eventos en ${data.nlpEvents.windowDays || 35} días)`);
@@ -257,11 +278,12 @@ export function buildMarranasOrionHandoff({
     }
   }
 
+  lines[0] = `# ${title} (${version})`;
   return {
     version: 1,
     title,
     area: 'markets',
-    reportKey: 'marranas_ml',
+    reportKey: kind === 'feed-scenarios' ? 'feed_cost_scenarios' : 'marranas_ml',
     analysisPeriod: 'daily',
     cutLabel: cut,
     accountEmail: cleanInline(accountEmail, 240).toLowerCase(),
@@ -271,6 +293,8 @@ export function buildMarranasOrionHandoff({
     createdAt: Date.now(),
   };
 }
+
+export const buildProteinOrionHandoff = buildMarranasOrionHandoff;
 
 /**
  * Writes the serialized report handoff to sessionStorage for consumption by `/orion`.

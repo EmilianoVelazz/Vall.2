@@ -1,51 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
+import {priceToMxnKg} from '../../../shared/price-unit-conversion.mjs';
 
 function fmtMoney(val, digits = 2) {
-  if (!Number.isFinite(Number(val))) return '—';
+  if (val==null || val==='' || !Number.isFinite(Number(val))) return '—';
   return Number(val).toLocaleString('es-MX', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
 }
 
-function toMxnPerKg(rawValue, unit = '', currency = '', usdMxn = 19.2) {
-  const val = Number(rawValue);
-  if (!Number.isFinite(val) || val <= 0) return { mxnKg: 0, converted: false, factorLabel: 'MXN/kg' };
-  const u = String(unit || '').toLowerCase();
-  const c = String(currency || '').toUpperCase();
-  const fx = Math.max(1, Number(usdMxn) || 19.2);
-  if (c === 'MXN' || /\bmxn\b/.test(u)) return { mxnKg: val, converted: false, factorLabel: 'MXN/kg directo' };
-  if (/us[¢c]\s*\/\s*lb/i.test(u) || (c === 'US¢' && /lb/i.test(u))) {
-    return { mxnKg: (val / 100 / 0.45359237) * fx, converted: true, factorLabel: 'US¢/lb → MXN/kg' };
-  }
-  if (/cwt|100\s*lb/i.test(u)) {
-    return { mxnKg: (val / 45.359237) * fx, converted: true, factorLabel: 'USD/cwt (100 lb) → MXN/kg' };
-  }
-  if (/\/\s*lb\b/i.test(u)) {
-    return { mxnKg: (val / 0.45359237) * fx, converted: true, factorLabel: 'USD/lb → MXN/kg' };
-  }
-  if (/eur/i.test(u) || c === 'EUR') {
-    const perKgEur = /100\s*kg/i.test(u) ? val / 100 : val;
-    return { mxnKg: perKgEur * (fx * 1.09), converted: true, factorLabel: `${/100\s*kg/i.test(u) ? 'EUR/100kg' : 'EUR/kg'} → MXN/kg` };
-  }
-  if (/brl/i.test(u) || c === 'BRL') {
-    const perKgBrl = /arroba|15\s*kg/i.test(u) ? val / 15 : val;
-    return { mxnKg: perKgBrl * (fx / 5.85), converted: true, factorLabel: `${/arroba/i.test(u) ? 'BRL/arroba' : 'BRL/kg'} → MXN/kg` };
-  }
-  if (/usd/i.test(u) || c === 'USD') {
-    return { mxnKg: val * fx, converted: true, factorLabel: 'USD/kg → MXN/kg' };
-  }
-  return { mxnKg: val, converted: false, factorLabel: unit || 'u.' };
+function toMxnPerKg(rawValue, unit = '', currency = '', usdMxn = 19.2, eurMxn = 20.8) {
+  return {
+    mxnKg: priceToMxnKg(rawValue, unit, currency, usdMxn, { eurMxn }),
+    factorLabel: unit + ' → MXN/kg; misma etapa comercial',
+  };
 }
 
 export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all', horizon = '1m', onOpenInOrion }) {
   // Prefer Mexican MXN/kg series first for practical plant-cost calculation, while allowing any market
   const selectable = useMemo(() => {
-    const valid = (Array.isArray(forecasts) ? forecasts : []).filter((f) => f?.available && f.primaryForecast && f.lastValue > 0);
+    const valid = (Array.isArray(forecasts) ? forecasts : []).filter(
+      (f) => f?.available && f.primaryForecast && priceToMxnKg(f.lastValue, f.unit, f.currency, 19.2, { eurMxn: 20.8 }) > 0
+    );
     const bySpecies = activeSpecies && activeSpecies !== 'all'
       ? valid.filter((f) => f.species === activeSpecies)
       : valid;
-    const pool = bySpecies.length ? bySpecies : valid;
+    const pool = bySpecies;
     return [...pool].sort((a, b) => {
       const aMx = a.region === 'MX' ? 0 : 1;
       const bMx = b.region === 'MX' ? 0 : 1;
@@ -60,9 +40,10 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
   const [shrinkagePct, setShrinkagePct] = useState(4);
   const [tariffPct, setTariffPct] = useState(0);
   const [usdMxn, setUsdMxn] = useState(19.2);
+  const [eurMxn, setEurMxn] = useState(20.8);
   const [fxShockPct, setFxShockPct] = useState(0);
   const [inventoryDays, setInventoryDays] = useState(15);
-  const [feedShockPct, setFeedShockPct] = useState(0);
+  const [annualFinancingPct,setAnnualFinancingPct]=useState(0);
   const [salePrice, setSalePrice] = useState('');
 
   const selected = useMemo(() => {
@@ -74,11 +55,9 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
     if (selected && selected.symbol !== symbol) {
       setSymbol(selected.symbol);
       const isImport = selected.region !== 'MX' && selected.currency !== 'MXN';
-      const baseMxn = toMxnPerKg(selected.lastValue, selected.unit, selected.currency, usdMxn).mxnKg;
-      const suggested = Number(((baseMxn + (isImport ? 4.5 : 2.5)) * 1.14).toFixed(2));
-      setSalePrice(String(suggested));
+      setSalePrice('');
       setFreightPerKg(isImport ? 4.5 : 2.5);
-      setTariffPct(isImport ? 5 : 0);
+      setTariffPct(0);
     }
   }, [selected, symbol, usdMxn]);
 
@@ -90,24 +69,28 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
 
   const scenarios = useMemo(() => {
     if (!selected || !activeHorizon) return null;
+    const valid=(value,min,max)=>value!==''&&value!=null&&Number.isFinite(Number(value))&&Number(value)>=min&&Number(value)<=max;
+    if(![[volumeKg,1,1e9],[freightPerKg,0,1e4],[shrinkagePct,0,40],[tariffPct,0,50],[usdMxn,.01,1000],[eurMxn,.01,1000],[fxShockPct,-25,25],[inventoryDays,0,180],[annualFinancingPct,0,100]].every(args=>valid(...args)) || (salePrice!==''&&!valid(salePrice,.01,1e6)))return {invalid:true};
     const vol = Math.max(1, Number(volumeKg) || 1);
     const freight = Math.max(0, Number(freightPerKg) || 0);
     const shrink = Math.min(45, Math.max(0, Number(shrinkagePct) || 0)) / 100;
     const tariff = Math.min(50, Math.max(0, Number(tariffPct) || 0)) / 100;
-    const fxBase = Math.max(1, Number(usdMxn) || 19.2);
-    const fxEffective = fxBase * (1 + (Number(fxShockPct) || 0) / 100);
+    const fxBase = Number(usdMxn);
+    const eurBase = Number(eurMxn);
+    const fxMultiplier = 1 + (Number(fxShockPct) || 0) / 100;
+    const fxEffective = fxBase * fxMultiplier;
+    const eurEffective = eurBase * fxMultiplier;
+    const isEurSeries = String(selected.currency || '').toUpperCase() === 'EUR' || /\beur\b|€/i.test(selected.unit || '');
     const days = Math.min(180, Math.max(0, Number(inventoryDays) || 0));
-    // Costo financiero estimado con referencia TIIE ~6.6% anual
-    const financingFactor = (0.066 * days) / 365;
-    // Sensibilidad de ración (maíz + pasta de soya ~65% del costo de producción)
-    const feedAdjFactor = 1 + ((Number(feedShockPct) || 0) / 100) * 0.65;
+    const financingFactor = (Math.max(0,Number(annualFinancingPct)||0)/100 * days) / 365;
     const netFactor = Math.max(0.55, 1 - shrink);
-    const spotConv = toMxnPerKg(selected.lastValue, selected.unit, selected.currency, fxEffective);
-    const sell = Math.max(0.01, Number(salePrice) || spotConv.mxnKg * 1.14);
+    const spotConv = toMxnPerKg(selected.lastValue, selected.unit, selected.currency, fxEffective, eurEffective);
+    const sell = Number(salePrice)>0 ? Number(salePrice) : null;
 
     const calc = (name, tag, rawRefPrice) => {
-      const conv = toMxnPerKg(rawRefPrice, selected.unit, selected.currency, fxEffective);
-      const baseMxnKg = conv.mxnKg * feedAdjFactor;
+      const conv = toMxnPerKg(rawRefPrice, selected.unit, selected.currency, fxEffective, eurEffective);
+      if(conv.mxnKg==null)return {name,tag,refPrice:null,costPerSellable:null,totalBatchCost:null,grossMarginPerUnit:null,grossMarginPct:null,netProfit:null};
+      const baseMxnKg = conv.mxnKg;
       const tariffCost = baseMxnKg * tariff;
       const landedBeforeFin = baseMxnKg + tariffCost + freight;
       const finCost = landedBeforeFin * financingFactor;
@@ -115,9 +98,9 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
       const costPerSellable = landed / netFactor;
       const totalBatchCost = landed * vol;
       const sellableUnits = vol * netFactor;
-      const grossMarginPerUnit = sell - costPerSellable;
-      const grossMarginPct = (grossMarginPerUnit / sell) * 100;
-      const netProfit = grossMarginPerUnit * sellableUnits;
+      const grossMarginPerUnit = sell==null ? null : sell - costPerSellable;
+      const grossMarginPct = sell==null ? null : (grossMarginPerUnit / sell) * 100;
+      const netProfit = sell==null ? null : grossMarginPerUnit * sellableUnits;
       return {
         name,
         tag,
@@ -141,20 +124,21 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
       base,
       lowP80,
       stressP90,
-      cashFlowDeltaBase: base.totalBatchCost - spot.totalBatchCost,
-      cashFlowDeltaStress: stressP90.totalBatchCost - spot.totalBatchCost,
+      cashFlowDeltaBase: base.totalBatchCost==null?null:base.totalBatchCost - spot.totalBatchCost,
+      cashFlowDeltaStress: stressP90.totalBatchCost==null?null:stressP90.totalBatchCost - spot.totalBatchCost,
       currency: 'MXN',
       unit: 'MXN/kg',
       rawUnit: selected.unit || '',
       factorLabel: spotConv.factorLabel,
-      fxEffective,
+      fxEffective: isEurSeries ? eurEffective : fxEffective,
+      fxCurrencyLabel: isEurSeries ? 'EUR/MXN' : 'USD/MXN',
     };
-  }, [selected, activeHorizon, volumeKg, freightPerKg, shrinkagePct, tariffPct, usdMxn, fxShockPct, inventoryDays, feedShockPct, salePrice]);
+  }, [selected, activeHorizon, volumeKg, freightPerKg, shrinkagePct, tariffPct, usdMxn, eurMxn, fxShockPct, inventoryDays, annualFinancingPct, salePrice]);
 
-  if (!selected || !scenarios) return null;
+  if (!selected || !scenarios) return <p className="vn-tool-notice">No hay una referencia de esta especie con conversión verificable de MXN, USD o EUR por peso. Los pronósticos de otras monedas conservan su unidad en la tabla; no se convierten con una paridad supuesta.</p>;
 
   return (
-    <div className="mp-sim-box" aria-label="Simulador de Márgenes y Costo de Ración ORION ML">
+    <div className="mp-sim-box" aria-label="Simulador de costo y margen ORION ML">
       <div className="mp-sim-head">
         <div>
           <span className="mp-sim-kicker">
@@ -167,6 +151,7 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
           {typeof onOpenInOrion === 'function' && (
             <button
               type="button"
+              disabled={scenarios.invalid}
               className="mp-orion-cta sm"
               style={{ marginLeft: '10px' }}
               onClick={() => onOpenInOrion({
@@ -181,8 +166,8 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
                   usdMxn: Number(scenarios.fxEffective) || 19.2,
                   fxShockPct: Number(fxShockPct) || 0,
                   inventoryDays: Number(inventoryDays) || 0,
-                  feedShockPct: Number(feedShockPct) || 0,
-                  salePrice: Number(salePrice) || 0,
+                  annualFinancingPct:Number(annualFinancingPct)||0,
+                  salePrice: salePrice===''?null:Number(salePrice),
                   scenarios,
                 },
               })}
@@ -253,14 +238,26 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
         </label>
 
         <label className="mp-sim-field">
-          <span>USD/MXN base</span>
+          <span>USD/MXN supuesto editable</span>
           <input
             type="number"
-            min="10"
-            max="40"
+            min="0.01"
+            max="1000"
             step="0.1"
             value={usdMxn}
             onChange={(e) => setUsdMxn(e.target.value)}
+          />
+        </label>
+
+        <label className="mp-sim-field">
+          <span>EUR/MXN supuesto editable</span>
+          <input
+            type="number"
+            min="0.01"
+            max="1000"
+            step="0.1"
+            value={eurMxn}
+            onChange={(e) => setEurMxn(e.target.value)}
           />
         </label>
 
@@ -277,7 +274,7 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
         </label>
 
         <label className="mp-sim-field">
-          <span>Días inventario (TIIE)</span>
+          <span>Días de financiamiento</span>
           <input
             type="number"
             min="0"
@@ -289,14 +286,14 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
         </label>
 
         <label className="mp-sim-field">
-          <span>Choque Maíz/Soya (±%)</span>
+          <span>Tasa anual supuesta (%)</span>
           <input
             type="number"
-            min="-30"
-            max="40"
-            step="1"
-            value={feedShockPct}
-            onChange={(e) => setFeedShockPct(e.target.value)}
+            min="0"
+            max="100"
+            step="0.1"
+            value={annualFinancingPct}
+            onChange={(e) => setAnnualFinancingPct(e.target.value)}
           />
         </label>
 
@@ -312,9 +309,9 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
         </label>
       </div>
 
-      <div className="mp-sim-grid">
+      {scenarios.invalid?<p role="status">Completa los supuestos con valores dentro de los límites indicados para calcular el escenario.</p>:<><p className="mp-sim-note">Los valores iniciales de costos y dólar son ejemplos editables. La conversión conserva la etapa de la referencia (vivo, canal o corte); no los hace equivalentes.</p><div className="mp-sim-grid">
         {[scenarios.spot, scenarios.base, scenarios.lowP80, scenarios.stressP90].map((sc) => {
-          const marginPos = sc.grossMarginPct >= 0;
+          const marginPos = sc.grossMarginPct!=null && sc.grossMarginPct >= 0;
           return (
             <div className={`mp-sim-card ${sc.tag}`} key={sc.tag}>
               <div className="mp-sim-card-title">{sc.name}</div>
@@ -328,7 +325,7 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
               <div className="mp-sim-card-row">
                 <span>Margen bruto:</span>
                 <b className={marginPos ? 'pos' : 'neg'}>
-                  {sc.grossMarginPct > 0 ? '+' : ''}{fmtMoney(sc.grossMarginPct, 1)}% ({fmtMoney(sc.grossMarginPerUnit)})
+                  {sc.grossMarginPct==null?'Indica precio de venta':`${sc.grossMarginPct>0?'+':''}${fmtMoney(sc.grossMarginPct,1)}% (${fmtMoney(sc.grossMarginPerUnit)})`}
                 </b>
               </div>
               <div className="mp-sim-card-row">
@@ -355,6 +352,7 @@ export default function MarranasSimulator({ forecasts = [], activeSpecies = 'all
           Cálculo aritmético sobre bandas Conformal P80/P90 de ORION ML; validar cotización en firme con proveedor antes de comprar.
         </span>
       </div>
+      </>}
     </div>
   );
 }

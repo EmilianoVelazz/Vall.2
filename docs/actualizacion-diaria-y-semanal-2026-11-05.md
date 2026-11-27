@@ -12,6 +12,8 @@ Abrir o recargar Mercados conserva la edición publicada: no ejecuta los anterio
 
 La comprobación de vigencia de entregas programadas usa el corte semanal para Mercados. Los envíos automáticos siguen desactivados; el cambio de frecuencia no los reactiva.
 
+Antes de preparar los PDF, cada entrega programada también evalúa la vigencia y cobertura de sus referencias con `reportHealth`. La política predeterminada conserva el envío y añade el estado y el resumen de cobertura al correo y al recibo de programación. Se puede seleccionar el bloqueo estricto: si un informe del paquete está parcial, desactualizado, conservado, sin datos o sin fecha, se detiene el paquete completo y queda para reintento; los informes expresamente históricos se permiten. La política se guarda en las preferencias de cada programación.
+
 ## Validación
 
 Las pruebas nuevas cubren viernes antes y después de las 14:00, semana siguiente, cambio de año, año bisiesto, recuperación de un corte perdido, continuidad tras fallos y cancelación de temporizadores. La prueba HTTP comprueba que abrir Mercados o ejecutar el cron diario antes del viernes no consulta proveedores ni escribe datos, incluso cuando noticias o versiones anteriores activarían el antiguo refresco. Se verifican las fechas que recibiría Supabase mediante un cliente simulado, sin conexión externa, y el rótulo del lector en español e inglés.

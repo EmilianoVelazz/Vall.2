@@ -14,6 +14,8 @@ const {MODEL_VERSION, VALIDATION_PROTOCOL, MIN_VALIDATION_WINDOWS} = require('..
 
 const artifact = loadCachedProteinML();
 assert(artifact, 'Ejecuta train-protein-ml.cjs antes de esta prueba de integración con datos reales');
+assert.equal(artifact.model, 'VALL-Proteínas', 'El artefacto almacenado debe exponerse con la marca nueva');
+assert.match(artifact.displayName, /^VALL-Proteínas/);
 assert.equal(artifact.version, MODEL_VERSION);
 assert.equal(artifact.validationProtocol, VALIDATION_PROTOCOL);
 assert.match(artifact.dataFingerprint, /^[a-f0-9]{64}$/);
@@ -58,9 +60,9 @@ for (const item of artifact.forecasts.filter(f => !f.available)) {
     assert.equal((item.horizons || []).length, 0);
 }
 
-// Verificar contexto para ORION Chat (con cifras y probabilidades) y trigger "MARRANAS"
-const chatMxPork = getProteinMLContextForQuery('¿Qué dice MARRANAS sobre si va a subir o bajar el precio del cerdo en México?');
-assert(chatMxPork.includes('MARRANAS · MOTOR ML DEDICADO DE PROTEÍNAS'), 'Debe incluir cabecera de MARRANAS');
+// Verificar contexto para ORION Chat (con cifras y probabilidades) y activación por VALL-Proteínas.
+const chatMxPork = getProteinMLContextForQuery('¿Qué dice VALL-Proteínas sobre si va a subir o bajar el precio del cerdo en México?');
+assert(chatMxPork.includes('VALL-PROTEÍNAS · MODELO ML EXCLUSIVO DE PREDICCIÓN DE PROTEÍNAS'), 'Debe identificar el modelo especializado');
 const mxPork = active.filter(item => item.species === 'cerdo' && item.region === 'MX');
 assert(mxPork.length ? /Subida \d+/.test(chatMxPork) : chatMxPork.includes('No hay pronósticos validados'), 'Debe mostrar cobertura real para México');
 if (!mxPork.length) assert(!/^- .*\[.*\]: último=/m.test(chatMxPork), 'No sustituir silenciosamente el mercado solicitado');
@@ -71,11 +73,11 @@ assert(/Europa|EU|Latinoamérica|LATAM/i.test(chatEuEgg), 'Debe cubrir Europa y 
 
 // Verificar integración automática en predictive-showcase y modo sin cifras para informes
 const showcaseChat = getPredictiveContextForQuery('¿Sube o baja el precio del pollo y huevo en México y EE. UU.?');
-assert(showcaseChat.includes('MOTOR ML DEDICADO DE PROTEÍNAS'), 'predictive-showcase debe integrar el motor ML de proteínas');
+assert(showcaseChat.includes('MODELO ML EXCLUSIVO DE PREDICCIÓN DE PROTEÍNAS'), 'predictive-showcase debe integrar VALL-Proteínas');
 
 const reportSafe = getReportReasoningContext({ area: 'markets', key: 'proteins', audience: 'purchasing', depth: 'detailed' });
-assert(reportSafe.includes('RADAR ML ESPECIALIZADO EN PROTEÍNAS'), 'loopus-knowledge debe inyectar radar cualitativo en informes de proteínas');
-assert(!/\d/.test(reportSafe.split('RADAR ML ESPECIALIZADO EN PROTEÍNAS')[1] || ''), 'El bloque de informes no debe introducir cifras ajenas');
+assert(reportSafe.includes('VALL-PROTEÍNAS · RAZONAMIENTO ML ESPECIALIZADO EN PROTEÍNAS'), 'loopus-knowledge debe inyectar el razonamiento cualitativo de VALL-Proteínas');
+assert(!/\d/.test(reportSafe.split('VALL-PROTEÍNAS · RAZONAMIENTO ML ESPECIALIZADO EN PROTEÍNAS')[1] || ''), 'El bloque de informes no debe introducir cifras ajenas');
 
 // Verificar pronóstico determinista sobre serie sintética corta (sanity check)
 const synthetic = Array.from({ length: 30 }, (_, i) => ({
@@ -144,12 +146,14 @@ const { buildDataInventoryContext } = require('../backend/ai/data-inventory');
 const { buildMarranasChart } = require('../backend/ai/analytical-charts');
 const { getChatReasoningContext } = require('../backend/ai/loopus-knowledge');
 
-assert(MCP_DEFS.marranas_proteins_ml, 'marranas_proteins_ml debe estar registrada como herramienta MCP nativa de ORION');
-assert.equal(planQuery({ message: '¿Qué dice MARRANAS sobre la paridad de importación del cerdo?' }).needsMarranasML, true, 'planQuery debe activar needsMarranasML');
-assert.equal(planQuery({ message: '¿Qué riesgo hay por gusano barrenador en ganado bovino en México?' }).needsMarranasML, true, 'planQuery debe activar needsMarranasML ante eventos sanitarios');
-assert(buildDataInventoryContext().includes('MARRANAS'), 'Inventario en vivo de ORION debe incluir a MARRANAS');
+assert(MCP_DEFS.marranas_proteins_ml, 'La herramienta MCP de VALL-Proteínas debe mantener su identificador compatible');
+const vallPlan = planQuery({ message: '¿Qué dice VALL-Proteínas sobre la paridad de importación del cerdo?' });
+assert.equal(vallPlan.needsVallProteinasML, true, 'planQuery debe activar VALL-Proteínas');
+assert.equal(vallPlan.needsMarranasML, true, 'El flag anterior debe conservarse como alias compatible');
+assert.equal(planQuery({ message: '¿Qué riesgo hay por gusano barrenador en ganado bovino en México?' }).needsVallProteinasML, true, 'planQuery debe activar VALL-Proteínas ante eventos sanitarios');
+assert(buildDataInventoryContext().includes('VALL-Proteínas'), 'Inventario en vivo de ORION debe incluir VALL-Proteínas');
 
-const cDir = buildMarranasChart({ message: 'Pronóstico MARRANAS para proteínas' });
+const cDir = buildMarranasChart({ message: 'Pronóstico VALL-Proteínas para proteínas' });
 const cPar = buildMarranasChart({ message: 'Paridad de importación hacia México en MXN/kg' });
 const cNlp = buildMarranasChart({ message: 'Riesgo sanitario NLP por H5N1 y gusano barrenador' });
 const coveredSpecies = Object.values(artifact.summary.bySpecies).filter(sum => sum.seriesCount > 0).length;
@@ -157,7 +161,9 @@ assert(coveredSpecies < 2 ? cDir === null : cDir && cDir.datasets.length === 2 &
 assert(cPar && cPar.unit === 'MXN/kg' && cPar.labels.length === 4, 'Gráfica de paridad MXN/kg MARRANAS válida');
 assert(cNlp && cNlp.labels.length === 4, 'Gráfica de riesgo NLP MARRANAS válida');
 
-const orionChatFull = getChatReasoningContext({ message: '¿Qué dice MARRANAS sobre si sube o baja el cerdo y la res en México, la paridad de importación y el gusano barrenador?' });
-assert(orionChatFull.includes('MARRANAS') && orionChatFull.includes('Paridad de Importación') && orionChatFull.includes('Radar NLP'), 'ORION Chat debe recibir el contexto disponible sin inventar pronósticos');
+const orionChatFull = getChatReasoningContext({ message: '¿Qué dice VALL-Proteínas sobre si sube o baja el cerdo y la res en México, la paridad de importación y el gusano barrenador?' });
+assert(orionChatFull.includes('VALL-PROTEÍNAS') && orionChatFull.includes('Paridad de Importación') && orionChatFull.includes('Radar NLP'), 'ORION Chat debe recibir el contexto de VALL-Proteínas');
+const proteinReasoningWithoutRule = getChatReasoningContext({ message: 'Predice si sube o baja el precio del pollo en México con VALL-Proteínas.' });
+assert(proteinReasoningWithoutRule.includes('[RAZONAMIENTO ESPECIALIZADO · VALL-PROTEÍNAS]'), 'El razonamiento de proteínas debe llegar al chat aunque no haya reglas Loopus coincidentes');
 
 console.log(`Protein ML Engine: OK · ${artifact.version} · ${active.length} series publicadas de ${artifact.forecasts.length}, ${artifact.stats.totalObservationsIngested} observaciones, acierto histórico ${artifact.stats.avgWalkForwardDirectionalAccuracyPct}%, ${audit.summary.totalEvaluated} evaluaciones prospectivas, ${alerts.length} alertas contextuales/validadas. Cobertura real y ausencia de predicciones locales no acreditadas verificadas.`);

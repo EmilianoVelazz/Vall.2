@@ -178,8 +178,8 @@ function serveProteinMLForecasts(req, res) {
     res.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800');
     res.json({
         available: true,
-        model: artifact.model || 'MARRANAS',
-        displayName: artifact.displayName || 'MARRANAS · Motor ML de Proteínas',
+        model: artifact.model || 'VALL-Proteínas',
+        displayName: artifact.displayName || 'VALL-Proteínas · Modelo ML de predicción de proteínas',
         version: artifact.version,
         generatedAt: artifact.generatedAt,
         stats: artifact.stats,
@@ -193,6 +193,8 @@ function serveProteinMLForecasts(req, res) {
             summary: audit.summary,
             bySpecies: audit.bySpecies,
             byRegion: audit.byRegion,
+            byHorizon:audit.byHorizon || {},
+            recentEvaluations:(audit.recentEvaluations || []).slice(0,25),
         } : null,
         alerts: buildMarranasAlerts(artifact, { species: species || null, region: region || null, limit: 16 }),
         count: forecasts.length,
@@ -203,6 +205,7 @@ function serveProteinMLForecasts(req, res) {
 router.get('/proteinas/ml-pronosticos', serveProteinMLForecasts);
 router.get('/ml/proteins', serveProteinMLForecasts);
 router.get('/marranas', serveProteinMLForecasts);
+router.get('/vall-proteinas', serveProteinMLForecasts);
 router.get('/livestock-margins', (req, res) => {
     const { buildLivestockMarginReport } = require('../services/livestock-margin-engine');
     const report = buildLivestockMarginReport();
@@ -225,12 +228,12 @@ router.get('/executive-pulse', (req, res) => {
     res.status(pulse.available ? 200 : 503).json(pulse);
 });
 
-// Radar de Alertas Tempranas MARRANAS (Alza fuerte, Baja/Oportunidad, Margen comprimido y Choques de volatilidad)
+// Alertas tempranas de VALL-Proteínas.
 function serveMarranasAlerts(req, res) {
     const { loadCachedProteinML, buildMarranasAlerts } = require('../ml/protein-ml-engine');
     const artifact = loadCachedProteinML();
     if (!artifact) {
-        return res.status(503).json({ available: false, error: 'MARRANAS aún no tiene un corte entrenado en caché.' });
+        return res.status(503).json({ available: false, error: 'VALL-Proteínas aún no tiene un corte entrenado en caché.' });
     }
     const species = String(req.query.species || '').trim().toLowerCase() || null;
     const region = String(req.query.region || '').trim().toUpperCase() || null;
@@ -239,7 +242,7 @@ function serveMarranasAlerts(req, res) {
     res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
     res.json({
         available: true,
-        model: artifact.model || 'MARRANAS',
+        model: artifact.model || 'VALL-Proteínas',
         version: artifact.version,
         generatedAt: artifact.generatedAt,
         count: alerts.length,
@@ -253,24 +256,26 @@ function serveMarranasAlerts(req, res) {
 }
 router.get('/marranas/alertas', serveMarranasAlerts);
 router.get('/proteinas/ml-alertas', serveMarranasAlerts);
+router.get('/vall-proteinas/alertas', serveMarranasAlerts);
 
 // Paridad de Importación y Arbitraje Internacional (EE. UU., Brasil, Europa → México en MXN/kg)
 function serveMarranasParity(req, res) {
     const { loadCachedProteinML } = require('../ml/protein-ml-engine');
     const artifact = loadCachedProteinML();
     if (!artifact?.importParity) {
-        return res.status(503).json({ available: false, error: 'Paridad de importación MARRANAS aún no disponible.' });
+        return res.status(503).json({ available: false, error: 'Paridad de importación de VALL-Proteínas aún no disponible.' });
     }
     res.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800');
     res.json({
         available: true,
-        model: artifact.model || 'MARRANAS',
+        model: artifact.model || 'VALL-Proteínas',
         version: artifact.version,
         importParity: artifact.importParity,
     });
 }
 router.get('/marranas/paridad', serveMarranasParity);
 router.get('/proteinas/paridad-importacion', serveMarranasParity);
+router.get('/vall-proteinas/paridad', serveMarranasParity);
 
 // Radar NLP de Eventos Sanitarios y Comerciales (H5N1, PPA, Gusano Barrenador, Aranceles/Fronteras)
 async function serveMarranasNlpEvents(req, res) {
@@ -292,7 +297,7 @@ async function serveMarranasNlpEvents(req, res) {
         res.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800');
         res.json({
             available: true,
-            model: 'MARRANAS',
+            model: 'VALL-Proteínas',
             version: snapshot.version,
             generatedAt: snapshot.generatedAt,
             windowDays: snapshot.windowDays,
@@ -302,12 +307,13 @@ async function serveMarranasNlpEvents(req, res) {
             topEvents,
         });
     } catch (error) {
-        console.error('[MARRANAS NLP Eventos] Error:', error.message);
+        console.error('[VALL-Proteínas NLP Eventos] Error:', error.message);
         res.status(503).json({ available: false, error: 'Radar NLP no disponible temporalmente.' });
     }
 }
 router.get('/marranas/eventos', serveMarranasNlpEvents);
 router.get('/proteinas/eventos-nlp', serveMarranasNlpEvents);
+router.get('/vall-proteinas/eventos', serveMarranasNlpEvents);
 
 // Auditoría real Closed-Loop: desempeño verificado contra precios reales en Dokploy DB
 async function serveMarranasAudit(req, res) {
@@ -316,14 +322,15 @@ async function serveMarranasAudit(req, res) {
         const refresh = req.query.refresh === '1';
         const audit = (!refresh && loadCachedClosedLoopAudit()) || await buildClosedLoopAuditAndFeedback();
         res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
-        res.json({ available: Boolean(audit), model: 'MARRANAS', audit });
+        res.json({ available: Boolean(audit), model: 'VALL-Proteínas', audit });
     } catch (error) {
-        console.error('[MARRANAS Auditoría] Error:', error.message);
-        res.status(503).json({ available: false, error: 'Auditoría cerrada de MARRANAS no disponible temporalmente.' });
+        console.error('[VALL-Proteínas Auditoría] Error:', error.message);
+        res.status(503).json({ available: false, error: 'Auditoría cerrada de VALL-Proteínas no disponible temporalmente.' });
     }
 }
 router.get('/proteinas/ml-auditoria', serveMarranasAudit);
 router.get('/marranas/auditoria', serveMarranasAudit);
+router.get('/vall-proteinas/auditoria', serveMarranasAudit);
 
 // Disparo protegido por CRON_SECRET para reentrenamiento y auditoría Closed-Loop (Dokploy / Cron)
 async function triggerMarranasClosedLoop(req, res) {
@@ -334,14 +341,15 @@ async function triggerMarranasClosedLoop(req, res) {
         const { runProteinClosedLoopCycle } = require('../ml/protein-ml-closed-loop');
         const retrain = req.query.retrain !== '0';
         const result = await runProteinClosedLoopCycle({ retrain });
-        res.json({ success: true, model: 'MARRANAS', ...result });
+        res.json({ success: true, model: 'VALL-Proteínas', ...result });
     } catch (error) {
-        console.error('[MARRANAS Ciclo Cerrado] Error:', error.message);
-        res.status(502).json({ success: false, error: 'No se pudo completar el ciclo cerrado de MARRANAS.' });
+        console.error('[VALL-Proteínas Ciclo Cerrado] Error:', error.message);
+        res.status(502).json({ success: false, error: 'No se pudo completar el ciclo cerrado de VALL-Proteínas.' });
     }
 }
 router.get('/proteinas/ml-ciclo-cerrado', triggerMarranasClosedLoop);
 router.get('/marranas/ciclo-cerrado', triggerMarranasClosedLoop);
+router.get('/vall-proteinas/ciclo-cerrado', triggerMarranasClosedLoop);
 
 const _proteinEvidenceCache = new Map();
 const PROTEIN_EVIDENCE_TTL = 12 * 60 * 60 * 1000;

@@ -7,6 +7,7 @@ const express=require('express');
 const jwt=require('jsonwebtoken');
 const {chromium}=require('playwright');
 const {normalizeRecipient}=require('../backend/lib/report-email-recipient');
+const {reportHealthSummary}=require('../backend/lib/report-data-quality-policy');
 const {buildReportEmail,buildReportSignature,reportEmailAttachments}=require('../backend/services/report-email-template');
 const {resendTransport}=require('../backend/services/report-mailer');
 
@@ -15,6 +16,8 @@ async function main() {
  assert.equal(normalizeRecipient(undefined,'Owner@Example.invalid'),'owner@example.invalid');
  assert.equal(normalizeRecipient(' jefe+compras@example.invalid '),'jefe+compras@example.invalid');
  for(const invalid of ['', 'bad','a@example.invalid,b@example.invalid','Ana <a@example.invalid>','a@example.invalid\r\nBcc:b@example.invalid','a@-example.invalid','a..b@example.invalid','a@example..invalid','x'.repeat(65)+'@example.invalid',[],{}]) assert.throws(()=>normalizeRecipient(invalid),error=>error.status===400);
+ const qualitySummary=reportHealthSummary({sessionObservations:[{label:'Precio atrasado',source:'Fuente A',cadence:'daily',points:[{date:'2026-10-27',value:1}]},{label:'Precio faltante',source:'Fuente B',cadence:'daily',points:[]}]},Date.parse('2026-10-29T18:00:00Z'));
+ assert.equal(qualitySummary.references.length,2);assert(qualitySummary.references.some(item=>item.label==='Precio atrasado'&&item.source==='Fuente A'&&item.date==='2026-10-27'&&item.status==='stale'));assert(qualitySummary.references.some(item=>item.label==='Precio faltante'&&item.source==='Fuente B'&&item.status==='missing'));
  const report={title:'Abastecimiento de proteínas · Comité de compras',eyebrow:'México · Edición personalizada',generatedAt:'2026-10-12T14:00:00Z',summary:'El corte reúne referencias de cerdo, pollo y res para revisar el abastecimiento. La fecha, la presentación y las condiciones de entrega deben compararse antes de decidir.\n\nEsta muestra sirve para revisar el diseño del correo; sus referencias son datos de simulación.',takeaways:['Contrastar la disponibilidad del proveedor con la referencia de cada plaza.','Separar ganado en pie, canal y producto al mayoreo para comparar costos.','Completar flete, merma y condiciones de pago para evaluar el costo entregado.'],closing:'Solicitar cotizaciones con la misma presentación y fecha, y revisar la disponibilidad antes de confirmar un pedido.',metrics:[{label:'Cerdo · referencia de simulación',value:'38 MXN/kg vivo',change:'Puebla · dato de prueba'},{label:'Res · referencia de simulación',value:'90 MXN/kg canal',change:'Puebla · dato de prueba'},{label:'Pollo · referencia de simulación',value:'40 MXN/kg',change:'Jalisco · mayoreo de prueba'}],personalization:{audience:'purchasing',organization:'Empresa de simulación',confidentiality:'confidential',sections:{indicators:true,sources:true}}};
  report.metrics.push({label:'Ajuste confirmado de simulación',value:0,change:'Sin cambio en el dato de prueba'});
  report.watchlist=['Confirmar que la fecha y la presentación de cada precio sean comparables.','Validar disponibilidad y continuidad de entrega con el proveedor.','Revisar flete y condiciones de pago antes de cerrar el pedido.'];
@@ -23,6 +26,11 @@ async function main() {
  report.tables=[{title:'Referencias de prueba',columns:['Producto','Precio'],rows:[['Pollo','40 MXN/kg']]}];
  report.visuals=[{title:'Comparación de prueba',type:'bar',bars:[{label:'Pollo',value:40}],unit:'MXN/kg'}];
  const original=JSON.stringify(report),mail=buildReportEmail({title:report.title,executive:report,attachmentName:'informe-compras.pdf'});
+ const qualityMail=buildReportEmail({title:report.title,executive:report,attachmentName:'informe-compras.pdf',health:{label:'Parcial',issueCount:2,references:[{label:'Precio pollo',source:'SNIIM',date:'2026-10-10',unit:'MXN/kg',status:'stale'},{label:'Res <dato>',source:'Mercado & plaza',date:'',status:'missing'}],coverage:{available:3,total:5,missing:1,stale:1,preserved:0}}});
+ assert(qualityMail.html.includes('Calidad de datos: Parcial · 3/5 referencias con dato · 1 sin dato · 1 rezagadas'));
+ assert(qualityMail.text.includes('Calidad de datos: Parcial · 3/5 referencias con dato · 1 sin dato · 1 rezagadas'));
+ assert(qualityMail.html.includes('SNIIM'));assert(qualityMail.html.includes('Fecha del dato: 2026-10-10'));assert(qualityMail.html.includes('Res &lt;dato&gt;'));assert(!qualityMail.html.includes('<dato>'));
+ assert(qualityMail.text.includes('Referencias para revisar'));assert(qualityMail.text.includes('Precio pollo — Desactualizado'));assert(qualityMail.text.includes('Fuente: Mercado & plaza · Sin fecha'));
  for(const phrase of ['PDF adjunto','Confidencial','Empresa de simulación','informe-compras.pdf','12 oct 2026','Inteligencia económica']) {assert(mail.html.includes(phrase),phrase);assert(mail.text.includes(phrase),phrase);}
  const injection=buildReportEmail({title:'Fallback',executive:{...report,title:'Prueba\r\nBcc: evil@example.invalid',summary:'<script>alert(1)</script>',personalization:{recipientName:'<img src=x onerror=alert(1)>'}},attachmentName:'<b>archivo</b>.pdf'});
  assert(!/[\r\n]/.test(injection.subject));assert(!injection.html.includes('<script>'));assert(injection.html.includes('&lt;script&gt;'));assert(!injection.html.includes('<img src=x'));assert.equal((injection.html.match(/<img /g)||[]).length,1,'Solo se inserta el logo institucional');
@@ -76,7 +84,7 @@ async function main() {
   const payload={title:report.title,content:report.summary,executiveReport:report};
   assert.equal((await post('/api/report-email',payload,{'Content-Type':'application/json'})).status,401);assert.equal(sent.length,0);
   assert.equal((await post('/api/report-email',{...payload,recipientEmail:'a@example.invalid,b@example.invalid'})).status,400);assert.equal(sent.length,0);
-  assert.equal((await post('/api/report-email',{...payload,recipientEmail:'jefe@example.invalid'})).status,200);assert.equal(sent[0].to,'jefe@example.invalid');
+  assert.equal((await post('/api/report-email',{...payload,recipientEmail:'jefe@example.invalid'})).status,200);assert.equal(sent[0].to,'jefe@example.invalid');assert(sent[0].html.includes('Calidad de datos'),'Immediate sends include a server-calculated data-quality summary');
   assert(sent[0].attachments[0].content.subarray(0,5).toString()==='%PDF-');assert.equal(sent[0].attachments[1].cid,logo.cid);assert.match(sent[0].html,/class="email-signature"/);assert.match(sent[0].text,/Atentamente,\nVALLNEWS\nInteligencia económica/);assert(!sent[0].html.includes('Indicadores del corte'));
   assert.equal((await post('/api/report-email',payload)).status,200);assert.equal(sent[1].to,'owner@example.invalid');
   assert.equal((await post('/api/report-email-schedules',{area:'mexico',reportKey:'mx_proteins',recipientEmail:'jefe@example.invalid',ownerEmail:'other@example.invalid'})).status,200);assert.equal(scheduled[0].ownerEmail,'owner@example.invalid');assert.equal(scheduled[0].recipientEmail,'jefe@example.invalid');

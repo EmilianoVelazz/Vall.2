@@ -51,12 +51,79 @@ function extractQuestionTerms(question) {
 
 function scoreText(text, terms) {
     if (!terms.length) return 0;
-    const normalized = fold(text);
+    const words = new Set(fold(text).split(/[^a-z0-9]+/).filter(Boolean));
     let hits = 0;
     for (const term of terms) {
-        if (normalized.includes(term)) hits++;
+        if (words.has(term)) hits++;
     }
     return hits;
+}
+
+function boundEvidenceValue(value, stringLimit, arrayLimit) {
+    if (typeof value === 'string') {
+        if (value.length <= stringLimit) return value;
+        const end = value.lastIndexOf(' ', stringLimit);
+        return end > 0 ? value.slice(0, end).trim() : '';
+    }
+    if (Array.isArray(value)) {
+        return value.slice(0, arrayLimit).map(item => boundEvidenceValue(item, stringLimit, arrayLimit));
+    }
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+            key,
+            boundEvidenceValue(item, stringLimit, arrayLimit),
+        ]));
+    }
+    return value;
+}
+
+function boundedEvidencePayload(payload, maxLength = 48_000) {
+    let stringLimit = 2000;
+    let arrayLimit = 24;
+    for (let attempt = 0; attempt < 12; attempt++) {
+        const bounded = boundEvidenceValue(payload, stringLimit, arrayLimit);
+        if (JSON.stringify(bounded).length <= maxLength) return bounded;
+        stringLimit = Math.max(100, Math.floor(stringLimit / 2));
+        arrayLimit = Math.max(1, Math.floor(arrayLimit / 2));
+    }
+    throw new Error('No fue posible reducir la evidencia del informe al límite permitido.');
+}
+
+const CLAIM_STOP_WORDS = new Set([
+    'a', 'al', 'algo', 'algunos', 'ante', 'como', 'con', 'contra', 'cual', 'cuales',
+    'cuando', 'de', 'del', 'desde', 'donde', 'el', 'ella', 'ellas', 'ellos', 'en',
+    'entre', 'era', 'es', 'esa', 'esas', 'ese', 'eso', 'esta', 'estaba', 'estan',
+    'este', 'esto', 'estos', 'fue', 'ha', 'hacia', 'hay', 'la', 'las', 'le', 'les',
+    'lo', 'los', 'mas', 'me', 'mi', 'mis', 'muy', 'no', 'o', 'para', 'pero', 'por',
+    'que', 'se', 'segun', 'si', 'sin', 'sobre', 'son', 'su', 'sus', 'tambien', 'te',
+    'tiene', 'tienen', 'todo', 'un', 'una', 'unas', 'uno', 'unos', 'y', 'ya',
+    'acuerdo', 'actual', 'basado', 'cierre', 'corte', 'dato', 'datos', 'disponible',
+    'disponibles', 'evidencia', 'informe', 'informacion', 'indica', 'muestra',
+    'presente', 'reporta', 'reporte', 'vigente',
+]);
+
+function claimWord(word) {
+    if (word.length > 5 && word.endsWith('es')) return word.slice(0, -2);
+    if (word.length > 4 && word.endsWith('s')) return word.slice(0, -1);
+    return word;
+}
+
+function evidenceText(value) {
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value.map(evidenceText).join(' ');
+    if (value && typeof value === 'object') return Object.values(value).map(evidenceText).join(' ');
+    return '';
+}
+
+function unsupportedClaimWords(outputText, factsPayload) {
+    const evidenceWords = new Set(
+        (fold(evidenceText(factsPayload)).match(/[a-z]+/g) || []).map(claimWord),
+    );
+    const outputWords = new Set((fold(outputText).match(/[a-z]+/g) || []).map(claimWord));
+    return [...outputWords].filter(word =>
+        word.length >= 4
+        && !CLAIM_STOP_WORDS.has(word)
+        && !evidenceWords.has(word));
 }
 
 function summarizeReportModel(report, model, { analysisPeriod = 'daily', question = '' } = {}) {
@@ -149,7 +216,7 @@ function deterministicAnswer(digest, question) {
             .sort((a, b) => b.score - a.score)
             .slice(0, 4);
         for (const { m } of rankedMetrics) {
-            keyPoints.push(`${m.label}: ${m.value}${m.change ? ` (${m.change})` : ''}.`.slice(0, 260));
+            keyPoints.push(`${m.label}: ${m.value}  ${m.change ? ` (${m.change})` : ''}.`.slice(0, 260));
         }
         for (const t of digest.tables) {
             if (keyPoints.length >= 5) break;
@@ -166,6 +233,17 @@ function deterministicAnswer(digest, question) {
                 keyPoints.push(`${item.source}: ${item.title}.`.slice(0, 260));
             }
         }
+    }
+
+    if (terms.length && !keyPoints.length) {
+        return {
+            mode: 'deterministic',
+            agent: 'VALL Report Reader',
+            headline: 'No se encontró evidencia suficiente',
+            answer: 'El informe no contiene evidencia que permita responder esta pregunta. Revisa las métricas y secciones disponibles del informe.',
+            keyPoints: [],
+            missingData: [clean(question, 200)].filter(Boolean),
+        };
     }
 
     if (!keyPoints.length) {
@@ -214,10 +292,17 @@ function validateAiReading(rawText, factsPayload) {
         : [];
     if (!headline || !answer) return { ok: false, reason: 'INCOMPLETE' };
 
-    const allowed = numericTokens(JSON.stringify(factsPayload));
     const outputText = JSON.stringify({ headline, answer, keyPoints, missingData });
+    const allowed = numericTokens(JSON.stringify(factsPayload));
     const unsupported = [...numericTokens(outputText)].filter(token => !allowed.has(token));
     if (unsupported.length) return { ok: false, reason: 'UNSUPPORTED_NUMBERS', unsupported };
+    const unsupportedClaims = unsupportedClaimWords(
+        JSON.stringify([headline, answer, ...keyPoints]),
+        factsPayload,
+    );
+    if (unsupportedClaims.length) {
+        return { ok: false, reason: 'UNSUPPORTED_CLAIMS', unsupportedClaims };
+    }
 
     return {
         ok: true,
@@ -247,7 +332,6 @@ class ReportReaderAgent {
         this.provider = provider;
         this.stores = stores;
         this.timeoutMs = timeoutMs;
-        this._queryCache = new Map();
     }
 
     async loadCollectionSnapshot(collection) {
@@ -276,14 +360,27 @@ class ReportReaderAgent {
         const { availablePresentationModel, hasPublishedReportData } = await import('../../shared/report-available-data.mjs');
 
         const areas = ['finance', 'markets', 'mexico'];
-        const snapshots = await Promise.all(areas.map(area => this.loadCollectionSnapshot(area).catch(() => null)));
+        const snapshots = await Promise.all(areas.map(async area => {
+            try {
+                return { snapshot: await this.loadCollectionSnapshot(area) };
+            } catch (error) {
+                console.warn(`[report-reader] No se pudo cargar la colección ${area}:`, error.message);
+                return { snapshot: null, error };
+            }
+        }));
         const items = [];
         for (let i = 0; i < areas.length; i++) {
             const area = areas[i];
-            const snap = snapshots[i];
+            const { snapshot: snap, error } = snapshots[i];
             const meta = COLLECTIONS[area];
             if (!snap) {
-                items.push({ collection: area, label: meta.label, available: false, reports: [] });
+                items.push({
+                    collection: area,
+                    label: meta.label,
+                    available: false,
+                    reports: [],
+                    ...(error ? { error: 'No se pudo consultar esta colección.' } : {}),
+                });
                 continue;
             }
             const reports = (snap.reports || []).map(rep => {
@@ -364,11 +461,11 @@ class ReportReaderAgent {
             digestNews: digest.news,
             digestSignals: digest.signals,
             digestChapters: digest.panoramaChapters,
-            question: cleanQuestion,
         };
 
         try {
-            const prompt = `INFORME (${digest.collection} / ${digest.key} · corte ${digest.generatedAt || 'actual'} · periodo ${period}):\n${JSON.stringify(factsPayload).slice(0, 48_000)}\n\nPREGUNTA DEL USUARIO:\n${cleanQuestion}`;
+            const evidencePayload = boundedEvidencePayload(factsPayload);
+            const prompt = `INFORME (${digest.collection} / ${digest.key} · corte ${digest.generatedAt || 'actual'} · periodo ${period}):\n${JSON.stringify(evidencePayload)}\n\nPREGUNTA DEL USUARIO:\n${cleanQuestion}`;
             const response = await this.provider.generate({
                 prompt,
                 systemInstruction: SYSTEM_PROMPT,
@@ -377,7 +474,7 @@ class ReportReaderAgent {
                 timeoutMs: this.timeoutMs,
                 signal,
             });
-            const validated = validateAiReading(response.text, factsPayload);
+            const validated = validateAiReading(response.text, evidencePayload);
             if (!validated.ok) {
                 return { sourceType, hasData, digest, reading: { ...fallbackReading, validationFallback: validated.reason } };
             }
@@ -387,7 +484,10 @@ class ReportReaderAgent {
                 digest,
                 reading: { ...validated.reading, model: response.model },
             };
-        } catch {
+        } catch (error) {
+            if (!signal?.aborted) {
+                console.warn('[report-reader] Falló la generación con IA; se usa la respuesta determinista:', error.message);
+            }
             return { sourceType, hasData, digest, reading: fallbackReading };
         }
     }
@@ -428,30 +528,34 @@ class ReportReaderAgent {
 
     async forQuery({ message = '', signal } = {}) {
         const targets = ReportReaderAgent.matchTargets(message);
-        const now = Date.now();
+        const warnings = [];
         const loaded = await Promise.all(targets.map(async target => {
             try {
-                const cacheKey = `${target.collection}:${target.key}`;
-                const cached = this._queryCache?.get(cacheKey);
-                if (cached && now - cached.ts < 180_000) {
-                    return cached.value;
-                }
                 const res = await this.read({ ...target, analysisPeriod: 'daily', question: '', signal });
-                const value = res?.hasData ? res : null;
-                if (value && this._queryCache) {
-                    if (this._queryCache.size >= 40) {
-                        this._queryCache.delete(this._queryCache.keys().next().value);
-                    }
-                    this._queryCache.set(cacheKey, { ts: now, value });
+                return res?.hasData ? res : null;
+            } catch (error) {
+                if (error?.status !== 404) {
+                    console.warn(`[report-reader] Falló la consulta ${target.collection}/${target.key}:`, error.message);
+                    warnings.push({
+                        collection: target.collection,
+                        key: target.key,
+                        code: 'REPORT_LOOKUP_FAILED',
+                    });
                 }
-                return value;
-            } catch {
                 return null;
             }
         }));
         const entries = loaded.filter(Boolean);
         if (!entries.length) {
-            return { available: false, context: '', citations: [], sourceCodes: [], strategy: 'report_reader_v1', reports: [] };
+            return {
+                available: false,
+                context: '',
+                citations: [],
+                sourceCodes: [],
+                strategy: 'report_reader_v1',
+                reports: [],
+                warnings,
+            };
         }
         const citations = [];
         const blocks = entries.map(({ digest, reading }) => {
@@ -484,6 +588,7 @@ class ReportReaderAgent {
             sourceCodes: ['REPORT_READER'],
             strategy: 'report_reader_v1',
             reports: entries.map(({ digest }) => ({ collection: digest.collection, key: digest.key, title: digest.title, generatedAt: digest.generatedAt })),
+            warnings,
         };
     }
 }

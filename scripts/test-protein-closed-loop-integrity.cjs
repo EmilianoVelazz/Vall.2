@@ -40,7 +40,27 @@ async function main() {
     assert.equal(result.summary.excludedUnverified, 7);
     assert.equal(result.summary.evaluationScope, 'prospective_current_model_only');
     assert.equal(result.feedbackBySymbol.SYNTHETIC.evaluations, 1);
+    assert.equal(result.summary.baselineImprovementPct,50,'El error porcentual del pronóstico reduce a la mitad la referencia inmóvil en este caso sintético');
+    assert.equal(result.byHorizon['1w'].evaluations,1);
+    assert.equal(result.recentEvaluations[0].generatedAt,good.forecast_predictions.generated_at);
     assert.equal(cached.summary.totalEvaluated, 1);
+    const invalid=clone();invalid.actual_value=0;
+    const scaled=clone();scaled.forecast_predictions.symbol='SCALED';scaled.actual_value*=1000;scaled.forecast_predictions.predicted_value*=1000;scaled.forecast_predictions.evidence.lastValue*=1000;
+    scaled.interval_covered=null;
+    rows.splice(0,rows.length,invalid,good,scaled);
+    const mixed=await moduleBox.exports.buildClosedLoopAuditAndFeedback({supabase:{from(){return query;}},now:Date.parse('2026-10-12')});
+    assert.equal(mixed.summary.totalEvaluated,2,'Un registro inválido no debe ocultar el válido de la misma ventana');
+    assert.equal(mixed.summary.baselineImprovementPct,50,'Cambiar moneda o escala no debe alterar la mejora porcentual');
+    assert.equal(mixed.summary.conformal80CoveragePct,100,'Una cobertura desconocida no cuenta como fallo');
+    const unknownCoverage=clone();unknownCoverage.interval_covered=null;unknownCoverage.forecast_predictions.symbol='UNKNOWN';
+    rows.splice(0,rows.length,unknownCoverage,scaled);
+    const withoutCoverage=await moduleBox.exports.buildClosedLoopAuditAndFeedback({supabase:{from(){return query;}},now:Date.parse('2026-10-12')});
+    assert.equal(withoutCoverage.summary.conformal80CoveragePct,null);
+    assert.equal(withoutCoverage.summary.calibration.bandScale,1,'Una cobertura ausente no debe ampliar las bandas');
+    const inserted=[],due=[{id:'valid',target_at:'2026-10-10',predicted_value:105,lower_bound:null,upper_bound:null},{id:'invalid',target_at:'2026-10-10',predicted_value:null}];
+    const evaluationDb={from(table){return {select(){return this;},lte(){return this;},gte(){return this;},eq(){return this;},or(){return this;},order(){return this;},in(){return Promise.resolve({data:[]});},limit(){return table==='forecast_predictions'?Promise.resolve({data:due}):this;},maybeSingle(){return Promise.resolve({data:{value:110,observed_at:'2026-10-10'}});},upsert(record){inserted.push(record);return Promise.resolve({error:null});}};}};
+    const evaluated=await moduleBox.exports.evaluateDueProteinPredictions({supabase:evaluationDb,now:Date.parse('2026-10-12')});
+    assert.equal(evaluated.evaluated,1);assert.equal(evaluated.skipped,1);assert.equal(inserted[0].interval_covered,null,'No convierte una banda ausente en un fallo');
     console.log('Closed-loop: modelos anteriores, retrospectivas, predicciones tardías y fechas ausentes excluidos de las métricas prospectivas.');
 }
 main().catch(error => {console.error(error); process.exitCode = 1;});

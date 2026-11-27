@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import ModuleEntryCards from '../components/ModuleEntryCards.jsx';
+import FeedCostScenarios from '../components/FeedCostScenarios.jsx';
+import MexicoPhysicalGrains from '../components/MexicoPhysicalGrains.jsx';
+import {useAuth} from '../context/AuthContext.jsx';
 import usePageStyles from '../lib/usePageStyles.js';
 import { DARK_PILOT, ESQUELETO } from '../lib/hojasComunes.js';
 import {
@@ -121,14 +124,16 @@ function shortDate(value) {
 function quotePeriod(quote, fallbackDate) {
   const value = quote?.date || fallbackDate;
   if (!value) return 'Último corte';
+  const maxDays=quote?.cadence==='monthly'?45:/weekly/.test(quote?.cadence || '')?10:7;
+  const historical=(Date.now()-Date.parse(value))/86400000>maxDays?'Histórico · ':'';
   if (quote?.cadence === 'monthly') {
     const date = new Date(`${String(value).slice(0, 7)}-15T12:00:00`);
-    return `Mensual · ${date.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' })}`;
+    return `${historical}Mensual · ${date.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' })}`;
   }
-  if (quote?.cadence === 'weekly-ai') return `Semanal IA · ${shortDate(value)}`;
-  if (quote?.cadence === 'weekly-source') return `Semanal · ${shortDate(value)}`;
-  if (quote?.cadence === 'weekly') return `Semanal · ${shortDate(value)}`;
-  return `Diario · ${shortDate(value)}`;
+  if (quote?.cadence === 'weekly-ai') return `${historical}Semanal IA · ${shortDate(value)}`;
+  if (quote?.cadence === 'weekly-source') return `${historical}Semanal · ${shortDate(value)}`;
+  if (quote?.cadence === 'weekly') return `${historical}Semanal · ${shortDate(value)}`;
+  return `${historical}Diario · ${shortDate(value)}`;
 }
 
 async function readJson(url, signal) {
@@ -350,31 +355,34 @@ function MexicoLivestockTable({ firstSale }) {
   const states = useMemo(() => [...MEXICO_TILES]
     .sort((a, b) => a.name.localeCompare(b.name, 'es'))
     .filter(state => `${state.name} ${state.code === 'JAL' ? 'Guadalajara GDL' : ''}`.toLocaleLowerCase('es-MX').includes(query.trim().toLocaleLowerCase('es-MX')))
-    .filter(state => LIVESTOCK_PRODUCTS.every(product => quoteMaps[product.id].has(state.code))), [query, quoteMaps]);
+    .filter(state => LIVESTOCK_PRODUCTS.some(product => quoteMaps[product.id].has(state.code))), [query, quoteMaps]);
   const renderPrice = (state, product) => {
     const quote = quoteMaps[product.id].get(state.code);
     const meta = products[product.id];
     if (!quote) return <span className="mxh-table-no-data">Sin dato</span>;
     const period = quotePeriod(quote, meta?.date);
     const isAi = quote.cadence === 'weekly-ai';
-    return <span className={`mxh-table-price ${quote.cadence === 'monthly' ? 'is-monthly' : ''} ${isAi ? 'is-ai' : ''}`} title={`${quote.source || meta?.source || 'Fuente conectada'} · ${period}`}><strong>${fmtNumber(quote.price)}</strong><small>{meta?.unit || 'MXN/kg'}</small><em>{period}</em>{isAi && <i>Respaldo Gemini</i>}</span>;
+    const quoteTs = /^\d{4}-\d{2}-\d{2}$/.test(quote.date || '') ? Date.parse(`${quote.date}T12:00:00Z`) : NaN;
+    const isStale = Number.isFinite(quoteTs) && (Date.now() - quoteTs) / 86_400_000 > 30;
+    const url=quote.sourceUrl || meta?.sourceUrl || quote.sourceUrls?.[0];
+    return <span className={`mxh-table-price ${quote.cadence === 'monthly' ? 'is-monthly' : ''} ${isAi ? 'is-ai' : ''} ${isStale ? 'is-stale' : ''}`} title={`${quote.source || meta?.source || 'Fuente conectada'} · ${period}`}><strong>${fmtNumber(quote.price)}</strong><small>{quote.unit || meta?.unit || 'MXN/kg'}</small><em>{period}{isStale ? ' · Rezago >30d' : ''}</em><small>{quote.level || meta?.level}</small>{/^https:\/\//.test(url || '')&&<a href={url} target="_blank" rel="noreferrer">{quote.source || meta?.source || 'Ver fuente'}</a>}{isAi && <i>Respaldo Gemini</i>}</span>;
   };
 
   return <section className="mxh-livestock-board" aria-labelledby="mxh-livestock-title">
     <header className="mxh-livestock-head">
-      <div><span><i className="fas fa-table-list" aria-hidden="true" /> Mercado físico nacional</span><h3 id="mxh-livestock-title">Estados con mercado pecuario completo</h3><p>Sólo aparecen entidades con precio disponible de cerdo, bovino, pollo y huevo. Las fuentes estructuradas tienen prioridad; Gemini se utiliza únicamente como respaldo verificable.</p></div>
+      <div><span><i className="fas fa-table-list" aria-hidden="true" /> Mercado físico nacional</span><h3 id="mxh-livestock-title">Precios disponibles por estado y producto</h3><p>Cada especie conserva su cobertura. Un precio de bovino o pollo sigue visible aunque no haya cerdo o huevo en esa entidad. Fechas, presentaciones y fuentes permanecen separadas.</p></div>
       <div className="mxh-livestock-links"><a href="https://www.porcicultura.com/economia/precios-del-cerdo-en-pie-en-mexico" target="_blank" rel="noreferrer">Porcicultura.com <i className="fas fa-arrow-up-right-from-square" aria-hidden="true" /></a><a href="https://www.economia-sniim.gob.mx/" target="_blank" rel="noreferrer">SNIIM <i className="fas fa-arrow-up-right-from-square" aria-hidden="true" /></a></div>
     </header>
     <div className="mxh-livestock-products" aria-label="Cobertura y promedio nacional por producto">
       {LIVESTOCK_PRODUCTS.map(item => {
         const quote = products[item.id];
-        return <article key={item.id}><i className={`fas ${item.icon}`} aria-hidden="true" /><span>{item.label}<small>{hasNumber(quote?.price) ? `$${fmtNumber(quote.price)} · promedio de la fuente` : 'Sin promedio nacional'}</small></span><b>{states.length} completos</b></article>;
+        return <article key={item.id}><i className={`fas ${item.icon}`} aria-hidden="true" /><span>{item.label}<small>{hasNumber(quote?.price) ? `$${fmtNumber(quote.price)} · promedio de la fuente` : 'Sin promedio de la fuente'}</small></span><b>{quoteMaps[item.id].size}/32 entidades</b></article>;
       })}
     </div>
-    <div className="mxh-livestock-table-tools"><label><i className="fas fa-magnifying-glass" aria-hidden="true" /><span className="sr-only">Buscar estado</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar estado" /></label><span>{states.length} estados con los 4 precios</span></div>
+    <div className="mxh-livestock-table-tools"><label><i className="fas fa-magnifying-glass" aria-hidden="true" /><span className="sr-only">Buscar estado</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar estado" /></label><span>{states.length} estados con al menos una referencia</span></div>
     <div className="mxh-livestock-table-wrap">
       <table className="mxh-livestock-table">
-        <thead><tr><th>Estado</th>{LIVESTOCK_PRODUCTS.map(product => { const meta = products[product.id]; return <th key={product.id}><span><i className={`fas ${product.icon}`} aria-hidden="true" /> {product.label}</span><small>{states.length} estados completos · {shortDate(meta?.date) || 'corte semanal'}</small></th>; })}</tr></thead>
+        <thead><tr><th>Estado</th>{LIVESTOCK_PRODUCTS.map(product => <th key={product.id}><span><i className={`fas ${product.icon}`} aria-hidden="true" /> {product.label}</span><small>{quoteMaps[product.id].size}/32 entidades · ver fecha por celda</small></th>)}</tr></thead>
         <tbody>{states.map(state => <tr key={state.code}><th scope="row"><b>{state.code === 'JAL' ? 'GDL' : state.short}</b><span>{state.code === 'JAL' ? 'Guadalajara, Jalisco' : state.name}{state.code === 'JAL' && <small>Plaza Guadalajara · cerdo con referencia estatal</small>}</span></th>{LIVESTOCK_PRODUCTS.map(product => <td key={product.id}>{renderPrice(state, product)}</td>)}</tr>)}{!states.length && <tr><td className="mxh-table-empty" colSpan="5">No hay estados que coincidan con este filtro.</td></tr>}</tbody>
       </table>
     </div>
@@ -409,7 +417,8 @@ function MarketStateCharts({ firstSale }) {
     product.id,
     new Map((Array.isArray(proteinProducts[product.id]?.states) ? proteinProducts[product.id].states : []).map(quote => [quote.stateCode, quote])),
   ])), [proteinProducts]);
-  const completeStates = useMemo(() => MEXICO_TILES.filter(state => LIVESTOCK_PRODUCTS.every(product => proteinMaps[product.id].has(state.code))), [proteinMaps]);
+  const proteinDate=useMemo(()=>[...proteinMaps[protein].values()].map(row=>row.date).filter(date=>/^\d{4}-\d{2}-\d{2}$/.test(date || '')&&Date.parse(date)<=Date.now()).sort().at(-1),[proteinMaps,protein]);
+  const completeStates = useMemo(() => MEXICO_TILES.filter(state => proteinMaps[protein]?.get(state.code)?.date===proteinDate), [proteinMaps,protein,proteinDate]);
   const proteinRows = useMemo(() => completeStates
     .map(state => ({ code: state.code === 'JAL' ? 'GDL' : state.short, label: state.name, value: Number(proteinMaps[protein].get(state.code)?.price) }))
     .filter(row => Number.isFinite(row.value))
@@ -435,7 +444,7 @@ function MarketStateCharts({ firstSale }) {
         <header><div><small>Proteínas · precio estatal</small><h4>{proteinMeta.label}</h4></div><b>MXN/kg</b></header>
         <div className="mxh-chart-switches" aria-label="Producto pecuario">{LIVESTOCK_PRODUCTS.map(item => <button type="button" key={item.id} className={protein === item.id ? 'is-active' : ''} aria-pressed={protein === item.id} onClick={() => setProtein(item.id)}>{item.label.replace(/ vivo| mayoreo| blanco/g, '')}</button>)}</div>
         <StateBars rows={proteinRows} unit="pesos por kilogramo" formatValue={value => `$${fmtNumber(value)}`} emptyMessage="Los precios estatales se están actualizando." />
-        <footer>Estados con los cuatro precios pecuarios disponibles.</footer>
+        <footer>Última fecha publicada del producto: {proteinDate || 'pendiente'}. Solo entidades de esa fecha; el resto conserva su periodo en la tabla.</footer>
       </article>
       <article className="mxh-state-chart tone-grain">
         <header><div><small>Granos · producción 2025</small><h4>{grainMeta.label} grano</h4></div><b>Toneladas</b></header>
@@ -500,7 +509,7 @@ function MiningStateTable() {
   </section>;
 }
 
-function ProductiveMarketsPanel({ snapshot }) {
+function ProductiveMarketsPanel({ snapshot,owner }) {
   return <section className="mxh-panel-view" aria-labelledby="mxh-productive-title">
     <header className="mxh-view-head">
       <div><span>02 · México Productivo</span><h2 id="mxh-productive-title">La producción mexicana, estado por estado.</h2><p>Precios físicos pecuarios, producción de granos y actividad minera estatal reunidos en gráficas y tablas verificables.</p></div>
@@ -508,6 +517,8 @@ function ProductiveMarketsPanel({ snapshot }) {
     </header>
     <MarketStateCharts firstSale={snapshot.firstSale} />
     <MexicoLivestockTable firstSale={snapshot.firstSale} />
+    <MexicoPhysicalGrains key={'physical-grains-'+String(owner || 'guest')} />
+    <FeedCostScenarios key={'feed-cost-'+String(owner || 'guest')} />
     <GrainStateTable />
     <MiningStateTable />
     <div className="mxh-method-note"><i className="fas fa-circle-info" aria-hidden="true" /><p><b>Lectura responsable:</b> el cerdo en pie usa la referencia estatal de Porcicultura.com; bovino, pollo y huevo conservan el corte de SNIIM. Granos usa el cierre agrícola de DGSIAP y minería el anuario del SGM, siempre con su periodo visible.</p></div>
@@ -633,6 +644,7 @@ function BolsaPanel({ snapshot, range, onRangeChange }) {
 }
 
 export default function Mexico() {
+  const {user:accountOwner}=useAuth() || {};
   const [active, setActive] = useState(null);
   usePageStyles(HOJAS_BASE);
   const [ipcRange, setIpcRange] = useState('1y');
@@ -705,10 +717,10 @@ export default function Mexico() {
   const updated = snapshot.asOf ? new Date(snapshot.asOf).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : 'Actualizando';
   const moduleMetrics = useMemo(() => {
     const ipc = snapshot.ipc.at(-1)?.close;
-    const productiveCoverage = Math.max(0, ...Object.values(snapshot.firstSale?.prices || {}).map(item => Array.isArray(item?.states) ? item.states.length : 0));
+    const productiveCoverage = new Set(Object.values(snapshot.firstSale?.prices || {}).flatMap(item => (item?.states || []).filter(row=>Number.isFinite(row.price)&&row.price>0).map(row=>row.stateCode))).size;
     return {
       bolsa: { etiqueta: 'S&P/BMV IPC', valor: Number.isFinite(ipc) ? fmtNumber(ipc) : '—', unidad: 'puntos del índice', verificado: Number.isFinite(ipc), estado: loading ? 'Consultando cotización…' : Number.isFinite(ipc) ? 'Último cierre disponible' : 'Sin cotización disponible' },
-      mercados: { etiqueta: 'Cobertura SNIIM', valor: productiveCoverage ? `${productiveCoverage} estados` : '—', unidad: 'Mercado físico por entidad', verificado: productiveCoverage > 0, estado: loading ? 'Consultando precios…' : productiveCoverage ? 'Cobertura disponible en la fuente' : 'Sin cobertura disponible' },
+      mercados: { etiqueta: 'Cobertura física', valor: productiveCoverage ? `${productiveCoverage} estados` : '—', unidad: 'Al menos un producto por entidad', verificado: productiveCoverage > 0, estado: loading ? 'Consultando precios…' : productiveCoverage ? 'Cobertura disponible en la fuente' : 'Sin cobertura disponible' },
     };
   }, [snapshot.firstSale, snapshot.ipc, loading]);
 
@@ -748,7 +760,7 @@ export default function Mexico() {
         </header>
         <section className="mxh-module-content" id="mxh-module-content">
           {active === 'bolsa' && <BolsaPanel snapshot={snapshot} range={ipcRange} onRangeChange={setIpcRange} />}
-          {active === 'mercados' && <ProductiveMarketsPanel snapshot={snapshot} />}
+          {active === 'mercados' && <ProductiveMarketsPanel snapshot={snapshot} owner={accountOwner} />}
         </section>
       </section>}
     </main>

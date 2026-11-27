@@ -30,3 +30,13 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+.sx-navigation :is(a,button) { font-size: 12px; }
+.sx-footer :is(p,span) { color: #b5c3d4; font-size: 12px; }
+.sx-footer > a:last-child { font-size: 12px; }
+@media(max-width:700px) {
+  .sx-navigation :is(a,button) { min-height: 42px; font-size: 11px; }
+}
+@media(max-width:360px) {
+  .sx-navigation :is(a,button) { font-size: 10px; }
+}

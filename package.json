@@ -7,6 +7,8 @@
     "node": "^22.23.4 || ^24.22.1"
   },
   "scripts": {
+    "test:decision-tools": "node scripts/test-feed-cost-scenarios.mjs && node scripts/test-price-unit-conversion.mjs && node scripts/test-cost-scenario-handoff.mjs && node scripts/test-weekly-state-livestock.cjs && node scripts/test-protein-closed-loop-integrity.cjs && node scripts/test-report-changes.mjs",
+    "test:decision-tools:ui": "node scripts/test-decision-tools-ui.cjs",
     "test:public-pages": "node scripts/build-dist.mjs && node scripts/test-public-experience-ui.cjs && node scripts/test-site-seo.cjs",
     "test:seo": "node scripts/test-site-seo.cjs && node scripts/test-site-seo-ui.cjs",
     "audit:assets": "node scripts/audit-assets.mjs",

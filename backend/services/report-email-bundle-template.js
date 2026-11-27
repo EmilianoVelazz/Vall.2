@@ -1,5 +1,6 @@
 'use strict';
 const {reportLabels}=require('../lib/report-language');
+const {reportHealthEmailDetails}=require('../lib/report-email-health');
 const {buildReportSignature}=require('./report-email-template');
 const collections=require('../../shared/report-collections.json');
 const escape=value=>String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -16,13 +17,17 @@ function buildReportBundleEmail({reports,language='es',testMode=false}){
  const {t,locale}=reportLabels(language),copy=COPY[language]||COPY.es,signature=buildReportSignature({language});
  const format=new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short',timeZone:'America/Mexico_City'});
  const cut=report=>Number.isFinite(Date.parse(report.generatedAt)) ? format.format(new Date(report.generatedAt))+' · CDMX' : copy.missing;
+ const healthDetails=report=>reportHealthEmailDetails(report.health,t);
  const areaKeys=[...new Set(reports.map(item=>item.area))],areas=areaKeys.map(area=>t(collections[area]?.label||area));
  const confidential=reports.some(item=>item.executive?.personalization?.confidentiality==='confidential');
  const classification=t(confidential?'Confidencial':'Uso interno');
  const count=reports.length,subject=`${testMode?'[PRUEBA] ':''}VALLNEWS · ${t('Informes ejecutivos')} · ${count} PDF`;
  const groups=areaKeys.map(area=>{
   const entries=reports.filter(item=>item.area===area);
-  const rows=entries.map(item=>`<tr><td valign="top" width="35" style="padding:14px 0;border-top:1px solid #e3eaf0;color:#168780;font-size:12px;font-weight:bold">${String(reports.indexOf(item)+1).padStart(2,'0')}</td><td style="padding:14px 0;border-top:1px solid #e3eaf0;word-break:break-word;overflow-wrap:anywhere"><p style="margin:0 0 5px;color:#082b4c;font-size:15px;line-height:1.5;font-weight:bold">${escape(line(item.title))}</p><p style="margin:0 0 4px;color:#62788c;font-size:11px;line-height:1.6">${escape(copy.cut)}: ${escape(cut(item))}</p><p style="margin:0;color:#6b7c8c;font-size:10px;line-height:1.6">PDF · ${escape(item.attachmentName)}</p></td></tr>`).join('');
+  const rows=entries.map(item=>{
+   const health=healthDetails(item);
+   return `<tr><td valign="top" width="35" style="padding:14px 0;border-top:1px solid #e3eaf0;color:#168780;font-size:12px;font-weight:bold">${String(reports.indexOf(item)+1).padStart(2,'0')}</td><td style="padding:14px 0;border-top:1px solid #e3eaf0;word-break:break-word;overflow-wrap:anywhere"><p style="margin:0 0 5px;color:#082b4c;font-size:15px;line-height:1.5;font-weight:bold">${escape(line(item.title))}</p><p style="margin:0 0 4px;color:#62788c;font-size:11px;line-height:1.6">${escape(copy.cut)}: ${escape(cut(item))}</p>${health.summary?`<p style="margin:0 0 4px;color:#805b12;font-size:11px;line-height:1.6">${escape(health.summary)}</p>${health.referencesHtml}`:''}<p style="margin:0;color:#6b7c8c;font-size:10px;line-height:1.6">PDF · ${escape(item.attachmentName)}</p></td></tr>`;
+  }).join('');
   return `<tr><td class="pad" style="padding:7px 30px 17px"><p style="margin:0 0 10px;font-size:11px;letter-spacing:1.5px;line-height:1.6;font-weight:bold;text-transform:uppercase;color:#168780">${escape(t(collections[area]?.label||area))} <span style="color:#8293a2">/ ${entries.length} PDF</span></p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;table-layout:fixed">${rows}</table></td></tr>`;
  }).join('');
  const html=`<!doctype html><html lang="${escape(language)}"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="utf-8"><style>@media(max-width:600px){.outer{padding:12px 6px!important}.pad{padding-left:20px!important;padding-right:20px!important}.title{font-size:26px!important}}</style></head><body style="margin:0;background:#edf1f5;color:#334f64;font-family:Arial,Helvetica,sans-serif"><div style="display:none!important;max-height:0;overflow:hidden;mso-hide:all">${count} PDF · ${escape(areas.join(' · '))}</div>
@@ -31,7 +36,10 @@ function buildReportBundleEmail({reports,language='es',testMode=false}){
 <tr><td class="pad" style="padding:28px 30px 20px">${testMode?`<p style="margin:0 0 13px;color:#805b12;font-size:11px;line-height:1.6;font-weight:bold">${escape(copy.test.toLocaleUpperCase(locale))}</p>`:''}<h1 class="title" style="margin:0 0 15px;color:#082b4c;font-size:31px;line-height:1.2;letter-spacing:-.7px">${escape(copy.heading)}</h1><p style="margin:0 0 16px;font-size:14px;line-height:1.8">${escape(copy.intro)}</p><p style="margin:0 0 14px;color:#168780;font-size:12px;font-weight:bold;line-height:1.6">${count} ${escape(copy.files)} &nbsp;·&nbsp; ${escape(areas.join(' · '))}</p><p style="margin:0;color:#62788c;font-size:12px;line-height:1.8">${escape(copy.guide)}</p>${testMode?`<p style="margin:13px 0 0;padding:11px 13px;background:#fff7e6;border-left:3px solid #dcae55;color:#795b20;font-size:12px;line-height:1.7">${escape(copy.testNote)}</p>`:''}</td></tr>
 <tr><td class="pad" style="padding:0 30px 12px"><p style="margin:0;padding:12px 0;border-top:1px solid #e3eaf0;color:#082b4c;font-size:12px;line-height:1.6;font-weight:bold">${escape(copy.index)}</p></td></tr>${groups}
 <tr><td class="pad" style="padding:8px 30px 28px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td style="padding:20px 0 0;border-top:1px solid #e3eaf0"><p style="margin:0 0 16px;font-size:13px;line-height:1.7">${escape(t('Gracias por confiar en VALLNEWS.'))}</p>${signature.html}</td></tr></table></td></tr></table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>`;
- const text=[copy.heading,`${count} ${copy.files} · ${areas.join(' · ')}`,classification,copy.intro,testMode&&copy.testNote,copy.guide,...areaKeys.flatMap(area=>[t(collections[area]?.label||area),...reports.filter(item=>item.area===area).map(item=>`${String(reports.indexOf(item)+1).padStart(2,'0')}. ${line(item.title)}\n${copy.cut}: ${cut(item)}\n${item.attachmentName}`)]),signature.text].filter(Boolean).join('\n\n');
+ const text=[copy.heading,`${count} ${copy.files} · ${areas.join(' · ')}`,classification,copy.intro,testMode&&copy.testNote,copy.guide,...areaKeys.flatMap(area=>[t(collections[area]?.label||area),...reports.filter(item=>item.area===area).map(item=>{
+  const health=healthDetails(item);
+  return `${String(reports.indexOf(item)+1).padStart(2,'0')}. ${line(item.title)}\n${copy.cut}: ${cut(item)}${health.summary?`\n${health.summary}${health.referencesText?`\n${health.referencesText}`:''}`:''}\n${item.attachmentName}`;
+ })]),signature.text].filter(Boolean).join('\n\n');
  return {subject:line(subject).slice(0,180),html,text};
 }
 module.exports={buildReportBundleEmail};

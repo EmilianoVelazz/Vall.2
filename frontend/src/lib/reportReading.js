@@ -13,9 +13,16 @@ export function uniqueReportLines(lines = [], excluded = []) {
 export function executiveReading(report) {
   const brief = report?.executiveBrief?.generated ? report.executiveBrief : null;
   const highlights = uniqueReportLines([...(report?.takeaways || []), ...(brief?.mode !== 'deterministic' || !report?.takeaways?.length ? brief?.drivers || [] : [])], [report?.summary]);
+  const risks = uniqueReportLines([...(report?.watchlist || []), ...(report?.executiveBrief?.mode !== 'deterministic' || !report?.watchlist?.length ? report?.executiveBrief?.risks || [] : [])]);
+  const traceFor=(items,claims,trace)=>items.map(item=>{
+    const index=claims.indexOf(item);
+    return index>=0 ? trace?.[index] : {kind:'pending',evidenceIds:[]};
+  });
   return {
     highlights,
-    risks: uniqueReportLines([...(report?.watchlist || []), ...(report?.executiveBrief?.mode !== 'deterministic' || !report?.watchlist?.length ? report?.executiveBrief?.risks || [] : [])]),
+    risks,
+    highlightTraceability:traceFor(highlights,brief?.drivers||[],brief?.traceability?.drivers),
+    riskTraceability:traceFor(risks,brief?.risks||[],brief?.traceability?.risks),
     brief: brief ? {
       ...brief,
       headline: brief.mode === 'deterministic' ? '' : uniqueReportLines([brief.headline], [report?.title])[0] || '',

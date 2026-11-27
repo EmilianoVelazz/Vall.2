@@ -56,7 +56,7 @@ import { readReportDraft, writeReportDraft, discardReportDraft } from '../lib/re
 
 const AREAS = REPORT_COLLECTIONS;
 
-const DEFAULT_DELIVERY = Object.freeze({ enabled: false, frequency: 'daily', time: '08:00', weekday: 1 });
+const DEFAULT_DELIVERY = Object.freeze({ enabled: false, frequency: 'daily', time: '08:00', weekday: 1, dataQualityPolicy: 'warn' });
 const DELIVERY_FREQUENCIES = [
   ['twice_daily', 'Con cada corte disponible (06:00 y 14:00)'],
   ['daily', 'Todos los días'],
@@ -72,8 +72,7 @@ const DELIVERY_HOURS = Array.from({ length: 24 }, (_, hour) => {
 });
 
 function deliveryDraft(schedule) {
-  if (!schedule?.delivery) return { ...DEFAULT_DELIVERY };
-  return { ...DEFAULT_DELIVERY, ...schedule.delivery, enabled: true };
+  return { ...DEFAULT_DELIVERY, ...(schedule?.delivery || {}), dataQualityPolicy: schedule?.preferences?.dataQualityPolicy === 'block' ? 'block' : 'warn', enabled: Boolean(schedule?.delivery) };
 }
 
 function deliveryDescription(delivery) {
@@ -373,20 +372,44 @@ function ProteinCountryCoverage({model}) {
   return <div className="erh-protein-country-coverage"><h4>{t('Cobertura de América')}</h4><ul>{model.proteinCountries.map(item=><li key={item.label}><strong>{item.label}</strong><span>{item.count ? item.count+' '+t('referencias físicas con precio') : t('Sin precio reciente disponible')}</span>{item.dates.length>0 && <small>{item.dates.join(' / ')}</small>}</li>)}</ul><p>{t('Cada precio conserva su plaza, presentación, moneda y frecuencia. Las referencias semanales se muestran como contexto y no generan variaciones diarias.')}</p></div>;
 }
 
+function evidenceUrl(value) {
+  try { const url=new URL(value);return ['http:','https:'].includes(url.protocol)&&!url.username&&!url.password?url.href:''; }
+  catch { return ''; }
+}
+
+function ExecutiveEvidence({ trace, evidence }) {
+  const t=useReportText();
+  const labels={observed:t('Dato observado'),interpretation:t('Interpretación condicional'),pending:t('Pendiente de validar')};
+  const linked=(trace?.evidenceIds||[]).map(id=>(evidence||[]).find(item=>item.id===id)).filter(Boolean);
+  return <div className="erh-claim-evidence">
+    <span className={`erh-evidence-kind is-${labels[trace?.kind] ? trace.kind : 'pending'}`}>{labels[trace?.kind]||labels.pending}</span>
+    {linked.length ? <ul>{linked.map(item=>{
+      const url=evidenceUrl(item.url);
+      return <li key={item.id}>
+        {url ? <a href={url} target="_blank" rel="noopener noreferrer">{item.label||item.id}</a> : <strong>{item.label||item.id}</strong>}
+        <span>{[item.date,item.unit,item.source].filter(Boolean).join(' · ')||t('Sin fecha o fuente específica en el corte')}</span>
+        {item.excerpt&&<small>{item.excerpt}</small>}
+      </li>;
+    })}</ul> : <small>{t('No hay una referencia individual vinculada en este corte.')}</small>}
+  </div>;
+}
+
 function ExecutiveDesk({ brief }) {
   const t=useReportText();
   if (!brief?.generated) return null;
   const drivers = brief.drivers || [];
   const risks = brief.risks || [];
+  const evidence=brief.evidence||[];
   return <section className="erh-executive-desk">
     <h4><i className="fas fa-compass" aria-hidden="true" /> {brief.agent || 'VALL Executive Desk'}<small>{brief.mode === 'ai' ? t("Lectura con IA") : t("Síntesis del corte")}</small></h4>
     {brief.headline && <p className="erh-executive-headline">{brief.headline}</p>}
     {brief.context && <p className="erh-executive-context"><strong>{t("Contexto:")}</strong> {brief.context}</p>}
-    {brief.thesis && <p className="erh-executive-thesis">{brief.thesis}</p>}
+    {brief.thesis && <div className="erh-executive-claim"><p className="erh-executive-thesis">{brief.thesis}</p><ExecutiveEvidence trace={brief.traceability?.thesis} evidence={evidence} /></div>}
     {(drivers.length > 0 || risks.length > 0) && <div className="erh-executive-grid">
-      {drivers.length > 0 && <div><strong>{t("Impulsores visibles")}</strong><ul>{drivers.map(item => <li key={item}>{item}</li>)}</ul></div>}
-      {risks.length > 0 && <div><strong>{t("Riesgos a contrastar")}</strong><ul>{risks.map(item => <li key={item}>{item}</li>)}</ul></div>}
+      {drivers.length > 0 && <div><strong>{t("Impulsores visibles")}</strong><ul>{drivers.map((item,index) => <li key={item}>{item}<ExecutiveEvidence trace={brief.traceability?.drivers?.[index]} evidence={evidence} /></li>)}</ul></div>}
+      {risks.length > 0 && <div><strong>{t("Riesgos a contrastar")}</strong><ul>{risks.map((item,index) => <li key={item}>{item}<ExecutiveEvidence trace={brief.traceability?.risks?.[index]} evidence={evidence} /></li>)}</ul></div>}
     </div>}
+    {brief.traceabilityNote&&<small className="erh-evidence-note">{brief.traceabilityNote}</small>}
     {brief.committeeQuestion && <p className="erh-committee-question"><i className="fas fa-circle-question" aria-hidden="true" /> <span>{t("Pregunta para comité:")}</span> {brief.committeeQuestion}</p>}
     {brief.evidenceNote && <small className="erh-evidence-note">{brief.evidenceNote}</small>}
   </section>;
@@ -427,11 +450,11 @@ function ReportReadingContext({report}) {
 function MarketConclusions({report,reading}) {
   const t=useReportText();
   const panels=[
-    {title:t("Hechos y señales"),items:reading.highlights,empty:t("Sin señales adicionales en este corte.")},
-    ...(report.personalization?.sections?.risks===false ? [] : [{title:t("Riesgos a monitorear"),items:reading.risks,empty:t("Sin riesgos adicionales documentados.")}]),
+    {title:t("Hechos y señales"),items:reading.highlights,trace:reading.highlightTraceability,empty:t("Sin señales adicionales en este corte.")},
+    ...(report.personalization?.sections?.risks===false ? [] : [{title:t("Riesgos a monitorear"),items:reading.risks,trace:reading.riskTraceability,empty:t("Sin riesgos adicionales documentados.")}]),
     {title:t("Acciones y seguimiento"),items:report.closing ? [report.closing] : [],empty:t("No se definieron acciones para esta edición.")},
   ];
-  return <div className="erh-market-conclusions">{panels.filter(panel=>panel.items.length).map(panel=><section key={panel.title}><h4>{panel.title}</h4><ul>{panel.items.map((item,index)=><li key={index}>{item}</li>)}</ul></section>)}</div>;
+  return <div className="erh-market-conclusions">{panels.filter(panel=>panel.items.length).map(panel=><section key={panel.title}><h4>{panel.title}</h4><ul>{panel.items.map((item,index)=><li key={index}>{item}{panel.trace&&<ExecutiveEvidence trace={panel.trace[index]} evidence={reading.brief?.evidence||[]} />}</li>)}</ul></section>)}</div>;
 }
 
 function ReportCauses({annex}) {
@@ -482,14 +505,14 @@ export function ReportReader({ report, prefix = 'erh-document' }) {
     summary: <><div className={dashboard ? 'erh-executive-overview' : undefined}><p className="erh-document-summary">{report.summary || t("Sin resumen disponible para este corte.")}</p>
       {report.objective && <div className="erh-objective"><i className="fas fa-bullseye" aria-hidden="true" /><div><small>{t("Objetivo de la lectura")}</small><p>{report.objective}</p></div></div>}</div>
       {report.decisionGuide && <section className="erh-decision-guide" aria-label={t("Enfoque aplicado")}><h4>{report.decisionGuide.heading}</h4><p>{report.decisionGuide.action}</p><p>{report.decisionGuide.horizonNote}</p>{report.decisionGuide.coverageNote && <p className="erh-coverage-note">{report.decisionGuide.coverageNote}</p>}</section>}
-      {!dashboard && !!reading.highlights.length && <div className="erh-takeaways"><h4>{reportLayout(report) ? t("Claves para el destinatario") : t("Claves para dirección")}</h4><ol>{reading.highlights.map((item, index) => <li key={index}>{item}</li>)}</ol></div>}
+      {!dashboard && !!reading.highlights.length && <div className="erh-takeaways"><h4>{reportLayout(report) ? t("Claves para el destinatario") : t("Claves para dirección")}</h4><ol>{reading.highlights.map((item, index) => <li key={index}>{item}<ExecutiveEvidence trace={reading.highlightTraceability[index]} evidence={reading.brief?.evidence||[]} /></li>)}</ol></div>}
       <ExecutiveDesk brief={reading.brief} /></>,
     indicators: <><div className="erh-metrics">{(report.metrics || []).filter(metric=>!missingReportValue(metric.value)).map((metric, index) => <div key={index} className={metric.tone === 'down' ? 'is-down' : metric.tone === 'up' ? 'is-up' : 'is-neutral'}><small>{metric.label}</small><strong>{metric.value}</strong>{metric.change && <span className={metric.tone === 'down' ? 'erh-change-down' : metric.tone === 'up' ? 'erh-change-up' : 'erh-change-neutral'}><i className={`fas ${metric.tone === 'down' ? 'fa-arrow-trend-down' : metric.tone === 'up' ? 'fa-arrow-trend-up' : 'fa-minus'}`} aria-hidden="true" />{metric.change}</span>}</div>)}</div><BeforeAfter report={report} /></>,
     leadChart:<ReportVisuals report={{...report,visuals:daily.visuals.filter(visual=>visual.executiveLead)}} />,
     charts: daily.mexicoExecutive ? <MexicoChartExplorer key={daily.mexicoExecutive.key} model={daily} renderChart={visual=><ReportVisuals report={{...report,visuals:[visual]}} />} /> : daily.commodityExecutive ? <CommodityChartExplorer key={daily.commodityExecutive.key} model={daily} renderChart={visual=><ReportVisuals report={{...report,visuals:[visual]}} />} /> : <ReportVisuals report={weekly ? {...report,visuals:weekly.focusedMarket ? weekly.visuals.filter(visual=>!visual.executiveLead) : weekly.visuals} : report} />,
     tables: <ReportTables report={report} />,
     analysis: <div className="erh-chapters">{chapters.map((chapter, index) => <section key={index} className="erh-reader-chapter"><h4><span className="erh-chapter-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><span>{t(chapter.heading)}</span></h4>{chapter.body.split(/\n{2,}/).filter(Boolean).map((paragraph, i) => <p key={i}>{paragraph}</p>)}</section>)}</div>,
-    risks: <ol className="erh-risk-list" aria-label={t("Señales para seguimiento")}>{reading.risks.map((item, index) => <li key={index}><span className="erh-risk-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><p>{item}</p></li>)}</ol>,
+    risks: <ol className="erh-risk-list" aria-label={t("Señales para seguimiento")}>{reading.risks.map((item, index) => <li key={index}><span className="erh-risk-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><div><p>{item}</p><ExecutiveEvidence trace={reading.riskTraceability[index]} evidence={reading.brief?.evidence||[]} /></div></li>)}</ol>,
     closing: <p className="erh-document-summary">{report.closing}</p>,
     conclusions: <MarketConclusions report={report} reading={reading} />,
   };
@@ -1094,11 +1117,11 @@ export default function ExecutiveReportsHub({onAnnex}) {
     const selection=deliveryTargets.map(key=>{
       const [selectedArea,reportKey]=key.split(':');
       const current=scheduleSource?.area===selectedArea && scheduleSource?.reportKey===reportKey;
-      return {area:selectedArea,reportKey,preferences:current ? editorPreferences : normalizePreferences({...preferences,customTitle:''}),ai};
+      return {area:selectedArea,reportKey,preferences:{...(current ? editorPreferences : normalizePreferences({...preferences,customTitle:''})),dataQualityPolicy:delivery.dataQualityPolicy},ai};
     });
     return runDeliveryAction('schedule','Programando la entrega…',async signal=>{
       const multiple=selection.length>1;
-      const payload=await reportJsonRequest('/api/report-email-schedules'+(multiple?'/batch':''),{method:'POST',signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({expectedOwner:accountEmail,language,...(multiple?{reports:selection}:selection[0]),delivery,recipientEmail})},{errorMessage:'No se pudo programar el informe.'});
+      const payload=await reportJsonRequest('/api/report-email-schedules'+(multiple?'/batch':''),{method:'POST',signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({expectedOwner:accountEmail,language,...(multiple?{reports:selection}:selection[0]),delivery,dataQualityPolicy:delivery.dataQualityPolicy,recipientEmail})},{errorMessage:'No se pudo programar el informe.'});
       const saved=multiple ? payload.schedules : [payload.schedule];
       if(!Array.isArray(saved)||saved.length!==selection.length||selection.some(source=>!saved.some(row=>row?.nextRunAt&&row.area===source.area&&row.reportKey===source.reportKey))) throw Error('No pudimos confirmar la programación del informe.');
       const nextRunAt=saved.map(row=>row.nextRunAt).sort()[0];

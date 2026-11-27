@@ -196,11 +196,12 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
         || /\b(?:cetes|tiie|embig|riesgo\s+pais|bonos?\s+soberanos?|\bvix\b|inpc|inflacion|banxico|remesas)\b/i.test(text)
         || /\b(?:riesgos?\s+(?:macro|sanitari|energ|de\s+la\s+semana)|vigilar\s+esta\s+semana|esta\s+semana\s+que\s+puedan)\b/i.test(text)
     );
-    const needsMarranasML = !providedInputsOnly && (
-        /\b(?:marranas?|orion\s+ml|walk-?forward|pronosticos?\s+ml|paridad\s+de\s+importacion|arbitraje|shap|h5n1|influenza\s+aviar|gripe\s+aviar|peste\s+porcina|gusano\s+barrenador|screwworm|senasica|radar\s+(?:nlp|sanitario)|modelos?\s+ml|machine\s+learning)\b/i.test(text)
+    const needsVallProteinasML = !providedInputsOnly && (
+        /\b(?:vall[-\s]?prote[ií]nas?|marranas?|orion\s+ml|walk-?forward|pronosticos?\s+ml|paridad\s+de\s+importacion|arbitraje|shap|h5n1|influenza\s+aviar|gripe\s+aviar|peste\s+porcina|gusano\s+barrenador|screwworm|senasica|radar\s+(?:nlp|sanitario)|modelos?\s+ml|machine\s+learning)\b/i.test(text)
         || protein.products.length > 0
         || (asksExecutiveBrief && ['commodities', 'markets', 'macro'].includes(topic))
     );
+    const needsMarranasML = needsVallProteinasML;
 
     const plan = {
         locationClarification: proteinPhysicalPrice && !protein.mexicoCities.length ? ambiguousMexicoCities(message)[0] || null : null,
@@ -247,6 +248,7 @@ function planQuery({ message = '', history = [], mode = 'auto' } = {}) {
         activeAnchor,
         providedInputsOnly,
         needsExecutiveReport,
+        needsVallProteinasML,
         needsMarranasML,
         historyTurns: Array.isArray(history) ? history.length : 0,
         inheritedTopics: inheritsTopic ? historyTopics.filter(topic => !currentTopics.includes(topic)) : [],
@@ -305,7 +307,7 @@ function planContext(plan) {
     if (plan.needsExecutiveReport) {
         obligations.push('Cuando el usuario pregunte por nuestros informes ejecutivos o panóramas publicados, usa exclusivamente las cifras, cortes, fuentes y alertas de [LECTURA DE INFORMES EJECUTIVOS · REPORT READER]. Si un dato solicitado no aparece en el corte del informe, dilo explícitamente.');
     }
-    if (plan.needsMarranasML) {
+    if (plan.needsVallProteinasML) {
         obligations.push('Responde siempre con la identidad unificada de ORION, apoyado en tus modelos internos de Machine Learning (proteínas, probabilidades direccionales Subida/Baja, bandas Conformal P80, atribución causal SHAP, Paridad de Importación en MXN/kg y Radar NLP de eventos sanitarios/comerciales). Integra estas señales de forma natural junto con los precios observados y distingue siempre entre precio observado y señal estadística (nunca certeza absoluta ni recomendación de inversión).');
     }
     if (plan.needsSources) {

@@ -10,7 +10,7 @@ function sourceNames(citations = []) {
 
 function textMentionsSource(text, citations = []) {
     const lower = String(text || '').toLowerCase();
-    return sourceNames(citations).some(source => lower.includes(source.toLowerCase())
+    return sourceNames(citations.filter(isEvidenceCitation)).some(source => lower.includes(source.toLowerCase())
         || lower.includes(source.split(' · ')[0].toLowerCase()));
 }
 

@@ -25,6 +25,19 @@ sus paneles existentes, conservando el impacto cuantitativo calculado. El CSV
 mantiene sus datos estructurados. La normalización de exportación conserva el
 modelo y la huella de la lectura.
 
+La tesis, los impulsores y los riesgos incorporan una categoría de trazabilidad:
+`observed` (dato del corte), `interpretation` (implicación condicional) o
+`pending` (dato pendiente de validar). Las categorías no certifican por sí solas
+la verdad de una interpretación. Los puntos no pendientes deben citar IDs de
+evidencia incluidos en el corte; sus extractos, unidades, fechas y enlaces se
+validan antes de publicar la lectura. El informe y el PDF muestran las
+referencias individuales; los enlaces web disponibles se conservan como
+enlaces clicables en el PDF. Una lectura histórica sin vínculos no se presenta
+como trazada: sus puntos quedan pendientes hasta regenerar el informe con la
+evidencia correspondiente. El apéndice de trazabilidad puede ampliar en una
+página el límite de impresión ejecutiva; se conserva antes de compactar
+gráficas o tablas.
+
 Si el modelo principal no responde, se prueban los modelos Pro y Flash
 configurados dentro del mismo plazo total. La lectura ejecutiva conserva una
 síntesis determinista cuando la generación falla. Las cifras, fechas y fuentes

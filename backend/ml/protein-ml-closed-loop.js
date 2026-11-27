@@ -112,9 +112,11 @@ async function evaluateDueProteinPredictions({ supabase = getDokployClient(), no
 
         const actual = Number(obsRow.value);
         const predicted = Number(pred.predicted_value);
+        if(!Number.isFinite(predicted)||predicted<=0){skipped++;continue;}
         const absErr = Math.abs(actual - predicted);
         const pctErr = actual > 0 ? (absErr / actual) * 100 : null;
-        const covered = actual >= Number(pred.lower_bound) && actual <= Number(pred.upper_bound);
+        const lower=pred.lower_bound==null?null:Number(pred.lower_bound),upper=pred.upper_bound==null?null:Number(pred.upper_bound);
+        const covered = Number.isFinite(lower)&&Number.isFinite(upper)&&lower<=upper ? actual>=lower&&actual<=upper : null;
 
         const { error: insErr } = await supabase.from('forecast_evaluations').upsert({
             prediction_id: pred.id,
@@ -189,6 +191,10 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
         const params = run?.parameters && typeof run.parameters === 'object' ? run.parameters : {};
         const ev = pred?.evidence && typeof pred.evidence === 'object' ? pred.evidence : {};
 
+        const actual = Number(row.actual_value);
+        const predicted=Number(pred.predicted_value);
+        if(!(Number.isFinite(actual)&&actual>0&&Number.isFinite(predicted)&&predicted>0)){excludedUnverified++;continue;}
+
         const targetDay = String(pred?.target_at || '').slice(0, 10);
         const dedupeKey = `${pred?.symbol || ''}|${targetDay}|${pred?.horizon_code || ''}`;
         if (seenWindows.has(dedupeKey)) {
@@ -197,11 +203,11 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
         }
         seenWindows.add(dedupeKey);
 
-        const actual = Number(row.actual_value);
         const lastVal = Number(ev.lastValue);
-        const probUp = pred?.probability_up != null ? Number(pred.probability_up) : null;
-        const pctErr = row.percentage_error != null ? Number(row.percentage_error) : null;
-        const covered = Boolean(row.interval_covered);
+        const probability=pred?.probability_up != null ? Number(pred.probability_up) : null;
+        const probUp=Number.isFinite(probability)&&probability>=0&&probability<=1 ? probability : null;
+        const pctErr = Math.abs(predicted-actual)/actual*100;
+        const covered = typeof row.interval_covered==='boolean' ? row.interval_covered : null;
 
         let actualUp = null;
         let dirHit = null;
@@ -229,9 +235,11 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
             country: params.country || '',
             horizonCode: pred.horizon_code,
             targetAt: pred.target_at,
+            generatedAt:pred.generated_at,
+            unit:ev.unit || '',
             evaluatedAt: row.evaluated_observation_at,
             lastValue: Number.isFinite(lastVal) ? lastVal : null,
-            predictedValue: Number(pred.predicted_value),
+            predictedValue: predicted,
             actualValue: actual,
             percentageError: pctErr,
             intervalCovered: covered,
@@ -249,17 +257,20 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
         const flatExcluded = list.filter(r => r.flatActual).length;
         const briers = list.map(r => r.brier).filter(Number.isFinite);
         const mapes = list.map(r => r.percentageError).filter(Number.isFinite);
-        const covs = list.map(r => (r.intervalCovered ? 1 : 0));
+        const covs = list.filter(r=>typeof r.intervalCovered==='boolean').map(r => (r.intervalCovered ? 1 : 0));
+        const pricePairs=list.filter(r=>Number.isFinite(r.lastValue)&&r.lastValue>0);
+        const modelApe=pricePairs.length?mean(pricePairs.map(r=>Math.abs(r.predictedValue-r.actualValue)/r.actualValue)):null;
+        const baselineApe=pricePairs.length?mean(pricePairs.map(r=>Math.abs(r.lastValue-r.actualValue)/r.actualValue)):null;
 
         const hitRatePct = hits.length ? round(mean(hits) * 100, 1) : null;
         const avgBrier = briers.length ? round(mean(briers), 4) : null;
         const avgMapePct = mapes.length ? round(mean(mapes), 2) : null;
-        const coveragePct = round(mean(covs) * 100, 1);
+        const coveragePct = covs.length?round(mean(covs) * 100, 1):null;
 
         // Adaptive closed-loop calibration factors (bounded strictly for stability)
         // 1) If empirical P80 coverage is too narrow (<72%), widen bands; if overly wide (>94%), tighten slightly
         let bandScale = 1.0;
-        if (list.length >= 2) {
+        if (covs.length >= 2) {
             if (coveragePct < 60) bandScale = 1.25;
             else if (coveragePct < 74) bandScale = 1.12;
             else if (coveragePct > 94 && list.length >= 6) bandScale = 0.94;
@@ -279,6 +290,10 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
             conformal80CoveragePct: coveragePct,
             avgBrierScore: avgBrier,
             avgMapePct,
+            priceComparisons:pricePairs.length,
+            // Report error as a scale-free ratio; currencies and units are not pooled as absolute prices.
+            baselineMapePct:pricePairs.length?round(baselineApe*100,2):null,
+            baselineImprovementPct:pricePairs.length && baselineApe>0 ? round((1-modelApe/baselineApe)*100,2):null,
             calibration: { bandScale, probShrinkage },
         };
     };
@@ -290,6 +305,7 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
     const symGroups = new Map();
     const spGroups = new Map();
     const regGroups = new Map();
+    const horizonGroups=new Map();
     for (const r of records) {
         if (!symGroups.has(r.symbol)) symGroups.set(r.symbol, []);
         symGroups.get(r.symbol).push(r);
@@ -297,6 +313,8 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
         spGroups.get(r.species).push(r);
         if (!regGroups.has(r.region)) regGroups.set(r.region, []);
         regGroups.get(r.region).push(r);
+        if(!horizonGroups.has(r.horizonCode))horizonGroups.set(r.horizonCode,[]);
+        horizonGroups.get(r.horizonCode).push(r);
     }
 
     for (const [k, list] of symGroups.entries()) feedbackBySymbol[k] = summarize(list);
@@ -327,6 +345,7 @@ async function buildClosedLoopAuditAndFeedback({ supabase = getDokployClient(), 
         },
         bySpecies: feedbackBySpecies,
         byRegion: feedbackByRegion,
+        byHorizon:Object.fromEntries([...horizonGroups].map(([key,items])=>[key,summarize(items)])),
         feedbackBySymbol,
         recentEvaluations: records.slice(0, 25),
     };

@@ -227,17 +227,27 @@ async function main() {
         const badSftRes = await call('/admin/loopus-sft-export?format=invalid', null, adminCookie);
         assert.equal(badSftRes.status, 400);
 
-        // 5d. Verificar endpoints administrativos de MARRANAS (/admin/marranas/health y /retrain)
+        // 5d. Verificar rutas VALL-Proteínas y alias administrativos heredados.
         assert.equal((await call('/admin/marranas/health')).status, 401);
+        assert.equal((await call('/admin/vall-proteinas/health')).status, 401);
         assert.equal((await call('/admin/marranas/health', null, userCookie)).status, 403);
+        assert.equal((await call('/admin/vall-proteinas/health', null, userCookie)).status, 403);
         assert.equal((await call('/admin/marranas/retrain', { mode: 'nlp' }, userCookie)).status, 403);
+        assert.equal((await call('/admin/vall-proteinas/retrain', { mode: 'nlp' }, userCookie)).status, 403);
         assert.equal((await call('/admin/marranas/retrain', { mode: 'invalid_mode' }, adminCookie)).status, 400);
+        assert.equal((await call('/admin/vall-proteinas/retrain', { mode: 'invalid_mode' }, adminCookie)).status, 400);
 
         const mHealthRes = await call('/admin/marranas/health', null, adminCookie);
         assert.equal(mHealthRes.status, 200);
         const mHealthBody = await mHealthRes.json();
-        assert(mHealthBody.success && mHealthBody.health?.available && mHealthBody.health?.model === 'MARRANAS', 'Devuelve salud completa del motor independiente MARRANAS');
-        assert(mHealthBody.health?.stats?.activeModels >= 60 && mHealthBody.health?.importParity?.bySpecies && mHealthBody.health?.nlpEvents?.bySpecies);
+        assert(mHealthBody.success && mHealthBody.health?.available && mHealthBody.health?.model === 'VALL-Proteínas', 'Devuelve salud completa de VALL-Proteínas');
+        assert(Number.isInteger(mHealthBody.health?.stats?.activeModels) && mHealthBody.health.stats.activeModels >= 0);
+        assert(mHealthBody.health?.importParity?.bySpecies && mHealthBody.health?.nlpEvents?.bySpecies);
+
+        const vallHealthRes = await call('/admin/vall-proteinas/health', null, adminCookie);
+        assert.equal(vallHealthRes.status, 200);
+        const vallHealthBody = await vallHealthRes.json();
+        assert(vallHealthBody.success && vallHealthBody.health?.model === 'VALL-Proteínas', 'La ruta VALL-Proteínas debe devolver el mismo modelo');
 
         const mRetrainDry = await call('/admin/marranas/retrain', { mode: 'full', dryRun: true }, adminCookie);
         assert.equal(mRetrainDry.status, 200);

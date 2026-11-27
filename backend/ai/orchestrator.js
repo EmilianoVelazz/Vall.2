@@ -21,8 +21,7 @@ const { buildStatisticalModel, mergeStatisticalEvidence, attachStatisticalModel,
 const { conversationFocus, balancedExcerpt } = require('./conversation-context');
 const { attachAnswerStrategy } = require('./answer-strategy');
 const { buildForecastAnalysis, attachForecastAnalysis, guardForecastAnswer } = require('./forecast-analysis');
-const { buildShowcaseChart, buildProteinComparisonChart, buildMarranasChart, buildGlobalMarketsChart, buildForecastRecordChart } = require('./analytical-charts');
-const { proteinPriceTable } = require('./protein-price-table');
+const { buildShowcaseChart, buildProteinComparisonChart } = require('./analytical-charts');
 const { prepareBusinessConversation } = require('./business-memory');
 const { calculateMargin, wantsCommercialCalculation, commercialReply } = require('./commercial-calculator');
 const {responseLength}=require('./answer-format');
@@ -67,61 +66,33 @@ function countVisibleWords(value) {
     return normalized ? normalized.split(/\s+/).length : 0;
 }
 
-function socialFollowUps(hasPreviousAnalysis = false) {
-    const item = (label, prompt, icon) => ({ label, prompt, icon });
-    if (hasPreviousAnalysis) {
-        return [
-            item('Retomar análisis', 'Retoma el análisis anterior y dame los puntos clave para decidir.', 'fa-rotate-left'),
-            item('Panorama de mercados hoy', 'Dame un panorama rápido de los mercados, dólar y materias primas hoy con fechas y fuentes.', 'fa-globe'),
-            item('Precios de proteínas', '¿Cómo están hoy los precios verificables de cerdo, pollo, huevo y res en México?', 'fa-chart-bar'),
-        ];
-    }
-    return [
-        item('¿Cómo está el dólar hoy?', '¿Cómo está hoy el tipo de cambio USD/MXN y qué factores lo están moviendo?', 'fa-dollar-sign'),
-        item('Precios de proteínas MX', 'Muéstrame los últimos precios verificables de cerdo, pollo, huevo y res en México por plaza y fecha.', 'fa-scale-balanced'),
-        item('Pronósticos ML activos', 'Resume los pronósticos cuantitativos walk-forward activos en Loopus y qué activos tienen ventaja validada.', 'fa-chart-line'),
-        item('Panorama económico hoy', 'Dame un panorama ejecutivo de mercados financieros, granos y México hoy.', 'fa-newspaper'),
-    ];
-}
-
 function socialReply(message, history = []) {
-    const raw = String(message || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
-    const text = raw.replace(/[¿¡,!.?;:]+/g, ' ').replace(/\bq\b/gi, 'que').replace(/\s+/g, ' ').trim();
+    const text = String(message || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
     const hasPreviousAnalysis = conversationFocus('continua', history).anchor
         && history.some(turn => /\b(?:finanzas?|mercados?|bolsa|divisas?|moneda|dolar|peso|usd|mxn|tasas?|inflacion|noticias?|cerdo|pollo|huevo|res|maiz|trigo|margen)\b/i.test(String(turn?.content || turn?.text || '')));
-    const continuation = hasPreviousAnalysis ? ' Cuando quieras podemos retomar el análisis que estábamos viendo.' : '';
-    const greetingPrefix = /^buenos dias\b/.test(text) ? '¡Buenos días!'
-        : /^buenas tardes\b/.test(text) ? '¡Buenas tardes!'
-            : /^buenas noches\b/.test(text) ? '¡Buenas noches!'
-                : '¡Hola!';
-
-    if (/(?:por que (?:me )?respondes tan (?:robotico|formal|largo|tecnico|frio|estatico)|habla(?:me)? mas (?:natural|sencillo|claro|corto|humano|directo|simple)|mas natural|sin tanto rollo|no entendi(?: nada)?|explica(?:me|lo)? (?:mas sencillo|como si tuviera|en palabras simples|mejor)|esta muy largo|resumelo en \d+ puntos?)/.test(text)) {
-        return `¡Tienes toda la razón! A veces me pongo demasiado técnico. Vamos a platicarlo directo, claro y sin tanto rollo.${continuation || ' Dime qué precio, mercado o duda quieres revisar y te respondo al grano.'}`;
+    const continuation = hasPreviousAnalysis ? ' Puedes retomar el análisis que llevábamos cuando quieras.' : '';
+    if (/^(?:gracias|muchas gracias|te agradezco)/.test(text)) {
+        return `Con gusto.${continuation || ' Estoy aquí para ayudarte a entender los mercados con claridad.'}`;
     }
-    if (/^(?:gracias|muchas gracias|mil gracias|te agradezco)\b/.test(text)) {
-        return `¡Con mucho gusto!${continuation || ' Si necesitas revisar algún otro precio, escenario o archivo, aquí estoy.'}`;
-    }
-    if (/(?:(?:que|en que) (?:me )?(?:puedes|podrias|sabes) (?:hacer|ayudar|apoyar|servir|ofrecer|dar)|que haces|que sabes hacer|para que sirves|cuales son tus (?:funciones|capacidades|herramientas|modelos)|que (?:funciones|capacidades|herramientas|servicios|datos|modelos) (?:tienes|usas|manejas)|tienes datos(?: de hoy)?|ayudar a entender como va todo|como va todo|que hay de nuevo|como funcionas|como te uso|como puedo (?:empezar|usarte)|que te puedo preguntar|dame ejemplos?|presentate|^(?:hola\s+)?(?:necesito\s+)?ayuda(?:me)?(?:\s+por favor)?$)/.test(text)) {
-        return `${greetingPrefix} Qué gusto saludarte. Soy **ORION**, tu analista de inteligencia económica y agroindustrial en VALLNews.\n\nPuedes platicarme directamente lo que necesitas revisar; por ejemplo, puedo ayudarte a:\n\n- **Seguir mercados y divisas al día:** tipo de cambio USD/MXN, tasas (CETES/TIIE/Banxico), bolsas y noticias económicas con fecha y fuente.\n- **Consultar proteínas y granos:** precios verificados de cerdo, pollo, huevo y res en México (SNIIM/PROFECO) e internacionales (USDA, Mercolleida, CEPEA), además de maíz, soya, trigo y energía.\n- **Correr pronósticos ML y cálculos de negocio:** proyecciones walk-forward con bandas de incertidumbre, sensibilidad de ración balanceada, márgenes con merma y regresiones.\n- **Trabajar con tus archivos y reportes:** puedes subirme un PDF, Excel/CSV o imagen para analizarlo, armar tablas o gráficas, o pedir un informe descargable en **PDF o Word**.\n\nPor ejemplo, pregúntame *«¿Cómo está el dólar hoy?»* o *«Compara el precio del cerdo en México y EE. UU.»*.${continuation || ' ¿Con qué tema te gustaría arrancar?'}`;
+    if (/^(?:ayuda(?:me)?)$|(?:(?:que|en que) (?:me )?puedes (?:hacer|ayudar)|como funcionas)/.test(text)) {
+        return `Soy ORION, tu asistente de inteligencia económica de VALLNews. Puedo ayudarte con:\n\n- **Proteínas y agroindustria:** precios verificados por fecha y fuente en México (SNIIM/Porcicultura/PROFECO) y mercados globales (USDA, CEPEA Brasil, RNM Francia, DG AGRI UE, Chile, Canadá, China).\n- **Mercados, FX y pronósticos ML:** análisis de divisas, granos, energía y modelos cuantitativos walk-forward.\n- **Documentos y cálculo comercial:** márgenes, mermas, lectura de PDF/CSV/imágenes y exportación a Word o PDF.${continuation || '\n\nDime qué mercado, especie o cálculo quieres revisar.'}`;
     }
     if (/(?:como te llamas|quien eres|cual es tu nombre)/.test(text)) {
-        return `Me llamo ORION y soy tu asistente de inteligencia económica en VALLNews.${continuation || ' Te puedo ayudar con mercados, divisas, proteínas, granos, noticias económicas o reportes. ¿Qué quieres revisar hoy?'}`;
+        return `Me llamo ORION. Soy el asistente de inteligencia económica de VALLNews.${continuation || ' Puedo ayudarte con mercados, bolsa, divisas y noticias económicas de México.'}`;
     }
-    if (/(?:quien (?:te )?(?:creo|creadore?s?|desarrollo|hizo|construyo)|quien fue tu creadore?s?)/.test(text)) {
-        return `Fui desarrollado por el equipo de VALLNews para ayudarte a analizar mercados, finanzas y agroindustria con datos claros y verificables.${continuation || ' ¿En qué tema te apoyo hoy?'}`;
+    if (/(?:quien (?:te )?(?:creo|creadore?s?|desarrollo|hizo)|quien fue tu creadore?s?)/.test(text)) {
+        return `Fui desarrollado por el equipo de VALLNews para ayudarte a entender información económica y financiera con claridad.${continuation || ' ¿Qué te gustaría revisar?'}`;
     }
-    if (/^(?:adios|hasta luego|nos vemos|chao|bye)\b/.test(text)) {
-        return '¡Hasta luego! Aquí sigo cuando quieras revisar mercados, divisas, proteínas o armar algún informe.';
+    if (/^(?:adios|hasta luego|nos vemos)/.test(text)) {
+        return 'Hasta luego. Cuando quieras, seguimos con mercados, bolsa, divisas o noticias económicas de México.';
     }
-    if (/(?:como estas|como andas|como te va|como vas|que tal|que onda|todo bien)/.test(text)) {
-        return `${greetingPrefix} Todo muy bien por acá, gracias por preguntar. ¿Tú cómo vas?${continuation || ' Cuando quieras, dime qué mercado, precio o reporte revisamos hoy.'}`;
+    if (/^(?:como estas|como vas|que tal|todo bien)/.test(text)) {
+        return `Muy bien, gracias por preguntar. ¿Y tú, cómo vas?${continuation || ' Cuando quieras, dime qué te gustaría revisar.'}`;
     }
-    if (/^(?:ok|okay|vale|va|sale|entendido|perfecto|excelente|genial|super|claro|de acuerdo|listo)\b/.test(text)) {
-        return hasPreviousAnalysis
-            ? 'Perfecto. Cuando quieras podemos retomar el análisis anterior o ajustar algún supuesto o formato.'
-            : '¡Perfecto! Dime con qué mercado, divisa, precio o cálculo quieres continuar.';
+    if (/^(?:ok|vale|entendido|perfecto|excelente|claro|de acuerdo)/.test(text)) {
+        return continuation ? 'Perfecto. Retomamos el análisis anterior cuando me indiques qué deseas ajustar o ampliar.' : 'Perfecto. Dime qué mercado, divisa o noticia económica quieres revisar.';
     }
-    return `${greetingPrefix} Qué gusto leerte. Soy ORION, tu asistente de inteligencia económica.${continuation || ' ¿Qué traes en mente hoy: tipo de cambio, precios de proteínas y granos, noticias o algún análisis en particular?'}`;
+    return `¡Hola! Qué gusto leerte. Soy ORION, tu asistente de inteligencia económica.${continuation || ' ¿Qué te gustaría revisar hoy: mercados, bolsa, divisas o noticias económicas de México?'}`;
 }
 
 function emptyEvidence() {
@@ -170,12 +141,10 @@ function tradeResponseInstructions(built, plan) {
     return built;
 }
 
-function localReplyResult(text, started, taskType = 'social', history = []) {
-    const hasPreviousAnalysis = Boolean(conversationFocus('continua', history).anchor);
+function localReplyResult(text, started, taskType = 'social') {
     const response = markdownToRichResponse(text, {
         mode: 'quick', taskType, provider: 'local', model: 'orion-conversation', latencyMs: Date.now() - started,
     });
-    response.meta = { ...(response.meta || {}), followUps: socialFollowUps(hasPreviousAnalysis) };
     return { response, text, tier: 'flash', mode: 'quick', model: 'orion-conversation', evidenceCount: 0, citations: [], retrievalStrategy: 'local_conversation' };
 }
 
@@ -227,134 +196,6 @@ function groundingSourcesMarkdown(citations = [], period = null) {
         return `- [${label}](${url.replace(/[<>"()\s]/g, character => encodeURIComponent(character))})`;
     }).filter(Boolean);
     return lines.length ? `### Fuentes de investigación web\n\n${lines.join('\n')}` : '';
-}
-
-function buildExecutiveMarketsMatrixTable() {
-    try {
-        const fs = require('node:fs');
-        const path = require('node:path');
-        const finPath = path.resolve(__dirname, '../cache/finance_executive_reports.json');
-        const mktPath = path.resolve(__dirname, '../cache/market_executive_reports.json');
-        const rows = [];
-        const pushMetric = (category, m, cutDate) => {
-            if (!m?.label || !m?.value) return;
-            rows.push(`| ${category} | ${m.label} | ${m.value} | ${m.change || m.delta || '—'} | ${cutDate || '—'} |`);
-        };
-        if (fs.existsSync(finPath)) {
-            const fin = JSON.parse(fs.readFileSync(finPath, 'utf8'));
-            const cut = String(fin.generatedAt || '').slice(0, 10);
-            const reps = Array.isArray(fin.reports) ? fin.reports : [];
-            const eq = reps.find(r => r.key === 'equities');
-            for (const re of [/ipc|bmv/i, /s&p\s*500/i, /nasdaq/i, /euro\s*stoxx|dax/i, /nikkei/i]) {
-                const m = (eq?.metrics || []).find(x => re.test(String(x?.label || '')));
-                if (m) pushMetric('Bolsa', m, cut);
-            }
-            const bonds = reps.find(r => r.key === 'bonds');
-            for (const re of [/cetes\s*28/i, /tiie\s*28/i, /treasury.*10/i, /embig/i]) {
-                const m = (bonds?.metrics || []).find(x => re.test(String(x?.label || '')));
-                if (m) pushMetric('Bonos y Tasas', m, cut);
-            }
-            const fx = reps.find(r => r.key === 'fx');
-            for (const re of [/usd\/mxn/i, /usd\/eur/i, /usd\/brl/i, /usd\/cny/i]) {
-                const m = (fx?.metrics || []).find(x => re.test(String(x?.label || '')));
-                if (m) pushMetric('Divisas', m, cut);
-            }
-        }
-        if (fs.existsSync(mktPath)) {
-            const mkt = JSON.parse(fs.readFileSync(mktPath, 'utf8'));
-            const cut = String(mkt.generatedAt || '').slice(0, 10);
-            const reps = Array.isArray(mkt.reports) ? mkt.reports : [];
-            const em = reps.find(r => r.key === 'energy_metals');
-            for (const re of [/\bwti\b/i, /gas\s+natural|henry\s+hub/i, /\boro\b/i, /\bcobre\b/i]) {
-                const m = (em?.metrics || []).find(x => re.test(String(x?.label || '')));
-                if (m) pushMetric('Energía y Metales', m, cut);
-            }
-        }
-        if (!rows.length) return '';
-        return `| Categoría | Referencia | Nivel verificado | Variación | Corte |\n| --- | --- | ---: | ---: | --- |\n${rows.join('\n')}`;
-    } catch {
-        return '';
-    }
-}
-
-function buildExecutiveSnapshotContext(plan = {}) {
-    if (!plan.needsExecutiveReport) return '';
-    const matrix = buildExecutiveMarketsMatrixTable();
-    if (!matrix) return '';
-    return `[CORTES VERIFICADOS DE INFORMES EJECUTIVOS · FINANZAS Y MERCADOS]\nUsa estas cifras fechadas exactas cuando el usuario pida CETES, TIIE, Treasury 10A, EMBIG, bolsas globales, divisas, WTI, gas natural, oro o cobre. No entregues definiciones genéricas ni "Pendiente corte" si el dato aparece aquí.\n${matrix}`;
-}
-
-function buildDeterministicEvidenceFallback({ plan = {}, evidence = {}, liveData = null, reportEvidence = null, marranasML = null, forecastAnalysis = null, dataInventory = null, error = null }) {
-    const sections = [];
-    const quotes = Array.isArray(liveData?.quotes) ? liveData.quotes : [];
-    const proteins = Array.isArray(evidence?.proteinPriceRecords) ? evidence.proteinPriceRecords : [];
-    const citations = Array.isArray(evidence?.citations) ? evidence.citations : [];
-    const newsCitations = citations.filter(c => c?.type === 'live_news' || c?.type === 'rabobank_public_research' || c?.type?.startsWith('mercolleida_public_'));
-    const hasReports = Boolean(reportEvidence?.available && reportEvidence?.context);
-    const hasMl = Boolean(marranasML?.available && marranasML?.context);
-    const hasForecast = Boolean(forecastAnalysis?.available && forecastAnalysis?.context);
-    const hasInventory = Boolean(dataInventory && (plan.asksDataInventory || plan.asksCoverageExplanation));
-    const wantsGlobalMatrix = !plan.asksDataInventory && !plan.asksCoverageExplanation
-        && (plan.asksExecutiveBrief || (plan.topics?.length >= 2) || /\b(?:matriz|mercados?\s+globales?|cetes|tiie|treasury|embig|bonos?)\b/i.test(plan.marketQuery || ''));
-    const execMatrix = wantsGlobalMatrix ? buildExecutiveMarketsMatrixTable() : '';
-    if (!quotes.length && !proteins.length && !hasReports && !hasMl && !hasForecast && !hasInventory && !newsCitations.length && !execMatrix) return null;
-
-    sections.push('> [!NOTE] **Modo de respaldo verificado:** el modelo generativo alcanzó temporalmente su límite de cuota, créditos o tiempo de espera (`' + (error?.code || 'AI_RATE_LIMIT') + '`). A continuación se presentan directamente las cifras, tablas y alertas verificadas recuperadas por ORION sin texto inventado.');
-
-    if (hasInventory) {
-        const invLines = String(dataInventory).split('\n').filter(l => l.trim() && !/^\[/.test(l.trim())).slice(0, 24);
-        if (invLines.length) sections.push(`### Inventario y cobertura activa de ORION\n\n${invLines.join('\n')}`);
-    }
-
-    if (quotes.length) {
-        const rows = quotes.slice(0, 12).map(q => {
-            const val = Number.isFinite(Number(q.value)) ? Number(q.value).toLocaleString('en-US', { maximumFractionDigits: 4 }) : String(q.value ?? '—');
-            const chg = Number.isFinite(Number(q.change)) ? `${q.change >= 0 ? '+' : ''}${Number(q.change).toFixed(2)}%` : '—';
-            const dt = q.updatedAt ? String(q.updatedAt).slice(0, 10) : '—';
-            return `| ${q.label || q.symbol} | ${val} ${q.unit || ''} | ${chg} | ${dt} | ${q.source || 'Mercado'} |`;
-        });
-        sections.push(`### Cotizaciones en vivo verificadas\n\n| Instrumento | Último valor | Variación | Corte | Fuente |\n| --- | ---: | ---: | --- | --- |\n${rows.join('\n')}`);
-    }
-
-    if (execMatrix) {
-        sections.push(`### Matriz global de mercados (Informes Ejecutivos verificados)\n\n${execMatrix}`);
-    }
-
-    if (proteins.length) {
-        const compactEvidence = { ...evidence, proteinPriceRecords: proteins.slice(0, 12) };
-        const tableMd = proteinPriceTable(plan, compactEvidence);
-        if (tableMd) sections.push(`### Referencias físicas de proteínas (top ${Math.min(proteins.length, 12)})\n\n${tableMd}`);
-    }
-
-    const INTERNAL_PROMPT_RE = /^(?:usa estas probabilidades|regla\b|instrucci|nota para el modelo|para responder|no inventes|cita siempre)/i;
-    if (hasMl) {
-        const mlLines = String(marranasML.context)
-            .split('\n')
-            .map(l => l.trim().replace(/^[-•*]\s*/, ''))
-            .filter(l => l && !/^\[/.test(l) && !INTERNAL_PROMPT_RE.test(l))
-            .slice(0, 18);
-        if (mlLines.length) sections.push(`### Motor ORION ML (Paridad, Pronóstico y Radar Sanitario NLP)\n\n${mlLines.map(l => `- ${l}`).join('\n')}`);
-    }
-
-    if (hasReports) {
-        const repLines = String(reportEvidence.context).split('\n').filter(l => l.trim() && !/^\[/.test(l.trim()) && !INTERNAL_PROMPT_RE.test(l.trim())).slice(0, 22);
-        if (repLines.length) sections.push(`### Datos de Informes Ejecutivos (cortes verificados)\n\n${repLines.join('\n')}`);
-    }
-
-    if (newsCitations.length) {
-        const newsLines = newsCitations.slice(0, 8).map(c => {
-            const label = [c.source, c.title, c.date].filter(Boolean).join(' · ');
-            return c.url ? `- [${label}](${c.url})` : `- ${label}`;
-        });
-        if (newsLines.length) sections.push(`### Titulares y cobertura reciente verificada\n\n${newsLines.join('\n')}`);
-    }
-
-    if (hasForecast) {
-        const fcLines = String(forecastAnalysis.context).split('\n').filter(l => l.trim() && !/^\[/.test(l.trim()) && !INTERNAL_PROMPT_RE.test(l.trim())).slice(0, 14);
-        if (fcLines.length) sections.push(`### Pronóstico cuantitativo verificado\n\n${fcLines.map(l => `- ${l.replace(/^[-•*]\s*/, '')}`).join('\n')}`);
-    }
-
-    return sections.join('\n\n').replace(/\b(\d{1,3}\.\d{4})\d{2,}\b/g, '$1');
 }
 
 function attachEvidence(response, evidence, plan = {}) {
@@ -410,7 +251,8 @@ function attachEvidence(response, evidence, plan = {}) {
         }
     }
     response.meta = response.meta || {};
-    if (!response.blocks.some(block => block?.type === 'chart')) {
+    const chartBlockedByStatus = evidence.chartRequested && ['insufficient_data', 'unsupported_subject'].includes(evidence.chartStatus);
+    if (!chartBlockedByStatus && !response.blocks.some(block => block?.type === 'chart')) {
         let autoChart = null;
         if (plan.needsProteinPrices && evidence.proteinPriceRecords?.length >= 2) {
             autoChart = buildProteinComparisonChart({
@@ -423,40 +265,40 @@ function attachEvidence(response, evidence, plan = {}) {
         const queryText = String(plan.marketQuery || plan.proteinQuery || '');
         const explicitlyRequestsMlVisual = (plan.asksDataInventory || !response.meta.forecastAnalysis)
             && /\b(?:loopus|walk-?forward|showcase|modelos?\s+ml|pron[oó]sticos?\s+ml|pron[oó]sticos?\s+activos)\b/i.test(queryText);
-        if (!autoChart && response.meta.forecastAnalysis?.available) {
-            autoChart = buildForecastRecordChart(response.meta.forecastAnalysis);
-        }
-        if (!autoChart && plan.needsMarranasML && (!plan.needsProteinPrices || evidence.proteinPriceRecords?.length > 0)) {
-            autoChart = buildMarranasChart({ message: queryText, plan });
-        }
-        if (!autoChart && (plan.needsExecutiveReport || (plan.topics?.length >= 2 && (plan.asksComparison || plan.asksExecutiveBrief)))) {
-            autoChart = buildGlobalMarketsChart({ liveQuotes: evidence.quotes || [] });
-        }
         if (!autoChart && explicitlyRequestsMlVisual) {
             autoChart = buildShowcaseChart({ message: queryText, plan });
         }
         if (autoChart) {
-            // Si RAG no tenía serie en MariaDB pero sí logramos construir una gráfica
-            // verificada desde proteínas/ML/informes, retiramos la alerta de "Gráfica no generada".
-            response.blocks = response.blocks.filter(block => !(block?.type === 'alert' && block?.title === 'Gráfica no generada'));
-            if (response.markdown) {
-                response.markdown = response.markdown.replace(/\n*> \*\*Gráfica no generada:\*\*[^\n]*/g, '').trim();
-            }
             response.blocks.push({ type: 'chart', spec: autoChart });
             if (response.markdown) response.markdown += `\n\n\`\`\`chart\n${JSON.stringify(autoChart)}\n\`\`\``;
             response.meta.verifiedServerChart = true;
-            resolvedChartStatus = 'served';
+            if (resolvedChartStatus === 'not_requested') resolvedChartStatus = 'served';
         }
     }
     const forecastSources = (response.meta.forecastAnalysis?.records || []).filter(record => record.cutoff && record.observations && record.sourceUrl).map(record => ({
         type: 'forecast_historical_series', source: record.source, title: `${record.name} (${record.ticker}) · ${record.cutoff}`,
         date: record.cutoff, url: record.sourceUrl,
     }));
-    const citations = [...forecastSources, ...(evidence.citations || [])].filter(isEvidenceCitation)
-        .filter((item, index, all) => all.findIndex(other => other.url === item.url) === index).slice(0, 24);
+    const seenCitations = new Set();
+    const citations = [...forecastSources, ...(evidence.citations || [])]
+        .filter(isEvidenceCitation)
+        .filter(item => {
+            const identity = JSON.stringify([
+                item.type || '',
+                item.url || '',
+                item.date || '',
+                item.title || '',
+                item.source || '',
+                item.id || '',
+            ]);
+            if (seenCitations.has(identity)) return false;
+            seenCitations.add(identity);
+            return true;
+        })
+        .slice(0, 24);
     response.meta.citations = citations;
     response.meta.retrievalStrategy = evidence.retrievalStrategy;
-    response.meta.evidenceCount = evidence.evidenceCount;
+    response.meta.evidenceCount = citations.length;
     response.meta.chartStatus = resolvedChartStatus;
     if (evidence.toolExecution) response.meta.toolExecution = evidence.toolExecution;
     response.meta.evidenceCoverage = evidenceCoverage(plan, evidence);
@@ -464,13 +306,10 @@ function attachEvidence(response, evidence, plan = {}) {
     if (plan.asksDecision || plan.asksAnalysis || plan.asksNews) response.meta.decisionBrief = decisionBrief({message:plan.marketQuery || '',plan,evidence,forecastAnalysis:response.meta.forecastAnalysis});
     if (evidence.rabobank) response.meta.rabobank = evidence.rabobank;
     if (evidence.proteinPrices) response.meta.proteinPrices = evidence.proteinPrices;
-    const existingText = String(response.markdown || '');
-    const verificationBlock = existingText.includes('**Fuentes de verificación:**') ? existingText.slice(existingText.indexOf('**Fuentes de verificación:**')) : '';
-    const unseenCitations = citations.filter(item => !verificationBlock || !item?.url || !verificationBlock.includes(String(item.url).trim()));
-    const groundingSources = groundingSourcesMarkdown(unseenCitations, response.meta.evidenceCoverage.period);
+    const groundingSources = groundingSourcesMarkdown(citations, response.meta.evidenceCoverage.period);
     const priceSourcesInline = plan.needsProteinPrices && !plan.asksAnalysis && !plan.asksNews
         && citations.length && citations.every(item=>item.type==='verified_protein_price');
-    if (groundingSources && !priceSourcesInline && !existingText.includes('### Fuentes de investigación web')) {
+    if (groundingSources && !priceSourcesInline && !String(response.markdown || '').includes('### Fuentes de investigación web')) {
         const original = toLegacyMarkdown(response);
         response.blocks.push({ type: 'markdown', content: groundingSources });
         response.markdown = [original, groundingSources].filter(Boolean).join('\n\n');
@@ -479,8 +318,7 @@ function attachEvidence(response, evidence, plan = {}) {
 }
 
 function toolLabelsForSlot(slot, plan) {
-    if (slot === 'marranas_proteins_ml') return ['ORION · Motor ML Proteínas'];
-    if (slot === 'forecast_analysis') return ['ORION · Pronóstico ML'];
+    if (slot === 'forecast_analysis') return ['Loopus ML'];
     if (slot === 'statistical_analysis') return ['Estadística OLS'];
     if (slot === 'report_reader') return ['Informes ejecutivos'];
     if (slot === 'knowledge_search') return ['Base de conocimiento'];
@@ -509,7 +347,6 @@ function describeToolPlan(plan, retrievalQuery = '') {
     const hasMarket = Boolean(plan?.needsIssuerResearch || plan?.needsProteinPrices || plan?.needsRabobank || plan?.needsTradeResearch || plan?.needsMercolleida || plan?.needsLiveQuote || plan?.needsLiveNews);
     if (hasMarket) pushAll(toolLabelsForSlot('market_research', plan));
     if (plan?.asksForecast) pushAll(toolLabelsForSlot('forecast_analysis', plan));
-    if (plan?.needsMarranasML) pushAll(toolLabelsForSlot('marranas_proteins_ml', plan));
     if (wantsStatisticalAnalysis(retrievalQuery)) pushAll(toolLabelsForSlot('statistical_analysis', plan));
     if (plan?.needsExecutiveReport) pushAll(toolLabelsForSlot('report_reader', plan));
     if (!plan?.providedInputsOnly && !plan?.needsTradeResearch && !plan?.explicitRabobank && !tools.length) {
@@ -586,29 +423,10 @@ class AIOrchestrator {
         if (plan.needsExecutiveReport && this.reportReader) {
             handlers.report_reader = ({ signal }) => this.reportReader.forQuery({ message: retrievalQuery, signal });
         }
-        if (plan.needsMarranasML) {
-            handlers.marranas_proteins_ml = () => {
-                const { loadCachedProteinML, getProteinMLContextForQuery } = require('../ml/protein-ml-engine');
-                const art = loadCachedProteinML();
-                if (!art) return { available: false, context: '' };
-                const context = getProteinMLContextForQuery(retrievalQuery, { stripNumbers: false, limit: 6 }) || '';
-                return {
-                    available: true,
-                    model: 'ORION ML',
-                    version: art.version,
-                    generatedAt: art.generatedAt,
-                    activeModels: art.stats?.activeModels || 0,
-                    avgWalkForwardDirectionalAccuracyPct: art.stats?.avgWalkForwardDirectionalAccuracyPct ?? null,
-                    usdMxn: art.importParity?.fxRates?.usdMxn ?? null,
-                    nlpEventsDetected: art.nlpEvents?.stats?.relevantEventsDetected || 0,
-                    context: context.slice(0, 2600),
-                };
-            };
-        }
         const fallbackForecast = plan.asksForecast ? { requested: true, available: false, records: [], reason: 'No se completó la validación numérica durante esta consulta.' } : null;
         const fallbackReportDigest = { available: false, context: '', citations: [], sourceCodes: [], strategy: 'report_reader_skipped_v1', reports: [] };
-        const fallbacks = [emptyEvidence(), directConversion, emptyLiveData(), null, fallbackForecast, fallbackReportDigest, null];
-        const names = ['knowledge_search', null, 'market_research', 'statistical_analysis', 'forecast_analysis', 'report_reader', 'marranas_proteins_ml'];
+        const fallbacks = [emptyEvidence(), directConversion, emptyLiveData(), null, fallbackForecast, fallbackReportDigest];
+        const names = ['knowledge_search', null, 'market_research', 'statistical_analysis', 'forecast_analysis', 'report_reader'];
         if (!Object.keys(handlers).length) return { values: fallbacks, execution: { protocol: 'mcp', status: 'not_needed', tools: [] } };
         let session;
         try {
@@ -741,7 +559,7 @@ class AIOrchestrator {
                 check=guardTradeResearch(plan,evidence,revised.text);
                 result={...revised,text:check.text};
                 tier=effectiveTier(this.provider,tier,revised);
-                research=auditResearchAnswer(plan,evidence,result.text);
+                research = auditResearchAnswer(plan,evidence,result.text);
             } catch (error) { built.signal?.throwIfAborted(); console.warn('[Orchestrator] Revisión de respaldo no completada:',error.code || error.name); }
         }
         if (research.ledger.records.length) evidence.researchAudit={ checkedClaims:research.checkedClaims || 0, documents:research.ledger.records.length,
@@ -807,7 +625,6 @@ class AIOrchestrator {
             throw error;
         }
     }
-
     async enforceReportMinimum(built, result, tier) {
         if (built.taskType !== 'document' || built.responseLength?.explicit) return { result, tier, warnings: [] };
         let best = { result, tier };
@@ -851,13 +668,12 @@ class AIOrchestrator {
                 mode: 'quick', taskType: 'domain_redirect', provider: 'local',
                 model: 'vall-domain-guard', latencyMs: Date.now() - started,
             });
-            response.meta = { ...(response.meta || {}), followUps: socialFollowUps(false) };
             return { response, text, tier: 'flash', mode: 'quick', model: 'vall-domain-guard' };
         }
         if (scope.reason === 'social') {
             const text = socialReply(message, history);
             onText?.(text, text);
-            return localReplyResult(text, started, 'social', history);
+            return localReplyResult(text, started);
         }
 
         // consistencia de los datos para el orquestadpr de datos para que se pueda enter erl modelo de ml para hacer aue dtos
@@ -882,7 +698,7 @@ class AIOrchestrator {
         // turno y el primer fragmento esperaba varias llamadas de red ajenas a
         // una pregunta sencilla. El límite permite iniciar la respuesta con la
         // evidencia disponible sin inventar datos ni bloquear la conversación.
-        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence, marranasML], execution } = await this.collectEvidence({
+        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({
             plan, retrievalQuery, userKeyHash, directConversion, signal,
             onToolComplete(slot) {
                 if (!toolProgress.tools.length) return;
@@ -903,7 +719,7 @@ class AIOrchestrator {
             ? buildDataInventoryContext({ plan, liveData, evidence })
             : '';
         const fewShotContext = await getDynamicFewShotContext({ message, plan }).catch(() => '');
-        const enrichedContext = [planContext(plan), conversionContext(conversion), buildExecutiveSnapshotContext(plan), forecastAnalysis?.context, marranasML?.context, inventorySection, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan: marranasML?.context ? { ...plan, skipInlineProteinMl: true } : plan }), fewShotContext, context].filter(Boolean).join('\n\n');
+        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, inventorySection, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), fewShotContext, context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));
         const built = tradeResponseInstructions(buildPrompt({ message, history, context: enrichedContext, mode, responseFormat: 'markdown', attachments, webGrounding: Boolean(searchTools), plan }), plan);
         built.modelProfile = modelProfile;
@@ -920,20 +736,8 @@ class AIOrchestrator {
         // aviso al final no retira una afirmación falsa ya transmitida.
         const buffered = plan.needsTradeResearch || plan.asksNews || plan.asksForecast || plan.needsProteinPrices || plan.needsLiveQuote || plan.asksDecision || plan.explicitRabobank || plan.topics?.some(topic=>['fx','bonds','equities'].includes(topic)) || /garanti\w*|sin riesgo|certeza/i.test(message);
         const deliver = buffered ? null : onText;
-        let result, usedTier;
-        try {
-            ({ result, tier: usedTier } = await this.streamWithFallback({ ...built, attachments, tools: searchTools,
-                maxOutputTokens: plan.asksAnalysis || plan.asksNews || plan.needsTradeResearch ? 8192 : 4096 }, resolvedTier, deliver));
-        } catch (err) {
-            const fallbackMd = process.env.NODE_ENV !== 'test' && this.provider.name === 'gemini'
-                && ['AI_RATE_LIMIT', 'AI_TIMEOUT', 'AI_PROVIDER_ERROR', 'AI_BILLING'].includes(err?.code)
-                ? buildDeterministicEvidenceFallback({ plan, evidence, liveData, reportEvidence, marranasML, forecastAnalysis, dataInventory: inventorySection, error: err })
-                : null;
-            if (!fallbackMd) throw err;
-            console.warn('[Orchestrator] Proveedor IA sin cuota/tiempo; se entrega respaldo determinista con evidencia verificada.');
-            result = { text: fallbackMd, model: 'orion-verified-fallback', modelFallback: true, grounding: null, finishReason: 'STOP' };
-            usedTier = 'flash';
-        }
+        let { result, tier: usedTier } = await this.streamWithFallback({ ...built, attachments, tools: searchTools,
+            maxOutputTokens: plan.asksAnalysis || plan.asksNews || plan.needsTradeResearch ? 8192 : 4096 }, resolvedTier, deliver);
         if (!result.text) throw Object.assign(new Error('El proveedor devolvió una respuesta vacía.'), { code: 'AI_EMPTY_RESPONSE', status: 502 });
         evidence = scopeTradeEvidence(plan, mergeGroundingEvidence(evidence, result.grounding));
         const validated = await this.validateTradeAnswer({ built, plan, evidence, result, tier: usedTier, attachments, tools: searchTools });
@@ -1018,11 +822,10 @@ class AIOrchestrator {
                 mode: 'quick', taskType: 'domain_redirect', provider: 'local',
                 model: 'vall-domain-guard', latencyMs: Date.now() - started,
             });
-            response.meta = { ...(response.meta || {}), followUps: socialFollowUps(false) };
             return { response, text, tier: 'flash', mode: 'quick', model: 'vall-domain-guard' };
         }
         if (scope.reason === 'social') {
-            return localReplyResult(socialReply(message, history), started, 'social', history);
+            return localReplyResult(socialReply(message, history), started);
         }
         const plan = planQuery({ message, history, mode });
         const directConversion = await resolveCurrencyConversion(message);
@@ -1035,14 +838,14 @@ class AIOrchestrator {
             return { response, text, tier: 'flash', mode: 'quick', model: 'vall-fx-reference', evidenceCount: 1, citations: [], retrievalStrategy: 'live_fx_reference' };
         }
         const retrievalQuery = retrievalQuestion(message, history, scope.reason);
-        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence, marranasML], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
+        const { values: [baseEvidence, conversion, liveData, statisticalModel, forecastAnalysis, reportEvidence], execution } = await this.collectEvidence({ plan, retrievalQuery, userKeyHash, directConversion, signal });
         let evidence = scopeTradeEvidence(plan, mergeStatisticalEvidence(mergeEvidence(mergeEvidence(baseEvidence, liveData), reportEvidence), statisticalModel));
         evidence.toolExecution = execution;
         const inventorySection = (plan.needsDataInventory || plan.asksCoverageExplanation || plan.asksDataInventory || (plan.needsProteinPrices && !liveData?.proteinPrices?.available))
             ? buildDataInventoryContext({ plan, liveData, evidence })
             : '';
         const fewShotContext = await getDynamicFewShotContext({ message, plan }).catch(() => '');
-        const enrichedContext = [planContext(plan), conversionContext(conversion), buildExecutiveSnapshotContext(plan), forecastAnalysis?.context, marranasML?.context, inventorySection, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan: marranasML?.context ? { ...plan, skipInlineProteinMl: true } : plan }), fewShotContext, context].filter(Boolean).join('\n\n');
+        const enrichedContext = [planContext(plan), conversionContext(conversion), forecastAnalysis?.context, inventorySection, evidence.context, coverageContext(plan, evidence), researchInstructions(plan, evidence), decisionContext({message,history,plan,evidence,forecastAnalysis}), getChatReasoningContext({ message, plan }), fewShotContext, context].filter(Boolean).join('\n\n');
         const searchTools = googleSearchTools(shouldUseGoogleSearch(plan));
         // Grounding con Search y `responseMimeType: application/json` tarda
         // innecesariamente con algunos proveedores. Para investigaciones se
@@ -1064,22 +867,10 @@ class AIOrchestrator {
         // La evidencia recuperada es el respaldo. Un borrador de otra IA no
         // añade evidencia ni convierte propuestas pendientes en reglas activas.
         const finalBuilt = built;
-        let result, usedTier;
-        try {
-            ({ result, tier: usedTier } = await this.generateWithFallback({
-                ...finalBuilt, json: !groundedMarkdown, attachments, tools: searchTools,
-                maxOutputTokens: this.outputBudget(resolvedTier),
-            }, resolvedTier));
-        } catch (err) {
-            const fallbackMd = process.env.NODE_ENV !== 'test' && this.provider.name === 'gemini'
-                && ['AI_RATE_LIMIT', 'AI_TIMEOUT', 'AI_PROVIDER_ERROR', 'AI_BILLING'].includes(err?.code)
-                ? buildDeterministicEvidenceFallback({ plan, evidence, liveData, reportEvidence, marranasML, forecastAnalysis, dataInventory: inventorySection, error: err })
-                : null;
-            if (!fallbackMd) throw err;
-            console.warn('[Orchestrator] Proveedor IA sin cuota/tiempo; se entrega respaldo determinista con evidencia verificada.');
-            result = { text: fallbackMd, model: 'orion-verified-fallback', modelFallback: true, grounding: null, finishReason: 'STOP' };
-            usedTier = 'flash';
-        }
+        let { result, tier: usedTier } = await this.generateWithFallback({
+            ...finalBuilt, json: !groundedMarkdown, attachments, tools: searchTools,
+            maxOutputTokens: this.outputBudget(resolvedTier),
+        }, resolvedTier);
         evidence = scopeTradeEvidence(plan, mergeGroundingEvidence(evidence, result.grounding));
         const validated = await this.validateTradeAnswer({ built: finalBuilt, plan, evidence, result, tier: usedTier, attachments, tools: searchTools });
         result = validated.result;

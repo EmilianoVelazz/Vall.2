@@ -2,6 +2,7 @@
 const {normalizeRecipient}=require('../lib/report-email-recipient');
 const {enrichSectorReport}=require('../lib/report-sector-format');
 const {latestReportCutAt,latestMarketReportCutAt}=require('../lib/report-schedule');
+const {normalizeDataQualityPolicy,reportHealthSummary,reportHealthBlocksDelivery}=require('../lib/report-data-quality-policy');
 function slot(schedule){const value=schedule.scheduledFor||schedule.preferences?._deliveryRunAt||schedule.preferences?._deliveryLease?.scheduledFor||schedule.nextRunAt;return Number.isFinite(Date.parse(value))?new Date(value).toISOString():String(value||'');}
 function bundleKey(schedule){return JSON.stringify([String(schedule.ownerEmail||'').trim().toLowerCase(),normalizeRecipient(schedule.preferences?.emailRecipient,schedule.ownerEmail),schedule.preferences?.language||'es',slot(schedule)]);}
 
@@ -46,24 +47,26 @@ function createScheduledBundleDelivery({store,collections,loadSnapshot,generate,
      if(cut&&(!(Date.parse(snapshot?.generatedAt)>=cut.getTime())||original&&!(Date.parse(original.generatedAt)>=cut.getTime())))throw Object.assign(Error('El corte programado aún no está listo; se reintentará el paquete completo.'),{code:'REPORT_CUT_NOT_READY'});
      if(!original)throw Error('No existe el informe en el corte vigente.');
      const base=enrichSectorReport(original,schedule.area),ai=normalizeAiCustomization(schedule.preferences?.aiCustomization);
+     const health=reportHealthSummary(base,now());
+     if(normalizeDataQualityPolicy(schedule.preferences?.dataQualityPolicy)==='block'&&reportHealthBlocksDelivery(health))throw Object.assign(Error(`El informe no cumple el control de calidad (${health.label}); se reintentará el paquete completo sin enviarlo.`),{code:'REPORT_HEALTH_BLOCKED',status:409});
      const report=ai.enabled?await generate({report:{...base,collection:schedule.area},preferences:schedule.preferences,instructions:ai.instructions,options:{tone:ai.tone,...(ai.mode?{mode:ai.mode}:{}),...(ai.preferenceOverrides?.length?{preferenceOverrides:ai.preferenceOverrides}:{})}},{ownerEmail:schedule.ownerEmail}):personalize(base,schedule.preferences);
-     ready.push({schedule,base,area:schedule.area,title:report.title,executive:prepare(report)});
+     ready.push({schedule,base,health,area:schedule.area,title:report.title,executive:prepare(report)});
     }
     const beforeSend=async()=>!store.isCurrent||(await Promise.all(members.map(schedule=>store.isCurrent(schedule)))).every(Boolean);
     if(!(await beforeSend())){deferred+=members.length;await releaseGroup(claimed);return;}
-    const delivery=await deliverBundle({recipient,language,owner:first.ownerEmail,reports:ready.map(({area,title,executive})=>({area,title,executive})),beforeSend});
+    const delivery=await deliverBundle({recipient,language,owner:first.ownerEmail,reports:ready.map(({area,title,executive,health})=>({area,title,executive,health})),beforeSend});
     if(delivery?.skipped){deferred+=members.length;await releaseGroup(claimed);return;}
     accepted=true;emails++;sent+=members.length;
     const acceptedAt=new Date(now()).toISOString();
     // SMTP ya aceptó el paquete. Intentar guardar el recibo de cada miembro,
     // incluso si falla uno, sin convertir una entrega aceptada en un reenvío.
     for(const {schedule,base}of ready){
-     const preferences={...schedule.preferences,_lastDelivery:{scheduledFor:slot(schedule),startedAt,acceptedAt,reportGeneratedAt:base.generatedAt,bundleReportCount:members.length,...(delivery?.messageId?{messageId:delivery.messageId}:{})}};
+     const preferences={...schedule.preferences,_lastDelivery:{scheduledFor:slot(schedule),startedAt,acceptedAt,reportGeneratedAt:base.generatedAt,health:ready.find(item=>item.schedule.id===schedule.id)?.health,bundleReportCount:members.length,...(delivery?.messageId?{messageId:delivery.messageId}:{})}};
      try{await store.record(schedule.id,{sentAt:acceptedAt,delivery:schedule.delivery,preferences,leaseUntil:schedule.leaseUntil,leaseToken:schedule.leaseToken});}
      catch(error){errors++;console.warn('[report-email-bundles] No se confirmó un recibo aceptado:',error.code||error.name);}
     }
    }catch(error){
-    if(!accepted){errors+=members.length;const message=error.code==='REPORT_CUT_NOT_READY'||[400,413,422].includes(error.status)?error.message:'No se pudo preparar o entregar el paquete completo.';
+    if(!accepted){errors+=members.length;const message=['REPORT_CUT_NOT_READY','REPORT_HEALTH_BLOCKED'].includes(error.code)||[400,413,422].includes(error.status)?error.message:'No se pudo preparar o entregar el paquete completo.';
      for(const schedule of claimed)await recordRetry(schedule,message,![400,413,422].includes(error.status)).catch(()=>{});
     }
     console.warn('[report-email-bundles] Falló el paquete:',error.code||error.name);

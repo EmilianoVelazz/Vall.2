@@ -36,6 +36,9 @@ async function main() {
         assert(await dialog.getByLabel('Bolsa',{exact:true}).isChecked());
         await dialog.getByLabel('Envíos automáticos',{exact:true}).check();
         assert.equal(await dialog.getByLabel('Personalizar cada envío con IA',{exact:true}).isChecked(),false);
+        const qualityPolicy=dialog.getByLabel('Datos parciales o desactualizados',{exact:true});
+        assert.equal(await qualityPolicy.inputValue(),'warn','La advertencia se conserva como opción predeterminada');
+        await qualityPolicy.selectOption('block');
         await dialog.getByLabel('Hora · Ciudad de México',{exact:true}).fill('17:23');
         await dialog.getByLabel('Categoría de informes',{exact:true}).selectOption('markets');
         await dialog.getByLabel('Granos',{exact:true}).check();
@@ -46,6 +49,7 @@ async function main() {
         await dialog.locator('.erh-send-feedback').filter({hasText:'Entrega activada'}).waitFor();
         assert.equal(requests.length,1);assert.equal(requests[0].expectedOwner,email);assert.equal(requests[0].delivery.time,'17:23');
         assert.deepEqual(requests[0].reports.map(row=>row.area),['finance','markets','mexico']);assert(requests[0].reports.every(row=>row.ai.enabled===false));
+        assert(requests[0].reports.every(row=>row.preferences.dataQualityPolicy==='block'),'La política elegida se aplica a todas las programaciones seleccionadas');
         assert.equal(await dialog.locator('.erh-send-document strong').innerText(),'Bolsa','Elegir entregas no cambia el informe abierto');
         await dialog.getByLabel('Hora · Ciudad de México',{exact:true}).fill('17:41');
         schedules=schedules.map((row,index)=>index===0?{...row,lastSentAt:'2026-10-15T23:23:45Z',preferences:{...row.preferences,_lastDelivery:{scheduledFor:'2026-10-15T23:23:00Z',acceptedAt:'2026-10-15T23:23:45Z'}}}:row);

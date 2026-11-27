@@ -4,6 +4,7 @@ const {normalizeRecipient}=require('../lib/report-email-recipient');
 const {normalizePreferenceOverrides}=require('../lib/report-preference-overrides');
 const {latestReportCutAt,latestMarketReportCutAt}=require('../lib/report-schedule');
 const {createScheduledBundleDelivery}=require('./report-scheduled-bundles');
+const {normalizeDataQualityPolicy,reportHealthSummary,reportHealthBlocksDelivery}=require('../lib/report-data-quality-policy');
 
 function normalizeAiCustomization(input) {
     if (!input || input.enabled !== true) return { enabled: false };
@@ -49,17 +50,21 @@ function createScheduledReportDelivery({ store, collections, loadSnapshot, gener
                     if(expectedCut && original && !(Date.parse(original.generatedAt)>=expectedCut.getTime()))throw Object.assign(Error('El informe conserva un corte anterior; se reintentará cuando esté actualizado.'),{code:'REPORT_CUT_NOT_READY'});
                     const base = original && enrichSectorReport(original,schedule.area);
                     if (!base) throw Error('No existe el informe en el corte vigente.');
+                    const health=reportHealthSummary(base,now());
+                    if(normalizeDataQualityPolicy(schedule.preferences?.dataQualityPolicy)==='block'&&reportHealthBlocksDelivery(health)) {
+                        throw Object.assign(Error(`El informe no cumple el control de calidad (${health.label}); se reintentará sin enviarlo.`),{code:'REPORT_HEALTH_BLOCKED',status:409});
+                    }
                     const ai = normalizeAiCustomization(schedule.preferences?.aiCustomization);
                     const report = ai.enabled
                         ? await generate({ report: {...base,collection:schedule.area}, preferences: schedule.preferences, instructions: ai.instructions, options: { tone: ai.tone,...(ai.mode ? {mode:ai.mode} : {}),...(ai.preferenceOverrides?.length ? {preferenceOverrides:ai.preferenceOverrides} : {}) } },{ownerEmail:schedule.ownerEmail})
                         : personalize(base, schedule.preferences);
                     const beforeSend=()=>store.isCurrent ? store.isCurrent(schedule) : Promise.resolve(true);
                     if(!(await beforeSend())) {deferred++;return;}
-                    const delivery=await deliver({ recipient, title: `VALLNEWS · ${collections[schedule.area].label} · ${report.title}`, executive: prepare(report),language:schedule.preferences?.language || 'es',owner:schedule.ownerEmail,beforeSend });
+                    const delivery=await deliver({ recipient, title: `VALLNEWS · ${collections[schedule.area].label} · ${report.title}`, executive: prepare(report),health,language:schedule.preferences?.language || 'es',owner:schedule.ownerEmail,beforeSend });
                     if(delivery?.skipped){deferred++;return;}
                     accepted=true;
                     const acceptedAt=new Date(now()).toISOString();
-                    const preferences={...schedule.preferences,_lastDelivery:{scheduledFor:schedule.scheduledFor || schedule.nextRunAt || null,startedAt,acceptedAt,reportGeneratedAt:base.generatedAt,...(delivery?.messageId ? {messageId:delivery.messageId} : {})}};
+                    const preferences={...schedule.preferences,_lastDelivery:{scheduledFor:schedule.scheduledFor || schedule.nextRunAt || null,startedAt,acceptedAt,reportGeneratedAt:base.generatedAt,health,...(delivery?.messageId ? {messageId:delivery.messageId} : {})}};
                     await store.record(schedule.id, { sentAt: acceptedAt, delivery: schedule.delivery,preferences,leaseUntil:schedule.leaseUntil,leaseToken:schedule.leaseToken });
                     sent++;
                 } catch (error) {

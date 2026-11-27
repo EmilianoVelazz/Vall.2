@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {calculateFeedCostScenarios as calculate} from '../shared/feed-cost-scenarios.mjs';
+const input={usdMxn:20,cornUsdTon:200,soymealUsdTon:350,otherFeedMxnKg:4,cornSharePct:60,soySharePct:25,feedConversionKg:2.7,operatingCostMxnKg:8,volumeKg:10000,fxShockPct:5,cornShockPct:10,soyShockPct:10};
+const original=JSON.stringify(input),result=calculate(input),near=(a,b)=>assert(Math.abs(a-b)<1e-8,`${a} != ${b}`);
+assert(result.available);assert.equal(result.rows.length,5);near(result.rows[0].feedMxnKg,4.75);near(result.rows[0].costPerKg,20.825);near(result.rows[0].totalCost,208250);
+near(result.rows[1].deltaPerKg,.56025);near(result.rows[2].deltaPerKg,.648);near(result.rows[3].deltaPerKg,.4725);near(result.rows[4].costPerKg,22.561775);
+assert(result.rows[4].deltaPerKg>result.rows.slice(1,4).reduce((sum,row)=>sum+row.deltaPerKg,0),'La combinación conserva el efecto cruzado de precio y moneda');
+assert.equal(JSON.stringify(input),original);assert(calculate({...input,operatingCostMxnKg:0,otherFeedMxnKg:0}).available);
+near(calculate({...input,fxShockPct:0,cornShockPct:0,soyShockPct:0}).rows[4].deltaTotal,0);
+for(const patch of [{cornSharePct:80,soySharePct:30},{usdMxn:0},{volumeKg:''},{cornUsdTon:'1,000'},{soymealUsdTon:Infinity},{cornShockPct:-100},{feedConversionKg:true}])assert.equal(calculate({...input,...patch}).available,false);
+assert.equal(calculate({...input,cornSharePct:0,soySharePct:0,otherFeedMxnKg:0,operatingCostMxnKg:0}).available,false);
+assert.equal(calculate().available,false);
+console.log('Escenarios: unidades USD/t y MXN/kg, conversión, mezcla, efectos cruzados, ceros válidos, supuestos faltantes y ausencia de mutación OK.');

@@ -26,7 +26,7 @@ function createReportBundleSender({render,localize,cache,transport=mailTransport
    if(bytes>MAX_BUNDLE_BYTES)throw Object.assign(Error('El paquete supera el límite de 18 MiB de adjuntos. Reduce la selección antes de enviarlo.'),{status:413,code:'REPORT_EMAIL_BUNDLE_TOO_LARGE'});
    const attachmentName=String(index+1).padStart(2,'0')+'_'+item.area+'_'+reportDownloadName(localized.report,'pdf',{language});
    attachments.push({filename:attachmentName,content:buffer,contentType:'application/pdf'});
-   items.push({area:item.area,key:localized.report.key,title:localized.report.title||localized.title,generatedAt:localized.report.generatedAt,executive:localized.report,attachmentName,size:buffer.length});
+   items.push({area:item.area,key:localized.report.key,title:localized.report.title||localized.title,generatedAt:localized.report.generatedAt,executive:localized.report,health:item.health,attachmentName,size:buffer.length});
    onPrepared?.({index:index+1,total:reports.length,filename:attachmentName,size:buffer.length});
   }
   const content=buildReportBundleEmail({reports:items,language,testMode});

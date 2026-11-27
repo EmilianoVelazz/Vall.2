@@ -96,7 +96,9 @@ class SemanticSearch {
                 : null;
             const semanticScore = vectorScore !== null
                 ? Number((0.52 * vectorScore + 0.30 * lexicalScore + 0.18 * conceptScore).toFixed(6))
-                : Number((0.55 * conceptScore + 0.45 * lexicalScore).toFixed(6));
+                : Number((lexicalScore > 0
+                    ? 0.55 * conceptScore + 0.45 * lexicalScore
+                    : conceptScore).toFixed(6));
             return {
                 ...row,
                 concept_score: conceptScore,

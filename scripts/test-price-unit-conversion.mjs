@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {priceToMxnKg} from '../shared/price-unit-conversion.mjs';
+const close=(actual,expected)=>assert(Math.abs(actual-expected)<1e-9);
+close(priceToMxnKg(50,'MXN/kg','MXN',20),50);
+close(priceToMxnKg(5000,'MXN/100 kg','MXN',20),50);
+close(priceToMxnKg(200,'USD/t','USD',20),4);
+close(priceToMxnKg(100,'US¢/lb','USD',20),20/.45359237);
+close(priceToMxnKg(100,'USD/cwt','USD',20),2000/45.359237);
+close(priceToMxnKg(2,'USD/lb','USD',20),40/.45359237);
+for(const args of [[100,'EUR/100 kg','EUR',20],[100,'BRL/kg','BRL',20],[100,'MXN/docena','MXN',20],[100,'USD/t','USD',null],[100,'MXN/kg','USD',20],[100,'USD/kg','EUR',20],[null,'MXN/kg','MXN',20],[Infinity,'MXN/kg','MXN',20],[-1,'MXN/kg','MXN',20]])assert.equal(priceToMxnKg(...args),null);
+console.log('Conversión: pesos, dólares, centavos, toneladas, libras y cwt; unidades desconocidas o contradictorias se rechazan.');

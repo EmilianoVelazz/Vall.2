@@ -72,3 +72,38 @@
 .sx-scene.of-orion.of-reduced { height: auto; }.of-reduced .of-viewport { position: relative; height: auto; overflow: hidden; }.of-reduced .of-hero { position: relative; top: auto; bottom: auto; min-height: 780px; padding-top: 145px; padding-bottom: 125px; opacity: 1; transform: none; }.of-reduced .of-visual { top: 120px; transform: none; opacity: 1; }.of-reduced .of-explore { position: relative; inset: auto; margin: 0 7%; padding: 40px 0 130px; opacity: 1; transform: none; min-height: 500px; }.of-reduced .of-models { display: block; }.of-reduced .of-footer > a { display: none; }.of-reduced .of-explore-anchor { top: 780px; }
 @media(max-width:700px) { .of-reduced .of-hero { min-height: 850px; padding-top: 125px; padding-bottom: 0; }.of-reduced .of-visual { top: 370px; }.of-reduced .of-explore { min-height: 0; padding-top: 25px; }.of-reduced .of-models { display: contents; }.of-reduced .of-explore-anchor { top: 850px; } }
 @media(prefers-reduced-motion:reduce) { .of-orion :is(.of-model-indicator,.of-aura,.of-primary,.of-example-picker button) { transition: none; } }
+
+.vn-presentacion .of-kicker { color: #b3c9e6; font-size: 10px; }
+.vn-presentacion .of-intro { color: #bdc9d8; font-size: 14px; }
+.vn-presentacion .of-primary { font-size: 13px; }
+.of-discover { color: #c2d5ee !important; font-size: 12px; }
+.of-capabilities > span { color: #c0d1e6; font-size: 12px; }
+.of-capabilities small,.of-small { color: #91afd2; font-size: 9px; }
+.vn-presentacion .of-model-copy h4 { color: #edf3fc; }
+.vn-presentacion .of-model-copy p { color: #bdc9d8; font-size: 13px; }
+.of-demo-top > span { color: #b9d1ef; font-size: 9px; }
+.of-demo-top small { color: #a5b8d2; font-size: 8px; }
+.vn-presentacion .of-example-picker button { color: #b2c5df; font-size: 10px; }
+.vn-presentacion .of-demo-copy h4 { color: #edf3fc; font-size: 17px; }
+.vn-presentacion .of-demo-copy p { color: #bdc9d8; font-size: 13px; }
+.of-tags > span { color: #b9cde8; font-size: 9px; }
+.of-demo-note { color: #a5b4c7; font-size: 9px; }
+.of-orbit-label { color: #a9bfdc; font-size: 9px; }
+
+@media(max-width:700px) {
+  .vn-presentacion .of-kicker { font-size: 8px; }
+  .vn-presentacion .of-intro { font-size: 12px; }
+  .vn-presentacion .of-primary { font-size: 11px; }
+  .of-discover { font-size: 10px; }
+  .of-capabilities > span { font-size: 10px; }
+  .of-capabilities small,.of-small { font-size: 8px; }
+  .vn-presentacion .of-model-copy h4 { font-size: 16px; }
+  .vn-presentacion .of-model-copy p { font-size: 11px; }
+  .of-demo-top > span { font-size: 8px; }
+  .of-demo-top small { font-size: 7px; }
+  .vn-presentacion .of-example-picker button { font-size: 9px; }
+  .vn-presentacion .of-demo-copy h4 { font-size: 13px; }
+  .vn-presentacion .of-demo-copy p { font-size: 10px; }
+  .of-tags > span,.of-demo-note { font-size: 8px; }
+  .of-orbit-label { font-size: 7px; }
+}

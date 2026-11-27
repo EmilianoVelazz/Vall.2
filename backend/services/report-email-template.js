@@ -1,5 +1,6 @@
 'use strict';
 const {reportLabels}=require('../lib/report-language');
+const {reportHealthEmailDetails}=require('../lib/report-email-health');
 const {reportLayout}=require('../lib/report-layout');
 const fs=require('node:fs'),path=require('node:path');
 const LOGO_CID='vallnews-signature';
@@ -42,7 +43,7 @@ function buildReportSignature({language='es'}={}){
     };
 }
 
-function buildReportEmail({title,executive,attachmentName,language='es'}) {
+function buildReportEmail({title,executive,attachmentName,language='es',health}) {
     const {t,locale}=reportLabels(language);
     const report=executive && typeof executive==='object' ? executive : {};
     const reportTitle=singleLine(report.title || title) || t('Informe ejecutivo');
@@ -55,6 +56,8 @@ function buildReportEmail({title,executive,attachmentName,language='es'}) {
     const classification=t(classifications[settings.confidentiality] || singleLine(settings.confidentialityLabel) || 'Uso interno');
     const identity=[settings.recipientName,settings.organization].map(singleLine).filter(Boolean).join(' · ');
     const summary=reportLayout(report)?.composition==='weekly-sheet' ? '' : brief(report.summary || report.objective,260);
+    const healthDetails=reportHealthEmailDetails(health,t);
+    const healthText=healthDetails.summary;
     const introduction=t('Le compartimos su informe de VALLNEWS para apoyar su análisis y toma de decisiones.');
     const attachmentGuide=t('Consulte la edición completa en el PDF adjunto.');
     const closing=t('Gracias por confiar en VALLNEWS.');
@@ -122,6 +125,8 @@ ${identity ? `<p style="margin:11px 0 0;font-size:12px;line-height:1.6;color:#52
 <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#203a50">${escape(greeting)}</p>
 <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#334f64">${escape(introduction)}</p>
 ${summary ? `<p class="email-summary" style="margin:0;font-size:14px;line-height:1.75;color:#52697e;word-wrap:break-word;overflow-wrap:anywhere">${escape(summary)}</p>` : ''}
+${healthText ? `<p class="email-data-health" style="margin:12px 0 0;padding:10px 12px;background:#fff7e6;border-left:3px solid #dcae55;color:#795b20;font-size:12px;line-height:1.7">${escape(healthText)}</p>` : ''}
+${healthDetails.referencesHtml}
 ${actionsHtml}
 ${metricsHtml}
 </td></tr>
@@ -138,7 +143,7 @@ ${metricsHtml}
     const textActions = actions.length ? '\n\n' + t('QUÉ HACER HOY') + ':\n' + actions.map(a => `• [${a.pillar}] ${a.headline} -> ${a.recommendation}`).join('\n') : '';
     const textMetrics = metrics.length ? '\n\n' + t('TABLERO') + ':\n' + metrics.map(m => `• ${m.label}: ${m.value} (${m.change})`).join('\n') : '';
 
-    const text=[reportTitle,`${t('Corte')}: ${cut}`,classification,identity && `${t('Preparado para')}: ${identity}`,greeting,introduction,summary,textActions,textMetrics,attachmentGuide,`${t('PDF adjunto')}: ${file}`,closing,t('Atentamente,')+'\n'+signature.text].filter(Boolean).join('\n\n');
+    const text=[reportTitle,`${t('Corte')}: ${cut}`,classification,identity && `${t('Preparado para')}: ${identity}`,greeting,introduction,summary,healthText,healthDetails.referencesText,textActions,textMetrics,attachmentGuide,`${t('PDF adjunto')}: ${file}`,closing,t('Atentamente,')+'\n'+signature.text].filter(Boolean).join('\n\n');
     return {subject:`VALLNEWS · ${reportTitle}`.slice(0,180),html,text};
 }
 

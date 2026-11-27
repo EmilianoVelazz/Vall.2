@@ -75,11 +75,17 @@ function quoteMatchesRecord(line, record, citations, fxRates = null) {
 
 function guardProteinPrices(plan = {}, evidence = {}, text = '') {
     if (!(plan.needsProteinPrices || plan.needsProteinResearch) || plan.providedInputsOnly || plan.proteinProfile?.futures || plan.asksCoverageExplanation || plan.asksDataInventory) return { text, blocked: false };
+    const proseOnly = String(text || '').replace(/```chart\s*\n[\s\S]*?```/gi, '');
+    const lines = proseOnly.split('\n');
+    const rows = lines.filter(line => /^\s*\|/.test(line) && MONEY.test(line));
+    const quoted = (rows.length ? rows : proseOnly.split(/\n\s*\n/).filter(paragraph => MONEY.test(paragraph)))
+        .filter(line => plan.needsProteinPrices || /(?:\/|por\s+)(?:\s*\d+\s*)?(?:kg|kilos?|docenas?|toneladas?|cwt|lbs?|aves?|piezas?|cajas?|cartones?|charolas?)\b/i.test(line));
     // Cuando el usuario NO pidió cotizaciones físicas de proteínas (sino radar sanitario/ML,
     // pronósticos, panorama ejecutivo o comercio) y no hay registros físicos cargados,
-    // no reemplazar su análisis por una tabla vacía "No pude validar los precios solicitados".
+    // conservar el análisis narrativo; las cotizaciones que aparezcan aún deben validarse.
     const hasPhysicalRecords = (evidence.proteinPriceRecords || []).length > 0;
-    if (!plan.needsProteinPrices && !hasPhysicalRecords && (plan.needsMarranasML || plan.asksForecast || plan.asksExecutiveBrief || plan.needsExecutiveReport || plan.needsTradeResearch)) {
+    if (!quoted.length && !plan.needsProteinPrices && !hasPhysicalRecords
+        && (plan.needsVallProteinasML || plan.needsMarranasML || plan.asksForecast || plan.asksExecutiveBrief || plan.needsExecutiveReport || plan.needsTradeResearch)) {
         return { text, blocked: false };
     }
     const profile = plan.proteinProfile || { products: [], countries: [] };
@@ -92,11 +98,6 @@ function guardProteinPrices(plan = {}, evidence = {}, text = '') {
         && !plan.asksAnalysis && !plan.asksNews && !plan.needsTradeResearch) {
         return {text:proteinPriceTable(plan,evidence),blocked:false,changed:true};
     }
-    const proseOnly = String(text || '').replace(/```chart\s*\n[\s\S]*?```/gi, '');
-    const lines = proseOnly.split('\n');
-    const rows = lines.filter(line => /^\s*\|/.test(line) && MONEY.test(line));
-    const quoted = (rows.length ? rows : proseOnly.split(/\n\s*\n/).filter(paragraph => MONEY.test(paragraph)))
-        .filter(line=>plan.needsProteinPrices || /(?:\/|por\s+)(?:\s*\d+\s*)?(?:kg|kilos?|docenas?|toneladas?|cwt|lbs?|aves?|piezas?|cajas?|cartones?|charolas?)\b/i.test(line));
     if (!quoted.length) return { text, blocked: false };
     const records = (evidence.proteinPriceRecords || []).filter(record => record.verified
         && profile.products.includes(record.productId) && (!profile.countries.length || profile.countries.includes(record.countryCode))

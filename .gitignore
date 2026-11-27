@@ -150,3 +150,6 @@ boveda_obsidian/.obsidian/
 
 # Diagnósticos locales, no forman parte del código publicado.
 /scratch/
+
+.chart-data-*
+.codex-artifacts/

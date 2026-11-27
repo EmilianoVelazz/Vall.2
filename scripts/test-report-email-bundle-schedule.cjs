@@ -59,6 +59,21 @@ async function main(){
   const customRun=await createScheduledReportDelivery(customDeps)();assert.equal(customRun.sent,2);assert.equal(generated,1);assert.equal(customized.length,1);assert(customized[0].reports.some(item=>item.executive.title==='Edición con IA de prueba'));assert(customized[0].reports.some(item=>item.executive.title==='Lectura de México'));
   results.push('Se conservan el pedido de IA y el título personalizado de cada informe dentro del mismo paquete');
 
+  const preservedReport={key:'equities',title:'Bolsa',generatedAt:'2026-11-16T15:00:00.000Z',dataStatus:{state:'preserved'},metrics:[{label:'Valor',value:'10'}],sections:[]};
+  const warnStore=await setup('health-warn',[input('finance','equities')]);let warnedPacket;
+  const warnDeps=dependencies(warnStore,async packet=>{warnedPacket=packet;return {messageId:'health-warning'};});
+  const warnLoad=warnDeps.loadSnapshot;warnDeps.loadSnapshot=async area=>{const snapshot=await warnLoad(area);snapshot.reports=snapshot.reports.map(report=>report.key==='equities'?preservedReport:report);return snapshot;};
+  const warnResult=await createScheduledReportDelivery(warnDeps)();assert.equal(warnResult.sent,1);assert.equal(warnedPacket.reports[0].health.state,'preserved');
+  assert.equal((await warnStore.list(owner))[0].preferences._lastDelivery.health.state,'preserved');
+  results.push('La política predeterminada advierte y conserva el estado de cobertura en el recibo');
+
+  const blockStore=await setup('health-block',[input('finance','equities',{preferences:{dataQualityPolicy:'block'}})]);let blockedEmails=0;
+  const blockDeps=dependencies(blockStore,async()=>{blockedEmails++;return {};});const blockLoad=blockDeps.loadSnapshot;
+  blockDeps.loadSnapshot=async area=>{const snapshot=await blockLoad(area);snapshot.reports=snapshot.reports.map(report=>report.key==='equities'?preservedReport:report);return snapshot;};
+  const blockedRun=await createScheduledReportDelivery(blockDeps)();assert.equal(blockedRun.sent,0);assert.equal(blockedRun.errors,1);assert.equal(blockedEmails,0);
+  assert.match((await blockStore.list(owner))[0].lastError,/no cumple el control de calidad/i);
+  results.push('El bloqueo estricto detiene todo el paquete y deja el intento reintentable');
+
   now=new Date('2026-11-20T19:59:00Z');const weekly=storeFor('weekly');
   await weekly.upsert(input('finance','equities'));await weekly.upsert(input('mexico','mx_bolsa'));
   for(const key of ['grains','proteins'])await weekly.upsert(input('markets',key,{delivery:{frequency:'weekly',time:'14:00',weekday:5}}));

@@ -20,6 +20,9 @@ assert.equal(compare({quotes:[{...quote,history:'revised history'}]}).items[0].h
 assert.equal(compare({quotes:[]}).items[0].kind,'unavailable','A missing reference does not become zero');
 assert.equal(compare({quotes:[quote,{...quote,id:'new-reference'}]}).items[0].kind,'publication');
 assert.equal(compare({news:[{id:'new',label:'Publicación de prueba'}]}).items[0].kind,'news');
+const composite={collection:'finance',key:'overview',generatedAt:raw.generatedAt,panoramaParts:[{...raw,collection:'finance'}]},compositeBefore=JSON.stringify(composite),integrated=reportChangeSnapshot(composite);
+assert.equal(integrated.quotes.length,snapshot.quotes.length,'El panorama compara las observaciones de todos sus capítulos');
+assert.equal(compareReportSnapshots(integrated,integrated).items.length,0);assert.equal(JSON.stringify(composite),compositeBefore);
 for(const [text,kind]of [['Diaria','daily'],['fuente semanal','weekly'],['2026-11 (mensual)','monthly'],['Consulta conservada','preserved'],['Catálogo · por corroborar','pending'],['2026-11-10',''],['0 MXN/kg','']])assert.equal(reportReferenceStatus(text),kind);
 for(const text of ['Rendimiento anual','No es un dato diario','2026-11'])assert.equal(reportReferenceStatus(text),'','Do not infer publication cadence from units or an isolated date');
 console.log('Report changes: canonical evidence, revisions, new publications, missing references, isolated report identities and explicit cadence labels verified.');

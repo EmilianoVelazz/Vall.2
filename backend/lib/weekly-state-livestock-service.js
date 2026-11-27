@@ -3,7 +3,7 @@
 /* Complemento semanal para la tabla pecuaria estatal.
  *
  * La fuente primaria sigue siendo SNIIM/Porcicultura. Este servicio sólo cubre
- * huecos de bovino y pollo en los estados donde sí existe cerdo estatal. Primero
+ * huecos de bovino y pollo por entidad, aunque no exista cerdo estatal. Primero
  * lee las filas SNIIM publicadas por Abasteros y únicamente recurre a Gemini con
  * Google Search cuando esa evidencia estructurada no contiene una plaza.
  */
@@ -12,9 +12,10 @@ const path = require('path');
 const { CACHE_DIR } = require('./config');
 const { externalGet } = require('./http');
 const { GeminiProvider } = require('../ai/providers/gemini-provider');
+const {requestedMexicoStates,stateName}=require('../services/mexico-price-scope');
 
 const CACHE_FILE = path.join(CACHE_DIR, 'weekly-state-livestock-prices.json');
-const CACHE_SCHEMA = 1;
+const CACHE_SCHEMA = 2;
 const TIME_ZONE = 'America/Mexico_City';
 const TARGET_STATES = Object.freeze({
     SON: { state: 'Sonora', aliases: ['Hermosillo', 'Ciudad Obregón', 'Sonora'] },
@@ -90,6 +91,9 @@ function parseShortDate(value) {
 }
 
 function stateForMarket(market) {
+    const matches=requestedMexicoStates(market,true);
+    if(matches.length===1)return matches[0];
+    if(matches.length>1)return null;
     const clean = String(market || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     return Object.entries(TARGET_STATES).find(([, meta]) => meta.aliases.some((alias) => clean.includes(alias.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())))?.[0] || null;
 }
@@ -101,8 +105,8 @@ function parseAbasterosRows(html, product) {
         const stateCode = stateForMarket(cells[2]);
         const price = Number(String(cells[1] || '').replace(/[$,]/g, ''));
         const date = parseShortDate(cells[0]);
-        if (!stateCode || !date || !Number.isFinite(price) || price < meta.min || price > meta.max) return null;
-        return { stateCode, state: TARGET_STATES[stateCode].state, price, date, market: cells[2] };
+        if (!stateCode || !date || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0,10)!==date || date>new Date().toISOString().slice(0,10) || !Number.isFinite(price) || price < meta.min || price > meta.max) return null;
+        return { stateCode, state: stateName(stateCode), price, date, market: cells[2] };
     }).filter(Boolean);
     const grouped = new Map();
     rows.forEach((row) => {
@@ -115,7 +119,7 @@ function parseAbasterosRows(html, product) {
         const current = stateRows.filter((row) => row.date === latest);
         return {
             stateCode,
-            state: TARGET_STATES[stateCode].state,
+            state: stateName(stateCode),
             price: Math.round((current.reduce((sum, row) => sum + row.price, 0) / current.length) * 100) / 100,
             observations: current.length,
             markets: current.map((row) => row.market).slice(0, 4),
@@ -123,6 +127,7 @@ function parseAbasterosRows(html, product) {
             cadence: 'weekly-source',
             source: 'SNIIM · publicado por Abasteros',
             sourceUrl: meta.url,
+            unit: product==='beef'?'MXN/kg vivo':'MXN/kg',
             level: meta.basis,
         };
     });

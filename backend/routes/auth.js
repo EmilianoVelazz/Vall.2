@@ -529,7 +529,7 @@ router.post('/admin/loopus-proposals/:id/review', verifyToken, requireProfileAdm
     }
 });
 
-// ── MARRANAS · Panel de Salud y Control Administrativo (Motor independiente de Loopus) ──
+// ── VALL-Proteínas · panel de salud y control del motor ML especializado ──
 const _marranasAdminJob = {
     running: false,
     mode: null,
@@ -551,8 +551,8 @@ function buildMarranasHealthPayload() {
 
     return {
         available: Boolean(artifact),
-        model: artifact?.model || 'MARRANAS',
-        displayName: artifact?.displayName || 'MARRANAS · Motor ML de Proteínas',
+        model: artifact?.model || 'VALL-Proteínas',
+        displayName: artifact?.displayName || 'VALL-Proteínas · Modelo ML de predicción de proteínas',
         version: artifact?.version || null,
         generatedAt: artifact?.generatedAt || null,
         stats: artifact?.stats || null,
@@ -582,7 +582,7 @@ function buildMarranasHealthPayload() {
     };
 }
 
-router.get('/admin/marranas/health', verifyToken, requireProfileAdmin, async (_req, res) => {
+router.get(['/admin/marranas/health', '/admin/vall-proteinas/health'], verifyToken, requireProfileAdmin, async (_req, res) => {
     try {
         res.set('Cache-Control', 'private, no-store');
         res.json({
@@ -591,11 +591,11 @@ router.get('/admin/marranas/health', verifyToken, requireProfileAdmin, async (_r
             jobStatus: { ..._marranasAdminJob },
         });
     } catch (error) {
-        res.status(503).json({ success: false, error: error?.message || 'No se pudo cargar la salud de MARRANAS.' });
+        res.status(503).json({ success: false, error: error?.message || 'No se pudo cargar la salud de VALL-Proteínas.' });
     }
 });
 
-router.post('/admin/marranas/retrain', verifyToken, requireProfileAdmin, express.json({ limit: '4kb' }), async (req, res) => {
+router.post(['/admin/marranas/retrain', '/admin/vall-proteinas/retrain'], verifyToken, requireProfileAdmin, express.json({ limit: '4kb' }), async (req, res) => {
     try {
         const mode = String(req.body?.mode || 'full').trim().toLowerCase();
         if (!['full', 'audit', 'nlp'].includes(mode)) {
@@ -642,7 +642,7 @@ router.post('/admin/marranas/retrain', verifyToken, requireProfileAdmin, express
         if (_marranasAdminJob.running) {
             return res.status(409).json({
                 success: false,
-                error: 'Ya hay un re-entrenamiento completo de MARRANAS en ejecución.',
+                error: 'Ya hay un re-entrenamiento completo de VALL-Proteínas en ejecución.',
                 jobStatus: { ..._marranasAdminJob },
             });
         }
@@ -666,7 +666,7 @@ router.post('/admin/marranas/retrain', verifyToken, requireProfileAdmin, express
                     persistedRuns: result?.dbStats?.persistedForecastRuns || 0,
                 };
             } catch (err) {
-                _marranasAdminJob.lastError = err?.message || 'Error durante el re-entrenamiento de MARRANAS.';
+                _marranasAdminJob.lastError = err?.message || 'Error durante el re-entrenamiento de VALL-Proteínas.';
             } finally {
                 _marranasAdminJob.running = false;
                 _marranasAdminJob.finishedAt = new Date().toISOString();
@@ -678,11 +678,11 @@ router.post('/admin/marranas/retrain', verifyToken, requireProfileAdmin, express
             success: true,
             mode: 'full',
             accepted: true,
-            message: 'Re-entrenamiento completo de MARRANAS v6.0 iniciado en segundo plano (≈5–6 min).',
+            message: 'Re-entrenamiento completo de VALL-Proteínas iniciado en segundo plano (≈5–6 min).',
             jobStatus: { ..._marranasAdminJob },
         });
     } catch (error) {
-        res.status(503).json({ success: false, error: error?.message || 'No se pudo ejecutar la acción de MARRANAS.' });
+        res.status(503).json({ success: false, error: error?.message || 'No se pudo ejecutar la acción de VALL-Proteínas.' });
     }
 });
 

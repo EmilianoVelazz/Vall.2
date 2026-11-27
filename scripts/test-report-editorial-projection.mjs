@@ -23,7 +23,7 @@ const samples=[
 ];
 const folder=path.resolve('tmp/pdfs/report-verification');await fs.mkdir(folder,{recursive:true});
 for(const sample of samples){
- const before=JSON.stringify(sample),agent=new ExecutiveReportAgent({provider:{isConfigured:()=>true,generate:async()=>({model:'gemini-4-argon',text:JSON.stringify({reports:[{key:sample.key,headline:'Lectura de simulación',context:'El corte conserva las referencias proporcionadas.',thesis:marker,drivers:['Confirmar los datos internos antes de decidir.'],risks:['El dato no es una cotización ejecutable.'],committeeQuestion:question}]})})}});
+ const before=JSON.stringify(sample),agent=new ExecutiveReportAgent({provider:{isConfigured:()=>true,generate:async()=>({model:'gemini-4-argon',text:JSON.stringify({reports:[{key:sample.key,headline:'Lectura de simulación',context:'El corte conserva las referencias proporcionadas.',thesis:marker,drivers:['Confirmar los datos internos antes de decidir.'],risks:['El dato no es una cotización ejecutable.'],committeeQuestion:question,traceability:{thesis:{kind:'pending',evidenceIds:[]},drivers:[{kind:'pending',evidenceIds:[]}],risks:[{kind:'pending',evidenceIds:[]}]}}]})})}});
  const [enriched]=await agent.enrich([sample],{area:sample.collection==='markets'?'Mercados':'Finanzas'});
  assert.equal(enriched.executiveBrief.mode,'ai');assert.equal(enriched.executiveBrief.evidenceHash,editorialFingerprint(editorialFacts(enriched)));assert.equal(JSON.stringify(sample),before);
  const canonical=withDailyEvidence(enriched);assert.equal(canonical.executiveBrief?.thesis,marker,'Dated projections retain the verified analysis');

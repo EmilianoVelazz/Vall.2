@@ -34,7 +34,7 @@ const LIBS = [
   ...DATOS,
 ];
 
-const CLAVE_CACHE = 'prot_v14-puebla';
+const CLAVE_CACHE = 'prot_v15-nacional';
 const MS_REFRESCO = 30 * 60 * 1000;
 
 const CATEGORIAS = [
@@ -45,11 +45,10 @@ const CATEGORIAS = [
   { id: 'huevo', texto: 'HUEVO' },
 ];
 
-const ETIQUETA = { cerdo: 'Cerdo · Mercado', pollo: 'Pollo · Tendencias', res: 'Res · Comercio' };
-const IMPACTO = { cerdo: 'alto', pollo: 'medio', res: 'bajo' };
-const ESPECIES = ['cerdo', 'pollo', 'res'];
+const ETIQUETA = { cerdo: 'Cerdo · Mercado', pollo: 'Pollo · Tendencias', res: 'Res · Comercio', huevo: 'Huevo · Abasto' };
+const IMPACTO = { cerdo: 'alto', pollo: 'medio', res: 'bajo', huevo: 'medio' };
+const ESPECIES = ['cerdo', 'pollo', 'res', 'huevo'];
 const ESPECIES_PRECIO = ['cerdo', 'pollo', 'res', 'huevo'];
-const CLAVE_COMERCIAL = { cerdo: 'pork', pollo: 'chicken', res: 'beef', huevo: 'egg' };
 
 const NOMBRE_PRECIO = {
   cerdo: 'Cerdo vivo',
@@ -67,21 +66,9 @@ const ESTADO_FUENTE = {
 
 const IMGS = ['/assets/img/fallback/ganaderia.webp', '/assets/img/fallback/materias-primas.webp', '/assets/img/fallback/finanzas.webp'];
 
-const DESTINOS = [
-  { clave: 'japon', etiqueta: 'JP · Japón (ref. 40% USDA)', pct: 40, extra: 0.35 },
-  { clave: 'corea', etiqueta: 'KR · Corea del Sur (ref. 25% USDA)', pct: 25, extra: 0.25 },
-  { clave: 'china', etiqueta: 'CN · China (ref. 15% USDA)', pct: 15, extra: 0.45, acento: true },
-  { clave: 'otros', etiqueta: 'GLB · Otros (20%)', pct: 20, extra: 0.15, tenue: true },
-];
-
 const SISTEMA_IA =
   'Eres un analista financiero institucional de VALL News especializado en agroindustria y ganadería. ' +
   'Responde en español, de forma concisa y profesional. Máximo 100 palabras.';
-
-/* Valores de referencia cuando el proveedor no responde. Van etiquetados como
-   "(ref.)" en pantalla: la sección nunca presenta una estimación como si fuera
-   una cotización real. */
-const REF = { corn: 4.82, soy: 342.0, cerdo: 2.45, res: 4.8 };
 
 function clasificar(titulo) {
   const t = (titulo || '').toLowerCase();
@@ -103,11 +90,12 @@ async function calcular(VDS) {
     .toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
     .toUpperCase();
 
-  const [gdProtR, gdFeedR, fhR, wholesaleR, inegiR, blsR, woahR, catalogoR] = await Promise.allSettled([
-    VDS.gdeltNews('pork poultry beef cattle hog livestock chicken meat protein', 6),
+  const [gdProtR, gdFeedR, fhR, sniimR, wholesaleR, inegiR, blsR, woahR, catalogoR] = await Promise.allSettled([
+    VDS.gdeltNews('pork poultry beef cattle hog livestock chicken meat protein egg', 8),
     VDS.gdeltNews('corn soybean feed cost USDA livestock grain animal', 5),
     VDS.finnhubNews('general'),
-    fetch('/api/proteinas/precios-comerciales').then(res => res.json()),
+    fetch('/api/sniim/primer-mercado').then(res => (res.ok ? res.json() : null)),
+    fetch('/api/proteinas/precios-comerciales').then(res => (res.ok ? res.json() : null)),
     VDS.inegiPreciosCarne(),
     VDS.blsMeatPrices(),
     VDS.woahAlerts(),
@@ -116,6 +104,7 @@ async function calcular(VDS) {
 
   const usar = (r) => (r.status === 'fulfilled' && Array.isArray(r.value) ? r.value : []);
   const gdProt = usar(gdProtR);
+  const sniim = sniimR.status === 'fulfilled' ? sniimR.value : null;
   const wholesalePrices = wholesaleR.status === 'fulfilled' ? wholesaleR.value : null;
   const inegi = inegiR.status === 'fulfilled' ? inegiR.value : null;
   const bls = blsR.status === 'fulfilled' ? blsR.value : null;
@@ -150,59 +139,74 @@ async function calcular(VDS) {
   const corn = cotiza(cornR);
   const soy = cotiza(soyR);
 
-  const cornP = corn?.price ?? REF.corn;
-  const soyP = soy?.price ?? REF.soy;
-  // Estos tres valores se conservan sólo para el bloque internacional y para
-  // el contexto de insumos. Nunca se presentan como precio de Puebla.
-  const cerdoP = hogs ? +(hogs.price * 0.022).toFixed(2) : REF.cerdo;
-  const resP = cattle ? +(cattle.price * 0.022).toFixed(2) : REF.res;
+  const cornP = corn?.price ?? null;
+  const soyP = soy?.price ?? null;
+  // Cotizaciones internacionales reales (sin constantes sintéticas si el proveedor no responde).
+  const cerdoP = hogs ? +(hogs.price * 0.022).toFixed(2) : null;
+  const resP = cattle ? +(cattle.price * 0.022).toFixed(2) : null;
 
-  const precioPuebla = (key) => {
-    const item = wholesalePrices?.prices?.[key];
+  const precioNacional = (key) => {
+    const item = sniim?.prices?.[key];
     const parsedPrice = Number(item?.price);
-    return item?.available && Number.isFinite(parsedPrice) ? { ...item, price: parsedPrice } : null;
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) return null;
+    return {
+      price: parsedPrice,
+      label: item.label || NOMBRE_PRECIO[key],
+      unit: item.unit || 'MXN/kg',
+      date: item.date || item.states?.map((s) => s.date).filter(Boolean).sort().at(-1) || 'vigente',
+      market: `México Nacional (${(item.states || []).length}/32 estados)`,
+      level: item.level || 'Mercado físico nacional',
+      source: item.source || sniim?.source || 'SNIIM',
+      sourceUrl: item.sourceUrl || 'https://www.economia-sniim.gob.mx/nuevo/',
+      states: Array.isArray(item.states) ? item.states : [],
+    };
   };
-  const puebla = {
-    cerdo: precioPuebla('pork'),
-    pollo: precioPuebla('chicken'),
-    res: precioPuebla('beef'),
-    huevo: precioPuebla('egg'),
+
+  const nacional = {
+    cerdo: precioNacional('pork'),
+    pollo: precioNacional('chicken'),
+    res: precioNacional('beef'),
+    huevo: precioNacional('egg'),
   };
 
   const precios = {
-    cerdo: puebla.cerdo?.price ?? null,
-    pollo: puebla.pollo?.price ?? null,
-    res: puebla.res?.price ?? null,
-    huevo: puebla.huevo?.price ?? null,
+    cerdo: nacional.cerdo?.price ?? null,
+    pollo: nacional.pollo?.price ?? null,
+    res: nacional.res?.price ?? null,
+    huevo: nacional.huevo?.price ?? null,
   };
 
-  const feedMaiz = (cornP / 25.4) * 2.8;
-  const feedSoya = (soyP / 1000) * 0.8;
-  const feedTotal = +(feedMaiz + feedSoya).toFixed(2);
+  const feedMaiz = cornP != null ? (cornP / 25.4) * 2.8 : null;
+  const feedSoya = soyP != null ? (soyP / 1000) * 0.8 : null;
+  const feedTotal = feedMaiz != null && feedSoya != null ? +(feedMaiz + feedSoya).toFixed(2) : null;
 
   const margen = {
-    valor: puebla.cerdo ? `$${puebla.cerdo.price.toFixed(2)}` : '—',
-    positivo: Boolean(puebla.cerdo),
+    valor: nacional.cerdo ? `$${nacional.cerdo.price.toFixed(2)}` : '—',
+    positivo: Boolean(nacional.cerdo),
     analisis:
-      puebla.cerdo
-        ? `<b>${puebla.cerdo.label}: $${puebla.cerdo.price.toFixed(2)} ${puebla.cerdo.unit}</b> en ${puebla.cerdo.market}, `
-          + `con fecha ${puebla.cerdo.date}. ${puebla.cerdo.note}.<br>`
-          + 'No se calcula un margen de producción con esta cifra: requeriría costos locales y una especificación homogénea de canal, peso y alimentación.'
-        : 'Aún no hay una cotización de cerdo verificable para Puebla. La plataforma no la reemplaza con un futuro de Estados Unidos.',
+      nacional.cerdo
+        ? `<b>${nacional.cerdo.label}: $${nacional.cerdo.price.toFixed(2)} ${nacional.cerdo.unit}</b> · ${nacional.cerdo.market} (${nacional.cerdo.date}). `
+          + `${nacional.cerdo.level}.<br>`
+          + 'No se calcula un margen neto con una sola cotización: utiliza el Simulador de Costo y los Escenarios de Ración para incorporar flete, merma, FX y FCR.'
+        : 'Aún no hay una cotización nacional verificable de cerdo en este corte. La plataforma no la reemplaza con un futuro de Estados Unidos.',
   };
 
   const sintetica = {
     cerdo: {
-      titulo: `Referencia internacional: Lean Hogs CME $${cerdoP}/kg${hogs ? '' : ' (ref.)'}`,
-      desc: 'Es un futuro de Estados Unidos para contexto internacional; no es una cotización de cerdo físico de Puebla.',
+      titulo: cerdoP != null ? `Referencia internacional: Lean Hogs CME $${cerdoP}/kg` : 'Sin titular verificado de cerdo en este corte',
+      desc: 'Futuro de Estados Unidos para contraste internacional; no sustituye la cotización física mexicana.',
     },
     pollo: {
-      titulo: 'Sin noticia local verificada de pollo',
-      desc: 'La tarjeta de precios sólo publica pollo físico de Puebla cuando la búsqueda devuelve mercado, fecha, unidad y evidencia.',
+      titulo: 'Sin noticia verificada de pollo en este corte',
+      desc: 'Los precios físicos de pollo conservan su fecha, unidad y cobertura estatal SNIIM.',
     },
     res: {
-      titulo: `Referencia internacional: Live Cattle CME $${resP}/kg${cattle ? '' : ' (ref.)'}`,
-      desc: 'Es un futuro de Estados Unidos para contexto internacional; no es una cotización de bovino físico de Puebla.',
+      titulo: resP != null ? `Referencia internacional: Live Cattle CME $${resP}/kg` : 'Sin titular verificado de res en este corte',
+      desc: 'Futuro de Estados Unidos para contraste internacional; no sustituye la cotización física mexicana.',
+    },
+    huevo: {
+      titulo: 'Sin noticia verificada de huevo en este corte',
+      desc: 'El tablero nacional conserva las cotizaciones semanales SNIIM de huevo blanco por entidad.',
     },
   };
 
@@ -217,13 +221,13 @@ async function calcular(VDS) {
         fuente: (a.source || a.domain || (i < gdProt.length ? 'GDELT' : 'FINNHUB')).toUpperCase(),
       };
     }
-    return { ...base, ...sintetica[especie], fuente: especie === 'pollo' ? 'VALL · VALIDACIÓN LOCAL' : ((especie === 'cerdo' ? hogs : cattle) ? 'ALPHA VANTAGE' : 'CME REF.') };
+    return { ...base, ...sintetica[especie], fuente: (especie === 'cerdo' && hogs) || (especie === 'res' && cattle) ? 'CME / YAHOO' : 'VALL · SNIIM' };
   });
 
-  const ratio = puebla.cerdo && puebla.pollo ? (puebla.cerdo.price / puebla.pollo.price).toFixed(2) : null;
+  const ratio = nacional.cerdo && nacional.pollo ? (nacional.cerdo.price / nacional.pollo.price).toFixed(2) : null;
   const notaRatio = ratio
-    ? 'Indicador descriptivo: los niveles comerciales no son idénticos y no equivale a un margen.'
-    : 'Se publica sólo cuando existen ambas cotizaciones físicas de Puebla.';
+    ? 'Indicador descriptivo nacional: los niveles comerciales no son idénticos y no equivale a un margen.'
+    : 'Se publica sólo cuando existen ambas cotizaciones físicas nacionales.';
 
   /* No se promedian estas fuentes: cada una observa un eslabón distinto de la
      cadena. El usuario puede contrastar un futuro de EE.UU., una venta primaria
@@ -252,12 +256,12 @@ async function calcular(VDS) {
         : 'No respondió una serie mensual del BLS.',
     },
     {
-      nombre: 'Cotizaciones físicas de Puebla',
-      nivel: 'Puebla, Puebla · mayoreo / intermediario · MXN/kg · cada 12 h',
-      estado: Boolean(wholesalePrices?.available && wholesalePrices?.prices && Object.keys(wholesalePrices.prices).length),
-      detalle: wholesalePrices?.available
-        ? `Gemini + búsqueda web. Última investigación: ${wholesalePrices.retrievedAt ? new Date(wholesalePrices.retrievedAt).toLocaleString('es-MX') : 'sin sello'}. Cada renglón conserva mercado, fecha, unidad y enlace de evidencia.`
-        : 'No hubo evidencia local suficiente para publicar una cotización.',
+      nombre: 'SNIIM + Porcicultura.com (México Nacional)',
+      nivel: 'Primera venta y mayoreo físico por entidad · MXN/kg',
+      estado: Boolean(sniim?.available),
+      detalle: sniim?.available
+        ? `Corte nacional disponible (${sniim.retrievedAt ? new Date(sniim.retrievedAt).toLocaleString('es-MX') : 'vigente'}). Cada entidad conserva su fecha y unidad.`
+        : 'No respondió el corte nacional SNIIM en esta consulta.',
     },
     {
       nombre: 'WOAH / WAHIS',
@@ -269,18 +273,29 @@ async function calcular(VDS) {
     },
   ];
 
+  const futurosInternacionales = [
+    { clave: 'hogs', etiqueta: 'Lean Hogs CME (USD/kg eq.)', valor: cerdoP != null ? `$${cerdoP.toFixed(2)}/kg` : 'Sin cotización', pct: hogs?.pct ?? null },
+    { clave: 'cattle', etiqueta: 'Live Cattle CME (USD/kg eq.)', valor: resP != null ? `$${resP.toFixed(2)}/kg` : 'Sin cotización', pct: cattle?.pct ?? null },
+    { clave: 'corn', etiqueta: 'Maíz CME (US¢/bu)', valor: cornP != null ? `$${Number(cornP).toFixed(2)}` : 'Sin cotización', pct: corn?.pct ?? null },
+    { clave: 'soy', etiqueta: 'Soya CME (US¢/bu)', valor: soyP != null ? `$${Number(soyP).toFixed(2)}` : 'Sin cotización', pct: soy?.pct ?? null },
+  ];
+
   return {
     precios,
+    nacional,
+    sniim,
     margen,
     ratio,
     notaRatio,
     noticias,
-    exportTitulo: `Exportaciones México · Porcino FOB ${fechaFmt}`,
-    destinos: Object.fromEntries(DESTINOS.map((d) => [d.clave, `$${(cerdoP + d.extra).toFixed(2)}/kg`])),
+    exportTitulo: `Referencias Internacionales CME · ${fechaFmt}`,
+    futurosInternacionales,
     exportInsight:
-      `<b>REFERENCIA INTERNACIONAL ${fechaFmt}:</b> Lean Hogs CME $${cerdoP}/kg${hogs ? '' : ' (ref.)'}. ` +
-      (cornP > 5.2 ? 'El maíz internacional se mantiene elevado. ' : 'El maíz internacional se mantiene en rango. ') +
-      'Esta referencia no sustituye la cotización física de Puebla.',
+      cerdoP != null
+        ? `<b>REFERENCIA INTERNACIONAL ${fechaFmt}:</b> Lean Hogs CME $${cerdoP}/kg` +
+          (resP != null ? ` · Live Cattle CME $${resP}/kg.` : '.') +
+          ' Estas cotizaciones son futuros de EE.UU. para contraste; no sustituyen precios físicos en México.'
+        : 'Sin cotizaciones internacionales CME disponibles en este corte; no se muestran estimaciones sintéticas.',
     wholesalePrices,
     fuentes,
     fuentesActivas: fuentes.filter((fuente) => fuente.estado).length,
@@ -289,8 +304,8 @@ async function calcular(VDS) {
     feedChg: corn?.pct ? `${VDS.fmtPct(corn.pct)} maíz` : '—',
     consumePara:
       ratio
-        ? `Indicador cerdo/pollo de Puebla: ${ratio}. ${notaRatio}`
-        : 'No se calcula una razón entre especies hasta tener ambas cotizaciones físicas verificables de Puebla.',
+        ? `Indicador cerdo/pollo nacional: ${ratio}. ${notaRatio}`
+        : 'No se calcula una razón entre especies hasta tener ambas cotizaciones físicas verificables.',
   };
 }
 
@@ -299,6 +314,7 @@ export default function MercadoProteinas() {
 
   const [datos, setDatos] = useState(null);
   const [filtro, setFiltro] = useState('all');
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState('ALL');
   const [analisisIA, setAnalisisIA] = useState('');
   const [evidenciaFuentes, setEvidenciaFuentes] = useState(null);
   const [estadoEvidencia, setEstadoEvidencia] = useState('idle');
@@ -310,15 +326,15 @@ export default function MercadoProteinas() {
 
     const actualizarInsight = async (VDS, d) => {
       try {
-        const cotizacionesPuebla = Object.entries(d?.wholesalePrices?.prices || {})
-          .filter(([, precio]) => precio?.available)
-          .map(([especie, precio]) => `${especie}: $${precio.price} ${precio.unit}; ${precio.market}; fecha ${precio.date}; base ${precio.note}`)
+        const cotizaciones = Object.entries(d?.nacional || {})
+          .filter(([, precio]) => precio?.price != null)
+          .map(([especie, precio]) => `${especie}: $${precio.price.toFixed(2)} ${precio.unit}; ${precio.market}; fecha ${precio.date}; base ${precio.level}`)
           .join('\n');
-        if (!cotizacionesPuebla) return;
+        if (!cotizaciones) return;
         const prompt =
-          'Eres ORION, analista de mercados pecuarios de Puebla. Con estas cotizaciones físicas verificadas, ' +
+          'Eres ORION, analista de mercados pecuarios de México. Con estas cotizaciones físicas nacionales verificadas (SNIIM / Porcicultura.com), ' +
           'redacta una lectura breve (2-3 oraciones). Menciona niveles no comparables y no calcules margen, tendencia ni variaciones que no estén en los datos.\n\n' +
-          `${cotizacionesPuebla}\n\n` +
+          `${cotizaciones}\n\n` +
           'Sé directo y práctico para operadores mexicanos, sin frases de apertura genéricas.';
         const texto = await VDS.geminiChat(prompt, SISTEMA_IA);
         if (vivo && texto) setAnalisisIA(texto);
@@ -378,6 +394,16 @@ export default function MercadoProteinas() {
     () => (datos?.noticias || []).filter((n) => filtro === 'all' || n.especie === filtro),
     [datos, filtro],
   );
+
+  const estadosDisponibles = useMemo(() => {
+    const mapa = new Map();
+    Object.values(datos?.nacional || {}).forEach((item) => {
+      (item?.states || []).forEach((s) => {
+        if (s?.stateCode && s?.state) mapa.set(s.stateCode, s.state);
+      });
+    });
+    return [...mapa.entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  }, [datos]);
 
   const cargarEvidenciaFuentes = (event) => {
     if (!event.currentTarget.open || estadoEvidencia === 'loading' || estadoEvidencia === 'ready') return;
@@ -450,35 +476,61 @@ export default function MercadoProteinas() {
         <div className="mp-bottom-grid">
           <div className="mp-left-col">
             <div className="mp-panel">
-              <div className="mp-section-lbl">Puebla, Puebla · cotizaciones físicas (MXN / kg)</div>
+              <div className="mp-section-lbl" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>México Nacional (SNIIM) · cotizaciones físicas (MXN / kg)</span>
+                {estadosDisponibles.length > 0 && (
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Entidad:
+                    <select
+                      aria-label="Filtrar cotizaciones físicas por entidad"
+                      value={estadoSeleccionado}
+                      onChange={(e) => setEstadoSeleccionado(e.target.value)}
+                      style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px' }}
+                    >
+                      <option value="ALL">Promedio Nacional ({estadosDisponibles.length} estados)</option>
+                      {estadosDisponibles.map(([code, name]) => (
+                        <option key={code} value={code}>{name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
               <p className="mp-sources-intro">
-                Gemini investiga cada 12 horas. Se muestran sólo precios con mercado, fecha, nivel comercial y evidencia; no son futuros ni precios de menudeo.
+                Precios físicos verificados de SNIIM y Porcicultura.com. Cada especie conserva su nivel comercial, fecha y cobertura estatal; no se mezclan con futuros ni menudeo.
               </p>
               {ESPECIES_PRECIO.filter((especie) => filtro === 'all' || especie === filtro).map((especie) => {
-                const key = CLAVE_COMERCIAL[especie];
-                const priceData = datos?.wholesalePrices?.prices?.[key];
-                const source = datos?.wholesalePrices?.sources?.find((item) => priceData?.sourceUrls?.includes(item.url));
+                const nat = datos?.nacional?.[especie];
+                const stateRow = estadoSeleccionado !== 'ALL'
+                  ? nat?.states?.find((s) => s.stateCode === estadoSeleccionado)
+                  : null;
+                const activePrice = estadoSeleccionado === 'ALL' ? nat?.price : stateRow?.price;
+                const hasPrice = Number.isFinite(Number(activePrice)) && Number(activePrice) > 0;
+                const activeDate = estadoSeleccionado === 'ALL' ? nat?.date : stateRow?.date;
+                const activeMarket = estadoSeleccionado === 'ALL'
+                  ? nat?.market
+                  : (stateRow?.markets?.join(', ') || stateRow?.state || 'Sin registro en esta entidad');
+                const activeUnit = stateRow?.unit || nat?.unit || 'MXN/kg';
+                const activeLevel = stateRow?.level || nat?.level || '';
+                const sourceUrl = stateRow?.sourceUrl || nat?.sourceUrl;
                 return (
                   <div className="mp-price-row" key={especie} style={{ alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span className="mp-price-name" style={{ fontWeight: 600 }}>{priceData?.label || NOMBRE_PRECIO[especie]}</span>
+                      <span className="mp-price-name" style={{ fontWeight: 600 }}>{nat?.label || NOMBRE_PRECIO[especie]}</span>
                       <span style={{ fontSize: '0.7rem', color: '#64748B', lineHeight: '1.2', marginTop: '2px' }}>
-                        {priceData?.available
-                          ? `${priceData.market} · ${priceData.date} · ${priceData.level}`
-                          : (!priceData?.error || /\{|"error"|402|quota|credits|ai\.studio|API_KEY/i.test(String(priceData.error))
-                            ? 'Cotización local temporalmente no disponible.'
-                            : priceData.error)}
+                        {hasPrice
+                          ? `${activeMarket} · ${activeDate || 'vigente'}${activeLevel ? ` · ${activeLevel}` : ''}`
+                          : (estadoSeleccionado === 'ALL'
+                            ? 'Cotización nacional temporalmente no disponible.'
+                            : 'Sin publicación reciente para esta entidad.')}
                       </span>
-                      {priceData?.available && <span style={{ fontSize: '0.7rem', color: '#64748B', lineHeight: '1.2', marginTop: '2px' }}>{priceData.note}</span>}
                     </div>
                     <div style={{ textAlign: 'right', minWidth: '135px' }}>
                       <span className="mp-price-val" style={{ color: '#00213A' }}>
-                        {priceData?.available ? priceData.displayPrice : 'Sin cotización'}
+                        {hasPrice ? `$${Number(activePrice).toFixed(2)} ${activeUnit}` : 'Sin cotización'}
                       </span>
-                      {priceData?.available && (
+                      {hasPrice && sourceUrl && (
                         <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>
-                          {priceData.rangeMin && priceData.rangeMax ? `rango: $${priceData.rangeMin}–$${priceData.rangeMax}` : 'precio puntual'}
-                          {source && <> · <a href={source.url} target="_blank" rel="noreferrer">ver evidencia</a></>}
+                          <a href={sourceUrl} target="_blank" rel="noreferrer">{stateRow?.source || nat?.source || 'ver fuente'}</a>
                         </div>
                       )}
                     </div>
@@ -487,9 +539,8 @@ export default function MercadoProteinas() {
               })}
               <div className="mp-ratio-note">
                 <i className="fas fa-location-dot" style={{ color: '#00213a' }} />
-                &nbsp;<b>{datos?.wholesalePrices?.market?.label || 'Puebla, Puebla'}</b>
-                {datos?.wholesalePrices?.retrievedAt ? ` · investigado ${new Date(datos.wholesalePrices.retrievedAt).toLocaleString('es-MX')}` : ''}
-                {datos?.wholesalePrices?.stale ? ' · mostrando el último corte validado' : ''}
+                &nbsp;<b>{estadoSeleccionado === 'ALL' ? 'México Nacional (SNIIM + Porcicultura.com)' : (estadosDisponibles.find(([c]) => c === estadoSeleccionado)?.[1] || estadoSeleccionado)}</b>
+                {datos?.sniim?.retrievedAt ? ` · corte ${new Date(datos.sniim.retrievedAt).toLocaleString('es-MX')}` : ''}
               </div>
             </div>
 
@@ -561,30 +612,22 @@ export default function MercadoProteinas() {
             </div>
 
             <div className="mp-panel">
-              <div className="mp-section-lbl">{datos?.exportTitulo || 'Exportaciones México · Cargando…'}</div>
-              {DESTINOS.map((d) => (
-                <div className="mp-dest-bar" key={d.clave}>
-                  <div className="mp-bar-label">
-                    <span>{d.etiqueta}</span>
-                    <b>{datos?.destinos?.[d.clave] || '$—'}</b>
-                  </div>
-                  <div className="mp-bar-bg">
-                    <div
-                      className={`mp-bar-fill${d.acento ? ' accent' : ''}`}
-                      style={{ width: `${d.pct}%`, opacity: d.tenue ? 0.6 : undefined }}
-                    />
-                  </div>
+              <div className="mp-section-lbl">{datos?.exportTitulo || 'Referencias Internacionales CME · Cargando…'}</div>
+              {(datos?.futurosInternacionales || []).map((f) => (
+                <div className="mp-price-row" key={f.clave}>
+                  <span className="mp-price-name">{f.etiqueta}</span>
+                  <span className="mp-price-val" style={{ color: '#00213A' }}>{f.valor}</span>
                 </div>
               ))}
               {datos
                 ? <ContenidoEnriquecido className="mp-export-insight" texto={datos.exportInsight} />
-                : <div className="mp-export-insight">Cargando análisis de mercado…</div>}
+                : <div className="mp-export-insight">Cargando referencias internacionales…</div>}
             </div>
           </div>
 
           <div className="mp-right-col">
             <div className="mp-margin-card">
-              <div className="mp-margin-lbl">Lectura local · ORION</div>
+              <div className="mp-margin-lbl">Lectura nacional · ORION</div>
               <div
                 className="mp-margin-val"
                 style={{ color: datos ? (datos.margen.positivo ? '#4ade80' : '#f87171') : '#f87171' }}
@@ -598,31 +641,30 @@ export default function MercadoProteinas() {
                   Ver la cabecera de lib/textoEnriquecido.js. */}
               <ContenidoEnriquecido
                 className="mp-margin-sub"
-                texto={analisisIA || datos?.margen.analisis || 'Calculando margen de producción…'}
+                texto={analisisIA || datos?.margen.analisis || 'Consultando cotizaciones nacionales…'}
               />
             </div>
 
             <div className="mp-panel">
-              <div className="mp-section-lbl">Tendencias de Consumo</div>
+              <div className="mp-section-lbl">Indicadores de Referencia</div>
               <div className="mp-stat-grid">
                 <div className="mp-stat-box">
                   <div className="mp-stat-lbl">Indicador Cerdo/Pollo</div>
                   <div className="mp-stat-val">{datos?.ratio ?? '—'}</div>
                   <div className="mp-stat-chg">
-                    {datos?.ratio ? 'cotizaciones locales disponibles' : 'sin comparación'}
+                    {datos?.ratio ? 'cotizaciones nacionales disponibles' : 'sin comparación'}
                   </div>
                   <div className="mp-stat-note">descriptivo; no es margen</div>
                 </div>
                 <div className="mp-stat-box">
                   <div className="mp-stat-lbl">Insumos internacionales</div>
-                  <div className="mp-stat-val">{datos ? `$${datos.feedTotal}` : '—'}</div>
+                  <div className="mp-stat-val">{datos?.feedTotal != null ? `$${datos.feedTotal}` : '—'}</div>
                   <div className="mp-stat-chg">{datos?.feedChg || 'maíz + soya'}</div>
-                  <div className="mp-stat-note">referencia, no costo local</div>
+                  <div className="mp-stat-note">referencia CME, no costo local</div>
                 </div>
               </div>
               <p className="mp-consume-para">
-                {datos?.consumePara
-                  || 'El cerdo desplaza a la res en USA por factor precio (+5% sustitución). La expansión de plantas en el Bajío asegura capacidad para demanda de embutidos en 2026-2027.'}
+                {datos?.consumePara || 'Consultando indicadores de contraste nacional…'}
               </p>
             </div>
           </div>

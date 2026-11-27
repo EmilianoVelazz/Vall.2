@@ -268,9 +268,9 @@ export default function AdminLoopus() {
     }
 
     if (view === 'marranas') {
-      apiGet('/api/admin/marranas/health', { signal: controller.signal })
+      apiGet('/api/admin/vall-proteinas/health', { signal: controller.signal })
         .then(({ ok, data }) => {
-          if (!ok || !data?.success) throw Error(data?.error || 'No se pudo cargar el tablero de salud de MARRANAS.');
+          if (!ok || !data?.success) throw Error(data?.error || 'No se pudo cargar el tablero de salud de VALL-Proteínas.');
           setMarranasHealth(data.health || null);
           setMarranasJob(data.jobStatus || null);
         })
@@ -320,7 +320,7 @@ export default function AdminLoopus() {
   useEffect(() => {
     if (view !== 'marranas' || !marranasJob?.running) return undefined;
     const timer = setInterval(() => {
-      apiGet('/api/admin/marranas/health')
+      apiGet('/api/admin/vall-proteinas/health')
         .then(({ ok, data }) => {
           if (ok && data?.success) {
             setMarranasHealth(data.health || null);
@@ -328,8 +328,8 @@ export default function AdminLoopus() {
             if (!data.jobStatus?.running) {
               setNotice(
                 data.jobStatus?.lastError
-                  ? `Re-entrenamiento MARRANAS finalizado con error: ${data.jobStatus.lastError}`
-                  : `MARRANAS re-entrenado con éxito (${data.jobStatus?.lastSummary?.activeModels || 0} modelos · WF ${data.jobStatus?.lastSummary?.avgWalkForwardDirectionalAccuracyPct ?? '—'}%).`
+                  ? `Re-entrenamiento de VALL-Proteínas finalizado con error: ${data.jobStatus.lastError}`
+                  : `VALL-Proteínas reentrenado (${data.jobStatus?.lastSummary?.activeModels || 0} modelos · WF ${data.jobStatus?.lastSummary?.avgWalkForwardDirectionalAccuracyPct ?? '—'}%).`
               );
             }
           }
@@ -345,12 +345,12 @@ export default function AdminLoopus() {
     setError('');
     setNotice('');
     try {
-      const { ok, data } = await apiPost('/api/admin/marranas/retrain', { mode }, { timeoutMs: 45_000 });
-      if (!ok || !data?.success) throw Error(data?.error || 'No se pudo ejecutar la acción de MARRANAS.');
+      const { ok, data } = await apiPost('/api/admin/vall-proteinas/retrain', { mode }, { timeoutMs: 45_000 });
+      if (!ok || !data?.success) throw Error(data?.error || 'No se pudo ejecutar la acción de VALL-Proteínas.');
       if (data.health) setMarranasHealth(data.health);
       if (data.jobStatus) setMarranasJob(data.jobStatus);
       if (mode === 'full') {
-        setNotice(data.message || 'Re-entrenamiento completo de MARRANAS iniciado en segundo plano.');
+        setNotice(data.message || 'Re-entrenamiento completo de VALL-Proteínas iniciado en segundo plano.');
       } else if (mode === 'nlp') {
         setNotice(`Radar NLP actualizado: ${data.nlpEvents?.stats?.relevantEventsDetected || 0} eventos detectados (${data.nlpEvents?.stats?.sanitaryAlertsCount || 0} sanitarios).`);
       } else if (mode === 'audit') {
@@ -532,7 +532,7 @@ export default function AdminLoopus() {
               className={`ap-tab-btn${view === 'marranas' ? ' is-active' : ''}`}
               onClick={() => setView('marranas')}
             >
-              ORION ML · Proteínas {marranasHealth?.stats?.activeModels ? `(${marranasHealth.stats.activeModels})` : ''}
+              VALL-Proteínas ML {marranasHealth?.stats?.activeModels ? `(${marranasHealth.stats.activeModels})` : ''}
             </button>
           </div>
         </div>
@@ -1225,9 +1225,9 @@ export default function AdminLoopus() {
       {view === 'marranas' && !loading && marranasHealth && (
         <div className="ap-predictions">
           <div className="ap-pred-card ap-pred-card--cross">
-            <h4>ORION ML · Motor Cuantitativo de Proteínas Animales ({marranasHealth.version || 'sin versión'})</h4>
+            <h4>VALL-Proteínas · Modelo ML de predicción de proteínas animales ({marranasHealth.version || 'sin versión'})</h4>
             <p className="ap-pred-sub">
-              Motor cuantitativo integrado en ORION para <strong>Cerdo, Res, Pollo y Huevo</strong>, con persistencia en PostgreSQL de Dokploy.
+              Modelo especializado e integrado en ORION para predecir mercados de <strong>Cerdo, Res, Pollo y Huevo</strong>, con persistencia en PostgreSQL de Dokploy.
               Último corte entrenado: <strong>{formatDate(marranasHealth.generatedAt)}</strong>.
             </p>
             {marranasJob?.running && (
@@ -1238,7 +1238,7 @@ export default function AdminLoopus() {
             {marranasJob?.lastError && !marranasJob?.running && (
               <p className="ap-error" role="alert">Último error de re-entrenamiento: {marranasJob.lastError}</p>
             )}
-            <div className="ap-loopus-kpis" aria-label="Indicadores de salud MARRANAS">
+            <div className="ap-loopus-kpis" aria-label="Indicadores de salud de VALL-Proteínas">
               <article className="ap-loopus-kpi">
                 <span>Modelos activos</span>
                 <strong>{marranasHealth.stats?.activeModels || 0}</strong>
@@ -1368,7 +1368,7 @@ export default function AdminLoopus() {
                 <ul className="ap-regime-list">
                   <li><span>orion_market_observations</span><strong>{(marranasHealth.stats?.dokployPersistence?.persistedObservations || 0).toLocaleString('es-MX')} filas</strong></li>
                   <li><span>forecast_observations</span><strong>{(marranasHealth.stats?.dokployPersistence?.persistedForecastObs || 0).toLocaleString('es-MX')} filas</strong></li>
-                  <li><span>forecast_runs (MARRANAS)</span><strong>{marranasHealth.stats?.dokployPersistence?.persistedForecastRuns || 0} corridas</strong></li>
+                  <li><span>forecast_runs (VALL-Proteínas)</span><strong>{marranasHealth.stats?.dokployPersistence?.persistedForecastRuns || 0} corridas</strong></li>
                   <li><span>forecast_predictions (1w + 1m)</span><strong>{marranasHealth.stats?.dokployPersistence?.persistedPredictions || 0} pronósticos</strong></li>
                   <li><span>forecast_evaluations (Closed-Loop)</span><strong>{marranasHealth.closedLoopAudit?.summary?.totalEvaluated || 0} verificadas</strong></li>
                 </ul>

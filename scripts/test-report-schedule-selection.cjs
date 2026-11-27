@@ -27,10 +27,11 @@ async function main() {
     try {
         let now=new Date('2026-10-15T23:22:00Z');
         const file=path.join(directory,'schedules.json'),store=createScheduleStore({file,localOnly:true,clock:()=>now});
-        const input=selected.map(source=>({...source,ownerEmail:'owner@example.invalid',recipientEmail:'recipient@example.invalid',delivery:{frequency:'daily',time:'17:23'},preferences:{language:'es',aiCustomization:{enabled:false}}}));
+        const input=selected.map((source,index)=>({...source,ownerEmail:'owner@example.invalid',recipientEmail:'recipient@example.invalid',delivery:{frequency:'daily',time:'17:23'},preferences:{language:'es',dataQualityPolicy:index===0?'block':'warn',aiCustomization:{enabled:false}}}));
         await store.upsert({...input[0],ownerEmail:'other@example.invalid',delivery:{frequency:'daily',time:'20:00'}});
         const saved=await store.upsertMany(input);assert.equal(saved.length,3);
         assert(saved.every(row=>row.nextRunAt==='2026-10-15T23:23:00.000Z'));
+        assert.deepEqual(saved.map(row=>row.preferences.dataQualityPolicy),['block','warn','warn'],'Cada programación conserva su política de calidad');
         assert.equal((await store.list('other@example.invalid')).length,1,'La selección no modifica otra cuenta');
         assert.equal((await store.reconcileCalendarTimes()).corrected.length,0,'Una hora con minutos no se repara como si fuera un error');
         const before=await fs.readFile(file,'utf8');
@@ -47,9 +48,9 @@ async function main() {
             loadSnapshot:async area=>({generatedAt:'2026-10-15T20:00:10Z',reports:input.filter(row=>row.area===area).map(row=>({key:row.reportKey,title:row.area,generatedAt:'2026-10-15T20:00:10Z',sections:[]}))}),
             generate:async()=>{throw Error('Un informe estándar no debe llamar a la IA');},personalize:report=>report,prepare:report=>report,
             deliver:async request=>{sent.push(request);return {messageId:'test-only'};}});
-        const result=await runner();assert.equal(result.sent,3);assert.equal(result.errors,0);assert.equal(sent.length,3);
+        const result=await runner();assert.equal(result.sent,2);assert.equal(result.errors,1);assert.equal(sent.length,2,'La programación estricta sin observaciones no se envía');
         assert(sent.every(row=>row.recipient==='recipient@example.invalid'));assert.equal((await runner()).sent,0,'No repite envíos ya aceptados');
-        for(const row of await restarted.list('owner@example.invalid')) assert.equal(row.preferences._lastDelivery.scheduledFor,'2026-10-15T23:23:00.000Z');
+        for(const row of await restarted.list('owner@example.invalid')) if(row.lastSentAt) assert.equal(row.preferences._lastDelivery.scheduledFor,'2026-10-15T23:23:00.000Z');
         let sqlCalls=0,released=false;
         const sqlStore=createScheduleStore({serverless:true,remote:()=>null,clock:()=>now,databaseConnect:async()=>({query:async(sql,parameters)=>{
             sqlCalls++;assert(sql.includes('ON CONFLICT'));assert.equal(parameters.length,24);assert(!sql.includes('recipient@example.invalid'));
@@ -66,7 +67,7 @@ async function main() {
         }}),databaseConnect:async()=>{throw Error('No debe usar SQL cuando REST confirmó el lote');}});
         const viaRest=await restStore.upsertMany(input);assert.equal(viaRest.length,3);assert.equal(restCalls,1);
         assert(viaRest.every(row=>row.delivery.time==='17:23'));
-        console.log('Report selection: categorías, guardado atómico, aislamiento, minutos CDMX, reinicio y tres envíos simulados sin IA ni duplicados OK');
+        console.log('Report selection: categorías, guardado atómico, aislamiento, minutos CDMX, reinicio y política de calidad simulada sin IA ni correos reales OK');
     } finally {assert.equal(path.dirname(path.resolve(directory)),path.resolve(os.tmpdir()));await fs.rm(directory,{recursive:true,force:true});}
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -3,7 +3,7 @@ process.env.NODE_ENV='test';
 const assert=require('node:assert/strict');
 const {ExecutiveReportAgent}=require('../backend/ai/executive-report-agent');
 const report={key:'fx',collection:'finance',title:'Referencia de simulación',summary:'USD/MXN de 20 MXN por USD.',generatedAt:'2026-11-12T15:00:00Z',metrics:[{label:'USD/MXN',value:'20 MXN por USD'}],sections:[],tables:[]};
-const valid={key:'fx',headline:'Referencia para tesorería',context:'Se conserva la referencia proporcionada.',thesis:'El dato es 20 MXN por USD; su efecto depende de la exposición real.',drivers:['Contrastar los vencimientos en la moneda del contrato.'],risks:['La referencia no es una cotización bancaria ejecutable.'],committeeQuestion:'¿Qué pagos requieren confirmar el diferencial bancario?'};
+const valid={key:'fx',headline:'Referencia para tesorería',context:'Se conserva la referencia proporcionada.',thesis:'El dato es 20 MXN por USD; su efecto depende de la exposición real.',drivers:['Contrastar los vencimientos en la moneda del contrato.'],risks:['La referencia no es una cotización bancaria ejecutable.'],committeeQuestion:'¿Qué pagos requieren confirmar el diferencial bancario?',traceability:{thesis:{kind:'interpretation',evidenceIds:['metric-1']},drivers:[{kind:'interpretation',evidenceIds:['metric-1']}],risks:[{kind:'pending',evidenceIds:[]}] }};
 const response=(draft,model='gemini-4-argon')=>({model,text:JSON.stringify({reports:Array.isArray(draft)?draft:[draft]})});
 const provider=generate=>({isConfigured:()=>true,generate});
 async function main(){
@@ -14,7 +14,7 @@ async function main(){
  assert.equal(repaired[0].executiveBrief.thesis,valid.thesis,'Publish the complete corrected sentence, never the truncated draft');assert.equal(repaired[0].executiveBrief.mode,'ai');assert.equal(JSON.stringify(report),original);
  let badCalls=0;const rejected=await new ExecutiveReportAgent({provider:provider(async()=>{badCalls++;return response(long);})}).enrich([report]);
  assert.equal(badCalls,2);assert.equal(rejected[0].executiveBrief.mode,'deterministic','Persistent overlength cannot reach the displayed report');
- for(const invalid of [{...valid,thesis:'La referencia cambia a 999999 MXN por USD.'},{...valid,context:'Una frase incompleta sin cierre'},{...valid,risks:[]},{...valid,drivers:[valid.drivers[0],valid.drivers[0],valid.drivers[0],valid.drivers[0]]}]){
+ for(const invalid of [{...valid,thesis:'La referencia cambia a 999999 MXN por USD.'},{...valid,traceability:{...valid.traceability,thesis:{kind:'observed',evidenceIds:['news-999']}}},{...valid,context:'Una frase incompleta sin cierre'},{...valid,risks:[]},{...valid,drivers:[valid.drivers[0],valid.drivers[0],valid.drivers[0],valid.drivers[0]]}]){
   let calls=0;const [result]=await new ExecutiveReportAgent({provider:provider(async()=>response(++calls===1?invalid:valid))}).enrich([report]);
   assert.equal(calls,2);assert.equal(result.executiveBrief.mode,'ai');assert.equal(result.executiveBrief.thesis,valid.thesis);
  }

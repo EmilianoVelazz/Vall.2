@@ -724,6 +724,27 @@ function makeCompanyDashboardPdf(title,report,helpers) {
         const brief=report.executiveBrief;
         const conclusions=[{heading:t('Hechos y señales'),body:unique([...report.takeaways,...(brief?.mode==='ai' ? brief.drivers || [] : [])]).map(item=>'- '+item).join('\n\n')},...(report.personalization?.sections?.risks===false ? [] : [{heading:t('Riesgos a monitorear'),body:unique([...report.watchlist,...(brief?.mode==='ai' ? brief.risks || [] : [])]).map(item=>'- '+item).join('\n\n')}]),{heading:t('Acciones y seguimiento'),body:report.closing}].filter(item=>item.body);
         if(conclusions.length) {band('Conclusiones',openingHeight(conclusions,Math.min(3,conclusions.length),textSize));textPanels(conclusions,3);}
+        const trace=brief?.traceability,evidenceById=new Map((brief?.evidence||[]).map(item=>[item.id,item]));
+        if(trace) {
+            const labels={observed:'Dato observado',interpretation:'Interpretación condicional',pending:'Pendiente de validar'};
+            const points=[{label:'Tesis',text:brief.thesis,trace:trace.thesis},
+                ...(brief.drivers||[]).map((text,index)=>({label:`Impulsor ${index+1}`,text,trace:trace.drivers?.[index]})),
+                ...(brief.risks||[]).map((text,index)=>({label:`Riesgo ${index+1}`,text,trace:trace.risks?.[index]}))].filter(item=>item.text);
+            const tracePanels=points.flatMap(point=>{
+                const refs=(point.trace?.evidenceIds||[]).map(id=>evidenceById.get(id)).filter(Boolean);
+                const kind=labels[point.trace?.kind]||labels.pending;
+                if(!refs.length)return [{heading:`${kind} · ${point.label}`,body:point.text+'\n\nNo hay una referencia individual vinculada en este corte.'}];
+                return refs.map(ref=>{
+                    let link='';try{const url=new URL(ref.url);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)link=url.href;}catch{}
+                    const metadata=[ref.date,ref.unit,ref.source].filter(Boolean).join(' · ');
+                    return {heading:`${kind} · ${point.label} · ${ref.label||ref.id}`,body:[point.text,metadata,ref.excerpt].filter(Boolean).join('\n\n'),...(link?{link}:{})};
+                });
+            });
+            if(tracePanels.length) {
+                band('Trazabilidad por conclusión',openingHeight(tracePanels,Math.min(2,tracePanels.length),textSize));
+                textPanels(tracePanels,2);
+            }
+        }
         if(guides.length) {
             const first=guides[0],caption=[first.title,first.note].filter(Boolean).join(' · ');
             const items=first.rows.map(row=>({heading:String(row[0] || ''),body:row.slice(1).join('\n'+t('Información necesaria')+': '),compact:true}));

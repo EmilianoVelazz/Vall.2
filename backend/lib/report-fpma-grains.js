@@ -5,6 +5,9 @@ const API='https://fpma.fao.org/giews/v4/global/price_module/api/v1/';
 const COUNTRIES=[
  ['MEX','México','América del Norte','Maize (white, Sinaloa)','Mexico City'],
  ['MEX','México','América del Norte','Maize (white, Sinaloa)','Culiacán'],
+ ['MEX','México','América del Norte','Maize (white, Jalisco)','Guadalajara'],
+ ['MEX','México','América del Norte','Maize (white, Sinaloa)','Puebla'],
+ ['MEX','México','América del Norte','Maize (white, Veracruz)','Xalapa'],
  ['COL','Colombia','América del Sur','Maize (yellow)','Medellín'],
  ['PER','Perú','América del Sur','Maize (yellow)','Lima'],
  ['CHL','Chile','América del Sur','Wheat','National Average'],
@@ -17,7 +20,7 @@ const COUNTRIES=[
  ['TZA','Tanzania','África','Maize','National Average'],
 ];
 const UNITS={'Kg':'kg','kg':'kg','tonne':'t','100 kg':'100 kg','Spanish quintal (46 kg)':'quintal 46 kg','100 lbs':'100 lb'};
-const PRODUCTS={'Maize':'Maíz','Maize (white)':'Maíz blanco','Maize (yellow)':'Maíz amarillo','Maize (white, Sinaloa)':'Maíz blanco de Sinaloa','Wheat':'Trigo'};
+const PRODUCTS={'Maize':'Maíz','Maize (white)':'Maíz blanco','Maize (yellow)':'Maíz amarillo','Maize (white, Sinaloa)':'Maíz blanco de Sinaloa','Maize (white, Jalisco)':'Maíz blanco de Jalisco','Maize (white, Veracruz)':'Maíz blanco de Veracruz','Wheat':'Trigo'};
 const MARKETS={'Mexico City':'Ciudad de México','National Average':'promedio nacional','Guatemala City':'Ciudad de Guatemala'};
 const UUID=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i,DAY=86400000;
 const monthEnd=date=>/^\d{4}-(?:0[1-9]|1[0-2])-01$/.test(date) ? new Date(Date.UTC(Number(date.slice(0,4)),Number(date.slice(5,7)),0)).toISOString().slice(0,10) : null;

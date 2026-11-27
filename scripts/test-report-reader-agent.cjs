@@ -71,10 +71,50 @@ async function main() {
     assert(catalog.collections.find(c => c.collection === 'finance').reports[0].hasData);
     assert.equal(catalog.collections.find(c => c.collection === 'finance').reports[0].tablesCount, 1);
 
+    const failingStores = {
+        ...stores,
+        finance: { load: async () => { throw new Error('fixture store failure'); } },
+    };
+    const originalWarn = console.warn;
+    const storeWarnings = [];
+    console.warn = (...args) => { storeWarnings.push(args); };
+    try {
+        const failedCatalog = await new ReportReaderAgent({
+            provider: { isConfigured: () => false },
+            stores: failingStores,
+        }).catalog();
+        assert.equal(
+            failedCatalog.collections.find(c => c.collection === 'finance').error,
+            'No se pudo consultar esta colección.',
+        );
+        const failedQuery = await new ReportReaderAgent({
+            provider: { isConfigured: () => false },
+            stores: failingStores,
+        }).forQuery({ message: 'Resume el informe de bonos' });
+        assert.equal(failedQuery.available, false);
+        assert.deepEqual(failedQuery.warnings, [{
+            collection: 'finance',
+            key: 'bonds',
+            code: 'REPORT_LOOKUP_FAILED',
+        }]);
+        assert.equal(storeWarnings.length, 2);
+    } finally {
+        console.warn = originalWarn;
+    }
+
     const direct = await offlineAgent.read({ collection: 'finance', key: 'bonds', question: '¿En cuánto cerró el Treasury 10Y?' });
     assert.equal(direct.hasData, true);
     assert.equal(direct.reading.mode, 'deterministic');
     assert(direct.reading.keyPoints.some(p => p.includes('4.25')));
+
+    const unanswered = await offlineAgent.read({
+        collection: 'finance',
+        key: 'bonds',
+        question: '¿Qué ocurrió con los unicornios financieros?',
+    });
+    assert.equal(unanswered.reading.headline, 'No se encontró evidencia suficiente');
+    assert.deepEqual(unanswered.reading.keyPoints, []);
+    assert.deepEqual(unanswered.reading.missingData, ['¿Qué ocurrió con los unicornios financieros?']);
 
     // 2. Guardia anti-alucinación: rechaza cifras inventadas por el modelo
     const hallucinatingAgent = new ReportReaderAgent({
@@ -96,6 +136,87 @@ async function main() {
     assert.equal(guarded.reading.mode, 'deterministic');
     assert.equal(guarded.reading.validationFallback, 'UNSUPPORTED_NUMBERS');
     assert(!JSON.stringify(guarded.reading).includes('99.99'));
+
+    const questionNumberAgent = new ReportReaderAgent({
+        provider: {
+            isConfigured: () => true,
+            generate: async () => ({
+                model: 'fixture-gemini',
+                text: JSON.stringify({
+                    headline: 'Nivel consultado',
+                    answer: 'El nivel fue 99.99.',
+                    keyPoints: [],
+                    missingData: [],
+                }),
+            }),
+        },
+        stores,
+    });
+    const questionNumber = await questionNumberAgent.read({
+        collection: 'finance',
+        key: 'bonds',
+        question: '¿Fue 99.99 el nivel?',
+    });
+    assert.equal(questionNumber.reading.validationFallback, 'UNSUPPORTED_NUMBERS');
+
+    const unsupportedClaimAgent = new ReportReaderAgent({
+        provider: {
+            isConfigured: () => true,
+            generate: async () => ({
+                model: 'fixture-gemini',
+                text: JSON.stringify({
+                    headline: 'La Reserva Federal',
+                    answer: 'La Reserva Federal provocó un desplome del mercado.',
+                    keyPoints: [],
+                    missingData: [],
+                }),
+            }),
+        },
+        stores,
+    });
+    const unsupportedClaim = await unsupportedClaimAgent.read({
+        collection: 'finance',
+        key: 'bonds',
+        question: '¿Qué dice el informe sobre las tasas?',
+    });
+    assert.equal(unsupportedClaim.reading.validationFallback, 'UNSUPPORTED_CLAIMS');
+
+    let boundedPrompt = '';
+    const longReport = {
+        ...sampleFinanceReport,
+        sections: [{ heading: 'Detalle', text: `${'Dato comprobable. '.repeat(400)}7777777` }],
+    };
+    const boundedAgent = new ReportReaderAgent({
+        provider: {
+            isConfigured: () => true,
+            generate: async ({ prompt }) => {
+                boundedPrompt = prompt;
+                return {
+                    model: 'fixture-gemini',
+                    text: JSON.stringify({
+                        headline: 'Dato consultado',
+                        answer: 'El valor fue 7777777.',
+                        keyPoints: [],
+                        missingData: [],
+                    }),
+                };
+            },
+        },
+        stores: {
+            ...stores,
+            finance: { load: async () => ({ reports: [longReport] }) },
+        },
+    });
+    const boundedResult = await boundedAgent.read({
+        collection: 'finance',
+        key: 'bonds',
+        question: '¿Cuál es el valor reportado?',
+    });
+    const sentFacts = boundedPrompt.split('\n\nPREGUNTA DEL USUARIO:\n')[0].split('\n').slice(1).join('\n');
+    assert.doesNotThrow(() => JSON.parse(sentFacts));
+    assert(sentFacts.length <= 48_000);
+    assert(!sentFacts.includes('7777777'));
+    assert.equal(boundedResult.reading.validationFallback, 'UNSUPPORTED_NUMBERS');
 
     // 3. Respuesta válida con IA cuando conserva cifras literales
     const validAgent = new ReportReaderAgent({

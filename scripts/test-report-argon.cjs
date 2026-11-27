@@ -5,8 +5,8 @@ const assert=require('node:assert/strict');
 const {GeminiProvider,MODELS,thinkingFor}=require('../backend/ai/providers/gemini-provider');
 const {ExecutiveReportAgent}=require('../backend/ai/executive-report-agent');
 const {UserReportAgent}=require('../backend/ai/user-report-agent');
-const report={key:'fx',collection:'finance',title:'Divisas de prueba',generatedAt:'2026-11-12T15:00:00Z',summary:'Referencia de simulación: 20 MXN por USD.',metrics:[{label:'USD/MXN',value:'20 MXN por USD',change:''}],sections:[{heading:'Referencia',text:'Dato de simulación; no es una cotización vigente.'}],tables:[],sourceLinks:[{label:'Fuente de simulación',url:'https://example.invalid/reference'}]};
-const brief={key:'fx',headline:'Seguimiento de la referencia cambiaria',context:'La referencia sirve para revisar la exposición de tesorería.',thesis:'La referencia proporcionada es 20 MXN por USD; contrastar los vencimientos antes de valorar su efecto.',drivers:['El efecto depende de la exposición que confirme tesorería.'],risks:['La referencia es una simulación.'],committeeQuestion:'¿Qué vencimientos requieren contrastar esta referencia?'};
+const report={key:'fx',collection:'finance',title:'Divisas de prueba',generatedAt:'2026-11-12T15:00:00Z',summary:'Referencia de simulación: 20 MXN por USD.',metrics:[{label:'USD/MXN',value:'20 MXN por USD',change:''}],dailyReferences:[{label:'USD/MXN',unit:'MXN por USD',source:'Fuente de simulación',url:'https://example.invalid/reference',points:[{date:'2026-11-12',value:20}]}],sections:[{heading:'Referencia',text:'Dato de simulación; no es una cotización vigente.'}],tables:[],sourceLinks:[{label:'Fuente de simulación',url:'https://example.invalid/reference'}]};
+const brief={key:'fx',headline:'Seguimiento de la referencia cambiaria',context:'La referencia sirve para revisar la exposición de tesorería.',thesis:'La referencia proporcionada es 20 MXN por USD; contrastar los vencimientos antes de valorar su efecto.',drivers:['El efecto depende de la exposición que confirme tesorería.'],risks:['La referencia es una simulación.'],committeeQuestion:'¿Qué vencimientos requieren contrastar esta referencia?',traceability:{thesis:{kind:'interpretation',evidenceIds:['daily-1','source-1']},drivers:[{kind:'interpretation',evidenceIds:['daily-1','source-1']}],risks:[{kind:'pending',evidenceIds:[]}] }};
 const completion=value=>({text:JSON.stringify(value),candidates:[{finishReason:'STOP'}]});
 async function main(){
  const provider=new GeminiProvider('fixture-only');
@@ -18,6 +18,11 @@ async function main(){
  const original=JSON.stringify(report),editor=new ExecutiveReportAgent({provider});
  const [edited]=await editor.enrich([report],{area:'Finanzas'});
  assert.equal(edited.executiveBrief.model,'gemini-4-argon');assert.equal(edited.executiveBrief.mode,'ai');
+ assert.deepEqual(edited.executiveBrief.traceability.thesis,{kind:'interpretation',evidenceIds:['daily-1','source-1']});
+ const linkedQuote=edited.executiveBrief.evidence.find(item=>item.id==='daily-1');
+ const linkedSource=edited.executiveBrief.evidence.find(item=>item.id==='source-1');
+ assert.equal(linkedQuote.date,'2026-11-12');assert.equal(linkedQuote.unit,'MXN por USD');
+ assert.equal(linkedSource.url,'https://example.invalid/reference');
  assert.deepEqual(edited.metrics,report.metrics);assert.deepEqual(edited.sourceLinks,report.sourceLinks);assert.equal(JSON.stringify(report),original);
  assert.equal(requests[0].config.responseMimeType,'application/json');assert.deepEqual(requests[0].config.thinkingConfig,{thinkingLevel:'medium'});
  assert.equal(requests[0].config.maxOutputTokens,32768);assert.equal(editor.timeoutMs,45000);assert(!Object.hasOwn(requests[0].config,'temperature'));assert(!Object.hasOwn(requests[0].config,'topP'));

@@ -20,7 +20,8 @@ async function renderIndividualReportPdf({report,model,render,renderCompact=rend
  // Reserve readable pages for those mandatory rows instead of failing or
  // dropping contracts when the source publishes more than the seed sample.
  const derivativePages=derivativePageAllowance(model);
- const maxBudgetPages=(isProtein ? PROTEIN_PDF_MAX_PAGES : model.bondExecutive ? 5 : model.equityExecutive ? 4 : REPORT_PDF_MAX_PAGES)+derivativePages;
+ const traceabilityPages=report.executiveBrief?.traceability ? 1 : 0;
+ const maxBudgetPages=(isProtein ? PROTEIN_PDF_MAX_PAGES : model.bondExecutive ? 5 : model.equityExecutive ? 4 : REPORT_PDF_MAX_PAGES)+derivativePages+traceabilityPages;
  // Executive Mexico chapters use the same executive distribution as their
  // individual editions, keeping a small FX table beside the equities board.
  const mexicoChapter=report.panoramaMember && report.panoramaPrint==='executive' && model.mexicoExecutive;
@@ -34,7 +35,7 @@ async function renderIndividualReportPdf({report,model,render,renderCompact=rend
  if(model.newsExecutive){
   for(let count=model.newsExecutive.stories.length-1;count>=1;count--){
    const stories=distributedSelection(model.newsExecutive.stories,count,item=>item.topic),ids=new Set(stories.map(item=>item.id)),groups=model.newsExecutive.groups.flatMap(group=>{const selected=group.stories.filter(item=>ids.has(item.id));return selected.length ? [{...group,stories:selected}] : [];}),edition={...model,newsExecutive:{...model.newsExecutive,stories,groups,sourceCount:new Set(stories.map(item=>item.source)).size}};
-   const pdf=await render(edition);if(pdf.reportPageCount<=REPORT_PDF_MAX_PAGES)return pdf;
+   const pdf=await render(edition);   if(pdf.reportPageCount<=REPORT_PDF_MAX_PAGES+traceabilityPages)return pdf;
   }
  }else{
   const budgets=model.proteinPurchasing ? [{rows:64,charts:6,selectPrices:true},{rows:56,charts:6,selectPrices:true},{rows:48,charts:6,selectPrices:true},{rows:40,charts:6,selectPrices:true},{rows:32,charts:5,selectPrices:true},{rows:24,charts:4,selectPrices:true}] : isProtein ? [{rows:120,charts:4,selectPrices:true},{rows:96,charts:4,selectPrices:true},{rows:80,charts:4,selectPrices:true},{rows:64,charts:3,selectPrices:true},{rows:48,charts:3,selectPrices:true},{rows:32,charts:3,selectPrices:true},{rows:16,charts:2,selectPrices:true},...THREE_PAGE_BUDGETS] : model.mexicoExecutive ? [{rows:1000,charts:2},...THREE_PAGE_BUDGETS] : THREE_PAGE_BUDGETS;

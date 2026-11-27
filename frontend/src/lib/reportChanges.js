@@ -2,6 +2,12 @@ import {weeklyReport} from '../../../shared/report-weekly.mjs';
 import {sessionNews} from '../../../shared/report-session-evidence.mjs';
 
 export function reportChangeSnapshot(report){
+ if(Array.isArray(report.panoramaParts)){
+  const parts=report.panoramaParts.map(part=>reportChangeSnapshot({...part,analysisPeriod:report.analysisPeriod || part.analysisPeriod}));
+  const snapshot={key:[report.collection || report.baseReport?.collection,report.key || report.baseReport?.key,report.periodType || '',report.reportYear || '',report.analysisPeriod || 'daily'].join('/'),cut:report.generatedAt,
+   quotes:parts.flatMap(part=>part.quotes.map(item=>({...item,id:part.key+'|'+item.id}))),rows:parts.flatMap(part=>part.rows.map(item=>({...item,id:part.key+'|'+item.id}))),news:[...new Map(parts.flatMap(part=>part.news).map(item=>[item.id,item])).values()]};
+  return {...snapshot,signature:JSON.stringify(snapshot)};
+ }
  const model=weeklyReport(report),quotes=(model.references || []).filter(item=>Number.isFinite(item.last?.value)).map(item=>({
   id:JSON.stringify([item.id || item.symbol || item.label,item.unit,item.market || item.country,item.currency,item.basis]),
   label:item.displayLabel || item.label,unit:item.unit || '',value:item.last.value,date:item.last.date,
@@ -21,7 +27,7 @@ export function compareReportSnapshots(previous,next){
   if(!prior)items.push({kind:'publication',label:quote.label,after:quote.value,unit:quote.unit,date:quote.date});
   else if(quote.value!==prior.value || quote.date!==prior.date || quote.history!==prior.history || quote.status!==prior.status)items.push({kind:quote.date<=prior.date ? 'correction' : quote.value===prior.value ? 'publication' : 'movement',label:quote.label,before:prior.value,after:quote.value,unit:quote.unit,date:quote.date,previousDate:prior.date,historyOnly:quote.value===prior.value && quote.date===prior.date});
  }
- for(const quote of old.values())items.push({kind:'unavailable',label:quote.label,before:quote.value,unit:quote.unit,date:quote.date});
+ for(const quote of old.values())items.push({kind:'unavailable',label:quote.label,before:quote.value,unit:quote.unit,previousDate:quote.date});
  const priorRows=new Map(previous.rows.map(item=>[item.id,item]));
  for(const row of next.rows){const before=priorRows.get(row.id);priorRows.delete(row.id);if(before?.value!==row.value)items.push({kind:before ? 'correction' : 'publication',label:row.label,detail:row.table,beforeText:before ? JSON.parse(before.value).slice(1).join(' · ') : '',afterText:JSON.parse(row.value).slice(1).join(' · ')});}
  for(const row of priorRows.values())items.push({kind:'unavailable',label:row.label,detail:row.table,beforeText:JSON.parse(row.value).slice(1).join(' · ')});

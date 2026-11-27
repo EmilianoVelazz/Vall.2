@@ -719,11 +719,8 @@ async function persistToDokploy(seriesCatalog, artifact) {
         }
         persistedForecastRuns += 1;
 
-        // Save both 1w (weekly audit cycle) and 1m (primary) horizons into forecast_predictions
-        const horizonsToSave = [];
-        const h1w = (f.horizons || []).find(h => h.code === '1w');
-        if (h1w && h1w.code !== p.code) horizonsToSave.push(h1w);
-        horizonsToSave.push(p);
+        // Every published horizon must have a prospective record, including quarterly targets.
+        const horizonsToSave = [...new Map([...(f.horizons || []),p].filter(Boolean).map(h=>[h.code,h])).values()];
 
         for (const h of horizonsToSave) {
             if (!h.eligible || h.targetDate <= nowIso.slice(0, 10)) continue;

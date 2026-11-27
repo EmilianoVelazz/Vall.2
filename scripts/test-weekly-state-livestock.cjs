@@ -20,6 +20,9 @@ assert.equal(quotes[0].stateCode, 'JAL');
 assert.equal(quotes[0].price, 52);
 assert.equal(quotes[0].date, '2026-09-15');
 assert.equal(quotes[0].cadence, 'weekly-source');
+const independent=parseAbasterosRows('<table><tr><td>26/11/26</td><td>$55.00</td><td>Rastro Municipal de Campeche Campeche</td><td>SNIIM</td></tr><tr><td>26/11/26</td><td>$57.00</td><td>Mercado Mayorista de Toluca Toluca</td><td>SNIIM</td></tr></table>','beef');
+assert.deepEqual(independent.map(row=>row.stateCode).sort(),['CAM','MEX'],'La cobertura directa no depende del catálogo reducido de cerdo ni del respaldo de IA');
+assert(independent.every(row=>row.unit==='MXN/kg vivo'&&row.sourceUrl.startsWith('https://')));
 
 assert.equal(
     nextSundayRefreshAt(new Date('2026-09-23T17:00:00Z')).toISOString(),

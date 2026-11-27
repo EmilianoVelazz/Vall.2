@@ -8,8 +8,10 @@ import ReportDeliveryDialog from './ReportDeliveryDialog.jsx';
 import ReportDownloadMenu from './ReportDownloadMenu.jsx';
 import ReportMeetingTools from './ReportMeetingTools.jsx';
 import ReportControlIcon from './ReportControlIcon.jsx';
+import ReportDataQualityDetails from './ReportDataQualityDetails.jsx';
 
 const ReportReaderAssistant = lazy(() => import('./ReportReaderAssistant.jsx'));
+const ReportCutComparison = lazy(() => import('./ReportCutComparison.jsx'));
 import {reportReadingKey} from '../lib/reportReadingMemory.js';
 import { animate, createScope, stagger } from 'animejs';
 import './ReportStudio.css';
@@ -207,10 +209,12 @@ export default function ReportWorkspace(props) {
       {!creatingReport && identity.sections?.tables===false && <div className="erh-tables-notice" role="status"><p>{t('Las tablas están desactivadas en esta edición.')}</p><button type="button" className="erh-secondary-button" disabled={outputBlocked || !p.preferencesHydrated} onClick={p.restoreTables}><Icon name="fa-table-list" />{t('Mostrar tablas de datos')}</button></div>}
       {creatingReport && <ol className="erh-workflow" aria-label={t("Crear un informe")}>{[['fa-sliders','Describe tu informe','Objetivo, contenido y audiencia'],['fa-wand-magic-sparkles','Genera con ORION','Un informe a tu medida'],['fa-file-circle-check','Revisa y guarda','Listo para compartir']].map(([icon,title,note],index)=>{const complete=index===0 ? phase>0 : index===1 ? Boolean(p.active.aiEdition && !p.aiEditorProps.generating) : false;return <li key={title} aria-current={phase===index ? "step" : undefined} className={complete ? "is-complete" : ''}><span><Icon name={complete ? "fa-check" : icon} /></span><div><strong>{t(title)}</strong><small>{t(note)}</small></div><b>{String(index+1).padStart(2,'0')}</b></li>;})}</ol>}
       <div className="erh-report-surface">
+      {!creatingReport&&<ReportDataQualityDetails report={p.active} />}
       <div className="erh-workbar notranslate" translate="no"><div><strong className="notranslate" translate="no">{reading?.title || cardTitle(p.active)}</strong><small className="notranslate" translate="no">{readingCut}{(creatingReport || p.active.userEdition) && <span className="erh-edition-status"> · {t(editionState)}</span>}</small></div><div className="erh-workbar-actions">
         <div className="erh-view-tools" role="group" aria-label={t('Vista del informe')}><button type="button" aria-pressed={!showPdf} onClick={()=>setPdfMode(false)}>{t('Lectura')}</button><button type="button" disabled={outputBlocked || p.downloadingPdf || p.pdfPreviewLoading || p.aiEditorProps.pending || p.aiEditorProps.generating} aria-pressed={showPdf} onClick={()=>{setPdfMode(true);void p.openPdfPreview();}}>{t('Ver PDF')}</button></div>
         <button type="button" className="erh-secondary-button erh-reader-ask-toggle" disabled={!canAskReader} aria-expanded={readerOpen && canAskReader} onClick={()=>setReaderOpen(open=>!open)}><Icon name="fa-book-open-reader" />{t('Consultar informe')}</button>
         {!p.sessionChanged&&<ReportMeetingTools key={p.accountEmail+'|'+p.language+'|'+p.pdfPreviewKey} report={p.active} reading={reading} owner={p.accountEmail} language={p.language} disabled={outputBlocked||p.aiEditorProps.pending||p.aiEditorProps.generating} renderReport={p.renderReport} t={t}/>}
+        {!p.sessionChanged&&!creatingReport&&<Suspense fallback={null}><ReportCutComparison key={p.accountEmail+'|'+p.area+'|'+activeKey} report={p.baseActive} owner={p.accountEmail} area={p.area} disabled={outputBlocked||p.aiEditorProps.pending||p.aiEditorProps.generating}/></Suspense>}
         <ReportDownloadMenu key={p.area+'/'+(p.active.editionId || p.active.key)} compact t={t} disabled={outputBlocked || p.pdfPreviewLoading || p.aiEditorProps.pending || p.aiEditorProps.generating} busy={p.downloadingPdf || p.downloadingData} onDownload={(format,event)=>format==='pdf' ? p.downloadPdf(event) : p.downloadData(format)}>
           {p.onAnnex && <button type="button" onClick={()=>p.onAnnex(p.active)}><ReportControlIcon name="table" />{t('Ver anexos')}</button>}
           {p.pdfPreviewUrl && <a onClick={p.openPdfFile} href={p.pdfPreviewUrl} target="_blank" rel="noopener noreferrer"><ReportControlIcon name="external" />{t('Abrir PDF')}</a>}

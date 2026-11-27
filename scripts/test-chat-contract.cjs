@@ -83,12 +83,26 @@ const realCitation = { type: 'economic_indicator', title: 'Indicador observado',
 const mixedAudit = auditResponse({ text: exampleText, plan: { needsSources: true }, evidence: { citations: [...internalCitations, realCitation] } });
 assert.match(mixedAudit.disclosure, /Fuente estadística/);
 assert.doesNotMatch(mixedAudit.disclosure, /Ejemplo interno/);
+const internalMentionAudit = auditResponse({
+    text: `${exampleText} VALLNews Vector Index orientó el formato.`,
+    plan: { needsSources: true },
+    evidence: { citations: [...internalCitations, realCitation] },
+});
+assert.match(internalMentionAudit.disclosure, /Fuente estadística/, 'Mencionar contexto interno no debe sustituir la atribución de evidencia real');
 assert.match(citationDisclosure([{ ...realCitation, url: null }]), /Fuente estadística/);
 for (const citations of [internalCitations, [...internalCitations, realCitation]]) {
     const response = { blocks: [{ type: 'markdown', content: exampleText }], markdown: exampleText, meta: {} };
     attachEvidence(response, { citations });
     assert.deepEqual(response.meta.citations, citations.includes(realCitation) ? [realCitation] : []);
+    assert.equal(response.meta.evidenceCount, citations.includes(realCitation) ? 1 : 0);
 }
+const unlinkedSources = [
+    { type: 'economic_indicator', title: 'Indicador A', source: 'Fuente A' },
+    { type: 'economic_indicator', title: 'Indicador B', source: 'Fuente B' },
+];
+const unlinkedResponse = { blocks: [{ type: 'markdown', content: exampleText }], markdown: exampleText, meta: {} };
+attachEvidence(unlinkedResponse, { citations: unlinkedSources });
+assert.deepEqual(unlinkedResponse.meta.citations, unlinkedSources, 'Fuentes legítimas sin URL no deben colapsarse entre sí');
 assert.match(auditResponse({ text: exampleText, plan: oilPlan, liveData: { available: false }, evidence: { citations: internalCitations } }).disclosure, /Cotización sin confirmar/);
 
 const liveConfig = chatRouter.liveSessionConfig();

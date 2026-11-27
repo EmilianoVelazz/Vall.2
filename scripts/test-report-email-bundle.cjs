@@ -3,12 +3,14 @@ process.env.GMAIL_USER='fixture-only@example.invalid';process.env.GMAIL_PASS='fi
 const assert=require('node:assert/strict');
 const {createReportBundleSender,MAX_BUNDLE_BYTES}=require('../backend/services/report-email-bundle');
 const {buildReportBundleEmail}=require('../backend/services/report-email-bundle-template');
-const source=[{area:'mexico',executive:{key:'mx_bolsa',title:'Bolsa <México>',generatedAt:'2026-11-11T20:00:00Z'}},{area:'finance',executive:{key:'equities',title:'Bolsa <img src=x onerror="alert(1)">',generatedAt:'2026-11-12T15:00:00Z'}}];
+const source=[{area:'mexico',health:{state:'partial',label:'Parcial',issueCount:2,references:[{label:'Precio pollo',source:'SNIIM',date:'2026-10-10',unit:'MXN/kg',status:'stale'},{label:'Res <dato>',source:'Mercado & plaza',date:'',status:'missing'}],coverage:{available:3,total:5,missing:1,stale:1,preserved:0}},executive:{key:'mx_bolsa',title:'Bolsa <México>',generatedAt:'2026-11-11T20:00:00Z'}},{area:'finance',executive:{key:'equities',title:'Bolsa <img src=x onerror="alert(1)">',generatedAt:'2026-11-12T15:00:00Z'}}];
 async function main(){
  let sends=0,closes=0;const messages=[];
  const dependencies={render:async()=>Buffer.from('%PDF-1.7\nfixture'),localize:async input=>({...input,title:input.title||input.report.title}),sender:()=> 'sender@example.invalid',assets:()=>[],transport:()=>({sendMail:async message=>{sends++;messages.push(message);return {accepted:[message.to],rejected:[],messageId:'bundle-fixture-id'};},close(){closes++;}})};
  const sender=createReportBundleSender(dependencies),prepared=await sender.prepare({recipient:'recipient@example.invalid',owner:'owner@example.invalid',reports:source,testMode:true});
  assert.equal(prepared.items.length,2);assert.equal(prepared.items[0].area,'finance');assert.equal(prepared.mail.attachments.length,2);
+ assert.equal(prepared.items[1].health.state,'partial');assert(prepared.mail.html.includes('Calidad de datos: Parcial'));assert(prepared.mail.text.includes('3/5 referencias con dato'));
+ assert(prepared.mail.html.includes('SNIIM'));assert(prepared.mail.html.includes('Fecha del dato: 2026-10-10'));assert(prepared.mail.html.includes('Res &lt;dato&gt;'));assert(prepared.mail.text.includes('Referencias para revisar'));assert(prepared.mail.text.includes('Precio pollo — Desactualizado · Fuente: SNIIM'));
  assert.equal(new Set(prepared.items.map(item=>item.attachmentName)).size,2);assert(prepared.mail.subject.startsWith('[PRUEBA]'));
  assert(!prepared.mail.html.includes('<img src=x'));assert(prepared.mail.html.includes('&lt;img'));assert(prepared.mail.html.includes('12 nov'));assert(prepared.mail.html.includes('ediciones guardadas'));
  assert(prepared.items.every(item=>prepared.mail.text.includes(item.attachmentName)));

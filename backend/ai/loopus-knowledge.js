@@ -338,27 +338,32 @@ function getChatReasoningContext({ message = '', plan = {}, limit = 3 } = {}) {
         .slice(0, limit)
         .map(item => item.rule);
 
-    if (!rules.length) return '';
     let predictiveCtx = '';
     try {
         const { getPredictiveContextForQuery } = require('../ml/predictive-showcase');
         predictiveCtx = getPredictiveContextForQuery(queryText, { stripNumbers: false, includeProtein: false }) || '';
     } catch { /* showcase opcional */ }
 
-    let marranasCtx = '';
-    const wantsInlineProteinMl = /\b(?:marranas?|paridad\s+de\s+importacion|shap|radar\s+nlp|h5n1|peste\s+porcina|gusano\s+barrenador|sube\s+o\s+baja|pronostic\w*)\b/i.test(queryText);
+    let vallProteinasCtx = '';
+    const wantsInlineProteinMl = Boolean(plan?.needsVallProteinasML || plan?.needsMarranasML
+        || plan?.proteinProfile?.products?.length)
+        || /\b(?:vall[-\s]?prote[ií]nas?|marranas?|paridad\s+de\s+importacion|shap|radar\s+nlp|h5n1|peste\s+porcina|gusano\s+barrenador|sube\s+o\s+baja|pronostic\w*)\b/i.test(queryText);
     if (wantsInlineProteinMl && plan?.skipInlineProteinMl !== true) {
         try {
             const { getProteinMLContextForQuery } = require('../ml/protein-ml-engine');
-            marranasCtx = getProteinMLContextForQuery(queryText, { stripNumbers: false, limit: 6 }) || '';
+            vallProteinasCtx = getProteinMLContextForQuery(queryText, { stripNumbers: false, limit: 6 }) || '';
         } catch { /* ML de proteínas opcional */ }
     }
 
-    const ruleLimit = (predictiveCtx || marranasCtx) ? Math.min(limit, 2) : limit;
-    const lines = [
-        '[GUÍA DE RACIOCINIO ANALÍTICO · PROYECTO LOOPUS]',
-        'Aplica estos criterios metodológicos para estructurar raciocinio y límites de evidencia (nunca sustituyen cifras):',
-    ];
+    if (!rules.length && !predictiveCtx && !vallProteinasCtx) return '';
+    const ruleLimit = (predictiveCtx || vallProteinasCtx) ? Math.min(limit, 2) : limit;
+    const lines = [];
+    if (rules.length) {
+        lines.push(
+            '[GUÍA DE RACIOCINIO ANALÍTICO · PROYECTO LOOPUS]',
+            'Aplica estos criterios metodológicos para estructurar raciocinio y límites de evidencia (nunca sustituyen cifras):',
+        );
+    }
     for (const r of rules.slice(0, ruleLimit)) {
         const cond = clean(r.condition_trigger, 100);
         const crit = clean(r.learned_rule, 155);
@@ -366,9 +371,16 @@ function getChatReasoningContext({ message = '', plan = {}, limit = 3 } = {}) {
         lines.push(`- Cuando: ${cond} -> Criterio: ${crit}${chain ? ` (Cadena lógica: ${chain})` : ''}`);
     }
     if (predictiveCtx) lines.push('', predictiveCtx.slice(0, 750));
-    if (marranasCtx) lines.push('', marranasCtx.slice(0, 2600));
+    if (vallProteinasCtx) {
+        lines.push(
+            '',
+            '[RAZONAMIENTO ESPECIALIZADO · VALL-PROTEÍNAS]',
+            'Usa este modelo sólo para predicciones y señales de proteínas animales. Conserva especie, plaza, presentación, unidad, corte y horizonte; no reemplaces un pronóstico local ausente por uno extranjero. Distingue predicción validada de referencia física, paridad y noticia; los impulsores son asociaciones, no causas comprobadas. Si el bloque indica abstención, explícala y no inventes una dirección.',
+            vallProteinasCtx.slice(0, 2600),
+        );
+    }
     const joined = lines.join('\n');
-    const maxBudget = marranasCtx ? 4600 : 1980;
+    const maxBudget = vallProteinasCtx ? 5200 : 1980;
     return joined.length <= maxBudget ? joined : `${joined.slice(0, maxBudget - 3).replace(/\n[^\n]*$/, '')}...`.slice(0, maxBudget);
 }
 
@@ -404,9 +416,8 @@ function getReportReasoningContext({ area = '', key = '', audience = 'general', 
         .slice(0, resolvedLimit)
         .map(item => item.rule);
 
-    if (!rules.length) return '';
     const lines = [
-        'CRITERIOS DE RAZONAMIENTO EDITORIAL Y PROFUNDIDAD (Proyecto Loopus ML · sólo metodología, prohibido introducir cifras que no estén en DATOS VERIFICADOS):',
+        ...(rules.length ? ['CRITERIOS DE RAZONAMIENTO EDITORIAL Y PROFUNDIDAD (Proyecto Loopus ML · sólo metodología, prohibido introducir cifras que no estén en DATOS VERIFICADOS):'] : []),
     ];
     for (const r of rules) {
         const safeCondition = stripNumbersForReportRule(r.condition_trigger);
@@ -426,12 +437,17 @@ function getReportReasoningContext({ area = '', key = '', audience = 'general', 
     } catch { /* showcase opcional */ }
     try {
         const { getProteinMLContextForQuery } = require('../ml/protein-ml-engine');
-        const marranasQual = getProteinMLContextForQuery(queryText, { stripNumbers: true, limit: 4 });
-        if (marranasQual) {
-            const safeMarranas = clean(String(marranasQual || '').replace(/\d+(?:[.,–-]\d+)?%?/g, '').replace(/\s{2,}/g, ' '), 2400);
-            if (safeMarranas) lines.push(safeMarranas);
+        const vallProteinasQual = getProteinMLContextForQuery(queryText, { stripNumbers: true, limit: 4 });
+        if (vallProteinasQual) {
+            const safeVallProteinas = clean(String(vallProteinasQual || '').replace(/\d+(?:[.,–-]\d+)?%?/g, '').replace(/\s{2,}/g, ' '), 2400);
+            if (safeVallProteinas) {
+                lines.push(
+                    'RAZONAMIENTO ESPECIALIZADO DE VALL-PROTEÍNAS: usa la dirección sólo para mercados con pronóstico validado; si falta cobertura de la especie o plaza solicitada, declara la brecha y no la sustituyas por otro mercado. Expón evidencia, implicación condicional y dato pendiente; no atribuyas causalidad a factores asociados.',
+                    safeVallProteinas,
+                );
+            }
         }
-    } catch { /* MARRANAS opcional */ }
+    } catch { /* Modelo especializado de proteínas opcional. */ }
     return lines.join('\n');
 }
 
